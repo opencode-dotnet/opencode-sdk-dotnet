@@ -342,7 +342,7 @@ package `opencode-ai` installs, and that binary does not accept the `--stdio` fl
 appends: it exits with code 1 at once and prints its own `serve` usage text to stderr, an option
 list with no `--stdio` in it. When the stderr tail in the message is that usage text, the `opencode`
 on your `PATH` is from `opencode-ai`, which this SDK does not drive — install `@opencode/cli`, or point
-`Command` at that install's executable. Measured on `opencode-ai@1.18.30`.
+`Command` at that install's executable.
 
 The rest are decided before anything is spawned, so they carry no stderr — there is nothing to
 report — but they name exactly what went wrong instead.

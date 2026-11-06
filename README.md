@@ -381,8 +381,8 @@ has the two properties to set.
 
 | Package | NuGet.org | GitHub Packages |
 |---------|-----------|-----------------|
-| **OpenCodeDotNet.Sdk** | [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk) | [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-nightly-blue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk) |
-| **OpenCodeDotNet.Sdk.Extensions** | [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk.Extensions)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk.Extensions) | [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-nightly-blue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk.Extensions) |
+| **OpenCodeDotNet.Sdk** | [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk) | [![GitHub Packages](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fgithub%2Fopencode-dotnet%2FOpenCodeDotNet.Sdk%3Fprerelease%3Dtrue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk) |
+| **OpenCodeDotNet.Sdk.Extensions** | [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk.Extensions)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk.Extensions) | [![GitHub Packages](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fgithub%2Fopencode-dotnet%2FOpenCodeDotNet.Sdk.Extensions%3Fprerelease%3Dtrue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk.Extensions) |
 
 ## Known Issues
 
