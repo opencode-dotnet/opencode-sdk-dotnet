@@ -1,12 +1,17 @@
 # Developing on Windows
 
-Date: 2026-11-05
+Date: 2026-11-06
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.
 A fresh worktree is prepared as `quality-gates.md` describes before its first gate; a workstation
 keeps one Bun, and when that is not the pinned one the gate runs with the Bun mismatch switch that
 `quality-gates.md` describes.
+
+A server started by hand, for example to check HQ, inherits the shell's environment, and isolated
+XDG roots don't change that: a provider variable such as `AWS_PROFILE` makes a cold server pick
+that provider's model as its default, and the first turn then fails on missing credentials. Clear
+such variables before starting it; the suite's own live runs already do (`testing-style.md`).
 
 ## Native AOT publishing
 

@@ -120,6 +120,164 @@ public sealed class SessionConversationTests
     }
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task SendAsync_Should_Show_The_Prompt_Until_The_Server_Takes_It(bool reconnect)
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.MessageCalls.PromptRelease = release;
+        var send = scenario.Conversation.SendAsync("prompt", CancellationToken.None);
+        try
+        {
+            if (reconnect)
+            {
+                await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+            }
+
+            await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.Pending)))
+                .IsEquivalentTo([("you", "prompt", true)], CollectionOrdering.Matching);
+            await Assert.That(scenario.Conversation.Running).IsTrue();
+        }
+        finally
+        {
+            _ = release.TrySetResult();
+            _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.Pending)))
+            .IsEquivalentTo([("you", "prompt", false)], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task SendAsync_Should_Take_Back_A_Refused_Prompt()
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        scenario.MessageCalls.FailPrompt = true;
+        var sent = await scenario.Conversation.SendAsync("prompt", CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(sent).IsFalse();
+        await Assert.That(scenario.Conversation.Lines).IsEmpty();
+        await Assert.That(scenario.Conversation.Running).IsFalse();
+    }
+
+    [Test]
+    public async Task SendAsync_Should_Keep_Live_Text_On_Its_Line_After_A_Refused_Prompt()
+    {
+        using var scenario = new ConversationScenario();
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.MessageCalls.PromptRelease = release;
+        scenario.MessageCalls.FailPrompt = true;
+        var send = scenario.Conversation.SendAsync("prompt", CancellationToken.None);
+        try
+        {
+            // Another client's turn streams after the pending line; taking that line back must not move the live text.
+            await scenario.FollowAsync(Delta(0, "Hel")).WaitAsync(TimeSpan.FromSeconds(30));
+        }
+        finally
+        {
+            _ = release.TrySetResult();
+            _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+
+        scenario.EventCalls.Items = [() => Delta(0, "lo")];
+        await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text)))
+            .IsEquivalentTo([("assistant", "Hello")], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task SendAsync_Should_Keep_A_Prompt_The_Server_Took_Before_The_Call_Failed(bool storedBeforeFailure)
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.MessageCalls.PromptRelease = release;
+        scenario.MessageCalls.FailPrompt = true;
+        var send = scenario.Conversation.SendAsync("prompt", CancellationToken.None);
+        var promptId = scenario.MessageCalls.Prompt?.Id.Value ?? "";
+        bool sent;
+        try
+        {
+            // The echo and then a reload before the history holds the prompt, or a reload whose history already holds it.
+            if (storedBeforeFailure)
+            {
+                _ = scenario.WithHistory(User(promptId, "prompt"));
+            }
+            else
+            {
+                await scenario.FollowAsync(Enqueued(promptId)).WaitAsync(TimeSpan.FromSeconds(30));
+            }
+
+            await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+            await Assert.That(scenario.Conversation.Running).IsTrue();
+        }
+        finally
+        {
+            _ = release.TrySetResult();
+            sent = await send.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+
+        await Assert.That(sent).IsTrue();
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.Pending)))
+            .IsEquivalentTo([("you", "prompt", false)], CollectionOrdering.Matching);
+        await Assert.That(scenario.Conversation.LastError).IsNull();
+    }
+
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(true, false)]
+    [Arguments(true, true)]
+    public async Task SendAsync_Should_Settle_A_Prompt_That_Ends_While_A_Reload_Waits(bool refused, bool stored)
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        var prompt = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var active = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.MessageCalls.PromptRelease = prompt;
+        scenario.MessageCalls.FailPrompt = refused;
+        var send = scenario.Conversation.SendAsync("prompt", CancellationToken.None);
+        if (stored)
+        {
+            _ = scenario.WithHistory(User(scenario.MessageCalls.Prompt?.Id.Value ?? "", "prompt"));
+        }
+
+        scenario.SessionCalls.ActiveStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.SessionCalls.ActiveRelease = active;
+        var reload = scenario.FollowAsync();
+        try
+        {
+            await scenario.SessionCalls.ActiveStarted.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            _ = prompt.TrySetResult();
+        }
+        finally
+        {
+            _ = prompt.TrySetResult();
+            _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
+            _ = active.TrySetResult();
+            await reload.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.Pending)))
+            .IsEquivalentTo(refused && !stored ? Array.Empty<(string, string, bool)>() : [("you", "prompt", false)], CollectionOrdering.Matching);
+        await Assert.That(scenario.Conversation.LastError).IsEqualTo(refused && !stored ? "The prompt was not sent: unauthorized" : null);
+    }
+
+    [Test]
+    public async Task SendAsync_Should_Leave_A_Running_Turn_Running_When_A_Prompt_Is_Refused()
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync(Started()).WaitAsync(TimeSpan.FromSeconds(30));
+        scenario.MessageCalls.FailPrompt = true;
+        var sent = await scenario.Conversation.SendAsync("prompt", CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(sent).IsFalse();
+        await Assert.That(scenario.Conversation.Running).IsTrue();
+    }
+
+    [Test]
     public async Task FollowAsync_Should_Be_Ready_Only_After_Messages_And_Active_State_Load()
     {
         using var scenario = new ConversationScenario().WithHistory(User());

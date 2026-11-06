@@ -51,6 +51,7 @@ Nightly builds of `master` are on
 - The guides link to the playground apps that show their features running.
 - HQ's session page opens a terminal in the session's folder, removed from the server when the page ends.
 - HQ's pages no longer prerender, so a click right after a page loads is no longer dropped.
+- HQ shows a sent prompt at once, with "Working..." under it, so a first prompt no longer leaves the page blank while the server loads the session's folder; a prompt the server refuses goes back into the prompt box.
 - HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.
 - Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
 - Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
