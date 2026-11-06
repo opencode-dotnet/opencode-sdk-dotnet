@@ -444,7 +444,7 @@ for anything else, including questions and ideas, and say when it is an idea. A 
 
 ## Related Projects
 
-- [opencode-mcp](https://github.com/opencode-dotnet/opencode-mcp): an MCP server built on this SDK.
+- [opencode-mcp](https://github.com/opencode-dotnet/opencode-mcp): a Model Context Protocol (MCP) server project for opencode.
 
 ## Changelog
 
