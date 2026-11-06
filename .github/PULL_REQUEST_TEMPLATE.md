@@ -111,5 +111,5 @@ If applicable, show the change in action.
 
 By submitting this pull request, I confirm that:
 
-- [ ] I have read and agree to the project's [Code of Conduct](CODE_OF_CONDUCT.md)
+- [ ] I have read and agree to the project's [Code of Conduct](https://github.com/opencode-dotnet/.github/blob/master/CODE_OF_CONDUCT.md)
 - [ ] My contribution is licensed under the same terms as the project (MIT License)

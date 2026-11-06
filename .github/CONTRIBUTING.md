@@ -16,7 +16,7 @@ chance of being accepted.
 
 ## 🤝 Code of Conduct
 
-This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md). By
+This project follows the organization's [Code of Conduct](https://github.com/opencode-dotnet/.github/blob/master/CODE_OF_CONDUCT.md). By
 participating, you are expected to uphold it.
 
 ## 📝 Licensing your contribution
@@ -240,7 +240,7 @@ in the release notes for significant contributions.
 
 ---
 
-**By contributing to this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md)
+**By contributing to this project, you agree to abide by our [Code of Conduct](https://github.com/opencode-dotnet/.github/blob/master/CODE_OF_CONDUCT.md)
 and understand that your contributions will be licensed under the MIT License.**
 
 Thank you for making the opencode .NET SDK better! 🚀
