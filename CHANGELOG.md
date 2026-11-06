@@ -36,7 +36,7 @@ four apps.
   content parts and tool states keep the same values and failure behavior; serialization is
   unchanged.
 - **A prompt's event stream allocates less.** Reading 1,024 delta frames and 16 text-ended frames
-  allocates 704,850 B instead of 1,491,796 B on .NET 10, and 704,778 B instead of 1,491,724 B on
+  allocates 704,732 B instead of 1,491,796 B on .NET 10, and 704,658 B instead of 1,491,724 B on
   .NET 11. Materializing the frames alone allocates 663,424 B instead of 1,450,368 B on both
   runtimes. Values, failure behavior and serialization are unchanged.
 - **Real-turn event subscriptions allocate less.** Reading a captured coding turn allocates 36,096 B
