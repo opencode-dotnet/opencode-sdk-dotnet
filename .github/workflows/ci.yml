@@ -571,6 +571,7 @@ jobs:
         with:
           name: benchmark-sdk-${{ matrix.leg }}-${{ github.event.pull_request.number || github.run_number }}
           path: .benchmarks/ci-sdk-*
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 
@@ -602,6 +603,7 @@ jobs:
         with:
           name: benchmark-generator-stage-${{ github.event.pull_request.number || github.run_number }}
           path: .benchmarks/ci-generator-stage
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 
