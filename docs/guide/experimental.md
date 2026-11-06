@@ -1,8 +1,8 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-02
+Date: 2026-11-06
 
-Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it, and marks
+Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it except three declined operations (the client-hosted MCP attach and its token, deferred to 1.1 in #529, and the legacy text-generation endpoint), and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
 before you depend on it.
 

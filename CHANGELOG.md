@@ -64,12 +64,13 @@ four apps.
 - HQ shows a sent prompt at once, with "Working..." under it, so a first prompt no longer leaves the page blank while the server loads the session's folder; a prompt the server refuses goes back into the prompt box.
 - HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.
 - Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
-- Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
+- Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing. The README has a Playground section and a Versions and support section that states what a version's parts mean.
+- The package descriptions name the assemblies and namespaces, `PersistentPtyResizedFrame`'s summary says that only `ResizeAsync` changes the viewport later writes carry, and the security policy names the latest release as the supported line.
 - The Known Issues name a .NET Framework cost: reading a JSON string over 1 MiB that contains an
   escape, such as a newline, allocates one extra array of its length each time.
 - **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended
   session on the shared data, including one another process is still running, so both drive it.
-  The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
+  The [connection modes guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md#-ensuring-the-background-service) says
   when that matters.
 - A runnable [QuickStart sample](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/quickstart/README.md) lives in `playground/`.
 - [HQ](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/hq/README.md) shows live sessions, streamed conversations, prompts, permission answers, changed files and new sessions in a chosen directory in Blazor Server with an Aspire AppHost.

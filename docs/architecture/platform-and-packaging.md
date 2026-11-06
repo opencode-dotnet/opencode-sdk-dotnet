@@ -1,6 +1,6 @@
 # Platform and Packaging Architecture
 
-Date: 2026-11-05
+Date: 2026-11-06
 
 Canonical current rules for target frameworks, package boundaries, repository shape, versioning,
 distribution, dependencies, and licensing.
@@ -120,7 +120,6 @@ MCP server versions on its own in its repository.
 
 The release policy is publication to GitHub Packages on every merge that changes more than Markdown
 or `LICENSE`, and a manual pipeline for NuGet.org.
-Pre-1.0 numbering is an operational decision, not a canon rule (ADR-0006).
 
 From `1.0.0`, a version's parts say where a change comes from (ADR-0034). A patch carries fixes
 and additive changes of the SDK's own. A minor moves the protocol pin and may change the generated
