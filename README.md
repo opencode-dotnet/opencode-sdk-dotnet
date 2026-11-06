@@ -172,9 +172,67 @@ var info = await client.Server.GetInfoAsync();
 Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid})");
 
 using var window = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
+try
 {
-    Console.WriteLine($"{@event.GetType().Name} ({@event.Type})");
+    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
+    {
+        Console.WriteLine($"{@event.GetType().Name} ({@event.Type})");
+    }
+}
+catch (OperationCanceledException failure) when (failure.CancellationToken == window.Token)
+{
+    Console.WriteLine("the 30-second window ended");
+}
+```
+
+### Send a prompt and stream the reply
+
+This is QuickStart's core, shortened. It picks a free model from the live catalog, opens the event
+stream before it prompts, prints the reply's text as it arrives, and ends on the turn's execution
+event. [QuickStart](https://github.com/opencode-dotnet/opencode-sdk-dotnet/tree/master/playground/quickstart)
+is the full version: it waits out the server's startup and reports retries and failures.
+
+```csharp
+using OpenCode.Sdk;
+using OpenCode.Sdk.Models;
+
+await using var server = await OpenCodeServer.StartAsync();
+using var client = server.CreateClient();
+
+// A free model from the live catalog; no API key needed.
+await client.LanguageModels.WaitForDefaultAsync();
+var catalog = await client.LanguageModels.ListModelsAsync();
+var model = catalog.Models.First(static m => m.ProviderId == "opencode" && m.Cost.All(static c => c.Input <= 0));
+
+var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
+{
+    Model = new ModelRef { Id = model.Id, ProviderId = model.ProviderId },
+});
+
+// Open the event stream before prompting: an event published before you listen is gone.
+await using var events = client.Events.SubscribeAsync().GetAsyncEnumerator();
+await events.MoveNextAsync();
+
+await client.Sessions.GetSessionClient(created.Session.Id)
+    .PromptAsync(new SessionPromptRequest { Text = "In one sentence, what is a typed SDK?" });
+
+while (await events.MoveNextAsync())
+{
+    switch (events.Current)
+    {
+        case SessionTextDelta delta when delta.Data.SessionId == created.Session.Id:
+            Console.Write(delta.Data.Delta);
+            break;
+        case SessionExecutionSucceeded done when done.Data.SessionId == created.Session.Id:
+            Console.WriteLine();
+            return;
+        case SessionExecutionFailed failed when failed.Data.SessionId == created.Session.Id:
+            Console.WriteLine($"the turn failed: {failed.Data.Error.Message}");
+            return;
+        case SessionExecutionInterrupted stopped when stopped.Data.SessionId == created.Session.Id:
+            Console.WriteLine($"the turn was interrupted: {stopped.Data.Reason}");
+            return;
+    }
 }
 ```
 
@@ -220,6 +278,12 @@ registration wins, and repeated `AddOpenCode` calls add no duplicate client regi
 default root is thread-safe and owns its transport for the container's lifetime; default
 sub-clients resolve from the registered root, so you can inject `SessionsClient`, `EventsClient`,
 or `PtysClient` directly. See the [DI registration guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md#-registering-with-dependency-injection).
+
+For a non-web host, `Host` and `BackgroundService` come from the `Microsoft.Extensions.Hosting` package:
+
+```bash
+dotnet add package Microsoft.Extensions.Hosting
+```
 
 ```csharp
 var builder = Host.CreateApplicationBuilder(args);
