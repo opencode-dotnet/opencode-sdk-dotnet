@@ -11,7 +11,7 @@ and [`1.1`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2).
 
 ## Status
 
-**Pre-release, and the protocol surface is complete.** The callable surface is generated from an
+**Released, and the protocol surface is complete.** The callable surface is generated from an
 accepted OpenAPI snapshot and rides one hand-written transport runtime.
 
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
@@ -45,8 +45,8 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   right before a release, not between releases. The accepted protocol identity is owned by `../spec/SNAPSHOT.md`.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
   `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
-  single-sourced `VersionPrefix 0.9.0`. Every `master` push publishes a `0.9.0-nightly.*` build to
-  the organization's GitHub Packages feed, and `0.9.0-preview.15` is on NuGet.org, owned by
+  single-sourced `VersionPrefix 1.0.1`, the next version. Every `master` push publishes a nightly of
+  it to the organization's GitHub Packages feed, and `1.0.0`, the latest release, is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.

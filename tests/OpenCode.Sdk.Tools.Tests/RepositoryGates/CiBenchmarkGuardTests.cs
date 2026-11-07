@@ -35,6 +35,7 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(upload).Contains("if: always()");
         await Assert.That(upload).Contains("name: benchmark-sdk-${{ matrix.leg }}-${{ github.event.pull_request.number || github.run_number }}");
         await Assert.That(upload).Contains("continue-on-error: true");
+        await Assert.That(upload).Contains("include-hidden-files: true");
     }
 
     [Test]
@@ -64,6 +65,7 @@ public sealed class CiBenchmarkGuardTests
         var uploadEnd = stage.IndexOf("\n      - name: ", uploadStart + 1, StringComparison.Ordinal);
         var upload = stage[uploadStart..(uploadEnd < 0 ? stage.Length : uploadEnd)];
         await Assert.That(upload).Contains("continue-on-error: true");
+        await Assert.That(upload).Contains("include-hidden-files: true");
         await Assert.That(stage).Contains("runs-on: ubuntu-24.04");
         await Assert.That(Commands(stage)).IsEquivalentTo([
             $"{Run} --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage",
