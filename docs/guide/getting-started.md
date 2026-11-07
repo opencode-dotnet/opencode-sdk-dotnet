@@ -217,7 +217,7 @@ if (model is not null)
 - **Catalogs are observations during asynchronous plugin activation.** A successful status call
   does not make them complete, and the server exposes no activation barrier: when your application
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
-  deadline (`CONTEXT.md`, Plugin activation).
+  deadline (`GLOSSARY.md`, Plugin activation).
 - **Some catalog and model calls wait for plugins; wait out unavailable answers at startup.**
   Listing the location's models, providers and agents; the default model; a web search query;
   usage limits; and experimental generation, voice and artifacts wait up to five seconds for plugins

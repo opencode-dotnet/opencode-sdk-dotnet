@@ -35,7 +35,7 @@ same change. Add a research-log entry when the evidence is worth keeping.
 
 ### Level 2 — Canonical correction
 
-Reality contradicts a current non-decision claim — operational state, `CONTEXT.md`, an active
+Reality contradicts a current non-decision claim — operational state, `GLOSSARY.md`, an active
 plan's binding constraint, or a verified research fact — and no fallback is recorded:
 upstream behaves differently, an API does not exist, a count is wrong, a detail cannot be
 built as written. **Stop the affected task** (neighboring tasks may continue if
