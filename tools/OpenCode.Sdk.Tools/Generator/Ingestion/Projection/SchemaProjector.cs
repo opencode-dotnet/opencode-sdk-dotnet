@@ -59,6 +59,17 @@ internal sealed class SchemaProjector
 
     private SchemaNode? ProjectConcrete(OpenApiSchema schema, string root, string pointer, string location, ProjectionState state)
     {
+        if (SchemaShapeClassifier.AnnotatedReference(schema) is { } reference)
+        {
+            var projected = ProjectReference(reference, location, state);
+            return projected is null ? null : projected with
+            {
+                Description = schema.Description ?? reference.Reference.Description
+                    ?? schema.AllOf!.OfType<OpenApiSchema>().Select(static element => element.Description)
+                    .FirstOrDefault(static description => description is not null),
+            };
+        }
+
         if (schema is { AnyOf.Count: > 0, OneOf.Count: > 0 })
         {
             return _unionNormalizer.Project(schema, root, pointer, location, state);

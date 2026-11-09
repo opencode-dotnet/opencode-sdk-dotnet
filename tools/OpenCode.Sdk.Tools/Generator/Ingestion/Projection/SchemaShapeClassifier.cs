@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.Json;
 using Microsoft.OpenApi;
 
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
@@ -90,6 +92,34 @@ internal sealed class SchemaShapeClassifier
         return shape;
     }
 
+    /// <summary>Recognizes a reference intersected only with annotations, independently of typed wrappers.</summary>
+    public static OpenApiSchemaReference? AnnotatedReference(OpenApiSchema schema)
+    {
+        ArgumentNullException.ThrowIfNull(schema);
+        if (schema.Type is not null || schema.AllOf is not { Count: > 1 })
+        {
+            return null;
+        }
+
+        var references = schema.AllOf.OfType<OpenApiSchemaReference>().ToArray();
+        if (references.Length is not 1 || references[0].Reference.UnrecognizedKeywords is { Count: > 0 })
+        {
+            return null;
+        }
+
+        // Inspect the reader's complete keyword vocabulary, not the structural constraint list:
+        // validation keywords that other projection paths ignore are not annotations here.
+        using var text = new StringWriter(CultureInfo.InvariantCulture);
+        schema.SerializeAsV31(new OpenApiJsonWriter(text));
+        using var document = JsonDocument.Parse(text.ToString());
+        var host = document.RootElement;
+        return host.EnumerateObject().All(static property => property.NameEquals("allOf") || IsAnnotationKeyword(property.Name))
+            && host.GetProperty("allOf").EnumerateArray().All(static element => element.EnumerateObject()
+                .All(static property => property.NameEquals("$ref") || IsAnnotationKeyword(property.Name)))
+                ? references[0]
+                : null;
+    }
+
     private bool IsValidationOnlyAllOfWrapper(OpenApiSchema schema)
     {
         if (schema.AllOf is not { Count: 1 } || schema.AllOf[0] is not OpenApiSchema element)
@@ -122,6 +152,9 @@ internal sealed class SchemaShapeClassifier
 
         return objectMembers is not Constraint.None;
     }
+
+    private static bool IsAnnotationKeyword(string name) =>
+        name is "description" or "title" or "examples" or "deprecated" or "readOnly" or "writeOnly";
 
     [Flags]
     private enum Constraint

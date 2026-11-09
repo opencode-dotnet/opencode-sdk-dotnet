@@ -16,6 +16,36 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class StabilizeDuplicatePolicyTests
 {
+    [Test]
+    [Arguments("double", true)]
+    [Arguments("float", false)]
+    public async Task Resolve_Should_Compare_Special_Number_Duplicates_By_Format(string duplicateFormat, bool folds)
+    {
+        var errors = new BindingErrorCollector();
+        var collapse = await ResolveAsync(ReorderedDuplicateScenario("Widget",
+            static schema => SpecialNumber(schema, "double", "NaN", "Infinity", "-Infinity"),
+            schema => SpecialNumber(schema, duplicateFormat, "-Infinity", "NaN", "Infinity")), errors);
+        if (folds)
+        {
+            await AssertWidgetFoldAsync(errors, collapse);
+        }
+        else
+        {
+            await Assert.That(Refusals(errors)).IsEquivalentTo([new BindingError(BindingErrorCategory.Schema, "Widget_1",
+                "stabilize duplicate 'Widget_1' is not structurally identical to its base 'Widget'")], CollectionOrdering.Matching);
+            await Assert.That(collapse.Aliases).IsEmpty();
+        }
+    }
+
+    [Test]
+    [Arguments("double", true)]
+    [Arguments("float", false)]
+    public async Task DeepEquals_Should_Compare_Special_Numbers_By_Format(string format, bool equal)
+    {
+        await Assert.That(SchemaNodeComparer.DeepEquals(new SpecialNumberNode { Format = "double" },
+            new SpecialNumberNode { Format = format }, new Dictionary<string, SchemaNode>(StringComparer.Ordinal))).IsEqualTo(equal);
+    }
+
     private static async Task AssertWidgetFoldAsync(BindingErrorCollector errors, StabilizeDuplicateCollapse collapse)
     {
         await Assert.That(errors.Count).IsEqualTo(0);
@@ -336,6 +366,10 @@ public sealed class StabilizeDuplicatePolicyTests
     /// <summary>One reachable duplicate of <c>Widget</c> under the shape the caller supplies.</summary>
     private static SpecScenario TwoWidgetsScenario(Action<SchemaBuilder> duplicate) =>
         SpecScenario.Define(spec => DefineWidgets(spec, duplicate, "Widget_1"));
+
+    private static void SpecialNumber(SchemaBuilder schema, string format, params string[] spellings) =>
+        schema.Format(format).AnyOf(static branch => branch.Type("number"),
+            branch => branch.Type("string").Enum(spellings));
 
     /// <summary>A reachable base and stabilize twin with independently configured property order.</summary>
     private static SpecScenario ReorderedDuplicateScenario(

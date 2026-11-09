@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-05
+Date: 2026-11-09
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -261,6 +261,12 @@ reported upstream rather than repaired from private implementation knowledge (AD
   and the public surface keeps the init-only rule above; the bag is created on the first open
   member, so a body without one allocates nothing. A typed additional-properties schema beside
   named properties still refuses: no member could carry it without loss.
+- An untyped `allOf` containing exactly one reference and one or more annotation-only elements
+  projects as that reference. Description precedence is host, reference's own, then first non-null
+  annotation description. Only `description`, `title`, `examples`, `deprecated`, `readOnly`, `writeOnly`
+  are annotations; any other keyword the projected schema carries refuses, including an unrecognized keyword beside the reference.
+  Default-valued keywords the reader drops, such as `additionalProperties: true`, constrain nothing
+  and are not seen. Typed validation-only and `StructWithRest` wrappers keep their separate rules.
 - A required or present value uses nullable C# only when the selected representation needs CLR null
   to materialize JSON null. A source-generation-proven in-band null carrier remains non-nullable;
   `JsonElement` currently carries JSON null through `JsonValueKind.Null` (ADR-0004, ADR-0014).
@@ -436,10 +442,11 @@ materializable.
 - An internal-raw family emits its clients sealed and internal — internal operation methods and
   handle factory, no mocking constructor — under raw type names, while the root client keeps the
   public family accessor its hand-written door answers. Only such a family may carry a
-  document-declared request header: it emits as an optional trailing method parameter and travels
-  the declared-header channel into the pipeline. The header value stays a caller concern and never
-  enters curation or generated code, and a header-bearing operation forgoes the cursor-enumeration
-  companion (ADR-0013, ADR-0021).
+  document-declared request header: an optional, non-deep-object, unformatted string, plain or
+  null-wrapped. It emits as an optional trailing method parameter and travels the declared-header
+  channel into the pipeline. The value stays a caller concern and never enters curation or
+  generated code; a header-bearing operation forgoes the cursor-enumeration companion (ADR-0013,
+  ADR-0021).
 - A query binds the `ListRequest` base by inclusion: it must carry the admitted optional `limit`
   (typed `int` by its row), `order`, and `cursor` parameters in their admitted shapes, and every
   further optional parameter binds beside them as its own request property. A missing spine member,
@@ -459,7 +466,7 @@ materializable.
   generation, and a row whose parameter the document now declares as a number, or no longer
   carries, fails it too (ADR-0037). The integer travels as its invariant decimal text and the
   server enforces its range. The spine's own value sets (list order, the parent-session filter)
-  and the optional deep-object location selector bind their spine types. The exact true/false text
+  and the optional deep-object location selector, plain or null-wrapped, bind their spine types. The exact true/false text
   binds `bool?` for an optional parameter and `bool` for a required one, and the route builder
   writes lowercase `true` or `false`; an unset optional is omitted. Any other string enum becomes
   a generated extensible enum whose spelling the route builder writes as given, refusing a default

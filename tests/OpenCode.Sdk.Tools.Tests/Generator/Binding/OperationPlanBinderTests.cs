@@ -11,8 +11,52 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class OperationPlanBinderTests
 {
     private const string RootClient = "OpenCodeClient";
-
     private static readonly string[] ClaimOrderModelNames = ["WidgetsClient", "WidgetListResponse", "WidgetStreamAdapter", "WidgetListRequest"];
+
+    [Test]
+    [Arguments(false, "none")]
+    [Arguments(true, "none")]
+    [Arguments(false, "required")]
+    [Arguments(false, "deep")]
+    [Arguments(false, "number")]
+    [Arguments(false, "format")]
+    [Arguments(false, "public")]
+    [Arguments(true, "public")]
+    public async Task Bind_Should_Admit_Only_Optional_String_Headers(bool wrapped, string fault)
+    {
+        void Value(SchemaBuilder schema) => schema.Type(fault == "number" ? "integer" : "string");
+        var document = await BindingTestHost.IngestAsync(WidgetListScenario(operation => operation
+            .Parameter("x-opencode-ticket", "header", schema =>
+            {
+                if (wrapped)
+                {
+                    schema.AnyOf(Value, static branch => branch.Type("null"));
+                }
+                else
+                {
+                    Value(schema);
+                }
+                if (fault == "format")
+                {
+                    schema.Format("uri");
+                }
+            }, required: fault == "required", deepObject: fault == "deep")));
+        EmitPlan Bind() => new BindingTestHost().Bind(document, Selection("widget.list"),
+            Curation(Groups("widget", ClientGroup("Widgets", null, null,
+                emission: fault == "public" ? EmissionMode.Public : EmissionMode.InternalRaw))));
+        if (fault != "none")
+        {
+            var exception = Assert.Throws<BindingException>(() => Bind());
+            await Assert.That(exception.Errors).IsEquivalentTo([
+                new BindingError(BindingErrorCategory.Operation, "widget.list", fault == "public"
+                    ? "header parameter 'x-opencode-ticket' has no runtime channel"
+                    : "header parameter 'x-opencode-ticket' must be optional, not deep-object, and declare an unformatted string schema, plain or null-wrapped"),
+            ], CollectionOrdering.Matching);
+            return;
+        }
+        await Assert.That(Bind().Clients.SelectMany(static client => client.Operations).Single().DeclaredHeaders)
+            .IsEquivalentTo([new DeclaredHeaderPlan { WireName = "x-opencode-ticket", Name = "xOpencodeTicket" }], CollectionOrdering.Matching);
+    }
 
     [Test]
     [Arguments("kind", "ShapeKind")]
@@ -2503,7 +2547,7 @@ public sealed class OperationPlanBinderTests
 
         await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
                                                        && error.Problem.Contains(
-                                                           "must be optional, not deep-object, and declare a nullable string schema",
+                                                           "must be optional, not deep-object, and declare an unformatted string schema, plain or null-wrapped",
                                                            StringComparison.Ordinal));
     }
 
