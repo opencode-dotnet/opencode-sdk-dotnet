@@ -37,6 +37,47 @@ public sealed class TimedCancellationTests
 
 #if !NET
     [Test]
+    public async Task Create_Should_Keep_The_Timer_Until_An_In_Flight_Cancellation_Callback_Returns()
+    {
+        var time = new InFlightTimeProvider();
+        using var deadline = TimedCancellation.Create(Timeout, time);
+        using var release = new ManualResetEventSlim();
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = deadline.Token.Register(() =>
+        {
+            entered.SetResult(true);
+            release.Wait();
+        });
+        var firing = DedicatedThread.Run(time.Fire);
+        var disposing = Task.CompletedTask;
+        var disposedWhileHeld = false;
+        try
+        {
+            await entered.Task.WaitAsync(HangGuard.Bound);
+            disposing = DedicatedThread.Run(deadline.Dispose, out var disposer);
+            // Before Dispose this thread has no wait; WaitSleepJoin proves lock contention.
+            var progress = Task.Run(async () =>
+            {
+                while (!time.TimerDisposed && !disposer.ThreadState.HasFlag(ThreadState.WaitSleepJoin))
+                {
+                    await Task.Yield();
+                }
+
+                return time.TimerDisposed;
+            });
+            disposedWhileHeld = await progress.WaitAsync(HangGuard.Bound);
+        }
+        finally
+        {
+            release.Set();
+            await Task.WhenAll(firing, disposing).WaitAsync(HangGuard.Bound);
+        }
+
+        await Assert.That(disposedWhileHeld).IsFalse();
+        await Assert.That(time.TimerDisposed).IsTrue();
+    }
+
+    [Test]
     public async Task Create_Should_Ignore_A_Timer_Callback_Queued_After_Disposal()
     {
         var time = new InFlightTimeProvider();
@@ -102,10 +143,18 @@ public sealed class TimedCancellationTests
     private sealed class InFlightTimeProvider : TimeProvider
     {
         private Action? _fire;
+#if !NET
+        private InFlightTimer? _timer;
+
+        public bool TimerDisposed => _timer?.IsDisposed == true;
+#endif
 
         public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
         {
             var timer = new InFlightTimer(callback, state);
+#if !NET
+            _timer = timer;
+#endif
             _fire = timer.Fire;
             return timer;
         }
@@ -114,7 +163,11 @@ public sealed class TimedCancellationTests
 
         private sealed class InFlightTimer(TimerCallback callback, object? state) : ITimer
         {
-            private bool _disposed;
+            private volatile bool _disposed;
+
+#if !NET
+            public bool IsDisposed => _disposed;
+#endif
 
             public bool Change(TimeSpan dueTime, TimeSpan period) => !_disposed;
 
