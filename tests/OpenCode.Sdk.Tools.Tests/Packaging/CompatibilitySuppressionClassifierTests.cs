@@ -1,23 +1,59 @@
 using OpenCode.Sdk.Tools.Tests.Packaging.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
 public sealed class CompatibilitySuppressionClassifierTests
 {
     [Test]
+    [Arguments("1.0.1", "1.0.0", true, null)]
+    [Arguments("1.0.1", "1.0.0", false, "OpenCode.Sdk: CP0001 'T:OpenCode.Sdk.Models.AgentInfo': a generated-type break needs a release that moves the protocol pin.")]
+    [Arguments("1.1.0", "1.0.0", false, "OpenCode.Sdk: CP0001 'T:OpenCode.Sdk.Models.AgentInfo': a generated-type break needs a release that moves the protocol pin.")]
+    [Arguments("1.0.0", "1.0.0-rc.1", false, "OpenCode.Sdk: CP0001 'T:OpenCode.Sdk.Models.AgentInfo': a generated-type break needs a release that moves the protocol pin.")]
+    [Arguments("1.0.0-rc.2", "1.0.0-rc.1", false, "OpenCode.Sdk: CP0001 'T:OpenCode.Sdk.Models.AgentInfo': a generated-type break needs a release that moves the protocol pin.")]
+    [Arguments("2.0.0", "1.0.0", false, null)]
+    public async Task Validate_Should_Accept_A_Generated_Break_Only_Where_The_Step_And_The_Pin_Permit(string version, string baseline, bool pinMoved, string? expectedViolation)
+    {
+        var scenario = new PackageValidationScenario()
+            .WithVersions(version, baseline)
+            .WithGeneratedType("Models/AgentInfo.cs", "AgentInfo")
+            .WithSuppression("T:OpenCode.Sdk.Models.AgentInfo");
+        if (pinMoved)
+        {
+            scenario.WithMovedPin();
+        }
+
+        var evidence = await scenario.ReadAsync();
+
+        var violations = new CompatibilitySuppressionClassifier(evidence).Validate();
+
+        if (expectedViolation is null)
+        {
+            await Assert.That(violations).IsEmpty();
+        }
+        else
+        {
+            await Assert.That(violations).IsEquivalentTo([expectedViolation], CollectionOrdering.Matching);
+        }
+    }
+
+    [Test]
     [Arguments("1.0.1", "1.0.0")]
-    [Arguments("1.0.0", "1.0.0-rc.1")]
-    [Arguments("1.0.0-rc.2", "1.0.0-rc.1")]
-    public async Task Validate_Should_Refuse_A_Baseline_Suppression_In_A_Patch_Step(string version, string baseline)
+    [Arguments("1.1.0", "1.0.0")]
+    public async Task Validate_Should_Require_A_Major_For_A_Hand_Written_Break_With_A_Moved_Pin(string version, string baseline)
     {
         var evidence = await new PackageValidationScenario()
             .WithVersions(version, baseline)
-            .WithSuppression("T:OpenCode.Sdk.Models.AgentInfo")
+            .WithMovedPin()
+            .WithGeneratedType("Models/AgentInfo.cs", "AgentInfo")
+            .WithSuppression("M:OpenCode.Sdk.OpenCodeClient.Dispose")
             .ReadAsync();
 
         var violations = new CompatibilitySuppressionClassifier(evidence).Validate();
 
-        await Assert.That(violations.Single()).Contains("patch");
+        await Assert.That(violations).IsEquivalentTo(
+            ["OpenCode.Sdk: CP0001 'M:OpenCode.Sdk.OpenCodeClient.Dispose': this hand-written break needs a major version step."],
+            CollectionOrdering.Matching);
     }
 
     [Test]
@@ -25,6 +61,7 @@ public sealed class CompatibilitySuppressionClassifierTests
     {
         var evidence = await new PackageValidationScenario()
             .WithVersions("1.1.0", "1.0.0")
+            .WithMovedPin()
             .WithGeneratedType("Models/AgentInfo.cs", "AgentInfo")
             .WithSuppression("M:OpenCode.Sdk.Models.AgentInfo.get_Id")
             .ReadAsync();
@@ -53,6 +90,7 @@ public sealed class CompatibilitySuppressionClassifierTests
     {
         var evidence = await new PackageValidationScenario()
             .WithVersions("1.1.0", "1.0.0")
+            .WithMovedPin()
             .WithRemovedGeneratedType("Models/OldAgentInfo.cs", "OldAgentInfo")
             .WithSuppression("T:OpenCode.Sdk.Models.OldAgentInfo")
             .ReadAsync();
@@ -67,6 +105,7 @@ public sealed class CompatibilitySuppressionClassifierTests
     {
         var evidence = await new PackageValidationScenario()
             .WithVersions("1.1.0", "1.0.0")
+            .WithMovedPin()
             .WithGeneratedType("Models/AgentInfo.cs", "AgentInfo")
             .WithSuppression("M:OpenCode.Sdk.Models.AgentInfo.Nested.Update(System.String)")
             .ReadAsync();
@@ -90,20 +129,28 @@ public sealed class CompatibilitySuppressionClassifierTests
     }
 
     [Test]
-    [Arguments("0.9.0", "")]
-    [Arguments("1.0.1", "1.0.0")]
-    [Arguments("1.1.0", "1.0.0")]
-    [Arguments("2.0.0", "1.0.0")]
-    public async Task Validate_Should_Refuse_A_Cross_Asset_Suppression_In_Every_Step(string version, string baseline)
+    [Arguments("0.9.0", "", false)]
+    [Arguments("1.0.1", "1.0.0", false)]
+    [Arguments("1.1.0", "1.0.0", false)]
+    [Arguments("2.0.0", "1.0.0", false)]
+    [Arguments("1.0.1", "1.0.0", true)]
+    public async Task Validate_Should_Refuse_A_Cross_Asset_Suppression_In_Every_Step(string version, string baseline, bool moved)
     {
-        var evidence = await new PackageValidationScenario()
+        var scenario = new PackageValidationScenario()
             .WithVersions(version, baseline)
-            .WithSuppression("T:OpenCode.Sdk.Models.AgentInfo", isBaseline: false)
-            .ReadAsync();
+            .WithSuppression("T:OpenCode.Sdk.Models.AgentInfo", isBaseline: false);
+        if (moved)
+        {
+            scenario.WithMovedPin();
+        }
+
+        var evidence = await scenario.ReadAsync();
 
         var violations = new CompatibilitySuppressionClassifier(evidence).Validate();
 
-        await Assert.That(violations.Single()).Contains("cross-asset");
+        await Assert.That(violations).IsEquivalentTo(
+            ["OpenCode.Sdk: CP0001 'T:OpenCode.Sdk.Models.AgentInfo': cross-asset suppressions are forbidden; every asset must expose the same API."],
+            CollectionOrdering.Matching);
     }
 
     [Test]
@@ -119,17 +166,26 @@ public sealed class CompatibilitySuppressionClassifierTests
     }
 
     [Test]
-    public async Task Validate_Should_Require_A_Major_Step_For_Extensions()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Validate_Should_Require_A_Major_Step_For_Extensions(bool moved)
     {
-        var evidence = await new PackageValidationScenario()
+        var scenario = new PackageValidationScenario()
             .WithVersions("1.1.0", "1.0.0")
             .WithGeneratedType("Models/AgentInfo.cs", "AgentInfo")
-            .WithSuppression("T:OpenCode.Sdk.Models.AgentInfo", project: "OpenCode.Sdk.Extensions")
-            .ReadAsync();
+            .WithSuppression("T:OpenCode.Sdk.Models.AgentInfo", project: "OpenCode.Sdk.Extensions");
+        if (moved)
+        {
+            scenario.WithMovedPin();
+        }
+
+        var evidence = await scenario.ReadAsync();
 
         var violations = new CompatibilitySuppressionClassifier(evidence).Validate();
 
-        await Assert.That(violations.Single()).Contains("OpenCode.Sdk.Extensions").And.Contains("major");
+        await Assert.That(violations).IsEquivalentTo(
+            ["OpenCode.Sdk.Extensions: CP0001 'T:OpenCode.Sdk.Models.AgentInfo': this hand-written break needs a major version step."],
+            CollectionOrdering.Matching);
     }
 
     [Test]
