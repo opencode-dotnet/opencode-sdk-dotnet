@@ -10,6 +10,100 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Projection;
 public sealed class SchemaProjectorTests
 {
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    [Arguments(true, "reference", "Reference identifier.")]
+    [Arguments(true, "host", "Host identifier.")]
+    public async Task Project_Should_Carry_Only_The_Annotated_AllOf_Reference_Description(bool wrapped,
+        string source = "annotation", string expected = "The selected identifier.")
+    {
+        var result = await new SchemaProjectionTestHost().ProjectAsync(SpecScenario.Define(spec => spec
+            .WithSchema("Target", static schema => schema.Type("string"))
+            .WithSchema("Alias", schema =>
+            {
+                if (source == "host")
+                {
+                    schema.Description("Host identifier.");
+                }
+                if (wrapped)
+                {
+                    schema.AllOf(static branch => branch.Raw("title", "\"An identifier\""),
+                        branch => _ = source == "annotation" ? branch.Ref("Target") : branch.Ref("Target").Description("Reference identifier."),
+                        static branch => branch.Description("The selected identifier.").Raw("examples", "[\"id\"]")
+                            .Raw("deprecated", "true").Raw("readOnly", "true").Raw("writeOnly", "true"));
+                }
+                else
+                {
+                    schema.Ref("Target").Description("The selected identifier.");
+                }
+            })));
+        await Assert.That(result.Schemas["Alias"]).IsTypeOf<RefNode>();
+        var reference = (RefNode)result.Schemas["Alias"];
+        await Assert.That(reference.Target).IsEqualTo("Target");
+        await Assert.That(reference.Description).IsEqualTo(wrapped ? expected : null);
+    }
+
+    [Test]
+    [Arguments("pattern", "\"^x\"")]
+    [Arguments("minLength", "1")]
+    [Arguments("customKeyword", "true")]
+    [Arguments("format", "\"uuid\"")]
+    [Arguments("refUnknown", "1")]
+    [Arguments("host", "1")]
+    [Arguments("refOnly", "")]
+    [Arguments("twoRefs", "", "allOf")]
+    [Arguments("typed", "", "type, allOf")]
+    public async Task Project_Should_Refuse_Non_Annotation_AllOf_References(string keyword, string value, string constraints = "allOf")
+    {
+        void Reference(SchemaBuilder branch) => _ = keyword == "refUnknown"
+            ? branch.Ref("Target").Raw("foo", value) : branch.Ref("Target");
+        var scenario = SpecScenario.Define(spec => spec
+            .WithSchema("Target", static schema => schema.Type("string"))
+            .WithSchema("Bad", schema =>
+            {
+                if (keyword == "typed")
+                {
+                    schema.Type("string");
+                }
+                if (keyword == "host")
+                {
+                    schema.Raw("minLength", value);
+                }
+                schema.AllOf(keyword == "refOnly" ? [Reference] : [Reference, branch =>
+                {
+                    if (keyword == "twoRefs")
+                    {
+                        branch.Ref("Target");
+                    }
+                    else
+                    {
+                        branch.Description("An identifier.");
+                        if (keyword is not ("typed" or "refUnknown" or "host"))
+                        {
+                            branch.Raw(keyword, value);
+                        }
+                    }
+                }]);
+            }));
+        var exception = await new SchemaProjectionTestHost().ProjectExpectingRefusalAsync(scenario);
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new IngestionError("Bad", $"schema node-kind constraints '{constraints}' do not form a supported core shape"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Keep_The_StructWithRest_AllOf_Path()
+    {
+        var result = await new SchemaProjectionTestHost().ProjectAsync(SpecScenario.Define(static spec => spec
+            .WithSchema("Value", static schema => schema.Type("object")
+                .Property("id", static property => property.Type("string"), required: true)
+                .AllOf(static rest => rest.Type("object").AdditionalProperties(static value => value.Unrestricted())))));
+        var node = (ObjectNode)result.Schemas["Value"];
+        await Assert.That(node.Properties.Select(static property => property.Name)).IsEquivalentTo(["id"], CollectionOrdering.Matching);
+        await Assert.That(node.AdditionalPropertiesSchema).IsTypeOf<UnrestrictedNode>();
+    }
+
+    [Test]
     public async Task Project_Should_Produce_String_Primitive_Node()
     {
         var host = new SchemaProjectionTestHost();

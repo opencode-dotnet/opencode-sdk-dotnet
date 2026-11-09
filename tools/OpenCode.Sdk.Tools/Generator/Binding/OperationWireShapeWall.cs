@@ -80,8 +80,8 @@ internal sealed class OperationWireShapeWall(OperationFacetContext context, Emis
     /// <summary>
     /// A header value is never curated and never emitted (ADR-0013), so only an internal-raw
     /// family — whose hand-written door supplies the value — can own one; a public family
-    /// keeps the refusal. The admitted shape is the optional plain string the emitted
-    /// signature carries, so an unrepresentable header fails here rather than silently
+    /// keeps the refusal. The admitted shape is an optional unformatted string, plain or
+    /// null-wrapped, so an unrepresentable header fails here rather than silently
     /// emitting an omittable required header.
     /// </summary>
     private void CheckHeaderShape(SpecParameter parameter)
@@ -92,11 +92,13 @@ internal sealed class OperationWireShapeWall(OperationFacetContext context, Emis
             return;
         }
 
+        var declared = _context.Resolve(parameter.Schema);
+        var value = declared is NullableNode nullable ? _context.Resolve(nullable.Inner) : declared;
         if (parameter is not { IsRequired: false, IsDeepObject: false }
-            || _context.Resolve(parameter.Schema) is not NullableNode { Format: null } nullable
-            || _context.Resolve(nullable.Inner) is not PrimitiveNode { Kind: PrimitiveKind.String, Format: null })
+            || declared.Format is not null
+            || value is not PrimitiveNode { Kind: PrimitiveKind.String, Format: null })
         {
-            _context.Refuse($"header parameter '{parameter.Name}' must be optional, not deep-object, and declare a nullable string schema");
+            _context.Refuse($"header parameter '{parameter.Name}' must be optional, not deep-object, and declare an unformatted string schema, plain or null-wrapped");
         }
     }
 

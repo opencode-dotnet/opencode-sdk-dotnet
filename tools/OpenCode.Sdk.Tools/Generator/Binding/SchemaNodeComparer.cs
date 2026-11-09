@@ -63,6 +63,7 @@ internal static class SchemaNodeComparer
                 (UnionNode a, UnionNode b) => a.Keyword == b.Keyword && a.Classification == b.Classification
                                                                      && SequencesEqual(a.Branches, b.Branches),
                 (ObjectNode a, ObjectNode b) => ObjectsEqual(a, b),
+                (SpecialNumberNode, SpecialNumberNode) => true,
                 (FreeFormObjectNode, FreeFormObjectNode) => true,
                 (UnrestrictedNode, UnrestrictedNode) => true,
                 (NeverNode, NeverNode) => true,

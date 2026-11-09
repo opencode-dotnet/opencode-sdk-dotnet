@@ -190,13 +190,14 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
         public static QueryEnumBinding Named(string typeName) => new(IsEnum: true, typeName);
     }
 
-    /// <summary>The one admitted deep-object encoding is the optional nullable location selector.</summary>
+    /// <summary>The admitted deep-object selector is optional, with or without a null wrapper.</summary>
     private QueryPropertyPlan? BindLocationSelector(SpecParameter parameter)
     {
+        var declared = _context.Resolve(parameter.Schema);
+        var selector = declared is NullableNode nullable ? nullable.Inner : declared;
         if (parameter.IsRequired
-            || _context.Resolve(parameter.Schema) is not NullableNode nullable
-            || nullable.Format is not null
-            || !SpineShapePolicy.IsLocationSelectorShape(_context, nullable.Inner))
+            || declared.Format is not null
+            || !SpineShapePolicy.IsLocationSelectorShape(_context, selector))
         {
             return _context.RefuseNull<QueryPropertyPlan>(
                 $"query parameter '{parameter.Name}' uses deep-object encoding outside the optional location selector shape");

@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -9,6 +10,51 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class QueryRequestFacetBinderTests
 {
+    [Test]
+    [Arguments(false, false, "directory")]
+    [Arguments(true, false, "directory")]
+    [Arguments(false, true, "directory")]
+    [Arguments(true, true, "directory")]
+    [Arguments(false, false, "other")]
+    [Arguments(true, false, "other")]
+    [Arguments(false, false, "directory", true)]
+    public async Task Bind_Should_Admit_Only_Optional_Location_Selectors(bool wrapped, bool required, string member, bool formatted = false)
+    {
+        void Selector(SchemaBuilder schema) => schema.Type("object").AdditionalPropertiesFalse()
+            .Property(member, static property => property.AnyOf(
+                static branch => branch.Type("string"), static branch => branch.Type("null")));
+        var context = await CreateContextAsync(operation => operation.Parameter("location", "query", schema =>
+        {
+            if (wrapped)
+            {
+                schema.AnyOf(Selector, static branch => branch.Type("null"));
+            }
+            else
+            {
+                Selector(schema);
+            }
+            if (formatted)
+            {
+                schema.Format("uri");
+            }
+        }, required: required, deepObject: true));
+        var result = new QueryRequestFacetBinder(context).Bind();
+        if (required || member != "directory" || formatted)
+        {
+            await Assert.That(result).IsTypeOf<FacetResult<QueryRequestPlan?>.Refused>();
+            await Assert.That(((FacetResult<QueryRequestPlan?>.Refused)result).Errors).IsEquivalentTo([
+                new BindingError(BindingErrorCategory.Operation, "widget.list", "query parameter 'location' uses deep-object encoding outside the optional location selector shape"),
+            ], CollectionOrdering.Matching);
+            return;
+        }
+        await Assert.That(result).IsTypeOf<FacetResult<QueryRequestPlan?>.Bound>();
+        var property = ((FacetResult<QueryRequestPlan?>.Bound)result).Value!.Properties.Single();
+        await Assert.That(property.PropertyName).IsEqualTo("Location");
+        await Assert.That(property.Kind).IsEqualTo(QueryValueKind.Location);
+        await Assert.That(property.IsRequired).IsFalse();
+        await Assert.That(QueryRequestEmitter.EmitProperty(property).Type.ToString()).IsEqualTo("LocationSelector?");
+    }
+
     [Test]
     [Arguments(false)]
     [Arguments(true)]
