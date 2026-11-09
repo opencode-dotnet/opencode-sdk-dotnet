@@ -17,8 +17,8 @@ public enum OpenCodeServerExitKind
     Exited = 1,
 
     /// <summary>An unhandled signal ended the server, such as <c>SIGKILL</c>; never on Windows.
-    /// The server handles <c>SIGTERM</c>/<c>SIGINT</c>: Linux/macOS disposal normally reports
-    /// <see cref="Exited"/> with code 130. Windows disposal reports <see cref="Exited"/> with code 1.
+    /// The server handles <c>SIGTERM</c> and <c>SIGINT</c> itself: Linux/macOS disposal sends <c>SIGTERM</c>
+    /// and normally reports <see cref="Exited"/> with code 143. Windows disposal reports <see cref="Exited"/> with code 1.
     /// </summary>
     Signaled = 2,
 }

@@ -9,6 +9,10 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔧 Changes
+
+- Disposing a standalone server on Linux and macOS now reports `Exited` with code 143, where it was 130: the pinned opencode 2.2.6 exits with 143 on `SIGTERM`. `SIGINT` still exits with 130, and Windows still reports code 1.
+
 ### 📚 Documentation
 
 - The domain glossary is `GLOSSARY.md` (previously `CONTEXT.md`), and the getting-started guide points there.
