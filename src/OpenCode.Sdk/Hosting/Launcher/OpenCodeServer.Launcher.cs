@@ -44,7 +44,9 @@ public partial class OpenCodeServer
     /// child environment, then waits for the JSON readiness line. On any failure that reached a
     /// child, the child is ended before the method throws. On Windows the server is created
     /// suspended, placed in the process-wide job that ends it with its owner, and only then
-    /// resumed; a failed start ends it the way disposal does, with <c>taskkill /T /F</c> at once and
+    /// resumed (a batch shim's real server and a refused assignment stay outside the job; see
+    /// <see cref="OpenCodeServerOptions.Command"/>); a failed start ends it the way disposal does,
+    /// with <c>taskkill /T /F</c> at once and
     /// again after <see cref="OpenCodeServerOptions.GracefulShutdownTimeout"/> when it is still
     /// running, so a canceled or timed-out start can take up to that grace plus 26 seconds to throw.
     /// On Linux and macOS the server is spawned in a session of its own, and a failed start ends it
