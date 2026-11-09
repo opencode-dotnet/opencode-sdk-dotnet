@@ -42,6 +42,7 @@ and every status stays idle until something drives HQ's own server, such as a se
 Sessions run by other processes have no live status or streaming here, and their asks do not reach
 Needs you. A `--service` boot during a turn on HQ's server, such as opening OpenCode Desktop,
 resumes that session, so both would drive it. HQ cannot prevent this.
+On a session page, a prompt another client sends to HQ's server shows as soon as the server takes it, as in upstream's app.
 
 A session runs in its directory: the agent loads that folder's instructions and configuration and
 can read its files. What it sends goes to the model's provider.

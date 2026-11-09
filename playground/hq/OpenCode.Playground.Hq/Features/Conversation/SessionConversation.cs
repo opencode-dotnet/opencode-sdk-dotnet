@@ -48,6 +48,12 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     {
         LastError = null;
         #region panel: prompt
+        // Like upstream's composer, Send counts as running; a send that sets this takes it back if the server didn't take the prompt.
+        var optimisticBusy = !_executing;
+        if (optimisticBusy)
+        {
+            _executing = true;
+        }
         // The server takes a first prompt only after loading the session's location, which can take seconds, so the
         // line shows at once under the id HQ mints; the call, the echo or a stored copy confirms it.
         var promptId = $"msg_{Guid.NewGuid():N}";
@@ -70,19 +76,22 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
             }
 
             LastError = $"The prompt was not sent: {exception.Message}";
-            _ = _outbox.Remove(promptId);
-            var index = _lines.FindIndex(line => line.PromptId == promptId);
-            if (index >= 0)
+            if (optimisticBusy)
             {
-                // Later live lines move up by one, as upstream reindexes after it takes a row back.
-                _lines.RemoveAt(index);
-                foreach (var (key, at) in _live.Where(entry => entry.Value > index).ToList())
-                {
-                    _live[key] = at - 1;
-                }
+                _executing = false;
             }
+            _ = TakeBack(promptId);
             Changed?.Invoke(this, EventArgs.Empty);
             return false;
+        }
+        catch (OperationCanceledException)
+        {
+            if (optimisticBusy && !_lines.Exists(line => line.PromptId == promptId && !line.Pending))
+            {
+                _executing = false;
+            }
+
+            throw;
         }
         finally
         {
@@ -99,8 +108,22 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     {
         switch (item)
         {
+            case SessionInboxCancelled cancelled:
+                return TakeBack(cancelled.Data.InboxId);
             case SessionInboxEnqueued enqueued:
-                return Confirm(enqueued.Data.InboxId);
+                if (Confirm(enqueued.Data.InboxId))
+                {
+                    return true;
+                }
+
+                if (enqueued.Data.Item is not SessionInboxItemUser user)
+                {
+                    return false;
+                }
+
+                _lines.Add(new ConversationLine("you", user.Payload.Text, enqueued.Data.InboxId));
+                _ = _outbox.Add(enqueued.Data.InboxId);
+                return true;
             case SessionTextDelta { Data: var delta }:
                 Append(delta.AssistantMessageId, delta.Ordinal, delta.Delta, replace: false);
                 return true;
@@ -122,6 +145,23 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
             default:
                 return false;
         }
+    }
+
+    private bool TakeBack(string promptId)
+    {
+        _ = _outbox.Remove(promptId);
+        var index = _lines.FindIndex(line => line.PromptId == promptId);
+        if (index >= 0)
+        {
+            // Later live lines move up by one, as upstream reindexes after it takes a row back.
+            _lines.RemoveAt(index);
+            foreach (var (key, at) in _live.Where(entry => entry.Value > index).ToList())
+            {
+                _live[key] = at - 1;
+            }
+        }
+
+        return index >= 0;
     }
 
     /// <summary>Marks the line of a prompt HQ sent as taken by the server; the line is found by its id.</summary>

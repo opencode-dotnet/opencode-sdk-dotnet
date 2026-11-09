@@ -151,6 +151,119 @@ public sealed class SessionConversationTests
     }
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task SendAsync_Should_Keep_Running_Until_The_Server_Ends_The_Turn(bool endsBeforeReturn)
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync();
+        var release = HoldPrompt(scenario);
+        var send = scenario.Conversation.SendAsync("prompt", CancellationToken.None);
+        try
+        {
+            await Assert.That(scenario.Conversation.Running).IsTrue();
+            if (endsBeforeReturn)
+            {
+                scenario.EventCalls.Items = [() => Started(), () => Succeeded()];
+                await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+            }
+        }
+        finally
+        {
+            _ = release.TrySetResult();
+            _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
+        }
+
+        await Assert.That(scenario.Conversation.Running).IsEqualTo(!endsBeforeReturn);
+        await Assert.That(scenario.Conversation.EndedTurns).IsEqualTo(endsBeforeReturn ? 1 : 0);
+        scenario.SessionCalls.Running = !endsBeforeReturn;
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Running).IsEqualTo(!endsBeforeReturn);
+        scenario.EventCalls.Items = [() => Started(), () => Succeeded()];
+        await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Running).IsFalse();
+        await Assert.That(scenario.Conversation.EndedTurns).IsEqualTo(endsBeforeReturn ? 2 : 1);
+    }
+
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(true, false)]
+    [Arguments(false, true)]
+    public async Task SendAsync_Should_Reset_Only_Its_Unadmitted_Execution_On_Cancellation(bool alreadyRunning, bool admitted)
+    {
+        using var scenario = new ConversationScenario();
+        scenario.SessionCalls.Running = alreadyRunning;
+        await scenario.FollowAsync();
+        scenario.MessageCalls.PromptRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = new CancellationTokenSource();
+        var send = scenario.Conversation.SendAsync("prompt", cancellation.Token);
+        try
+        {
+            if (admitted)
+            {
+                scenario.EventCalls.Items = [() => Enqueued(scenario.MessageCalls.Prompt?.Id.Value ?? "")];
+                await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+            }
+        }
+        finally
+        {
+            await cancellation.CancelAsync();
+            await Assert.That(async () => await send.WaitAsync(TimeSpan.FromSeconds(30))).Throws<OperationCanceledException>();
+        }
+
+        await Assert.That(scenario.Conversation.Running).IsEqualTo(alreadyRunning || admitted);
+    }
+
+    [Test]
+    public async Task FollowAsync_Should_Take_Back_A_Cancelled_Prompt_Without_Moving_Other_Text()
+    {
+        using var scenario = new ConversationScenario().WithHistory(User());
+        await scenario.FollowAsync();
+        _ = await scenario.Conversation.SendAsync("prompt", CancellationToken.None);
+        var promptId = scenario.MessageCalls.Prompt?.Id.Value ?? "";
+        scenario.EventCalls.Items = [() => Delta(0, "Hel"), () => Cancelled(promptId, "ses_other"), () => Enqueued("msg_other", "ses_other")];
+        await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.Pending)))
+            .IsEquivalentTo([("you", "question", false), ("you", "prompt", false), ("assistant", "Hel", false)], CollectionOrdering.Matching);
+        scenario.EventCalls.Items = [() => Cancelled(promptId), () => Delta(0, "lo")];
+        await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text)))
+            .IsEquivalentTo([("you", "question"), ("assistant", "Hello")], CollectionOrdering.Matching);
+        _ = scenario.WithHistory(User(), Assistant(Text("Hello")));
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text)))
+            .IsEquivalentTo([("you", "question"), ("assistant", "Hello")], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task FollowAsync_Should_Admit_An_Enqueued_User_Prompt_Without_A_Line(bool refused)
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync();
+        var promptId = "msg_external";
+        if (refused)
+        {
+            scenario.MessageCalls.FailPrompt = true;
+            await Assert.That(await scenario.Conversation.SendAsync("prompt", CancellationToken.None)).IsFalse();
+            promptId = scenario.MessageCalls.Prompt?.Id.Value ?? "";
+        }
+
+        scenario.EventCalls.Items = [() => Enqueued(promptId)];
+        await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.PromptId, line.Pending)))
+            .IsEquivalentTo([("you", "prompt", (string?)promptId, false)], CollectionOrdering.Matching);
+        await scenario.FollowAsync().WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Text, line.Pending)))
+            .IsEquivalentTo([("prompt", false)], CollectionOrdering.Matching);
+        _ = scenario.WithHistory(User(promptId, "prompt"));
+        await scenario.FollowAsync(Enqueued(promptId)).WaitAsync(TimeSpan.FromSeconds(30));
+        await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Text, line.Pending)))
+            .IsEquivalentTo([("prompt", false)], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task SendAsync_Should_Take_Back_A_Refused_Prompt()
     {
         using var scenario = new ConversationScenario();
@@ -165,26 +278,27 @@ public sealed class SessionConversationTests
     [Test]
     public async Task SendAsync_Should_Keep_Live_Text_On_Its_Line_After_A_Refused_Prompt()
     {
-        using var scenario = new ConversationScenario();
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        scenario.MessageCalls.PromptRelease = release;
+        using var scenario = new ConversationScenario().WithHistory(User());
+        await scenario.FollowAsync(Delta(1, "Above")).WaitAsync(TimeSpan.FromSeconds(30));
+        var release = HoldPrompt(scenario);
         scenario.MessageCalls.FailPrompt = true;
         var send = scenario.Conversation.SendAsync("prompt", CancellationToken.None);
         try
         {
-            // Another client's turn streams after the pending line; taking that line back must not move the live text.
-            await scenario.FollowAsync(Delta(0, "Hel")).WaitAsync(TimeSpan.FromSeconds(30));
+            // Live text on either side of the pending line must keep its own index after take-back.
+            scenario.EventCalls.Items = [() => Delta(0, "Hel")];
+            await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
         }
         finally
         {
             _ = release.TrySetResult();
-            _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
+            await Assert.That(await send.WaitAsync(TimeSpan.FromSeconds(30))).IsFalse();
         }
 
-        scenario.EventCalls.Items = [() => Delta(0, "lo")];
+        scenario.EventCalls.Items = [() => Delta(1, " line"), () => Delta(0, "lo")];
         await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(30));
         await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text)))
-            .IsEquivalentTo([("assistant", "Hello")], CollectionOrdering.Matching);
+            .IsEquivalentTo([("you", "question"), ("assistant", "Above line"), ("assistant", "Hello")], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -251,14 +365,19 @@ public sealed class SessionConversationTests
         try
         {
             await scenario.SessionCalls.ActiveStarted.Task.WaitAsync(TimeSpan.FromSeconds(30));
-            _ = prompt.TrySetResult();
         }
         finally
         {
             _ = prompt.TrySetResult();
-            _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
-            _ = active.TrySetResult();
-            await reload.WaitAsync(TimeSpan.FromSeconds(30));
+            try
+            {
+                _ = await send.WaitAsync(TimeSpan.FromSeconds(30));
+            }
+            finally
+            {
+                _ = active.TrySetResult();
+                await reload.WaitAsync(TimeSpan.FromSeconds(30));
+            }
         }
 
         await Assert.That(scenario.Conversation.Lines.Select(static line => (line.Author, line.Text, line.Pending)))
@@ -320,5 +439,12 @@ public sealed class SessionConversationTests
         await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None);
         await Assert.That(scenario.Conversation.Lines.Select(static line => line.Text)).IsEquivalentTo(["missed answer"], CollectionOrdering.Matching);
         await Assert.That(scenario.Conversation.Running).IsTrue();
+    }
+
+    private static TaskCompletionSource HoldPrompt(ConversationScenario scenario)
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.MessageCalls.PromptRelease = release;
+        return release;
     }
 }
