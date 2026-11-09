@@ -16,9 +16,10 @@ public sealed class CiBenchmarkGuardTests
         var workflow = await WorkflowAsync();
         await Assert.That(Job(workflow, "build-and-test")).DoesNotContain("--job Dry");
         await Assert.That(Job(workflow, "publish-nightly")).Contains("needs: [lint, build-and-test, benchmark-sdk]");
+        await Assert.That(Job(workflow, "publish-nightly")).Contains("if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.lint.result == 'success' && needs.build-and-test.result == 'success' && needs.benchmark-sdk.result == 'success' }}");
         var matrix = Job(workflow, "benchmark-sdk");
-        await Assert.That(matrix).Contains("needs: changes");
-        await Assert.That(matrix).Contains("if: needs.changes.outputs.benchmarks == 'true'");
+        await Assert.That(matrix).Contains("needs: [changes, reuse]");
+        await Assert.That(matrix).Contains("if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.benchmarks == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}");
         await Assert.That(matrix).Contains("fail-fast: false");
         await Assert.That(Commands(matrix)).IsEquivalentTo([
             $"{Run} {SdkFilter} --runtimes ${{{{ matrix.runtime }}}} --artifacts .benchmarks/ci-sdk-${{{{ matrix.leg }}}}",
@@ -57,8 +58,8 @@ public sealed class CiBenchmarkGuardTests
     public async Task Ci_Should_Run_Generator_Stages_In_Their_Own_Job_Without_Runtimes()
     {
         var stage = Job(await WorkflowAsync(), "benchmark-generator-stage");
-        await Assert.That(stage).Contains("needs: changes");
-        await Assert.That(stage).Contains("if: needs.changes.outputs.benchmarks-generator == 'true'");
+        await Assert.That(stage).Contains("needs: [changes, reuse]");
+        await Assert.That(stage).Contains("if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.benchmarks-generator == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}");
         await Assert.That(stage).Contains("- name: Generator stages\n");
         await Assert.That(stage).Contains("- name: Upload generator stage artifacts\n");
         var uploadStart = stage.IndexOf("      - name: Upload generator stage artifacts\n", StringComparison.Ordinal);
@@ -100,7 +101,7 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=$benchmarks_generator\" >> \"$GITHUB_OUTPUT\"");
         var aggregate = Job(workflow, "ci-result");
-        await Assert.That(aggregate).Contains("needs: [changes, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]");
+        await Assert.That(aggregate).Contains("needs: [changes, reuse, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]");
         await Assert.That(aggregate).Contains("SDK_BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}");
         await Assert.That(aggregate).Contains("SDK: ${{ needs.benchmark-sdk.result }}");
         await Assert.That(aggregate).Contains("""

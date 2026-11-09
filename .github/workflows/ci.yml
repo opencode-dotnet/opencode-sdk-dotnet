@@ -91,6 +91,104 @@ jobs:
           echo "benchmarks=$benchmarks" >> "$GITHUB_OUTPUT"
           echo "benchmarks-generator=$benchmarks_generator" >> "$GITHUB_OUTPUT"
 
+      - name: Record the tested tree
+        if: github.event_name == 'pull_request'
+        run: git rev-parse HEAD^{tree} HEAD^1^{tree} > "$RUNNER_TEMP/tested-tree"
+
+      - name: Upload the tested tree
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: tested-tree-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tested-tree
+          retention-days: 7
+          if-no-files-found: error
+
+  reuse:
+    name: "Reuse tested tree"
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      reuse: ${{ steps.guard.outputs.reuse || steps.decide.outputs.reuse }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Guard against self-vouching before executing repository tooling
+        id: guard
+        env:
+          QUEUE_REF: ${{ github.ref }}
+          QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+        run: |
+          facts="$RUNNER_TEMP/reuse"
+          mkdir -p "$facts"
+          gather() { local name="$1"; shift; "$@" > "$facts/$name" || { : > "$facts/$name"; return 1; }; }
+          gather queue-ref printf '%s\n' "$QUEUE_REF" || true
+          gather base printf '%s\n' "$QUEUE_BASE" || true
+          gather tree git rev-parse HEAD^{tree} || true
+          gather parent-count bash -o pipefail -c 'git show -s --format=%P HEAD | awk "{print NF}"' || true
+          gather head git rev-parse HEAD^2 || true
+          reason=""
+          if ! git fetch --no-tags origin "$QUEUE_BASE" ||
+             ! gather changed-paths bash -e -o pipefail -c 'base=$(git merge-base "$1" "$2"); git diff --name-only --no-renames -z "$base" "$2"' _ "$QUEUE_BASE" "$(cat "$facts/head")"; then
+            reason="unavailable guard facts"
+          else
+            gather base-tree git rev-parse "$QUEUE_BASE^{tree}" || true
+            shopt -s nocasematch
+            while IFS= read -r -d '' path; do
+              case "$path" in
+                .github/* | tools/* | Directory.Build.props | */Directory.Build.props | Directory.Build.targets | */Directory.Build.targets | Directory.Packages.props | */Directory.Packages.props | Directory.Build.rsp | */Directory.Build.rsp | global.json | */global.json | nuget.config | */nuget.config) reason="rule 5: guarded path" ;;
+              esac
+            done < "$facts/changed-paths"
+          fi
+          if [ -n "$reason" ]; then
+            printf 'reuse=false\nreason=%s\nblocked=true\n' "$reason" >> "$GITHUB_OUTPUT"
+            printf '### Merge-group reuse\nreuse=false: %s\n' "$reason" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Setup .NET SDK
+        if: steps.guard.outputs.blocked != 'true'
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+      - name: Gather GitHub facts
+        id: facts
+        if: steps.guard.outputs.blocked != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          facts="$RUNNER_TEMP/reuse"
+          gather() { local name="$1"; shift; "$@" > "$facts/$name" || { : > "$facts/$name"; return 1; }; }
+          number=$(sed -n 's@^refs/heads/gh-readonly-queue/master/pr-\([0-9][0-9]*\)-.*@\1@p' "$facts/queue-ref") || number=""
+          head=$(cat "$facts/head") || head=""
+          gather pr.json gh api "repos/$GITHUB_REPOSITORY/pulls/$number" || true
+          gather runs.json bash -o pipefail -c 'gh api --paginate --slurp "$1" | jq "{workflow_runs: [.[].workflow_runs[]]}"' _ "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$head&event=pull_request" || true
+          latest=$(jq -cer --arg head "$head" '[.workflow_runs[] | select(.path == ".github/workflows/ci.yml" and .event == "pull_request" and .head_sha == $head)] | sort_by(.created_at, .id) | last | select(. != null)' "$facts/runs.json") || latest=""
+          id=$(jq -er '.id | numbers' <<< "$latest") || id=""
+          attempt=$(jq -er '.run_attempt | numbers' <<< "$latest") || attempt=""
+          gather jobs.json bash -o pipefail -c 'gh api --paginate --slurp "$1" | jq "{jobs: [.[].jobs[]]}"' _ "repos/$GITHUB_REPOSITORY/actions/runs/$id/attempts/$attempt/jobs" || true
+          gather artifacts.json bash -o pipefail -c 'gh api --paginate --slurp "$1" | jq "{artifacts: [.[].artifacts[]]}"' _ "repos/$GITHUB_REPOSITORY/actions/runs/$id/artifacts" || true
+          artifact=$(jq -er --arg name "tested-tree-$attempt" '[.artifacts[] | select(.name == $name)] | select(length == 1) | .[0] | select(.expired == false) | .id | numbers' "$facts/artifacts.json") || artifact=""
+          gather artifact.zip gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" || true
+          gather tested-tree unzip -p "$facts/artifact.zip" tested-tree || true
+          if [ -n "$id" ] && [ -n "$attempt" ]; then
+            printf 'link=%s/%s/actions/runs/%s/attempts/%s\n' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$id" "$attempt" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Decide reuse
+        id: decide
+        if: steps.guard.outputs.blocked != 'true'
+        env:
+          REUSED_RUN: ${{ steps.facts.outputs.link }}
+        run: |
+          dotnet run --file tools/opencode-tool.cs -- merge-group-reuse --facts "$RUNNER_TEMP/reuse" --output "$GITHUB_OUTPUT"
+          printf '### Merge-group reuse\n```\n%s\n```\nRun: %s\n' "$(cat "$GITHUB_OUTPUT")" "$REUSED_RUN" >> "$GITHUB_STEP_SUMMARY"
+
   # The OS-independent gates run once, beside the matrix instead of inside its Linux leg, where
   # they delayed that leg's tests by about 5 minutes (2026-09-26, run 36231256172). None of them
   # needs the pinned server: the formatter compiles in memory from the restored projects, and
@@ -104,8 +202,8 @@ jobs:
   # same targets.
   lint:
     name: "Lint & Generated Output"
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+    needs: [changes, reuse]
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.code == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -204,8 +302,8 @@ jobs:
 
   build-and-test:
     name: "Build & Test (${{ matrix.name }})"
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+    needs: [changes, reuse]
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.code == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -531,8 +629,8 @@ jobs:
 
   benchmark-sdk:
     name: "Benchmark SDK (${{ matrix.leg }})"
-    needs: changes
-    if: needs.changes.outputs.benchmarks == 'true'
+    needs: [changes, reuse]
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.benchmarks == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -577,8 +675,8 @@ jobs:
 
   benchmark-generator-stage:
     name: "Benchmark generator stages"
-    needs: changes
-    if: needs.changes.outputs.benchmarks-generator == 'true'
+    needs: [changes, reuse]
+    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.benchmarks-generator == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -609,10 +707,11 @@ jobs:
 
   # The one required check. A skipped matrix job reports under its unexpanded name, so the matrix
   # legs cannot be required one by one; this job stands for all of them. It fails closed: a change
-  # that reaches code needs every job green, and a documentation-only change needs the changes job.
+  # that reaches code needs every selected job green or proven same-tree reuse; a documentation-only
+  # change needs the changes job.
   ci-result:
     name: "CI result"
-    needs: [changes, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]
+    needs: [changes, reuse, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]
     if: always()
     runs-on: ubuntu-24.04
     permissions: {}
@@ -628,10 +727,18 @@ jobs:
           SDK: ${{ needs.benchmark-sdk.result }}
           BENCHMARKS: ${{ needs.changes.outputs.benchmarks-generator }}
           STAGE: ${{ needs.benchmark-generator-stage.result }}
+          EVENT: ${{ github.event_name }}
+          REUSE_RESULT: ${{ needs.reuse.result }}
+          REUSE: ${{ needs.reuse.outputs.reuse }}
         run: |
           echo "changes=$CHANGES code=$CODE lint=$LINT build-and-test=$BUILD_AND_TEST"
           echo "sdk-benchmarks=$SDK_BENCHMARKS sdk=$SDK generator-benchmarks=$BENCHMARKS stage=$STAGE"
           [ "$CHANGES" = success ] || exit 1
+          if [ "$REUSE_RESULT" = success ] && [ "$REUSE" = true ]; then
+            [ "$EVENT" = merge_group ] && [ "$LINT" = skipped ] && [ "$BUILD_AND_TEST" = skipped ] &&
+              [ "$SDK" = skipped ] && [ "$STAGE" = skipped ] || exit 1
+            exit 0
+          fi
           if [ "$CODE" = true ]; then
             [ "$LINT" = success ] && [ "$BUILD_AND_TEST" = success ] || exit 1
           else
@@ -656,7 +763,7 @@ jobs:
   publish-nightly:
     name: "Publish nightly (GitHub Packages)"
     needs: [lint, build-and-test, benchmark-sdk]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.lint.result == 'success' && needs.build-and-test.result == 'success' && needs.benchmark-sdk.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
