@@ -12,6 +12,7 @@ Nightly builds of `master` are on
 ### 📚 Documentation
 
 - The domain glossary is `GLOSSARY.md` (previously `CONTEXT.md`), and the getting-started guide points there.
+- `OpenCodeServer`'s and `OpenCodeServer.StartAsync`'s summaries name the two servers outside the Windows job: a batch shim's real server and one whose job assignment Windows refuses, which end with a crashed owner only through the stdin lease.
 
 ## [1.0.0] - 2026-11-06
 

@@ -7,7 +7,9 @@ namespace OpenCode.Sdk;
 /// the mode implies visible through <see cref="OwnsProcess"/>. <see cref="StartAsync"/> returns
 /// an owned standalone server: started on port zero with its own generated lease credential, held
 /// through an open stdin pipe, and ended by disposal within bounds. On Windows the server runs in
-/// a job that ends it with its owner, however the owner ends, and disposal ends it and its process
+/// a job that ends it with its owner, however the owner ends; a batch shim's real server and a server
+/// whose job assignment Windows refuses are outside that job and end with a crashed owner only through
+/// the stdin lease (see <see cref="OpenCodeServerOptions.Command"/>). Disposal ends it and its process
 /// tree at once with <c>taskkill /T /F</c>, running the same kill again when the server outlives the
 /// grace. On Linux and macOS the server runs in a session of its own, out of reach of the host
 /// terminal's Ctrl+C and hangup, and disposal sends <c>SIGTERM</c> to its process group, waits a
