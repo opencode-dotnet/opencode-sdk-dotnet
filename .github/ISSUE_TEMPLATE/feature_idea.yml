@@ -1,0 +1,59 @@
+name: Feature idea
+description: An idea for making the SDK more useful
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: this is the **.NET SDK**, not the opencode server. If the server itself
+        lacks a capability, request it at
+        [anomalyco/opencode](https://github.com/anomalyco/opencode/issues) instead.
+        The SDK exposes what the server declares.
+
+        If the server declares an operation but the SDK lacks it, use the
+        [operation-gap form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=operation_gap.yml) instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem or use case
+      description: What you are trying to do matters more than a proposed API.
+    validations:
+      required: true
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: The shape you have in mind
+      render: csharp
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today instead
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the SDK?
+      options:
+        - A generated operation
+        - Event streaming (SubscribeAsync / ReadSessionLogAsync)
+        - A terminal session (PtySession / PersistentPtySession)
+        - The launcher (OpenCodeServer)
+        - Dependency injection (AddOpenCode)
+        - Serialization (how payloads map to .NET types)
+        - Something else
+        - Something that is not there yet
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues for a duplicate
+          required: true
+        - label: As far as I can tell this needs the SDK, not a new server capability
+          required: true

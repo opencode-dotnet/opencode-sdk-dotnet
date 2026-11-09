@@ -9,7 +9,7 @@ chance of being accepted.
 ## 📋 Quick Reference
 
 - 🐛 **Found a bug?** → [Create an Issue](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new/choose)
-- 💡 **Have an idea?** → Use the [bug form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=bug_report.yml) and say it is an idea; for a missing operation, use the [operation-gap form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=operation_gap.yml)
+- 💡 **Have an idea?** → Use the [feature-idea form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=feature_idea.yml); for a missing operation, use the [operation-gap form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=operation_gap.yml)
 - ❓ **Need help?** → Use the [bug form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=bug_report.yml); usage questions are welcome
 - 🚨 **Security issue?** → See our [Security Policy](SECURITY.md) — never open a public issue for one
 - 🔧 **Ready to code?** → [Submit a Pull Request](https://github.com/opencode-dotnet/opencode-sdk-dotnet/compare)
@@ -109,11 +109,11 @@ Use the [bug report form](https://github.com/opencode-dotnet/opencode-sdk-dotnet
 
 ## 💡 Suggesting Features
 
-Blank issues are disabled, and the only forms are operation-gap and bug reports. Use the
+Blank issues are disabled. Use the
 [operation-gap form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=operation_gap.yml)
-for a missing operation; for anything else, ideas included, use the
-[bug form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=bug_report.yml)
-and say when it is an idea. Discussions are not enabled. Describe the
+for a missing operation; for an idea, use the
+[feature-idea form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=feature_idea.yml).
+For questions, use the [bug form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=bug_report.yml). Discussions are not enabled. Describe the
 use case first and the API shape second — what you are trying to do carries more weight than a
 proposed signature.
 
