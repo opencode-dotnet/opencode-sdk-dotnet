@@ -119,8 +119,10 @@ public sealed class ServiceContenderSpawnerTests
 
             var first = clockB.WaitForArmedAsync(timing.StopPollInterval, ExitBound);
             await Assert.That(await Task.WhenAny(pending, first)).IsSameReferenceAs(first).Because("Stop returned while its child was unreaped");
+            // A Linux leader that exits before its other threads shows Z with 'l' but is not reapable yet,
+            // and the single advance below would find nothing to reap; wait for the group to empty.
             var state = await LiveReadiness.WaitAsync(_ => ProcessStateAsync(contender.ProcessId),
-                static state => state.Length == 0 || state[0] == 'Z', "the child to become a zombie or leave", cancellationToken);
+                static state => state.Length == 0 || (state[0] == 'Z' && !state.Contains('l', StringComparison.Ordinal)), "the child to become a reapable zombie or leave", cancellationToken);
             await Assert.That(state).StartsWith("Z").Because("the stopped child must stay an unreaped zombie until its reaper takes it");
             clockB.Advance(timing.StopPollInterval);
             var rearmed = clockB.WaitForArmedAsync(timing.StopPollInterval, ExitBound);
