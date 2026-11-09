@@ -1,6 +1,6 @@
 # Platform and Packaging Architecture
 
-Date: 2026-11-06
+Date: 2026-11-09
 
 Canonical current rules for target frameworks, package boundaries, repository shape, versioning,
 distribution, dependencies, and licensing.
@@ -121,13 +121,18 @@ MCP server versions on its own in its repository.
 The release policy is publication to GitHub Packages on every merge that changes more than Markdown
 or `LICENSE`, and a manual pipeline for NuGet.org.
 
-From `1.0.0`, a version's parts say where a change comes from (ADR-0034). A patch carries fixes
-and additive changes of the SDK's own. A minor moves the protocol pin and may change the generated
-protocol surface the way upstream changed it; the CHANGELOG lists each such change under protocol
-changes. A major breaks the hand-written surface. A family upstream marks experimental carries
-`[Experimental]` and may change in any minor. Package validation against the previous release
-holds the line: a break in a generated type, as the generated manifest identifies it, is allowed in
-a minor, and a break in a hand-written type needs a major.
+From `1.0.0`, the SDK follows the bump type of the upstream release it pins (ADR-0034): an upstream
+patch is an SDK patch, an upstream minor an SDK minor, and an upstream major an SDK major. The SDK's
+own fixes and additions are a patch, and a hand-written break needs a major. The maintainer may
+override either way by judgement, recorded in the release's CHANGELOG. Package validation against
+the previous release holds the line: a generated-type break, as the generated manifest identifies
+it, is accepted in a release that moves the pin and listed as **breaking** under protocol changes;
+a patch or minor that keeps the pin refuses it, while a major accepts any baseline break.
+A family upstream marks experimental carries `[Experimental]` and may change in any release that
+moves the pin.
+A refresh-driven change to a family's handle-client placement, its per-id surface (ADR-0019), needs
+a major while every other generated-type break follows the pin; review enforces this exception
+because the suppression classifier cannot distinguish placement changes from other generated breaks.
 
 ## Licensing
 

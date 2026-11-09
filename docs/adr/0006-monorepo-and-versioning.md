@@ -1,6 +1,6 @@
 # The SDK packages version in lockstep; no package aligns with upstream versions
 
-Date: 2026-10-14
+Date: 2026-11-09
 
 Status: the MCP server's repository placement is ADR-0030's.
 
@@ -11,9 +11,10 @@ Extensions depends on the SDK through an ordinary NuGet dependency on the releas
 The MCP server will live in its sibling repository (ADR-0030), consume the SDK as a published package,
 and version on its own.
 
-No package version aligns with upstream opencode versions. Alignment would force the SDK's own
-features onto patch releases; the 2.0 rename wave was absorbed by an explicit breaking major
-instead (internal research, 2026-08-08, "Align NuGet versioning with upstream opencode versions?").
+No package version aligns with upstream opencode versions. Alignment would make an SDK fix wait
+for an upstream release, or the numbers would diverge anyway; the 2.0 rename wave was absorbed by
+an explicit breaking major instead (internal research, 2026-08-08, "Align NuGet versioning with
+upstream opencode versions?").
 
 CD publishes nightly packages from `master` to GitHub Packages; NuGet.org releases run through a
 manual pipeline.

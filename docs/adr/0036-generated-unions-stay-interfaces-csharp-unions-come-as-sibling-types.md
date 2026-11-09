@@ -1,6 +1,6 @@
 # Generated unions stay interfaces and carriers; C# unions come as sibling types
 
-Date: 2026-10-14
+Date: 2026-11-09
 
 C# 15 adds union types. Upstream's protocol is full of unions, which the SDK represents as hoisted
 interfaces over sealed records (ADR-0011) and as structural carriers (ADR-0016). The maintainer
@@ -9,7 +9,7 @@ or arrive later.
 
 **Decision.** `1.0.0` keeps the interfaces and carriers. An existing generated type never gains a
 C# union declaration. C# unions arrive additively, as sibling types over the same records, in a
-minor version after `1.0.0`. Making them the primary representation is a major-version decision.
+release after `1.0.0`. Making them the primary representation is a major-version decision.
 
 **Why.**
 
