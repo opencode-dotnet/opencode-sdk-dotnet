@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-10-20
+Date: 2026-11-09
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -89,8 +89,10 @@ single-owner rules.
   `master` requires the queue and the `CI result` check, for administrators too.
 - A pull request joins the queue once the `CI result` check of its own head is green. The queue
   tests it again on top of current `master` and the entries ahead of it, and merges only on that
-  green: the repository guards count exactly over every test file, so a green result from an older
-  base is not enough. After the merge, the work is done when the CI the merge commit triggers on
+  green, except when the recorded tested-tree proof and self-vouching guard in `quality-gates.md`
+  permit reuse of its green PR result. Otherwise the repository guards count exactly over every
+  test file, so a green result from an older base is not enough. After the merge, the work is done
+  when the CI the merge commit triggers on
   `master` is green; a merge of only Markdown or `LICENSE` triggers none, and its queue result
   stands.
 - CI runs on every pull request and queue entry. A change that touches only Markdown or `LICENSE`

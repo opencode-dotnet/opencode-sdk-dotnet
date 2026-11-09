@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-11-06
+Date: 2026-11-09
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -73,6 +73,20 @@ this policy.
 "Builds" and "works" are different claims. A change is complete when the CI its pull request
 triggers is green: the lint job and the three operating-system legs run every step of the full gate
 listed below. Which changes skip those jobs, and what a merge requires, are in `workflow.md`.
+
+A merge-group run may reuse the latest successful `ci.yml` pull-request run and its latest
+attempt's successful `CI result` only with recorded proof of the exact same tree. The group has
+two parents, its second parent is still the queued PR's head, and that PR targets `master`.
+The attempt's unique, unexpired `tested-tree-<run_attempt>` artifact must record the group's tree
+and the same base tree its diff uses, and have been created within that attempt's successful
+`Changes` job window. The PR's changes
+from its merge base must touch neither `.github/` nor `tools/`, nor any `Directory.Build.props`,
+`Directory.Build.targets`, `Directory.Packages.props`, `Directory.Build.rsp`, `global.json` or
+`nuget.config` at any depth, matched case-insensitively. The workflow checks this guard before executing repository tooling.
+In practice, a PR whose base has not moved since its green run and which does not touch CI or the
+tool avoids the second full run. Any missing, malformed or uncertain fact, or a failed reuse job,
+means the normal full CI runs. `Changes` must still succeed; the reuse branch of `CI result`
+accepts only a merge group with all four heavy jobs skipped.
 
 Before a pull request opens, run the local check from the repository root. It catches failures
 before they cost a CI run. A current handoff may add scope-specific checks but cannot weaken it.

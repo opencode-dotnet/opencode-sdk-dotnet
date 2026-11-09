@@ -98,6 +98,9 @@ public static class ToolApp
             .AddCommand<VerifyTestRosterCommand>("verify-test-roster")
             .WithDescription("Verify a CI test pass's TRX results against the committed tests/test-roster.json, fail-closed.");
         configurator
+            .AddCommand<MergeGroupReuseCommand>("merge-group-reuse")
+            .WithDescription("Reuse a green PR result only when raw facts prove the same tested tree.");
+        configurator
             .AddCommand<VerifyClonesCommand>("verify-clones")
             .WithDescription("Run the pinned clone detector: hand-written src/ and tools/ against their baselines, tests and generated output reported.");
     }
