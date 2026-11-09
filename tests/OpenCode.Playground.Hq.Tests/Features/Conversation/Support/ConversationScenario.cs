@@ -88,6 +88,13 @@ internal sealed class ConversationScenario : OpenCodeClient
         Durable = new() { AggregateId = sessionId, Seq = 2, Version = 1 },
         Data = new() { SessionId = sessionId },
     };
+    public static SessionInboxCancelled Cancelled(string inboxId, string sessionId = SessionId) => new()
+    {
+        Id = "cancelled",
+        Created = 5,
+        Durable = new() { AggregateId = sessionId, Seq = 4, Version = 1 },
+        Data = new() { SessionId = sessionId, InboxId = inboxId },
+    };
     public static SessionExecutionSucceeded Succeeded(string sessionId = SessionId) => new()
     {
         Id = "succeeded",
