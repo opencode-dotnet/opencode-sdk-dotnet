@@ -14,6 +14,10 @@ Nightly builds of `master` are on
 - The domain glossary is `GLOSSARY.md` (previously `CONTEXT.md`), and the getting-started guide points there.
 - `OpenCodeServer`'s and `OpenCodeServer.StartAsync`'s summaries name the two servers outside the Windows job: a batch shim's real server and one whose job assignment Windows refuses, which end with a crashed owner only through the stdin lease.
 
+### 📋 Important Notes
+
+- A version follows the bump type of the upstream opencode release it pins, and the SDK's own fixes, additions and hand-written breaks apply on top (ADR-0034). A release that moves the pin may change generated protocol types the way upstream changed them, and lists each such change as **breaking** under protocol changes.
+
 ## [1.0.0] - 2026-11-06
 
 **`1.0.0`: the public surface is stable.** From this release, a version's parts say where a change

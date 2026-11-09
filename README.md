@@ -343,9 +343,7 @@ Architecture, decision records, and engineering policy live under
 
 ## 📌 Versions and support
 
-- From `1.0.0`, a version's parts say where a change comes from: a patch fixes or adds, a minor
-  moves the pinned opencode release and may change the generated protocol models, and only a major
-  breaks the hand-written surface.
+- From `1.0.0`, a version follows the bump type of the upstream opencode release it pins: an upstream patch is an SDK patch, a minor a minor, a major a major. The SDK's own fixes and additions are a patch, and only a major breaks the hand-written surface. A release that moves the pin may change the generated protocol models the way upstream changed them; the CHANGELOG lists each such change as **breaking**.
   See [CHANGELOG.md](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/CHANGELOG.md).
 - 📌 The SDK builds against a snapshot of an upstream release tag, never a live branch.
   [`spec/SNAPSHOT.md`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/spec/SNAPSHOT.md)

@@ -1,6 +1,6 @@
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
-/// <summary>Restricts accepted API breaks to the surface the version step permits.</summary>
+/// <summary>Restricts accepted API breaks to the surface the version step and the pin move permit.</summary>
 internal sealed class CompatibilitySuppressionClassifier
 {
     private readonly PackageCompatibilityEvidence _evidence;
@@ -50,10 +50,12 @@ internal sealed class CompatibilitySuppressionClassifier
         return step switch
         {
             PackageVersionStep.NoBaseline => "no baseline is configured; no suppressions are allowed.",
-            PackageVersionStep.Patch => "a patch step permits no suppressions.",
-            PackageVersionStep.Minor when !string.Equals(project, "OpenCode.Sdk", StringComparison.Ordinal)
-                || !generatedTarget => "this hand-written break needs a major version step.",
-            PackageVersionStep.Minor or PackageVersionStep.Major => null,
+            PackageVersionStep.Major => null,
+            PackageVersionStep.Patch or PackageVersionStep.Minor when string.Equals(project, "OpenCode.Sdk", StringComparison.Ordinal)
+                && generatedTarget && _evidence.PinMoved => null,
+            PackageVersionStep.Patch or PackageVersionStep.Minor when string.Equals(project, "OpenCode.Sdk", StringComparison.Ordinal)
+                && generatedTarget => "a generated-type break needs a release that moves the protocol pin.",
+            PackageVersionStep.Patch or PackageVersionStep.Minor => "this hand-written break needs a major version step.",
             _ => throw new InvalidOperationException($"Unknown version step '{step}'."),
         };
     }

@@ -18,6 +18,9 @@ internal sealed class PackageValidationScenario
     private string _version = "0.9.0";
     private string _baseline = string.Empty;
     private bool _missingBaseline;
+    private bool _pinMoved;
+    private bool _missingBaselineReceipt;
+    private bool? _invalidReceiptIsBaseline;
     private string? _missingSuppressionField;
 
     public ScriptedProcessRunner Runner { get; } = new();
@@ -65,6 +68,24 @@ internal sealed class PackageValidationScenario
         return this;
     }
 
+    public PackageValidationScenario WithMovedPin()
+    {
+        _pinMoved = true;
+        return this;
+    }
+
+    public PackageValidationScenario WithMissingBaselineReceipt()
+    {
+        _missingBaselineReceipt = true;
+        return this;
+    }
+
+    public PackageValidationScenario WithInvalidReceipt(bool baseline)
+    {
+        _invalidReceiptIsBaseline = baseline;
+        return this;
+    }
+
     public PackageValidationScenario WithoutSuppressionField(string name)
     {
         _missingSuppressionField = name;
@@ -76,6 +97,7 @@ internal sealed class PackageValidationScenario
         Write("Directory.Build.props", new XElement("Project", new XElement("PropertyGroup",
             new XElement("VersionPrefix", _version), new XElement("PackageValidationBaselineVersion", _baseline))).ToString());
         Write(PackageCompatibilityRepositoryReader.ManifestPath, Manifest(_currentSources.Keys));
+        Write("spec/receipt.json", JsonSerializer.Serialize(new { upstreamCommit = _invalidReceiptIsBaseline is false ? null : "sha A" }));
         foreach (var source in _currentSources)
         {
             Write(PackageCompatibilityRepositoryReader.SdkPath + source.Key, source.Value);
@@ -109,6 +131,12 @@ internal sealed class PackageValidationScenario
                     _fileSystem.Path.GetFullPath("repository"),
                     ScriptedProcessRunner.Ok(source.Value));
             }
+
+            var baselinePin = _pinMoved ? "sha B" : "sha A";
+            var receipt = JsonSerializer.Serialize(new { upstreamCommit = _invalidReceiptIsBaseline is true ? null : baselinePin });
+            _ = Runner.Expect("git", ["show", $"v{_baseline}:spec/receipt.json"], _fileSystem.Path.GetFullPath("repository"),
+                _missingBaselineReceipt ? ScriptedProcessRunner.Fail("fatal: path does not exist")
+                    : ScriptedProcessRunner.Ok(receipt));
         }
 
         var repository = _fileSystem.Path.GetFullPath("repository");

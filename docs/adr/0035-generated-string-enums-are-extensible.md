@@ -33,7 +33,7 @@ token kind stays strict: a number or another non-string token is still a malform
   enum's `const string` spellings in a `case` label or a property pattern. This breaks source
   compatibility once, and the change ships before 1.0.
 - Package validation (ADR-0034) treats a new pinned value as an additive member. A removed pinned
-  value is a removed member of a generated type, which a minor version may carry.
+  value is a removed member of a generated type, which a release that moves the pin may carry.
 - A query parameter's spelling comes from the value itself, so a value the pin does not know can be
   sent too.
 - This record supersedes the strict enum conversion that ADR-0014 lists among its materialization

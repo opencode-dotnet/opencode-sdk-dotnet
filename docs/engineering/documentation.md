@@ -1,6 +1,6 @@
 # Documentation
 
-Date: 2026-11-03
+Date: 2026-11-09
 
 Canonical rules for documentation ownership, authority, lifecycle, references, and lossless
 maintenance.
@@ -90,7 +90,9 @@ live Git and GitHub, then deleted when the follow-up ships or a newer handoff su
 - `CHANGELOG.md` gets an entry under `[Unreleased]` for every user-facing change, in the same pull
   request. A released section is the delta from the previous published package: it states the
   status quo a consumer upgrading from that package meets, never the order of intermediate commits
-  or nightlies.
+  or nightlies. A release that moves the protocol pin lists what changed in the protocol under
+  `### 🔌 Protocol changes`, and marks each generated-type break **breaking** there, not again under
+  `### 💥 Breaking changes`, which holds the hand-written breaks (ADR-0034).
 - Consumer documentation names upstream where the server's behaviour matters, but never sends a
   reader to upstream's code, issues or documentation to learn how the SDK behaves; what a consumer
   needs is stated here.

@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using System.Text;
+using System.Text.Json;
 using System.Xml.Linq;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -25,6 +26,8 @@ internal sealed class PackageCompatibilityRepositoryReader(IFileSystem fileSyste
         var props = XDocument.Parse(await ReadFileAsync(repository, "Directory.Build.props", cancellationToken));
         var version = props.Descendants("VersionPrefix").Single().Value.Trim();
         var baseline = props.Descendants("PackageValidationBaselineVersion").Single().Value.Trim();
+        var currentPin = ReadUpstreamCommit(await ReadFileAsync(repository, "spec/receipt.json", cancellationToken), "spec/receipt.json");
+        var pinMoved = false;
         var files = new GeneratedManifest(await ReadFileAsync(repository, ManifestPath, cancellationToken)).Files;
         var generated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var path in files)
@@ -41,12 +44,17 @@ internal sealed class PackageCompatibilityRepositoryReader(IFileSystem fileSyste
                 var source = await ReadBaselineAsync(repository, baseline, SdkPath + path, cancellationToken);
                 generated.UnionWith(_catalog.ReadDeclarations(source, path, generated: true).Select(static type => type.FullName));
             }
+
+            var baselinePin = ReadUpstreamCommit(await ReadBaselineAsync(repository, baseline, "spec/receipt.json", cancellationToken),
+                $"v{baseline}:spec/receipt.json");
+            pinMoved = !string.Equals(currentPin, baselinePin, StringComparison.Ordinal);
         }
 
         return new PackageCompatibilityEvidence
         {
             VersionPrefix = version,
             BaselineVersion = baseline,
+            PinMoved = pinMoved,
             GeneratedTypes = generated,
             HandWrittenPartials = await ReadHandWrittenPartialsAsync(repository, files, cancellationToken),
             ProjectSuppressions = await ReadSuppressionsAsync(repository, cancellationToken),
@@ -66,6 +74,19 @@ internal sealed class PackageCompatibilityRepositoryReader(IFileSystem fileSyste
         }
 
         return Encoding.UTF8.GetString(result.StandardOutput);
+    }
+
+    private static string ReadUpstreamCommit(string receipt, string label)
+    {
+        using var document = JsonDocument.Parse(receipt);
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || !document.RootElement.TryGetProperty("upstreamCommit", out var commit)
+            || commit.ValueKind != JsonValueKind.String)
+        {
+            throw new InvalidOperationException($"'{label}' must contain a string 'upstreamCommit'.");
+        }
+
+        return commit.GetString()!;
     }
 
     private async Task<IReadOnlyDictionary<string, string>> ReadHandWrittenPartialsAsync(string repository,
