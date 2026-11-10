@@ -29,10 +29,10 @@ namespace OpenCode.Sdk.Performance.Tests.Generator;
 /// formats what a real run formats (the emitted bytes are the settled copy's, put back by file copy);
 /// its allocations are this process's wrapper around the
 /// subprocess, not the subprocess's own. The verify row runs <c>generate --verify</c> on the
-/// repository's tree, which rewrites it with identical bytes.
+/// repository's tree, generating and formatting in a staging mirror without changing that tree.
 /// </para>
 /// <para>
-/// Because the format and verify rows rewrite the repository's generated tree, the setup refuses to
+/// Because the format row rewrites the repository's generated tree, the setup refuses to
 /// run unless <see cref="RewriteVariable"/> is <see cref="RewriteAllowed"/> and the tree is clean:
 /// the baseline procedure sets the variable in a disposable clone. An interrupted run leaves the
 /// tree half-written (emitted but unformatted); <c>generate</c> restores it. The setup also runs
@@ -129,8 +129,7 @@ public class GeneratorRunBenchmarks : IDisposable
 
     /// <summary>
     /// <c>generate --verify</c> end to end on the repository's own generated tree.
-    /// The pipeline's verify flag changes only the reported result, not the work, so this row also
-    /// measures <c>generate</c>'s whole-run cost, not the CLI's differing exit code and messages.
+    /// Generates and formats in an isolated staging mirror, then compares without writing the tree.
     /// </summary>
     [Benchmark]
     public Task VerifyEndToEndAsync() => RunVerifiedAsync();
@@ -143,6 +142,7 @@ public class GeneratorRunBenchmarks : IDisposable
         {
             if (_coordinator is not null)
             {
+                _ = await _coordinator.GenerateAsync(_input!.Request(_input.OutputRoot, verify: false), CancellationToken.None).ConfigureAwait(false);
                 RefuseChanges(await RunVerifiedAsync().ConfigureAwait(false), "the closing generate --verify");
             }
         }
@@ -180,13 +180,13 @@ public class GeneratorRunBenchmarks : IDisposable
     }
 
     private Task<GenerationReport> RunUnformattedAsync(string outputRoot) =>
-        _unformattedCoordinator!.GenerateAsync(_input!.Request(outputRoot, verify: true), CancellationToken.None);
+        _unformattedCoordinator!.GenerateAsync(_input!.Request(outputRoot, verify: false), CancellationToken.None);
 
     private Task<GenerationReport> RunVerifiedAsync() =>
         _coordinator!.GenerateAsync(_input!.Request(_input.OutputRoot, verify: true), CancellationToken.None);
 
     /// <summary>
-    /// Refuses a working checkout: the format and verify rows rewrite its generated tree, so they run
+    /// Refuses a working checkout: the format row rewrites its generated tree, so these benchmarks run
     /// only where that was asked for, in a tree with nothing of its own to lose.
     /// </summary>
     private static async Task RequireDisposableTreeAsync(string root)

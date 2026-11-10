@@ -1,9 +1,11 @@
+using System.IO.Abstractions;
 using System.Text;
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
+using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Serialization;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
@@ -45,6 +47,21 @@ internal static class GenerationTestData
         var fileSystem = new MockFileSystem();
         fileSystem.Initialize().With(new FileDescription(ProjectPath, "<Project />"));
         return fileSystem;
+    }
+
+    public static ScriptedProcessRunner MirrorProcesses(IFileSystem fs, string trackedFiles = "",
+        ProcessResult? restoreResult = null)
+    {
+        var runner = new ScriptedProcessRunner();
+        runner.Expect("git", ["ls-files", "-z"], fs.Directory.GetCurrentDirectory(), ScriptedProcessRunner.Ok(trackedFiles));
+        runner.Expect("dotnet", () =>
+        {
+            var root = fs.Directory.EnumerateDirectories(fs.Path.Combine(fs.Path.GetTempPath(), "opencode-sdk-generate-verify"))
+                .Single(path => fs.Directory.Exists(fs.Path.Combine(path, "empty-source")));
+            var project = fs.Path.Combine(root, ProjectPath.Replace('/', fs.Path.DirectorySeparatorChar));
+            return ["restore", project, "--source", fs.Path.Combine(root, "empty-source")];
+        }, fs.Directory.GetCurrentDirectory(), restoreResult);
+        return runner;
     }
 
     /// <summary>The generate command's repository roots: one selected operation, two pending, no transport-owned row.</summary>

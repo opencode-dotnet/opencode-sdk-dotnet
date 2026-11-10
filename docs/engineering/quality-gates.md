@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-11-09
+Date: 2026-11-10
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -176,6 +176,10 @@ Changes to the protocol, generator, curation, or generated output also run:
 dotnet run --file tools/opencode-tool.cs -- --help
 dotnet run --file tools/opencode-tool.cs -- generate --verify
 ```
+
+Verify generates and formats in a staging mirror of the repository root in the temp directory, never modifying the working tree.
+Stale output is reported with exit 1 and fixed by running `generate`.
+A staging-context difference that changes bytes shows as stale output, never as a silent pass.
 
 A current development handoff may require the Unix direct-invocation smoke
 `./tools/opencode-tool.cs --help` in addition to the cross-platform form above.

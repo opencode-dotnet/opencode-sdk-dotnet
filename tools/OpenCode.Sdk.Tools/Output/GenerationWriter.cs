@@ -4,7 +4,7 @@ using OpenCode.Sdk.Tools.Output.Abstractions;
 namespace OpenCode.Sdk.Tools.Output;
 
 internal sealed class GenerationWriter(
-    IFileSystem fileSystem, PlacementValidator placement, ManifestStore manifests, StagedWrite write) : IGenerationWriter
+    IFileSystem fileSystem, PlacementValidator placement, ManifestStore manifests, StagedWrite write, GenerationMirror mirror) : IGenerationWriter
 {
     internal const string ManifestRelativePath = ManifestStore.ManifestRelativePath;
     private const int ComparisonBufferSize = 8192;
@@ -12,6 +12,7 @@ internal sealed class GenerationWriter(
     private readonly PlacementValidator _placement = placement ?? throw new ArgumentNullException(nameof(placement));
     private readonly ManifestStore _manifests = manifests ?? throw new ArgumentNullException(nameof(manifests));
     private readonly StagedWrite _write = write ?? throw new ArgumentNullException(nameof(write));
+    private readonly GenerationMirror _mirror = mirror ?? throw new ArgumentNullException(nameof(mirror));
 
     public async Task<WriteResult> WriteAsync(GenerationWriteRequest request, CancellationToken cancellationToken)
     {
@@ -29,8 +30,17 @@ internal sealed class GenerationWriter(
             .Append(ManifestStore.ReachRelativePath)
             .Distinct(PlacementValidator.OwnedPathComparer).Order(StringComparer.Ordinal).ToArray();
         var before = await SnapshotAsync(root, trackedPaths, cancellationToken).ConfigureAwait(false);
+        if (request.Verify)
+        {
+            return await _mirror.RunAsync(request, async staged =>
+            {
+                await _write.WriteAsync(staged, oldPaths, sources, cancellationToken).ConfigureAwait(false);
+                return await CompareAsync(staged.OutputRoot, before, true, cancellationToken).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
         await _write.WriteAsync(request, oldPaths, sources, cancellationToken).ConfigureAwait(false);
-        return await CompareAsync(root, before, request.Verify, cancellationToken).ConfigureAwait(false);
+        return await CompareAsync(root, before, false, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Dictionary<string, byte[]?>> SnapshotAsync(string root, IReadOnlyList<string> paths, CancellationToken cancellationToken)
