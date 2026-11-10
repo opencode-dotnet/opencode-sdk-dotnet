@@ -10,19 +10,19 @@ namespace OpenCode.Sdk;
 public sealed record ExperimentalJobListRequest
 {
     /// <summary>
-    /// Gets the &apos;sessionID&apos; query value; the server default applies when unset.
+    /// Filter to background jobs owned by this session.
     /// </summary>
     public string? SessionId { get; init; }
     /// <summary>
-    /// Gets the &apos;kind&apos; query value; the server default applies when unset.
+    /// Filter by background job kind (shell, subagent, or image).
     /// </summary>
     public JobKind? Kind { get; init; }
     /// <summary>
-    /// Gets the &apos;status&apos; query value; the server default applies when unset.
+    /// Filter by job status (running, completed, error, or cancelled).
     /// </summary>
     public JobStatus? Status { get; init; }
     /// <summary>
-    /// Gets the &apos;descendants&apos; query value; the server default applies when unset.
+    /// When sessionID is set, also include background jobs owned by child and nested subagent sessions.
     /// </summary>
     public bool? Descendants { get; init; }
 }

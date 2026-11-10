@@ -460,8 +460,10 @@ materializable.
 - A query parameter binds by shape: a required parameter becomes a `required`, non-nullable
   request property and makes the request itself a required method and route argument; an optional
   parameter binds nullable and is omitted from the wire when unset, whether or not its schema
-  admits JSON null. A plain string binds as the integer its `queryParameterTypes` row names, where
-  upstream's server decodes it as a number and upstream's generated client takes one, or as a
+  admits JSON null. A query member's description is the parameter schema's own, then its resolved
+  target's, so an optional parameter documents itself the same with or without a null arm. A plain
+  string binds as the integer its `queryParameterTypes` row names, where upstream's server decodes
+  it as a number and upstream's generated client takes one, or as a
   string under a reason-bearing `stringQueryParameters` row; a plain string with neither row fails
   generation, and a row whose parameter the document now declares as a number, or no longer
   carries, fails it too (ADR-0037). The integer travels as its invariant decimal text and the
