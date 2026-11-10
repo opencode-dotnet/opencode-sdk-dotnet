@@ -45,6 +45,7 @@ public static class ToolApp
         services.AddSingleton<PlacementValidator>();
         services.AddSingleton<ManifestStore>();
         services.AddSingleton<StagedWrite>();
+        services.AddSingleton<GenerationMirror>();
         services.AddSingleton<IGenerationWriter, GenerationWriter>();
         services.AddSingleton<GenerationCoordinator>();
         services.AddSingleton<IProcessRunner, CliWrapProcessRunner>();

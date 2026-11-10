@@ -77,7 +77,11 @@ internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRu
                     "--runtimeconfig", FormatterFile(formatterDirectory, RuntimeConfigFileName),
                     FormatterFile(formatterDirectory, AssemblyFileName), projectFileName, "--no-restore", $"@{responseFilePath}"],
                 projectDirectory, cancellationToken,
-                new Dictionary<string, string?>(StringComparer.Ordinal) { ["TargetFramework"] = framework })
+                new Dictionary<string, string?>(StringComparer.Ordinal)
+                {
+                    ["TargetFramework"] = framework,
+                    ["EnableSourceControlManagerQueries"] = "false",
+                })
                 .ConfigureAwait(false);
         }
         finally

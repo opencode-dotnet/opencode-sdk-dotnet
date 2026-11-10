@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-09
+Date: 2026-11-10
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -114,7 +114,9 @@ evidence and may contain superseded positions.
   this sequence promises restartability, not filesystem-wide atomicity, concurrent writers or
   power-loss durability.
   The generated project must be restored before formatting so the formatter can remove redundant
-  usings; the generator refuses otherwise and never restores the project itself.
+  usings; the generator refuses otherwise and never restores the real project itself.
+  `--verify` runs the same writer in a staging mirror of the repository root in the temp directory,
+  never modifying the working tree; it restores its own staging project offline from the global packages folder.
 - The repository tool forwards Ctrl+C cancellation to the running command and returns the configured
   cancellation exit code. Its composition root maps tool refusals to an unwrapped `Refused: <message>`
   diagnostic and exit code 1; other failures retain the CLI framework's error rendering and exit code.

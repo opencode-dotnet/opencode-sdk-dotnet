@@ -4,10 +4,12 @@ using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Output;
 using OpenCode.Sdk.Tools.Output.Abstractions;
 using OpenCode.Sdk.Tools.Serialization;
+using OpenCode.Sdk.Tools.Tests.Output.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
 using TUnit.Assertions.Enums;
+using static OpenCode.Sdk.Tools.Tests.Output.Support.VerifyMirrorScenario;
 
 namespace OpenCode.Sdk.Tools.Tests.Output;
 
@@ -173,43 +175,71 @@ public sealed class GenerationWriterTests
     {
         const string relativePath = "Common/Errors/Example.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var formatter = new RecordingProjectFormatter(fileSystem, async (currentFileSystem, _, _, cancellationToken) =>
+        var scenario = new VerifyMirrorScenario(fileSystem);
+        var formatter = new RecordingProjectFormatter(fileSystem, async (currentFileSystem, project, _, cancellationToken) =>
         {
-            var path = currentFileSystem.Path.Combine(GenerationTestData.OutputRoot, relativePath);
+            var path = currentFileSystem.Path.Combine(currentFileSystem.Path.GetDirectoryName(project)!, relativePath);
             var source = await currentFileSystem.File.ReadAllTextAsync(path, cancellationToken);
             await currentFileSystem.File.WriteAllTextAsync(
                 path,
                 source.Replace("public record", "public sealed record", StringComparison.Ordinal),
                 cancellationToken);
         });
-        var writer = CreateWriter(fileSystem, formatter);
+        var writer = scenario.CreateWriter(formatter);
         var sources = new[] { GenerationTestData.Source(relativePath, "public record Example;\n"), };
 
         _ = await writer.WriteAsync(Request(sources), CancellationToken.None);
+        var before = await scenario.ReadTreeAsync();
         var verify = await writer.WriteAsync(Request(sources, verify: true), CancellationToken.None);
 
         await Assert.That(formatter.CallCount).IsEqualTo(2);
         await Assert.That(formatter.SourcePaths).Contains(relativePath);
         await Assert.That(verify.HasChanges).IsFalse();
+        await scenario.AssertTreeUnchangedAsync(before);
     }
 
     [Test]
-    public async Task WriteAsync_Should_Report_And_Repair_Verify_Drift()
+    public async Task WriteAsync_Should_Report_Verify_Drift_Without_Changing_The_Tree()
     {
         const string relativePath = "Common/Errors/Example.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
+        var scenario = new VerifyMirrorScenario(fileSystem);
+        var writer = scenario.CreateWriter();
         var sources = new[] { GenerationTestData.Source(relativePath, "expected\n"), };
         _ = await writer.WriteAsync(Request(sources), CancellationToken.None);
         var outputPath = fileSystem.Path.Combine(GenerationTestData.OutputRoot, relativePath);
         await fileSystem.File.WriteAllTextAsync(outputPath, GenerationTestData.OwnedContent("drift\n"), CancellationToken.None);
+        var before = await scenario.ReadTreeAsync();
 
         var result = await writer.WriteAsync(Request(sources, verify: true), CancellationToken.None);
 
         await Assert.That(result.HasChanges).IsTrue();
-        await Assert.That(result.ChangedPaths).Contains(relativePath);
-        var repaired = await fileSystem.File.ReadAllTextAsync(outputPath, CancellationToken.None);
-        await Assert.That(repaired).IsEqualTo(GenerationTestData.OwnedContent("expected\n"));
+        await Assert.That(result.CreatedPaths).IsEmpty();
+        await Assert.That(result.ChangedPaths).IsEquivalentTo([relativePath], CollectionOrdering.Matching);
+        await Assert.That(result.DeletedPaths).IsEmpty();
+        var unchanged = await fileSystem.File.ReadAllTextAsync(outputPath, CancellationToken.None);
+        await Assert.That(unchanged).IsEqualTo(GenerationTestData.OwnedContent("drift\n"));
+        await scenario.AssertTreeUnchangedAsync(before);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task WriteAsync_Should_Leave_The_Tree_Unchanged_When_Verify_Formatting_Is_Interrupted(bool cancel)
+    {
+        var fs = GenerationTestData.CreateFileSystem();
+        var scenario = new VerifyMirrorScenario(fs);
+        _ = await scenario.CreateWriter().WriteAsync(Request([GenerationTestData.Source("Old.cs", "old\n")]), CancellationToken.None);
+        await fs.File.WriteAllTextAsync(scenario.OwnedPath("Manual.cs"), "manual\n");
+        var before = await scenario.ReadTreeAsync();
+        var formatter = new RecordingProjectFormatter(fs, (_, _, _, _) =>
+            throw (cancel ? new OperationCanceledException("interrupted") : new IOException("interrupted")));
+
+        var failure = await Assert.That(async () => _ = await scenario.CreateWriter(formatter).WriteAsync(
+            Request([GenerationTestData.Source("New.cs", "new\n")], verify: true), CancellationToken.None)).ThrowsException();
+
+        await Assert.That(failure!.GetType()).IsEqualTo(cancel ? typeof(OperationCanceledException) : typeof(IOException));
+        await scenario.AssertReadOnlyVerifyAsync(before);
     }
 
     [Test]
@@ -598,8 +628,8 @@ public sealed class GenerationWriterTests
         var result = await writer.WriteAsync(Request(sources, verify: true), CancellationToken.None);
 
         await Assert.That(result.ChangedPaths).Contains(".gitattributes");
-        var repaired = await fileSystem.File.ReadAllTextAsync(AttributesPath, CancellationToken.None);
-        await Assert.That(repaired).IsEqualTo(ExpectedAttributes([relativePath]));
+        var unchanged = await fileSystem.File.ReadAllTextAsync(AttributesPath, CancellationToken.None);
+        await Assert.That(unchanged).IsEqualTo(ExpectedAttributes(["Common/Errors/Retired.cs"]));
     }
 
     [Test]
@@ -613,7 +643,7 @@ public sealed class GenerationWriterTests
         var result = await writer.WriteAsync(Request([], verify: true, reachReportContent: GenerationTestData.ReachReport), CancellationToken.None);
 
         await Assert.That(result.ChangedPaths).Contains(ReachReportName);
-        await Assert.That(await fileSystem.File.ReadAllTextAsync(ReachPath, CancellationToken.None)).IsEqualTo(GenerationTestData.ReachReport);
+        await Assert.That(await fileSystem.File.ReadAllTextAsync(ReachPath, CancellationToken.None)).IsEqualTo(GenerationTestData.StaleReachReport);
     }
 
     [Test]
@@ -676,7 +706,8 @@ public sealed class GenerationWriterTests
         var body = new string('a', 200_000);
         var unchangedSource = $"{body}public sealed record Unchanged;\n";
         var fileSystem = GenerationTestData.CreateFileSystem();
-        _ = await CreateWriter(fileSystem).WriteAsync(
+        var scenario = new VerifyMirrorScenario(fileSystem);
+        _ = await scenario.CreateWriter().WriteAsync(
             Request(
             [
                 GenerationTestData.Source(changed, $"{body}z\n"),
@@ -694,16 +725,20 @@ public sealed class GenerationWriterTests
             [grown] = OwnedBytes("kept\nadded\n"),
             [unchanged] = OwnedBytes(unchangedSource),
         };
-        var formatter = new RecordingProjectFormatter(fileSystem, async (current, _, _, token) =>
+        var before = await scenario.ReadTreeAsync();
+        var formatter = new RecordingProjectFormatter(fileSystem, async (current, project, _, token) =>
         {
+            var root = current.Path.GetDirectoryName(project)!;
             foreach (var (relativePath, bytes) in formatted)
             {
                 await current.File.WriteAllBytesAsync(
-                    current.Path.Combine(GenerationTestData.OutputRoot, relativePath), bytes, token);
+                    current.Path.Combine(root, relativePath), bytes, token);
             }
+            await Assert.That(await current.File.ReadAllBytesAsync(current.Path.Combine(root, CreatedPath), token))
+                .IsEquivalentTo(OwnedBytes(CreatedContent), CollectionOrdering.Matching);
         });
 
-        var result = await CreateWriter(fileSystem, formatter).WriteAsync(
+        var result = await scenario.CreateWriter(formatter).WriteAsync(
             Request(
             [
                 GenerationTestData.Source(changed, $"{body}z\n"),
@@ -719,17 +754,7 @@ public sealed class GenerationWriterTests
         await Assert.That(result.ChangedPaths).IsEquivalentTo(
             [".generated-manifest.json", ".gitattributes", grown, shrunk, changed, ordinalProbe], CollectionOrdering.Matching);
         await Assert.That(result.DeletedPaths).IsEquivalentTo([deleted], CollectionOrdering.Matching);
-        var expectedFiles = new Dictionary<string, byte[]>(formatted, StringComparer.Ordinal)
-        {
-            [CreatedPath] = OwnedBytes(CreatedContent),
-        };
-        foreach (var (relativePath, bytes) in expectedFiles)
-        {
-            await Assert.That(await fileSystem.File.ReadAllBytesAsync(OwnedPath(fileSystem, relativePath)))
-                .IsEquivalentTo(bytes, CollectionOrdering.Matching);
-        }
-
-        await Assert.That(OwnedPath(fileSystem, deleted)).Satisfies(path => !fileSystem.File.Exists(path));
+        await scenario.AssertTreeUnchangedAsync(before);
     }
 
     [Test]
@@ -755,40 +780,19 @@ public sealed class GenerationWriterTests
         await cancelled;
     }
 
-    /// <summary>Assembles one write request over the shared test roots; flags default off.</summary>
-    private static GenerationWriteRequest Request(IReadOnlyList<GeneratedSource> sources,
-        IReadOnlyList<string>? familyFolders = null, string? partialMarkerContent = null, bool verify = false,
-        IReadOnlyDictionary<string, string>? implicitAliases = null, IReadOnlyList<string>? modelAreaFolders = null,
-        string? reachReportContent = null) =>
-        new()
-        {
-            OutputRoot = GenerationTestData.OutputRoot,
-            ProjectPath = GenerationTestData.ProjectPath,
-            Sources = sources,
-            FamilyFolders = familyFolders ?? [],
-            ModelAreaFolders = modelAreaFolders ?? [],
-            PartialMarkerContent = partialMarkerContent,
-            ReachReportContent = reachReportContent,
-            ImplicitAliases = implicitAliases ?? new Dictionary<string, string>(StringComparer.Ordinal),
-            Verify = verify,
-        };
+    private static IEnumerable<string> OwnedSourcePaths(MockFileSystem fileSystem) =>
+        fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot), "*.cs", SearchOption.AllDirectories);
 
-    private static GenerationWriter CreateWriter(MockFileSystem fileSystem, IProjectFormatter? formatter = null)
-    {
-        var placement = new PlacementValidator(fileSystem);
-        return new GenerationWriter(fileSystem, placement, new ManifestStore(fileSystem, placement),
-            new StagedWrite(fileSystem, placement, formatter ?? new RecordingProjectFormatter(fileSystem)));
-    }
+    private static GenerationWriter CreateWriter(MockFileSystem fileSystem, IProjectFormatter? formatter = null) =>
+        new VerifyMirrorScenario(fileSystem).CreateWriter(formatter);
 
     private static string OwnedPath(MockFileSystem fileSystem, string relativePath) =>
         fileSystem.Path.Combine(GenerationTestData.OutputRoot, relativePath);
-
-    private static IEnumerable<string> OwnedSourcePaths(MockFileSystem fileSystem) =>
-        fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot), "*.cs", SearchOption.AllDirectories);
 
     /// <summary>The attributes file the writer owns: its header, then one line per path in the order given.</summary>
     private static string ExpectedAttributes(IReadOnlyList<string> orderedPaths) =>
         string.Concat(orderedPaths.Select(static path => $"/{path} linguist-generated\n").Prepend(AttributesHeader));
 
     private static byte[] OwnedBytes(string content) => Encoding.UTF8.GetBytes(GenerationTestData.OwnedContent(content));
+
 }

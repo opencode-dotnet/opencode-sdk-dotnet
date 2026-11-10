@@ -7,6 +7,7 @@ using OpenCode.Sdk.Tools.Generator;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Generator.Refresh;
+using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Infrastructure;
 using OpenCode.Sdk.Tools.Infrastructure.Logging;
 using OpenCode.Sdk.Tools.Output;
@@ -359,6 +360,29 @@ public sealed class ToolAppTests
     }
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task GenerateCommand_Should_Explain_ReadOnly_Verification(bool help)
+    {
+        var fileSystem = GenerationTestData.CreateCommandFileSystem();
+        using var registrar = GenerateRegistrar(fileSystem);
+        var tester = new CommandAppTester(registrar);
+        tester.Console.Profile.Width = 4096;
+        tester.Configure(configurator => configurator.AddCommand<GenerateCommand>("generate"));
+
+        var result = await tester.RunAsync(["generate", help ? "--help" : "--verify"]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(help ? 0 : 1);
+        await Assert.That(result.Output).Contains(help
+            ? "Generate into a staging copy and return a nonzero exit code when the committed generated output differs; the working tree is not modified"
+            : "Generated output is stale; run 'generate' to update it:");
+        if (help)
+        {
+            await Assert.That(result.Output).Contains("--verify");
+        }
+    }
+
+    [Test]
     public async Task RunAsync_Should_Return_Zero_When_Verify_Is_Clean()
     {
         var fileSystem = GenerationTestData.CreateCommandFileSystem();
@@ -376,11 +400,15 @@ public sealed class ToolAppTests
         var fileSystem = GenerationTestData.CreateCommandFileSystem();
         _ = await RunWithoutPropagationAsync(fileSystem);
         await fileSystem.File.WriteAllTextAsync(generatedPath, GenerationTestData.OwnedContent("drift"), CancellationToken.None);
+        var driftedBytes = await fileSystem.File.ReadAllBytesAsync(generatedPath, CancellationToken.None);
 
         var result = await RunWithoutPropagationAsync(fileSystem, ["generate", "--verify"]);
 
         await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(result.Output).Contains("Generated output is stale; run 'generate' to update it:");
         await Assert.That(result.Output).Contains("Internal/Serialization/OpenCodeJsonContext.cs");
+        await Assert.That(await fileSystem.File.ReadAllBytesAsync(generatedPath, CancellationToken.None))
+            .IsEquivalentTo(driftedBytes, TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     private static DependencyInjectionRegistrar GenerateRegistrar(MockFileSystem fileSystem, IProjectFormatter? formatter = null) =>
@@ -389,6 +417,7 @@ public sealed class ToolAppTests
             services.AddSingleton<IFileSystem>(fileSystem);
             services.AddSingleton<IAnsiConsole, TestConsole>();
             services.AddSingleton(formatter ?? new RecordingProjectFormatter(fileSystem));
+            services.AddSingleton<IProcessRunner>(GenerationTestData.MirrorProcesses(fileSystem));
         });
 
     private static async Task<CommandAppResult> RunWithoutPropagationAsync(MockFileSystem fileSystem,

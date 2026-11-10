@@ -39,7 +39,7 @@ internal sealed partial class GenerateCommand : AsyncCommand<GenerateCommand.Set
 
         if (settings.Verify && report.WriteResult.HasChanges)
         {
-            _console.MarkupLine("[red]Generated output was stale and has been repaired:[/]");
+            _console.MarkupLine("[red]Generated output is stale; run 'generate' to update it:[/]");
             WritePaths(report.WriteResult);
             return 1;
         }
@@ -83,7 +83,7 @@ internal sealed partial class GenerateCommand : AsyncCommand<GenerateCommand.Set
     internal sealed class Settings : GlobalSettings
     {
         [CommandOption("--verify")]
-        [Description("Return a nonzero exit code when generated output was stale before this run.")]
+        [Description("Generate into a staging copy and return a nonzero exit code when the committed generated output differs; the working tree is not modified.")]
         public bool Verify { get; init; }
     }
 }

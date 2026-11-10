@@ -3,7 +3,7 @@
 Windows-only: measures the dotnet-format subprocess's peak working set and CPU
 (user + kernel), and those of its descendants, during generate --verify.
 Use a disposable clone already prepared with the submodule, pinned installs and
-one tool build. Generation rewrites its generated tree with identical bytes.
+one tool build. Verify formats a staging mirror in the temp directory and leaves the clone's tree unchanged.
 Without -Output, no report file is written. Every figure is a lower bound read
 up to one poll interval (the report's LastGapMs approximates it) before exit;
 BuildHost's few reads give a weak one.

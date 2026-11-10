@@ -100,7 +100,11 @@ public sealed class CliWrapProjectFormatterTests
                     await cancellation.CancelAsync();
                     runner.CancellationTokens[^1].ThrowIfCancellationRequested();
                 }
-            }, environment: new Dictionary<string, string?>(StringComparer.Ordinal) { ["TargetFramework"] = "net8.0" });
+            }, environment: new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["TargetFramework"] = "net8.0",
+                ["EnableSourceControlManagerQueries"] = "false",
+            });
         var formatter = new CliWrapProjectFormatter(fs, runner, "net8.0");
         Func<Task> run = () => formatter.FormatAsync("Sdk.csproj", ["Sessions/Session Client.cs", "A.cs"], cancellation.Token);
         if (outcome == "failure")

@@ -1,6 +1,7 @@
 using System.IO.Abstractions;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenCode.Sdk.Tools.Output;
 using OpenCode.Sdk.Tools.Output.Abstractions;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -46,7 +47,7 @@ public sealed class StagedWriteTests
 
         var mixed = await ReadTreeAsync(fs);
         var verificationFs = await CopyTreeAsync(mixed);
-        var verify = await Writer(verificationFs, Formatter(verificationFs))
+        var verify = await Writer(verificationFs, Formatter(verificationFs, verify: true))
             .WriteAsync(request with { Verify = true }, CancellationToken.None);
         await Assert.That(verify.HasChanges).IsTrue();
         if (phase == "manifest-content")
@@ -153,7 +154,8 @@ public sealed class StagedWriteTests
     private static GenerationWriter Writer(IFileSystem fs, IProjectFormatter formatter)
     {
         var placement = new PlacementValidator(fs);
-        return new GenerationWriter(fs, placement, new ManifestStore(fs, placement), new StagedWrite(fs, placement, formatter));
+        return new GenerationWriter(fs, placement, new ManifestStore(fs, placement), new StagedWrite(fs, placement, formatter),
+            new GenerationMirror(fs, GenerationTestData.MirrorProcesses(fs), NullLogger<GenerationMirror>.Instance));
     }
 
     private static GenerationWriteRequest Request(IReadOnlyList<string> paths) => new()
@@ -187,10 +189,18 @@ public sealed class StagedWriteTests
         await fs.File.WriteAllTextAsync(FullPath(fs, Reach), GenerationTestData.StaleReachReport);
     }
 
-    private static RecordingProjectFormatter Formatter(MockFileSystem fs, string? phase = null) =>
+    private static RecordingProjectFormatter Formatter(MockFileSystem fs, string? phase = null, bool verify = false) =>
         new(fs, async (current, project, paths, token) =>
         {
-            await Assert.That(project).IsEqualTo(GenerationTestData.ProjectPath);
+            if (verify)
+            {
+                var root = current.Directory.EnumerateDirectories(current.Path.Combine(current.Path.GetTempPath(), "opencode-sdk-generate-verify")).Single();
+                await Assert.That(current.Path.GetRelativePath(root, project).Replace('\\', '/')).IsEqualTo(GenerationTestData.ProjectPath);
+            }
+            else
+            {
+                await Assert.That(project).IsEqualTo(GenerationTestData.ProjectPath);
+            }
             await Assert.That(paths).IsEquivalentTo(paths.Order(StringComparer.Ordinal), CollectionOrdering.Matching);
             if (phase == "format-before")
             {
@@ -199,7 +209,7 @@ public sealed class StagedWriteTests
 
             foreach (var path in paths)
             {
-                var full = FullPath(current, path);
+                var full = current.Path.Combine(current.Path.GetDirectoryName(project)!, path);
                 var text = await current.File.ReadAllTextAsync(full, token);
                 await current.File.WriteAllTextAsync(full, text.Replace("raw ", "formatted ", StringComparison.Ordinal), token);
                 if (phase == "format-during")
@@ -258,5 +268,5 @@ public sealed class StagedWriteTests
         return fs;
     }
 
-    private static string FullPath(IFileSystem fs, string path) => fs.Path.Combine(GenerationTestData.OutputRoot, path);
+    private static string FullPath(MockFileSystem fs, string path) => fs.Path.Combine(GenerationTestData.OutputRoot, path);
 }
