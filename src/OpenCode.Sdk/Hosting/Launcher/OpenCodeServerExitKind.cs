@@ -2,7 +2,7 @@ namespace OpenCode.Sdk;
 
 /// <summary>
 /// How an owned server ended, as <see cref="OpenCodeServerExit.Kind"/> reports it. Members may be
-/// added in a minor version, so a switch over this enum keeps a default arm.
+/// added in a later version, so a switch over this enum keeps a default arm.
 /// </summary>
 public enum OpenCodeServerExitKind
 {

@@ -30,7 +30,7 @@ Nightly builds of `master` are on
 
 - The domain glossary is `GLOSSARY.md` (previously `CONTEXT.md`), and the getting-started guide points there.
 - `OpenCodeServer`'s and `OpenCodeServer.StartAsync`'s summaries name the two servers outside the Windows job: a batch shim's real server and one whose job assignment Windows refuses, which end with a crashed owner only through the stdin lease.
-- The remark on every generated union and hoisted interface, `IMcpServerConfig` among them, no longer says that a minor version may move the pin: a release of any bump type may move it (ADR-0034), so the remark now says only that the members change when the SDK moves to a newer pin.
+- The remark on every generated union and hoisted interface, `IMcpServerConfig` among them, no longer says that a minor version may move the pin: a release of any bump type may move it (ADR-0034), so the remark now says only that the members change when the SDK moves to a newer pin. Likewise, `OpenCodeServerExit.Kind`'s and `OpenCodeServerExitKind`'s summaries say members may be added in a later version, where they said a minor one: the SDK's own additions are a patch.
 
 ### 📋 Important Notes
 
