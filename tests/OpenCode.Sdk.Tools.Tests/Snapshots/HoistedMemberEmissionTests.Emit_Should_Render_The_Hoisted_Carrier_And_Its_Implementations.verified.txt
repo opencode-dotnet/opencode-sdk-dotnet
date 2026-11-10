@@ -320,7 +320,7 @@ namespace OpenCode.Sdk.Models;
 /// Represents the shared durable shape of every example event variant.
 /// </summary>
 /// <remarks>
-/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.
 /// </remarks>
 public interface IDurableEnvelope
 {
@@ -348,7 +348,7 @@ namespace OpenCode.Sdk.Models;
 /// Represents an example event.
 /// </summary>
 /// <remarks>
-/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.
 /// </remarks>
 [JsonConverter(typeof(ExampleEventJsonConverter))]
 public interface IExampleEvent
@@ -389,7 +389,7 @@ namespace OpenCode.Sdk.Models;
 /// Represents an example nested phase union.
 /// </summary>
 /// <remarks>
-/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.
 /// </remarks>
 [JsonConverter(typeof(ExamplePhaseJsonConverter))]
 public interface IExamplePhase : IExampleEvent
