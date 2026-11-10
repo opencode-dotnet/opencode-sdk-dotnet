@@ -220,7 +220,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # The pinned GA .NET 11 SDK carries only the .NET 11 runtime; the 10.0
           # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
           dotnet-version: 10.0.x
@@ -345,7 +345,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The SDK comes from the repository pin, the .NET 11 release candidate, which carries only
+          # The SDK comes from the repository pin, the GA .NET 11 SDK, which carries only
           # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs and
           # for the tools, which run on the LTS release.
           global-json-file: global.json
@@ -647,7 +647,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The SDK comes from the repository pin, the .NET 11 release candidate, which carries only
+          # The SDK comes from the repository pin, the GA .NET 11 SDK, which carries only
           # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs and
           # for the tools, which run on the LTS release.
           global-json-file: global.json
@@ -781,7 +781,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # The pinned GA .NET 11 SDK carries only the .NET 11 runtime; the 10.0
           # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
           dotnet-version: 10.0.x

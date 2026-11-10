@@ -29,11 +29,12 @@ sign.
 
 ### Prerequisites
 
-- [.NET SDK 11.0](https://dotnet.microsoft.com/download/dotnet/11.0) — the release candidate is
-  pinned in [`global.json`](../global.json) (`11.0.100-rc.3.26522.148`,
-  `rollForward: latestFeature`, `allowPrerelease: true`)
+- [.NET SDK 11.0](https://dotnet.microsoft.com/download/dotnet/11.0), pinned in
+  [`global.json`](../global.json) (`11.0.100`, `rollForward: latestFeature`,
+  `allowPrerelease: false`)
 - The **.NET 10 runtime**, for the `net10.0` test legs and the repository tools, which run on the
-  LTS release (the .NET 10 SDK carries it)
+  LTS release (the .NET 10 SDK carries it). It must be the latest .NET 10 runtime patch: the build
+  targets the newest patch the pinned SDK knows (`TargetLatestRuntimePatch`)
 - On Windows, the **.NET Framework 4.7.2 targeting pack** for the `net472` legs
 - [Bun](https://bun.sh/) at the exact version in `external/opencode/package.json`'s
   `packageManager` field, first on `PATH` — the pinned-server fixture and CI use that runtime, and

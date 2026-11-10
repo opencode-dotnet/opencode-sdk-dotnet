@@ -71,7 +71,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # The pinned GA .NET 11 SDK carries only the .NET 11 runtime; the 10.0
           # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
           dotnet-version: 10.0.x
