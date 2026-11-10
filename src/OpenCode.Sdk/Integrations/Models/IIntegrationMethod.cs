@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// Represents an integration method union.
 /// </summary>
 /// <remarks>
-/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.
 /// </remarks>
 [JsonConverter(typeof(IntegrationMethodJsonConverter))]
 public interface IIntegrationMethod

@@ -9,6 +9,6 @@ internal static class PinBoundInterfaceRemarks
     public static IReadOnlyList<DocumentationRun> Runs { get; } =
     [
         DocumentationRun.Prose(
-            "Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do."),
+            "Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin."),
     ];
 }

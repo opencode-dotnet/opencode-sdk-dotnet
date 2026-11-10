@@ -23,7 +23,7 @@ public sealed record OpenCodeServerExit
     /// <summary>Gets the end of a server whose status could not be read.</summary>
     public static OpenCodeServerExit Unknown { get; } = new(OpenCodeServerExitKind.Unknown, null, null, null);
 
-    /// <summary>Gets how the server ended; members may be added in a minor version.</summary>
+    /// <summary>Gets how the server ended; members may be added in a later version.</summary>
     public OpenCodeServerExitKind Kind { get; }
 
     /// <summary>
