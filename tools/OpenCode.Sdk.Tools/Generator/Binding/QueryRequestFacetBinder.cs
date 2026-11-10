@@ -144,7 +144,7 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
             PropertyName = CSharpNamePolicy.ToPascalCase(parameter.Name),
             Kind = kind.Value,
             EnumTypeName = binding.TypeName,
-            Description = declared.Description ?? _context.Resolve(value).Description,
+            Description = parameter.Schema.Description ?? declared.Description ?? _context.Resolve(value).Description,
             IsRequired = parameter.IsRequired,
             IsInherited = false,
         };

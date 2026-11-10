@@ -11,6 +11,37 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class QueryRequestFacetBinderTests
 {
     [Test]
+    [Arguments("single", "Host.")]
+    [Arguments("nullable", "Host.")]
+    [Arguments("plain", "Target.")]
+    [Arguments("enum", "Host.")]
+    public async Task Bind_Should_Prefer_The_Parameter_Description_Over_Its_Target(string shape, string expected)
+    {
+        void ParameterSchema(SchemaBuilder schema)
+        {
+            _ = shape switch
+            {
+                "nullable" => schema.AnyOf(static branch => branch.Ref("Target"), static branch => branch.Type("null")),
+                "plain" => schema.Ref("Target"),
+                _ => schema.AnyOf(branch => branch.Ref(shape == "enum" ? "EnumTarget" : "Target")),
+            };
+            if (shape != "plain")
+            {
+                schema.Description("Host.");
+            }
+        }
+        var context = await CreateContextAsync(operation => operation.Parameter("state", "query", ParameterSchema),
+            static spec => spec
+                .WithSchema("Target", static schema => schema.Type("string").Enum("true", "false").Description("Target."))
+                .WithSchema("EnumTarget", static schema => schema.Type("string").Enum("open", "closed").Description("Target.")),
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["EnumTarget"] = "EnumTarget" });
+        var result = new QueryRequestFacetBinder(context).Bind();
+        await Assert.That(result).IsTypeOf<FacetResult<QueryRequestPlan?>.Bound>();
+        var property = ((FacetResult<QueryRequestPlan?>.Bound)result).Value!.Properties.Single();
+        await Assert.That(property.Description).IsEqualTo(expected);
+    }
+
+    [Test]
     [Arguments(false, false, "directory")]
     [Arguments(true, false, "directory")]
     [Arguments(false, true, "directory")]
@@ -141,7 +172,7 @@ public sealed class QueryRequestFacetBinderTests
     }
 
     private static async Task<OperationFacetContext> CreateContextAsync(Action<OperationBuilder> configure,
-        Action<SpecDocumentBuilder>? configureSchemas = null)
+        Action<SpecDocumentBuilder>? configureSchemas = null, IReadOnlyDictionary<string, string>? typeNames = null)
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec =>
         {
@@ -149,7 +180,7 @@ public sealed class QueryRequestFacetBinderTests
             spec.WithOperation("widget.list", configure: configure);
         }));
         var errors = new BindingErrorCollector();
-        var names = new Dictionary<string, string>(StringComparer.Ordinal);
+        var names = typeNames ?? new Dictionary<string, string>(StringComparer.Ordinal);
         return new OperationFacetContext(document, document.Operations.Single(), Curation(Groups("widget", RootGroup())), names, errors,
             new TypePlanBinder(document.Schemas, names, errors));
     }
