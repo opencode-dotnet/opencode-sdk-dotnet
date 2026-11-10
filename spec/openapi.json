@@ -150,27 +150,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -278,27 +271,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -392,27 +378,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -492,27 +471,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -588,27 +560,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -696,27 +661,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -815,27 +773,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -924,9 +875,6 @@
               "anyOf": [
                 {
                   "type": "string"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Maximum number of sessions to return. Defaults to the newest 50 sessions."
@@ -941,9 +889,6 @@
                 {
                   "type": "string",
                   "enum": ["asc", "desc"]
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Session order for the first page. Use desc for newest first or asc for oldest first."
@@ -954,14 +899,7 @@
             "name": "search",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -971,21 +909,14 @@
             "schema": {
               "anyOf": [
                 {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/Session.ID"
-                    },
-                    {
-                      "type": "string",
-                      "enum": ["null"]
-                    }
-                  ],
-                  "description": "Filter by parent session. Use null to return only root sessions."
+                  "$ref": "#/components/schemas/Session.ID"
                 },
                 {
-                  "type": "null"
+                  "type": "string",
+                  "enum": ["null"]
                 }
-              ]
+              ],
+              "description": "Filter by parent session. Use null to return only root sessions."
             },
             "required": false
           },
@@ -993,15 +924,8 @@
             "name": "archived",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": ["true", "false"]
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "enum": ["true", "false"]
             },
             "required": false
           },
@@ -1009,14 +933,7 @@
             "name": "directory",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/AbsolutePath"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/AbsolutePath"
             },
             "required": false
           },
@@ -1024,14 +941,7 @@
             "name": "project",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Project.ID"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Project.ID"
             },
             "required": false
           },
@@ -1039,14 +949,7 @@
             "name": "subpath",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/RelativePath"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/RelativePath"
             },
             "required": false
           },
@@ -1054,14 +957,7 @@
             "name": "cursor",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/SessionsCursor"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/SessionsCursor"
             },
             "required": false
           }
@@ -1269,14 +1165,7 @@
             "name": "from",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -1284,14 +1173,7 @@
             "name": "to",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -1299,14 +1181,7 @@
             "name": "project",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Project.ID"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Project.ID"
             },
             "required": false
           },
@@ -1314,14 +1189,7 @@
             "name": "timezone",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -1329,15 +1197,8 @@
             "name": "tools",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": ["none", "summary", "detail"]
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "enum": ["none", "summary", "detail"]
             },
             "required": false
           }
@@ -1502,15 +1363,8 @@
             "name": "sanitize",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": ["true", "false"]
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "enum": ["true", "false"]
             },
             "required": false
           }
@@ -2608,18 +2462,11 @@
             }
           },
           "404": {
-            "description": "SessionNotFoundError | LocationNotFoundError",
+            "description": "SessionNotFoundError",
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/SessionNotFoundErrorEncoded"
-                    },
-                    {
-                      "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/SessionNotFoundErrorEncoded"
                 }
               }
             }
@@ -2841,18 +2688,11 @@
             }
           },
           "404": {
-            "description": "SessionNotFoundError | LocationNotFoundError",
+            "description": "SessionNotFoundError",
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/SessionNotFoundErrorEncoded"
-                    },
-                    {
-                      "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/SessionNotFoundErrorEncoded"
                 }
               }
             }
@@ -3338,9 +3178,6 @@
               "anyOf": [
                 {
                   "$ref": "#/components/schemas/Session.Message.ID"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "User message whose turn to diff. Defaults to the turn of the newest user message."
@@ -3354,9 +3191,6 @@
               "anyOf": [
                 {
                   "$ref": "#/components/schemas/Session.Message.ID"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Later user message whose turn ends the range. Defaults to the turn of `from` alone."
@@ -3370,9 +3204,6 @@
               "anyOf": [
                 {
                   "type": "string"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Unchanged lines around each hunk. Omit for full-file patches."
@@ -4007,14 +3838,7 @@
             "name": "after",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Event.SeqEncoded"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -4022,15 +3846,8 @@
             "name": "follow",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": ["true", "false"]
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "enum": ["true", "false"]
             },
             "required": false
           }
@@ -4180,15 +3997,8 @@
             "name": "resume",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": ["true", "false"]
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "enum": ["true", "false"]
             },
             "required": false
           }
@@ -4657,14 +4467,7 @@
             "name": "message",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -4993,9 +4796,6 @@
               "anyOf": [
                 {
                   "type": "string"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Maximum number of messages to return. When omitted, the endpoint returns its default page size."
@@ -5010,9 +4810,6 @@
                 {
                   "type": "string",
                   "enum": ["asc", "desc"]
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Message order for the first page. Use desc for newest first or asc for oldest first."
@@ -5023,15 +4820,8 @@
             "name": "cursor",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "description": "Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order."
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "description": "Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order."
             },
             "required": false
           },
@@ -5055,9 +4845,6 @@
                     "compaction",
                     "idle"
                   ]
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Filter by message type before pagination. When omitted, all message types are returned. Pass the same type when following cursors."
@@ -5138,27 +4925,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -5177,9 +4957,6 @@
                   "items": {
                     "$ref": "#/components/schemas/Model.Type"
                   }
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Only list models of these types. Defaults to chat, the only type offered for sessions."
@@ -5266,27 +5043,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -5973,27 +5743,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6087,27 +5850,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6197,27 +5953,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6301,27 +6050,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6401,27 +6143,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6502,27 +6237,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6630,27 +6358,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6758,27 +6479,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -6904,27 +6618,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7021,27 +6728,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7113,27 +6813,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7186,7 +6879,7 @@
             }
           }
         },
-        "description": "Complete a code-based OAuth attempt and store the resulting credential.",
+        "description": "Complete a code-based OAuth attempt and store the resulting credential. For an automatic attempt with `paste`, `code` is the redirect URL copied from the browser, and the result arrives through the attempt status.",
         "summary": "Complete OAuth connection",
         "requestBody": {
           "content": {
@@ -7230,27 +6923,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7376,27 +7062,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7493,27 +7172,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7569,27 +7241,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7673,27 +7338,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7779,27 +7437,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7870,27 +7521,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -7961,27 +7605,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -8044,27 +7681,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -8137,14 +7767,7 @@
             "name": "x-opencode-ticket",
             "in": "header",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -8152,27 +7775,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -8263,27 +7879,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false
           },
@@ -8299,14 +7908,7 @@
             "name": "ticket",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -8644,15 +8246,8 @@
             "name": "archived",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": ["true", "false"]
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string",
+              "enum": ["true", "false"]
             },
             "required": false
           }
@@ -8792,27 +8387,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -8888,27 +8476,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -8984,14 +8565,7 @@
             "name": "projectID",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Project.ID"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Project.ID"
             },
             "required": false
           }
@@ -9616,27 +9190,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -9707,27 +9274,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -9740,9 +9300,6 @@
               "anyOf": [
                 {
                   "type": "string"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "An absolute path or a path relative to the requested location. Defaults to the location directory."
@@ -9826,27 +9383,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -9873,14 +9423,7 @@
             "name": "limit",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -9954,27 +9497,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -10067,27 +9603,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -10176,27 +9705,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -10270,27 +9792,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -10366,27 +9881,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -10478,27 +9986,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -10805,9 +10306,6 @@
                       }
                     ]
                   }
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Only send events of these types, plus the initial server.connected event. When omitted, all events are sent."
@@ -10942,27 +10440,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -11036,27 +10527,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -11171,27 +10655,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -11277,27 +10754,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -11416,27 +10886,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -11507,14 +10970,7 @@
             "name": "x-opencode-ticket",
             "in": "header",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -11522,27 +10978,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -11740,14 +11189,7 @@
             "name": "lines",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/PersistentPty.ReadLinesEncoded"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -12387,14 +11829,7 @@
             "name": "x-opencode-ticket",
             "in": "header",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -13120,27 +12555,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -13236,27 +12664,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -13266,14 +12687,7 @@
             "name": "sessionID",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Session.ID"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/components/schemas/Session.ID"
             },
             "required": false
           },
@@ -13281,14 +12695,7 @@
             "name": "provider",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Artifact.ProviderIDEncoded"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -13387,27 +12794,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -13528,27 +12928,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -13654,27 +13047,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -13793,27 +13179,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -13904,27 +13283,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14009,6 +13381,122 @@
         "summary": "View local artifact"
       }
     },
+    "/api/experimental/job": {
+      "get": {
+        "tags": ["experimental"],
+        "operationId": "experimental.job.list",
+        "parameters": [
+          {
+            "name": "sessionID",
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Session.ID"
+                }
+              ],
+              "description": "Filter to background jobs owned by this session."
+            },
+            "required": false
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Job.Kind"
+                }
+              ],
+              "description": "Filter by background job kind (shell, subagent, or image)."
+            },
+            "required": false
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Job.Status"
+                }
+              ],
+              "description": "Filter by job status (running, completed, error, or cancelled)."
+            },
+            "required": false
+          },
+          {
+            "name": "descendants",
+            "in": "query",
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": ["true", "false"]
+                }
+              ],
+              "description": "When sessionID is set, also include background jobs owned by child and nested subagent sessions."
+            },
+            "required": false
+          }
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Job.Info"
+                      }
+                    }
+                  },
+                  "required": ["data"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SessionNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionNotFoundErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "List active and unconsumed background jobs, optionally filtered by owning session, descendants, or kind. Experimental: may change without compatibility guarantees.",
+        "summary": "List background jobs"
+      }
+    },
     "/api/shell": {
       "get": {
         "tags": ["shell"],
@@ -14018,27 +13506,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14112,27 +13593,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14241,27 +13715,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14347,27 +13814,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14431,27 +13891,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14569,27 +14022,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14922,27 +14368,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -14952,14 +14391,7 @@
             "name": "provider",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -15043,27 +14475,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -15136,27 +14561,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -15246,27 +14664,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -15342,27 +14753,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -15372,14 +14776,7 @@
             "name": "search",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -15387,14 +14784,7 @@
             "name": "limit",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           }
@@ -15465,27 +14855,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -15511,14 +14894,7 @@
             "name": "context",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "type": "string"
             },
             "required": false
           },
@@ -15613,9 +14989,6 @@
               "anyOf": [
                 {
                   "type": "string"
-                },
-                {
-                  "type": "null"
                 }
               ],
               "description": "Absolute server-local directory to write the snapshot into, created when missing. Defaults to the server's log directory."
@@ -15797,27 +15170,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -15976,27 +15342,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -16082,27 +15441,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -16205,27 +15557,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -16315,27 +15660,20 @@
             "name": "location",
             "in": "query",
             "schema": {
-              "anyOf": [
-                {
-                  "type": "object",
-                  "properties": {
-                    "directory": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
+              "type": "object",
+              "properties": {
+                "directory": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
                     }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "null"
+                  ]
                 }
-              ]
+              },
+              "additionalProperties": false
             },
             "required": false,
             "style": "deepObject",
@@ -17052,7 +16390,8 @@
                     "integration.use",
                     "mcp.use",
                     "skill.use",
-                    "plugin.use"
+                    "plugin.use",
+                    "websearch.use"
                   ]
                 },
                 "resource": {
@@ -17330,6 +16669,9 @@
               "portable_shell_scanner": {
                 "type": "boolean"
               },
+              "all_flags": {
+                "type": "boolean"
+              },
               "todo": {
                 "type": "boolean"
               },
@@ -17337,6 +16679,18 @@
                 "type": "boolean"
               },
               "media_blob": {
+                "type": "boolean"
+              },
+              "schedules": {
+                "type": "boolean"
+              },
+              "artifacts": {
+                "type": "boolean"
+              },
+              "part_rows": {
+                "type": "boolean"
+              },
+              "codemode_vm": {
                 "type": "boolean"
               },
               "image_generate": {
@@ -17379,12 +16733,6 @@
                   }
                 ]
               },
-              "schedules": {
-                "type": "boolean"
-              },
-              "artifacts": {
-                "type": "boolean"
-              },
               "subagent_depth": {
                 "type": "integer",
                 "minimum": 0,
@@ -17415,7 +16763,8 @@
                         "integration.use",
                         "mcp.use",
                         "skill.use",
-                        "plugin.use"
+                        "plugin.use",
+                        "websearch.use"
                       ]
                     },
                     "resource": {
@@ -17920,7 +17269,15 @@
             "type": "string"
           },
           "interval": {
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["auto"]
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "duration": {
             "type": "string"
@@ -18200,14 +17557,11 @@
         "minimum": 0,
         "maximum": 9007199254740991
       },
-      "Event.SeqEncoded": {
-        "type": "string"
-      },
-      "Event.VersionEncoded_37": {
+      "Event.VersionEncoded_c3ea984aceae": {
         "type": "number",
         "enum": [2]
       },
-      "Event.VersionEncoded_47": {
+      "Event.VersionEncoded_c77c5abcb68d": {
         "type": "number",
         "enum": [1]
       },
@@ -18321,6 +17675,12 @@
           "$ref": "#/components/schemas/Form.Value"
         }
       },
+      "Form.Answer_1": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Form.Value_1"
+        }
+      },
       "Form.BooleanField": {
         "type": "object",
         "properties": {
@@ -18343,6 +17703,41 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Form.When"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": ["boolean"]
+          },
+          "default": {
+            "type": "boolean"
+          }
+        },
+        "required": ["key", "type"],
+        "additionalProperties": false
+      },
+      "Form.BooleanField_1": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.When_1"
             }
           },
           "type": {
@@ -18452,6 +17847,28 @@
           }
         ]
       },
+      "Form.Field_1": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/Form.StringField_1"
+          },
+          {
+            "$ref": "#/components/schemas/Form.NumberField_1"
+          },
+          {
+            "$ref": "#/components/schemas/Form.IntegerField_1"
+          },
+          {
+            "$ref": "#/components/schemas/Form.BooleanField_1"
+          },
+          {
+            "$ref": "#/components/schemas/Form.MultiselectField_1"
+          },
+          {
+            "$ref": "#/components/schemas/Form.ExternalField"
+          }
+        ]
+      },
       "Form.Fields": {
         "type": "array",
         "prefixItems": [
@@ -18462,6 +17879,18 @@
         "minItems": 1,
         "items": {
           "$ref": "#/components/schemas/Form.Field"
+        }
+      },
+      "Form.Fields_1": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "#/components/schemas/Form.Field_1"
+          }
+        ],
+        "minItems": 1,
+        "items": {
+          "$ref": "#/components/schemas/Form.Field_1"
         }
       },
       "Form.ID": {
@@ -18485,6 +17914,28 @@
           },
           "fields": {
             "$ref": "#/components/schemas/Form.Fields"
+          }
+        },
+        "required": ["id", "sessionID", "title", "fields"],
+        "additionalProperties": false
+      },
+      "Form.Info_1": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Form.ID"
+          },
+          "sessionID": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/Form.Metadata"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/Form.Fields_1"
           }
         },
         "required": ["id", "sessionID", "title", "fields"],
@@ -18555,6 +18006,71 @@
         "required": ["key", "type"],
         "additionalProperties": false
       },
+      "Form.IntegerField_1": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.When_1"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": ["integer"]
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
+              }
+            ]
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
+              }
+            ]
+          },
+          "default": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
+              }
+            ]
+          }
+        },
+        "required": ["key", "type"],
+        "additionalProperties": false
+      },
       "Form.Metadata": {
         "type": "object"
       },
@@ -18580,6 +18096,63 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Form.When"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": ["multiselect"]
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.Option"
+            }
+          },
+          "minItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxItems": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "custom": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["key", "type", "options"],
+        "additionalProperties": false
+      },
+      "Form.MultiselectField_1": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.When_1"
             }
           },
           "type": {
@@ -18673,6 +18246,71 @@
               {
                 "type": "string",
                 "enum": ["Infinity", "-Infinity", "NaN"]
+              }
+            ]
+          }
+        },
+        "required": ["key", "type"],
+        "additionalProperties": false
+      },
+      "Form.NumberField_1": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.When_1"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": ["number"]
+          },
+          "minimum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
+              }
+            ]
+          },
+          "maximum": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
+              }
+            ]
+          },
+          "default": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
               }
             ]
           }
@@ -18813,6 +18451,70 @@
         "required": ["key", "type"],
         "additionalProperties": false
       },
+      "Form.StringField_1": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "hidden": {
+            "type": "boolean"
+          },
+          "when": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.When_1"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": ["string"]
+          },
+          "format": {
+            "type": "string",
+            "enum": ["email", "uri", "date", "date-time"]
+          },
+          "minLength": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "maxLength": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "pattern": {
+            "type": "string"
+          },
+          "placeholder": {
+            "type": "string"
+          },
+          "default": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Form.Option"
+            }
+          },
+          "custom": {
+            "type": "boolean"
+          }
+        },
+        "required": ["key", "type"],
+        "additionalProperties": false
+      },
       "Form.Value": {
         "anyOf": [
           {
@@ -18824,6 +18526,29 @@
           {
             "type": "string",
             "enum": ["Infinity", "-Infinity", "NaN"]
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "Form.Value_1": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "enum": ["NaN", "Infinity", "-Infinity"]
           },
           {
             "type": "boolean"
@@ -18857,6 +18582,37 @@
               {
                 "type": "string",
                 "enum": ["Infinity", "-Infinity", "NaN"]
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        "required": ["key", "op", "value"],
+        "additionalProperties": false
+      },
+      "Form.When_1": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "op": {
+            "type": "string",
+            "enum": ["eq", "neq"]
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "enum": ["NaN", "Infinity", "-Infinity"]
               },
               {
                 "type": "boolean"
@@ -19527,6 +19283,10 @@
             "type": "string",
             "enum": ["auto", "code"]
           },
+          "paste": {
+            "type": "boolean",
+            "enum": [true]
+          },
           "time": {
             "type": "object",
             "properties": {
@@ -20194,6 +19954,140 @@
         "required": ["_tag", "message"],
         "additionalProperties": false
       },
+      "Job.Image": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["image"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "sessionID": {
+            "$ref": "#/components/schemas/Session.ID"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Job.Status"
+          },
+          "title": {
+            "type": "string"
+          },
+          "time": {
+            "$ref": "#/components/schemas/Job.Time"
+          },
+          "path": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          }
+        },
+        "required": ["kind", "id", "sessionID", "status", "time", "path", "model"],
+        "additionalProperties": false
+      },
+      "Job.Info": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/Job.Shell"
+          },
+          {
+            "$ref": "#/components/schemas/Job.Subagent"
+          },
+          {
+            "$ref": "#/components/schemas/Job.Image"
+          }
+        ]
+      },
+      "Job.Kind": {
+        "type": "string",
+        "enum": ["shell", "subagent", "image"]
+      },
+      "Job.Shell": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["shell"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "sessionID": {
+            "$ref": "#/components/schemas/Session.ID"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Job.Status"
+          },
+          "title": {
+            "type": "string"
+          },
+          "time": {
+            "$ref": "#/components/schemas/Job.Time"
+          },
+          "shellID": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          }
+        },
+        "required": ["kind", "id", "sessionID", "status", "time", "shellID", "command"],
+        "additionalProperties": false
+      },
+      "Job.Status": {
+        "type": "string",
+        "enum": ["running", "completed", "error", "cancelled"]
+      },
+      "Job.Subagent": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["subagent"]
+          },
+          "id": {
+            "type": "string"
+          },
+          "sessionID": {
+            "$ref": "#/components/schemas/Session.ID"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Job.Status"
+          },
+          "title": {
+            "type": "string"
+          },
+          "time": {
+            "$ref": "#/components/schemas/Job.Time"
+          },
+          "childSessionID": {
+            "$ref": "#/components/schemas/Session.ID"
+          },
+          "agent": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["kind", "id", "sessionID", "status", "time", "childSessionID", "agent", "description"],
+        "additionalProperties": false
+      },
+      "Job.Time": {
+        "type": "object",
+        "properties": {
+          "started": {
+            "type": "number",
+            "description": "Start time in milliseconds since the Unix epoch"
+          },
+          "completed": {
+            "type": "number"
+          }
+        },
+        "required": ["started"],
+        "additionalProperties": false
+      },
       "Location.PublicInfo": {
         "type": "object",
         "properties": {
@@ -20311,6 +20205,9 @@
           },
           "protocol": {
             "$ref": "#/components/schemas/Mcp.Protocol"
+          },
+          "pool": {
+            "type": "boolean"
           }
         },
         "required": ["type", "command"],
@@ -20403,6 +20300,9 @@
           },
           "protocol": {
             "$ref": "#/components/schemas/Mcp.Protocol"
+          },
+          "pool": {
+            "type": "boolean"
           }
         },
         "required": ["type", "url"],
@@ -21328,9 +21228,6 @@
         ],
         "additionalProperties": false
       },
-      "PersistentPty.ReadLinesEncoded": {
-        "type": "string"
-      },
       "PersistentPty.ReadResult": {
         "type": "object",
         "properties": {
@@ -21895,6 +21792,9 @@
         "properties": {
           "ttl": {
             "$ref": "#/components/schemas/Provider.CacheTTL"
+          },
+          "warming": {
+            "$ref": "#/components/schemas/Provider.CacheWarming"
           }
         },
         "additionalProperties": false
@@ -21902,6 +21802,33 @@
       "Provider.CacheTTL": {
         "type": "string",
         "pattern": "^[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:[Ee][+-]?\\d+)?(?:ms|s|m|h|d)$"
+      },
+      "Provider.CacheWarming": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "interval": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": ["auto"]
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "duration": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "Provider.Compaction": {
         "anyOf": [
@@ -23091,11 +23018,6 @@
         "type": "string",
         "pattern": "^ses"
       },
-      "Session.ID_1": {
-        "type": "string",
-        "pattern": "^ses",
-        "description": "Session ID to navigate to"
-      },
       "Session.Inbox.Compaction": {
         "type": "object",
         "properties": {
@@ -23650,36 +23572,6 @@
         "required": ["type", "text"],
         "additionalProperties": false
       },
-      "Session.Message.Assistant.Reasoning_1": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["reasoning"]
-          },
-          "text": {
-            "type": "string"
-          },
-          "native": {
-            "$ref": "#/components/schemas/Session.Message.Native"
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "completed": {
-                "type": "number"
-              }
-            },
-            "required": ["created"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["type", "text"],
-        "additionalProperties": false
-      },
       "Session.Message.Assistant.Retry": {
         "type": "object",
         "properties": {
@@ -23699,23 +23591,6 @@
         "additionalProperties": false
       },
       "Session.Message.Assistant.Text": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["text"]
-          },
-          "text": {
-            "type": "string"
-          },
-          "native": {
-            "$ref": "#/components/schemas/Session.Message.Native"
-          }
-        },
-        "required": ["type", "text"],
-        "additionalProperties": false
-      },
-      "Session.Message.Assistant.Text_1": {
         "type": "object",
         "properties": {
           "type": {
@@ -23787,71 +23662,16 @@
         "required": ["type", "id", "name", "state", "time"],
         "additionalProperties": false
       },
-      "Session.Message.Assistant.Tool_1": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["tool"]
-          },
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "executed": {
-            "type": "boolean"
-          },
-          "native": {
-            "$ref": "#/components/schemas/Session.Message.Native"
-          },
-          "state": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Session.Message.ToolState.Streaming"
-              },
-              {
-                "$ref": "#/components/schemas/Session.Message.ToolState.Running_1"
-              },
-              {
-                "$ref": "#/components/schemas/Session.Message.ToolState.Completed_1"
-              },
-              {
-                "$ref": "#/components/schemas/Session.Message.ToolState.Error_1"
-              }
-            ]
-          },
-          "time": {
-            "type": "object",
-            "properties": {
-              "created": {
-                "type": "number"
-              },
-              "ran": {
-                "type": "number"
-              },
-              "completed": {
-                "type": "number"
-              }
-            },
-            "required": ["created"],
-            "additionalProperties": false
-          }
-        },
-        "required": ["type", "id", "name", "state", "time"],
-        "additionalProperties": false
-      },
       "Session.Message.AssistantContent.Encoded": {
         "anyOf": [
           {
-            "$ref": "#/components/schemas/Session.Message.Assistant.Text_1"
+            "$ref": "#/components/schemas/Session.Message.Assistant.Text"
           },
           {
-            "$ref": "#/components/schemas/Session.Message.Assistant.Reasoning_1"
+            "$ref": "#/components/schemas/Session.Message.Assistant.Reasoning"
           },
           {
-            "$ref": "#/components/schemas/Session.Message.Assistant.Tool_1"
+            "$ref": "#/components/schemas/Session.Message.Assistant.Tool"
           }
         ]
       },
@@ -24375,35 +24195,6 @@
         "required": ["status", "input", "content"],
         "additionalProperties": false
       },
-      "Session.Message.ToolState.Completed_1": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["completed"]
-          },
-          "input": {
-            "type": "object"
-          },
-          "content": {
-            "type": "array",
-            "prefixItems": [
-              {
-                "$ref": "#/components/schemas/Tool.Content"
-              }
-            ],
-            "minItems": 1,
-            "items": {
-              "$ref": "#/components/schemas/Tool.Content"
-            }
-          },
-          "metadata": {
-            "type": "object"
-          }
-        },
-        "required": ["status", "input", "content"],
-        "additionalProperties": false
-      },
       "Session.Message.ToolState.Error": {
         "type": "object",
         "properties": {
@@ -24436,56 +24227,7 @@
         "required": ["status", "input", "error"],
         "additionalProperties": false
       },
-      "Session.Message.ToolState.Error_1": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["error"]
-          },
-          "input": {
-            "type": "object"
-          },
-          "error": {
-            "$ref": "#/components/schemas/Session.StructuredError_1"
-          },
-          "content": {
-            "type": "array",
-            "prefixItems": [
-              {
-                "$ref": "#/components/schemas/Tool.Content"
-              }
-            ],
-            "minItems": 1,
-            "items": {
-              "$ref": "#/components/schemas/Tool.Content"
-            }
-          },
-          "metadata": {
-            "type": "object"
-          }
-        },
-        "required": ["status", "input", "error"],
-        "additionalProperties": false
-      },
       "Session.Message.ToolState.Running": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["running"]
-          },
-          "input": {
-            "type": "object"
-          },
-          "metadata": {
-            "type": "object"
-          }
-        },
-        "required": ["status", "input", "metadata"],
-        "additionalProperties": false
-      },
-      "Session.Message.ToolState.Running_1": {
         "type": "object",
         "properties": {
           "status": {
@@ -24590,39 +24332,6 @@
         "additionalProperties": false
       },
       "Session.StructuredError": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "status": {
-            "type": "integer",
-            "minimum": 100,
-            "maximum": 599
-          },
-          "response": {
-            "type": "object",
-            "properties": {
-              "body": {
-                "type": "string"
-              }
-            },
-            "required": ["body"],
-            "additionalProperties": false
-          },
-          "retryAfterMs": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          }
-        },
-        "required": ["type", "message"],
-        "additionalProperties": false
-      },
-      "Session.StructuredError_1": {
         "type": "object",
         "properties": {
           "type": {
@@ -26691,7 +26400,7 @@
             "type": "object",
             "properties": {
               "form": {
-                "$ref": "#/components/schemas/Form.Info"
+                "$ref": "#/components/schemas/Form.Info_1"
               }
             },
             "required": ["form"],
@@ -26730,7 +26439,7 @@
                 "type": "string"
               },
               "answer": {
-                "$ref": "#/components/schemas/Form.Answer"
+                "$ref": "#/components/schemas/Form.Answer_1"
               }
             },
             "required": ["id", "sessionID", "answer"],
@@ -27495,7 +27204,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27550,7 +27259,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27635,7 +27344,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27703,7 +27412,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27768,7 +27477,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27824,7 +27533,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27906,7 +27615,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_37"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c3ea984aceae"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -27955,7 +27664,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28007,7 +27716,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28060,7 +27769,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28109,7 +27818,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28158,7 +27867,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_37"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c3ea984aceae"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28258,7 +27967,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28310,7 +28019,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28362,7 +28071,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28417,7 +28126,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28472,7 +28181,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_37"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c3ea984aceae"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28538,7 +28247,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28596,7 +28305,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28648,7 +28357,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28703,7 +28412,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28761,7 +28470,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28857,7 +28566,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28920,7 +28629,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -28980,7 +28689,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29032,7 +28741,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29097,7 +28806,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29146,7 +28855,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29198,7 +28907,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29250,7 +28959,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29325,7 +29034,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29377,7 +29086,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29435,7 +29144,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29512,7 +29221,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29596,7 +29305,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29662,7 +29371,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29714,7 +29423,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29816,7 +29525,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29879,7 +29588,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -29936,7 +29645,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30000,7 +29709,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_37"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c3ea984aceae"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30121,7 +29830,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30179,7 +29888,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30279,7 +29988,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_37"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c3ea984aceae"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30355,7 +30064,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30404,7 +30113,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30502,7 +30211,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],
@@ -30776,7 +30485,14 @@
             "type": "object",
             "properties": {
               "sessionID": {
-                "$ref": "#/components/schemas/Session.ID_1"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Session.ID"
+                  },
+                  {
+                    "description": "Session ID to navigate to"
+                  }
+                ]
               }
             },
             "required": ["sessionID"],
@@ -30924,7 +30640,7 @@
                 "$ref": "#/components/schemas/Event.Seq"
               },
               "version": {
-                "$ref": "#/components/schemas/Event.VersionEncoded_47"
+                "$ref": "#/components/schemas/Event.VersionEncoded_c77c5abcb68d"
               }
             },
             "required": ["aggregateID", "seq", "version"],

@@ -54,6 +54,10 @@ public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigI
         /// The &apos;plugin.use&apos; wire spelling.
         /// </summary>
         public const string PluginUse = "plugin.use";
+        /// <summary>
+        /// The &apos;websearch.use&apos; wire spelling.
+        /// </summary>
+        public const string WebsearchUse = "websearch.use";
     }
 
     /// <summary>
@@ -85,13 +89,17 @@ public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigI
     /// </summary>
     public static ConfigInfoExperimentalPoliciesAction PluginUse { get; } = new(Values.PluginUse);
     /// <summary>
+    /// Gets the &apos;websearch.use&apos; wire value.
+    /// </summary>
+    public static ConfigInfoExperimentalPoliciesAction WebsearchUse { get; } = new(Values.WebsearchUse);
+    /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
     public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.ProviderUse or Values.ToolUse or Values.IntegrationConnect or Values.IntegrationUse or Values.McpUse or Values.SkillUse or Values.PluginUse;
+    public bool IsKnown => _value is Values.ProviderUse or Values.ToolUse or Values.IntegrationConnect or Values.IntegrationUse or Values.McpUse or Values.SkillUse or Values.PluginUse or Values.WebsearchUse;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

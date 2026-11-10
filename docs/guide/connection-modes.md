@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-05
+Date: 2026-11-10
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs

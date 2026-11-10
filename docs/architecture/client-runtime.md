@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-05
+Date: 2026-11-10
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in

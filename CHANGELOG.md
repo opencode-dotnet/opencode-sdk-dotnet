@@ -9,6 +9,18 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔌 Protocol changes
+
+- The SDK pins opencode `2.2.6`, where it pinned `2.2.5`.
+- **Breaking:** `ConfigWarming.Interval` changes from `string? Interval` to `ConfigWarmingInterval? Interval`, because opencode 2.2.6 declares it as `"auto"` or a duration. A reader changes `string? interval = warming.Interval;` to `string? interval = warming.Interval?.Value;`; assigning a non-null string still compiles through the implicit conversion, while a null `string?` now throws `ArgumentNullException` where it was a valid value, and `ConfigWarmingInterval.Auto` names `"auto"`.
+- **Breaking:** `IMcpServerConfig` gains `bool? Pool { get; }`, so a type outside the SDK that implements the interface adds that member. `McpLocalConfig.Pool` and `McpRemoteConfig.Pool` set opencode's option to share one connection to a server across every directory that configures it identically.
+- `client.Experimental.ListJobsAsync` lists the server's active and unconsumed background jobs: `JobShell`, `JobSubagent` and `JobImage` behind `IJobInfo`. `ExperimentalJobListRequest` filters them by `SessionId`, `Descendants`, `Kind` and `Status`.
+- `ProviderCache.Warming` is a provider's or model's cache warming, which overrides the top-level `ConfigWarming`: a boolean, or `ProviderCacheWarmingSettings` with `Interval` and `Duration`.
+- `client.FileSystem.ReadFileAsync` reports `FsReadResponse.ContentType` as `text/plain; charset=utf-8` for HTML, JavaScript and XML files, SVG included, where it reported the file's own type: opencode 2.2.6 serves every file as a download and those types as plain text. The bytes are unchanged; a caller that needs the type reads it from the path.
+- A PTY read throws `OpenCodeTransportException` naming close status 1012 ("location shut down") when the server shuts the PTY's location down, for example on a reload: opencode 2.2.6 closes the socket that way.
+- `SessionClient.CompactAsync` and `SessionClient.AddSyntheticMessageAsync` no longer declare a `404` `LocationNotFoundError`: opencode 2.2.6 stops resolving a location for these two calls, so a missing session is their only `404`.
+- `ConfigInfoExperimental` gains `AllFlags`, `PartRows` and `CodemodeVm`, the policy actions gain `WebsearchUse`, and `IntegrationAttempt.Paste` says an automatic OAuth attempt also accepts the redirect URL pasted from the browser as its code.
+
 ### 🔧 Changes
 
 - Disposing a standalone server on Linux and macOS now reports `Exited` with code 143, where it was 130: the pinned opencode 2.2.6 exits with 143 on `SIGTERM`. `SIGINT` still exits with 130, and Windows still reports code 1.

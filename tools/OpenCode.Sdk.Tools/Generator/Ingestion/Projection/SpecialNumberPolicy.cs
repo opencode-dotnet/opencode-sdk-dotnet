@@ -27,7 +27,7 @@ internal static class SpecialNumberPolicy
     }
 
     /// <summary>
-    /// Effect 4.0.6 flattens the special-number union into a wider union's own branches; the one
+    /// Effect 4.0.6 and 4.1.0 flatten the special-number union into a wider union's own branches; the one
     /// plain number branch and its special-spelling siblings fold back into the single special-number
     /// branch the nested form projected. Only adjacent members fold, as the flattening leaves them, so
     /// the fold never moves the special spellings ahead of a branch that first-match gives them to.

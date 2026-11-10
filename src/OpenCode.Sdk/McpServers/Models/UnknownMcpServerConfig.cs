@@ -47,6 +47,8 @@ public sealed record UnknownMcpServerConfig : IMcpServerConfig
 
     McpProtocol? IMcpServerConfig.Protocol => null;
 
+    bool? IMcpServerConfig.Pool => null;
+
     /// <summary>
     /// Prints the marker with the preserved payload masked, since a known arm of this union carries a secret.
     /// </summary>

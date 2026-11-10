@@ -16,11 +16,11 @@ public sealed record ConfigWarming
     public string? Prompt { get; init; }
 
     /// <summary>
-    /// Idle time between keep-alive requests, as a duration string; default “4 minutes”.
+    /// Idle time between keep-alive requests, as a duration string (default “4 minutes”), or <c>auto</c> for 90% of the model&apos;s <c>cache.ttl</c>; models without one are skipped.
     /// </summary>
     [JsonPropertyName("interval")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Interval { get; init; }
+    public ConfigWarmingInterval? Interval { get; init; }
 
     /// <summary>
     /// Time after the last active request to keep a session warm, as a duration string; default “30 minutes”.

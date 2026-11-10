@@ -3,8 +3,8 @@
   "sources": [
     {
       "path": "packages/server/src/handlers/pty.ts",
-      "sha256": "1a5eab7b3a0795658c5982f6045123971e759d08a25d921f716c0e96963de1ae",
-      "behavior": "Before the WebSocket upgrade the PTY connect handler rejects a disallowed origin (403; a request without an Origin passes), then consumes the single-use ticket, rejecting an invalid one (403), then resolves the location (404 LocationNotFoundError for a missing directory), then answers an empty 404 for a missing session, which PtyUpgradeFailurePolicy reports, and accepts a cursor at or above -1. After the upgrade it closes 4404 when the session is not found or has exited and 1000 on a normal end, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
+      "sha256": "16329166f240a5227b4fd36b5809228ef1ac4327d93f16690d152d88c7d42773",
+      "behavior": "Before the WebSocket upgrade the PTY connect handler rejects a disallowed origin (403; a request without an Origin passes), then consumes the single-use ticket, rejecting an invalid one (403), then resolves the location (404 LocationNotFoundError for a missing directory), then answers an empty 404 for a missing session, which PtyUpgradeFailurePolicy reports, and accepts a cursor at or above -1. After the upgrade it closes 4404 when the session is not found or has exited, 1000 on a normal end, and 1012 when its location shuts down, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
       "anchor": {
         "type": "contains",
         "text": "new Socket.CloseEvent(4404"
@@ -12,7 +12,7 @@
     },
     {
       "path": "packages/server/src/handlers/pty-socket.ts",
-      "sha256": "f82a65eb8b6919f9d8de6ed0c6c77ae5881cef5a27ce3caf5888c03a4ec8a2b7",
+      "sha256": "c56d86e1d739c3c8d4768a27dc6fbfc2d0868770a6de586c4e4fb3e70aff32ef",
       "behavior": "runPtySocket is the connection loop both PTY doors share: one writer drains a single outbound queue, so the replay, live output, and the close frame reach the client in queue order and nothing follows the close frame; it races that drain against the WebSocket input loop with Effect.raceFirst, so whichever side closes first ends the connection; a close from either side, whatever its code, ends the run normally while a read or write failure dies; and it runs detach on every exit path.",
       "anchor": {
         "type": "contains",
@@ -66,7 +66,7 @@
     },
     {
       "path": "packages/core/src/pty.ts",
-      "sha256": "60facfe5fdbca59bd473970c2f57c20b092c91559077d751c0fab819f80e52ba",
+      "sha256": "f5faecd54c907c73812a5d3cab1a0045a1c70ad56229190f47bdf2b4f5a44205",
       "behavior": "The retained replay buffer is capped, exited sessions stay observable until they are removed, and attach replays from the requested cursor.",
       "anchor": {
         "type": "contains",
@@ -75,7 +75,7 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "284510fcdba864c46bfb382cf40acc3d473e61176b5e8999da7dc52efe5599c9",
+      "sha256": "0f9090cc9639864acd06e0455e823b8bb2787f6d45e2e3f3a33d41050cf4fb92",
       "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
       "anchor": {
         "type": "contains",
@@ -93,7 +93,7 @@
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
-      "sha256": "6ee754a9442aa878aaaa59e300a52a7a01d8a33bcd9e0147c47a5c3beb9d5e0a",
+      "sha256": "6fff2b84ac12347facbd8cbdecb11539b094929ff1d2dd93c03f79e907c153ac",
       "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0. create answers 400 InvalidRequestError (kind invalid_cwd, field cwd) when the working directory is missing or not a directory, before the daemon starts.",
       "anchor": {
         "type": "contains",
@@ -102,7 +102,7 @@
     },
     {
       "path": "packages/core/src/persistent-pty/index.ts",
-      "sha256": "4708dc25062023764a392cd629234f0869c6fa8064f866b100b71bd027cd5472",
+      "sha256": "d4f8a401635a11ca298062289e07b7c9ce3fc381ded731589c47253f105973d3",
       "behavior": "The handoff call yields null when no daemon is running, and the service reports NotFoundError and UnavailableError, and create also reports InvalidCwdError when the working directory is missing or not a directory. Each server\u0027s daemon owns a fresh runtime directory under \u003Cstate\u003E/pty (or the root the options name); the former XDG_RUNTIME_DIR and temporary-directory roots and OPENCODE_PTY_RUNTIME_DIR are gone, and the available flag is re-exported for the server\u0027s info capabilities.",
       "anchor": {
         "type": "contains",
@@ -111,7 +111,7 @@
     },
     {
       "path": "packages/core/src/persistent-pty/daemon.ts",
-      "sha256": "d687bd38b0b6e60a8041005ef8f74cf9f97b9b878ee8b12c68ee651cedfb9906",
+      "sha256": "d0905f90ab4c38f266c6ffcd5ae2edfcf9a43a83ddb1bd767584d07bfca64607",
       "behavior": "The opencode-pty daemon wire protocol is version 7; the client refuses a daemon that registers another version. The daemon starts as opencode-pty daemon --runtime-dir \u003Croot\u003E --name \u003Cid\u003E, detached, hidden, and with stdio ignored, and a start that cannot connect retries once in a fresh directory. Inheriting a handoff is best-effort: an expired ticket, a changed daemon, or any other failure abandons the old daemon instead of failing the replacement\u0027s startup, and a handoff that names a directory outside the root is migrated into it by rename.",
       "anchor": {
         "type": "contains",
@@ -156,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "1122bb624e458fceee34d0b13707104a52aa3238774291e5f68cff9d03fa9fa1",
+      "sha256": "bf813c4b1cb930cd374319566499875a0e9c54e182b6b090847ca60726d480df",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (\u0060@opencode/pty\u0060) at 0.4.0.",
       "anchor": {
         "type": "contains",
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "652570afb6dfbd18b53f22c98d20af20cf00079b66dfef2dbf965462af970d1a",
+      "sha256": "eaf584b7e559fa67a4a47ca0c7d717377e6c82b2c53a00573d30423c4b21623f",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.4.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
@@ -174,11 +174,20 @@
     },
     {
       "path": "packages/server/src/process.ts",
-      "sha256": "33048eff5aeaa894bf511f4167389039b7d483e0dfb9d9429ce617ff1c160492",
-      "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers at 200 with the same members plus an optional hostname (os.hostname()) and capabilities.persistentPty.",
+      "sha256": "cc3f8652c87b529d2593c574196b261febadef0c62ba1d78890e5ffe9db33bde",
+      "behavior": "Once the server reports ready, a ticketed PTY, persistent-PTY or client-MCP connect is admitted without credentials. A cross-site or same-site browser request to /api that is a navigation or carries a disallowed Origin, artifact views excepted, receives a 403 ForbiddenError before any credential check. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers at 200 with the same members plus an optional hostname (os.hostname()) and capabilities.persistentPty.",
       "anchor": {
         "type": "contains",
         "text": "!hasPtyConnectTicketURL(url)"
+      }
+    },
+    {
+      "path": "packages/server/src/request-site.ts",
+      "sha256": "744157fa1ec1bcf33bccc2fa2aca3b38f16f521bdfa95ea24c208f926f631179",
+      "behavior": "The request-site middleware answers 403 with a ForbiddenError body, before any credential check, for a request whose Sec-Fetch-Site is cross-site or same-site, whose path is /api or below and not an artifact view page, and that is a navigation or carries an Origin the CORS options do not allow; a request without Sec-Fetch-Site, as the SDK sends, passes.",
+      "anchor": {
+        "type": "contains",
+        "text": "if (site !== \u0022cross-site\u0022 \u0026\u0026 site !== \u0022same-site\u0022) return false"
       }
     },
     {
@@ -228,7 +237,7 @@
     },
     {
       "path": "packages/util/src/cross-spawn-spawner.ts",
-      "sha256": "6c1a6b3121f518ea0ad78b71e4d718b9b1698ca3de92c29f5c40bba50877199b",
+      "sha256": "30491245252b34188a4762032c48101a0a96cd85d7b0570d3035884ea26b3850",
       "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses, 3 seconds when the command sets none and its scope is released; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded. Off Windows, a synchronous process exit hook SIGKILLs the process group of every detached child still running.",
       "anchor": {
         "type": "contains",
@@ -274,7 +283,7 @@
     {
       "path": "packages/server/src/handlers/model.ts",
       "sha256": "5eefbe521882d44a66f405c1418ca3a7329fc9620f5d8b5d80bafdb4fca6c400",
-      "behavior": "The model list and default-model handlers wait for the location's plugins (awaitPlugins) before they answer, which WaitForDefaultAsync relies on.",
+      "behavior": "The model list and default-model handlers wait for the location\u0027s plugins (awaitPlugins) before they answer, which WaitForDefaultAsync relies on.",
       "anchor": {
         "type": "contains",
         "text": "yield* awaitPlugins"
@@ -283,7 +292,7 @@
     {
       "path": "packages/app/src/providers/catalog/providers.ts",
       "sha256": "6f78a5f83b3af9dd68929eb66bfdaf315db617fe0a210059b5f49d83e45796cd",
-      "behavior": "The app's boot-time catalog sync retries a location's provider and model loads on any ServiceUnavailableError, at most 12 attempts, with a 1 s first delay capped at 5 s, because a cold location's plugin activation can outlast the server's 5 s wait. LanguageModels.WaitForDefaultAsync follows this schedule.",
+      "behavior": "The app\u0027s boot-time catalog sync retries a location\u0027s provider and model loads on any ServiceUnavailableError, at most 12 attempts, with a 1 s first delay capped at 5 s, because a cold location\u0027s plugin activation can outlast the server\u0027s 5 s wait. LanguageModels.WaitForDefaultAsync follows this schedule.",
       "anchor": {
         "type": "contains",
         "text": "attempts: 12, delay: 1000, maxDelay: 5000, retryIf: isServiceUnavailableError"
@@ -292,7 +301,7 @@
     {
       "path": "packages/util/src/retry.ts",
       "sha256": "43c39eb47b626309449a863b9fc842f4cdfd09669e93f7045246093c9380f3e4",
-      "behavior": "retry waits min(delay * factor^attempt, maxDelay) after each failed attempt but the last that the predicate accepts, with factor 2 by default, and rethrows the last error once the attempts run out or the predicate refuses it. WaitForDefaultAsync's delays between attempts follow this formula.",
+      "behavior": "retry waits min(delay * factor^attempt, maxDelay) after each failed attempt but the last that the predicate accepts, with factor 2 by default, and rethrows the last error once the attempts run out or the predicate refuses it. WaitForDefaultAsync\u0027s delays between attempts follow this formula.",
       "anchor": {
         "type": "contains",
         "text": "Math.min(delay * Math.pow(factor, attempt), maxDelay)"
@@ -381,7 +390,7 @@
     },
     {
       "path": "packages/core/src/bus.ts",
-      "sha256": "84470964226401cfc5e67d83c51fa38e4fa026b5bb8cbf182900d6a50538b3b2",
+      "sha256": "8c68afdcfb7f75456cc6d6d7c4869b0bdd366a065b8fd98a363bd749faacecef",
       "behavior": "Event persistence is off unless the host enables it, a durable replay yields events strictly after the requested sequence, and log.synced marks the replay boundary, which the session-log replay contract and the CLI-profile live test depend on.",
       "anchor": {
         "type": "contains",
@@ -390,8 +399,8 @@
     },
     {
       "path": "packages/protocol/src/groups/session.ts",
-      "sha256": "5ee372848c93750bc7cd60e1b13464d4841b1c2e6e2ca93777c53ae8ffd6eea7",
-      "behavior": "SessionsQuery declares limit and cursor and includes Session.ListFilter.fields; the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on; the file is also the Restore patch preimage for the SSE payloads. The session list decodes limit, and the session log decodes after (an Event.Seq), from the query text as numbers, which their int and long query types mirror (ADR-0037).",
+      "sha256": "90fedbe22e49e99b4798c094862bf09512590d3394f833741ed29f49e5052d13",
+      "behavior": "SessionsQuery declares limit and cursor and includes Session.ListFilter.fields; the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on. The session list decodes limit, and the session log decodes after (an Event.Seq), from the query text as numbers, which their int and long query types mirror (ADR-0037).",
       "anchor": {
         "type": "contains",
         "text": "export const SessionsQuery = Schema.Struct({"
@@ -579,7 +588,7 @@
     },
     {
       "path": "packages/cli/test/server-connection.test.ts",
-      "sha256": "22d1bde0e0a04d98b835ac6c70581b65f4e51a375838c0fc0a5e70eec15d4902",
+      "sha256": "3ca3e5293d250a2ccd6850540cefe4e64d3e6f34e40ecf3cbfa318d75afb0b91",
       "behavior": "The version gate is opt-in: service options only require a matching version when the caller asks for the check, which is why ExpectedVersion is null by default; ServiceSelectionTests and ServiceVersionPolicyTests re-prove it.",
       "anchor": {
         "type": "contains",
@@ -588,7 +597,7 @@
     },
     {
       "path": "packages/cli/script/service-smoke.ts",
-      "sha256": "e5c10572b15b2c4bbeaea1c917ea9f68ee433b6b601d3c676dcff041c92c329d",
+      "sha256": "d5a4adf10eb35f6dfdc59f7a2da3b339634b12aaa774f13e428a481505646495",
       "behavior": "Upstream\u0027s end-to-end service smoke asserts that the daemon it built writes a registration carrying the service identity (id, version, pid); it is a check on the daemon\u0027s output, not a client rule, and the SDK\u0027s reader still admits a registration without an id, as the client\u0027s own Info schema does.",
       "anchor": {
         "type": "contains",
@@ -597,8 +606,8 @@
     },
     {
       "path": "packages/cli/src/services/server-connection.ts",
-      "sha256": "161524ef2525a04bedea305dbfc9df61bd951c69b55a13bc0dca6445f16880b3",
-      "behavior": "resolve routes the default CLI connection to Standalone.start when --standalone is given as the command\u0027s argument or the global flag (--server likewise) or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
+      "sha256": "00ef29453ac8d8b024554c4a5e63e282772e7f1224f7eeba727f579b58f1d6f3",
+      "behavior": "resolve routes the default CLI connection to Standalone.start when --standalone is given as the command\u0027s argument or the global flag (--server likewise) or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore; with autostart false it only discovers a running service, with no version filter, and falls back to Standalone.start when none answers. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
       "anchor": {
         "type": "contains",
         "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })"
@@ -624,11 +633,11 @@
     },
     {
       "path": "package.json",
-      "sha256": "567803266dcf3477d078dc0234bf6dcb2fdb49eed2626486a945e8d4c67f4a54",
+      "sha256": "3a0c7be0a73913e8dbc61c5dd4a8e7f12c17fc06bb09598144fbdda895e18bf0",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
-        "text": "\u0022effect\u0022: \u00224.0.6\u0022"
+        "text": "\u0022effect\u0022: \u00224.1.0\u0022"
       }
     },
     {
@@ -660,11 +669,11 @@
     },
     {
       "path": "packages/cli/src/index.ts",
-      "sha256": "11fc5776f91764feefecb2e7cb278f4da74f95172eabf1f4d38d08388385552d",
-      "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and exits with process.exitCode (0 when unset): the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down. After SIGTERM or SIGINT, a teardown still unfinished after 10 seconds, or a second signal during teardown, writes the pending work to stderr and exits 1.",
+      "sha256": "6235a73b3f927750ef362f1bfc6a1d12418d730a512906644cdb3798b1ede59e",
+      "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and on success exits with process.exitCode (0 when unset) once stdout and stderr have drained: the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down. A signal interruption exits 143 after SIGTERM and 130 after SIGINT. After SIGTERM or SIGINT, a teardown still unfinished after 10 seconds, or a second signal during teardown, writes the pending work to stderr and exits 1.",
       "anchor": {
         "type": "contains",
-        "text": "Effect.tap(() =\u003E Effect.sync(() =\u003E process.exit(process.exitCode ?? 0))),"
+        "text": "remember a SIGTERM so the exit code is 143"
       }
     },
     {
@@ -696,11 +705,20 @@
     },
     {
       "path": "packages/server/src/handlers/fs.ts",
-      "sha256": "ee864ae972e2ec3f8673092c4f5a4a8460a06e56df83d9623e43d4cc93e460f2",
-      "behavior": "The fs.read handler takes the wildcard tail from the request URL path and percent-decodes it (an undecodable tail answers FileNotFoundError), reads the file relative to the location, and, for a request without conditional or Range headers, answers 200 with its raw bytes under the file MIME type, which the route tail and the binary envelope (Content, ContentType) rely on. Its 304, 206 and 416 answers respond only to If-None-Match, If-Modified-Since and Range request headers, which the SDK never sends and the document does not declare.",
+      "sha256": "9bbfd9ae5a9e92e3e40b4ac19ebaf3b5b0c6de6a02273bd64a75a29f220f84c7",
+      "behavior": "The fs.read handler takes the wildcard tail from the request URL path and percent-decodes it (an undecodable tail answers FileNotFoundError), reads the file relative to the location, and, for a request without conditional or Range headers, answers 200 with its raw bytes as an attachment under the file MIME type, except that HTML, JavaScript and XML types (SVG included) are served as text/plain; charset=utf-8, which the route tail and the binary envelope (Content, ContentType) rely on. Its 304, 206 and 416 answers respond only to If-None-Match, If-Modified-Since and Range request headers, which the SDK never sends and the document does not declare.",
       "anchor": {
         "type": "contains",
         "text": "pathname.slice(13)"
+      }
+    },
+    {
+      "path": "packages/server/src/content-headers.ts",
+      "sha256": "5355de065a4c231e22668ce6f5006c6cef0efd1cff709a1930e60528fd1678d9",
+      "behavior": "ContentHeaders.download, which the fs.read handler answers raw file bytes with, sets content-type to the file MIME type except text/html, text/javascript, application/javascript, application/x-javascript and any \u002Bxml or /xml type (SVG included), which become text/plain; charset=utf-8, and adds content-disposition attachment with an RFC 6266 filename, a sandboxing content-security-policy and x-content-type-options nosniff; the binary envelope\u0027s ContentType carries that header.",
+      "anchor": {
+        "type": "contains",
+        "text": "const TEXT_TYPE = \u0022text/plain; charset=utf-8\u0022"
       }
     },
     {

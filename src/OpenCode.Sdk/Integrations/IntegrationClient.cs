@@ -110,7 +110,7 @@ public class IntegrationClient
     }
 
     /// <summary>
-    /// Complete OAuth connection. Complete a code-based OAuth attempt and store the resulting credential.
+    /// Complete OAuth connection. Complete a code-based OAuth attempt and store the resulting credential. For an automatic attempt with `paste`, `code` is the redirect URL copied from the browser, and the result arrives through the attempt status.
     /// </summary>
     /// <param name = "attemptId">The &apos;attemptID&apos; route value.</param>
     /// <param name = "request">The request body; an empty body is sent when omitted.</param>

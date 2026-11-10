@@ -7,11 +7,11 @@ namespace OpenCode.Sdk;
 public sealed record SessionDiffRequest
 {
     /// <summary>
-    /// User message whose turn to diff. Defaults to the turn of the newest user message.
+    /// Gets the &apos;from&apos; query value; the server default applies when unset.
     /// </summary>
     public string? From { get; init; }
     /// <summary>
-    /// Later user message whose turn ends the range. Defaults to the turn of `from` alone.
+    /// Gets the &apos;to&apos; query value; the server default applies when unset.
     /// </summary>
     public string? To { get; init; }
     /// <summary>

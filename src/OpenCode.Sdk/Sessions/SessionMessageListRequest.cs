@@ -7,12 +7,12 @@ namespace OpenCode.Sdk;
 /// The query of &apos;session.message.list&apos; (GET /api/session/{sessionID}/message).
 /// </summary>
 /// <remarks>
-/// &apos;limit&apos;: Maximum number of messages to return. When omitted, the endpoint returns its default page size. &apos;order&apos;: Message order for the first page. Use desc for newest first or asc for oldest first. &apos;cursor&apos;: Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order.
+/// &apos;limit&apos;: Maximum number of messages to return. When omitted, the endpoint returns its default page size. &apos;cursor&apos;: Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response. Do not combine with order.
 /// </remarks>
 public sealed record SessionMessageListRequest : ListRequest
 {
     /// <summary>
-    /// Filter by message type before pagination. When omitted, all message types are returned. Pass the same type when following cursors.
+    /// Gets the &apos;type&apos; query value; the server default applies when unset.
     /// </summary>
     public SessionMessageListRequestType? Type { get; init; }
 }

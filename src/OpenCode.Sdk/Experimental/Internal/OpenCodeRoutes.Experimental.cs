@@ -389,6 +389,27 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// Builds the &apos;/api/experimental/job&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ListJobs(ExperimentalJobListRequest? request = null)
+        {
+            var path = "/api/experimental/job";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddText("sessionID", request.SessionId);
+            query.AddText("kind", ToWireValue(request.Kind));
+            query.AddText("status", ToWireValue(request.Status));
+            query.AddBoolean("descendants", request.Descendants);
+            return path + query.Value;
+        }
+
+        /// <summary>
         /// Builds the &apos;/api/experimental/schedule&apos; route.
         /// </summary>
         /// <param name = "request">The request shaping the query.</param>
@@ -652,4 +673,12 @@ internal static partial class OpenCodeRoutes
     /// Spells one &apos;ExperimentalSessionStatsRequestTools&apos; value the way the wire query expects it.
     /// </summary>
     private static string? ToWireValue(ExperimentalSessionStatsRequestTools? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default ExperimentalSessionStatsRequestTools has no wire value.", nameof(value)) : member.ToString();
+    /// <summary>
+    /// Spells one &apos;JobKind&apos; value the way the wire query expects it.
+    /// </summary>
+    private static string? ToWireValue(JobKind? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default JobKind has no wire value.", nameof(value)) : member.ToString();
+    /// <summary>
+    /// Spells one &apos;JobStatus&apos; value the way the wire query expects it.
+    /// </summary>
+    private static string? ToWireValue(JobStatus? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default JobStatus has no wire value.", nameof(value)) : member.ToString();
 }

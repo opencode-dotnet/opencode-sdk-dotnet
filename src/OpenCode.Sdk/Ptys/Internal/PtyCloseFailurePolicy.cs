@@ -7,7 +7,9 @@ namespace OpenCode.Sdk.Internal;
 /// Reads a PTY WebSocket close frame as an ending or a failure. Knowledge source:
 /// upstream-observed — the server closes with 1000 when the pseudo-terminal's process ends (the
 /// exit code is not on the wire; a reader asks <c>GetAsync</c> for it) and with the
-/// application code 4404 when the session is gone. An already-exited PTY still upgrades cleanly,
+/// application code 4404 when the session is gone. Since opencode 2.2.6 it also closes with
+/// 1012 ("location shut down") when the location the PTY belongs to shuts down, for example
+/// on a reload; that close is an abnormal one. An already-exited PTY still upgrades cleanly,
 /// so 4404 surfaces on the first read rather than on connect.
 /// </summary>
 internal static class PtyCloseFailurePolicy

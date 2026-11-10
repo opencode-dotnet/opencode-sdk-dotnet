@@ -1,5 +1,5 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 164
+Selected operations: 165
 Pending operations: 0
 Declined operations: 3
 Transport-owned operations: 2
@@ -33,6 +33,7 @@ Selected:
 - experimental.generate.image
 - experimental.generate.text
 - experimental.integration.wellknown.add
+- experimental.job.list
 - experimental.mcp.add
 - experimental.mcp.connect
 - experimental.mcp.disconnect

@@ -16,6 +16,13 @@ public sealed record ConfigInfoExperimental
     public bool? PortableShellScanner { get; init; }
 
     /// <summary>
+    /// Gets the all flags value.
+    /// </summary>
+    [JsonPropertyName("all_flags")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? AllFlags { get; init; }
+
+    /// <summary>
     /// Gets the todo value.
     /// </summary>
     [JsonPropertyName("todo")]
@@ -37,13 +44,6 @@ public sealed record ConfigInfoExperimental
     public bool? MediaBlob { get; init; }
 
     /// <summary>
-    /// Gets the image generate value.
-    /// </summary>
-    [JsonPropertyName("image_generate")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ConfigInfoExperimentalImageGenerate? ImageGenerate { get; init; }
-
-    /// <summary>
     /// Gets the schedules value.
     /// </summary>
     [JsonPropertyName("schedules")]
@@ -56,6 +56,27 @@ public sealed record ConfigInfoExperimental
     [JsonPropertyName("artifacts")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Artifacts { get; init; }
+
+    /// <summary>
+    /// Gets the part rows value.
+    /// </summary>
+    [JsonPropertyName("part_rows")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? PartRows { get; init; }
+
+    /// <summary>
+    /// Gets the codemode vm value.
+    /// </summary>
+    [JsonPropertyName("codemode_vm")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CodemodeVm { get; init; }
+
+    /// <summary>
+    /// Gets the image generate value.
+    /// </summary>
+    [JsonPropertyName("image_generate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ConfigInfoExperimentalImageGenerate? ImageGenerate { get; init; }
 
     /// <summary>
     /// Maximum subagent nesting depth. Defaults to 1.
