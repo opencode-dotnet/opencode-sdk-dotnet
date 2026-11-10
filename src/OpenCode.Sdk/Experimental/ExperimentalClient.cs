@@ -464,6 +464,23 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// List background jobs. List active and unconsumed background jobs, optionally filtered by owning session, descendants, or kind. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalJobListResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.job.list</c>: <c>GET /api/experimental/job</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalJobListResponse> ListJobsAsync(ExperimentalJobListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("experimental.job.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListJobs(request), ExperimentalJobListResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// List schedules. List a Session&apos;s schedules, oldest first. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
     /// </summary>
     /// <param name = "request">The request shaping the query; its required members have no server default.</param>

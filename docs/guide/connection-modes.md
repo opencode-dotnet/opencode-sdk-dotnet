@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-05
+Date: 2026-11-10
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -61,11 +61,11 @@ if (exit.Kind == OpenCodeServerExitKind.Signaled)
 }
 ```
 
-The server handles `SIGTERM` and `SIGINT` itself and normally exits with code **130** (a failed
-finalizer changes the code). Disposal on Linux and macOS therefore reports `Exited` with code 130,
-not `Signaled`, on a normal shutdown. `Signaled` appears only for a signal the server does not
-handle, such as the `SIGKILL` disposal sends when the server outlives `GracefulShutdownTimeout`.
-On Windows, disposal reports `Exited` with code 1.
+The server handles `SIGTERM` and `SIGINT` itself and normally exits: with code **143** on `SIGTERM`
+and **130** on `SIGINT` (a failed finalizer changes the code). Disposal on Linux and macOS sends
+`SIGTERM`, so it reports `Exited` with code 143, not `Signaled`, on a normal shutdown. `Signaled`
+appears only for a signal the server does not handle, such as the `SIGKILL` disposal sends when
+the server outlives `GracefulShutdownTimeout`. On Windows, disposal reports `Exited` with code 1.
 
 It completes once the exit is observed and the server's output has ended, or one second after the
 exit when a process the server started still holds the output open. A handle from `DiscoverAsync`

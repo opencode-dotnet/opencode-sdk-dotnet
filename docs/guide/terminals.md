@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-11-05
+Date: 2026-11-10
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -130,6 +130,8 @@ normally after yielding the frames already received. Removing the PTY while a re
 does the same. The exit code is not on the socket: `GetAsync` reports status `exited` and the exit
 code, and the bus carries `PtyExited` with the PTY id and exit code. An abnormal close throws
 `OpenCodeTransportException` naming the reason.
+When the PTY's location shuts down, for example on a reload, the server closes with 1012 and
+the reason "location shut down", which throws the same way.
 
 Connecting again to an exited PTY still succeeds **while the server retains it** — the 25 most
 recent exited PTYs. The first read then throws `OpenCodeTransportException` (close 4404,

@@ -1,8 +1,8 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-09
+Date: 2026-11-10
 
-Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it except three declined operations (the client-hosted MCP attach and its token, deferred to 1.1 in #529, and the legacy text-generation endpoint), and marks
+Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it except three declined operations (the client-hosted MCP attach and its token, deferred in #529, and the legacy text-generation endpoint), and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
 before you depend on it.
 
@@ -41,7 +41,7 @@ later. Older compilers ignore the attribute.
 
 The `ExperimentalClient` (`client.Experimental`) and the types only it uses: session stats, import
 and export, skills, the session wait, the durable session event stream, instruction entries, text, image and
-decision generation, schedules, usage limits, media, artifacts, well-known integrations, adding,
+decision generation, schedules, background jobs, usage limits, media, artifacts, well-known integrations, adding,
 removing, connecting and disconnecting MCP servers, voice models and sessions, file write and file
 watching, the v1 migration status, and the config update. The
 [streaming guide](streaming.md#-a-single-sessions-log) covers the durable session event stream.

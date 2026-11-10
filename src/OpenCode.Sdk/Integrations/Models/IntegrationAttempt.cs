@@ -33,6 +33,13 @@ public sealed record IntegrationAttempt
     public required IntegrationAttemptMode Mode { get; init; }
 
     /// <summary>
+    /// Gets the paste value.
+    /// </summary>
+    [JsonPropertyName("paste")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Paste { get; init; }
+
+    /// <summary>
     /// Gets the time value.
     /// </summary>
     [JsonPropertyName("time")]

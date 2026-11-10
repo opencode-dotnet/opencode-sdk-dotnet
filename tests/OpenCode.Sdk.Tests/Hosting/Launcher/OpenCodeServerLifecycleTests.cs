@@ -95,8 +95,8 @@ public sealed class OpenCodeServerLifecycleTests
 
     /// <summary>
     /// The normal close of the pinned server, upstream's own on each platform. On Linux and macOS it
-    /// is <c>SIGTERM</c> to the server's process group, which upstream's server answers the way its
-    /// own runtime answers an interrupt: it shuts down and exits with code 130. On Windows it is the
+    /// is <c>SIGTERM</c> to the server's process group, which upstream's server answers by shutting
+    /// down and exiting with code 143. On Windows it is the
     /// forced tree kill at once (<c>taskkill /T /F</c>), as upstream ends its server there: the
     /// server exits with code 1.
     /// </summary>
@@ -114,7 +114,7 @@ public sealed class OpenCodeServerLifecycleTests
 
         var exit = await ChildExitObservation.WithinAsync(server, ChildObservationBound);
         await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
-        await Assert.That(exit.ExitCode).IsEqualTo(OperatingSystem.IsWindows() ? 1 : 130).Because(exit.Describe());
+        await Assert.That(exit.ExitCode).IsEqualTo(OperatingSystem.IsWindows() ? 1 : 143).Because(exit.Describe());
         Console.WriteLine("branch: " + (OperatingSystem.IsWindows() ? "Windows tree kill" : "POSIX group SIGTERM") + " — the server " + exit.Describe());
     }
 

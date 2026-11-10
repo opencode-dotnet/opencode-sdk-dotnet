@@ -14,4 +14,11 @@ public sealed record ProviderCache
     [JsonPropertyName("ttl")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Ttl { get; init; }
+
+    /// <summary>
+    /// Gets the warming value.
+    /// </summary>
+    [JsonPropertyName("warming")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderCacheWarming? Warming { get; init; }
 }

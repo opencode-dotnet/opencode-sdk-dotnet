@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-06
+Date: 2026-11-10
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -356,7 +356,7 @@ extensions .COM, .EXE, .BAT, .CMD. Pass the executable's full path in
 OpenCodeServerOptions.Command, or install the CLI package @opencode/cli.
 ```
 
-Those two suggestions are the two real fixes: install the pinned CLI (`npm install -g @opencode/cli@2.2.5`), or
+Those two suggestions are the two real fixes: install the pinned CLI (`npm install -g @opencode/cli@2.2.6`), or
 stop depending on the search and name the file — `Command = ["/opt/opencode/bin/opencode", "serve"]`.
 The [resolution rules](connection-modes.md#how-the-command-is-resolved) say exactly what was tried.
 

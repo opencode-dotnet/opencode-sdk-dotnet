@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-05
+Date: 2026-11-10
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -767,8 +767,8 @@ difference is one of the recorded divergences below.
 5. With a collector, the output drains for at most one second, and the collection closes.
 6. Stdin closes, the readers are released, and the pipes close.
 
-The pinned server answers the `SIGTERM` the way its own runtime answers an interrupt: it shuts down
-and exits with code 130. A failed start — timeout, cancellation, an early exit, closed stdout, or a
+The pinned server answers the `SIGTERM` by shutting down, and exits with code 143. A failed start —
+timeout, cancellation, an early exit, closed stdout, or a
 non-contract first line — runs the same ladder with the configured grace, as upstream's scope close
 does. A canceled or timed-out start can therefore take up to that grace plus 16 seconds to throw:
 at most 10 for the root's exit after `SIGKILL`, 1 for draining the output, and 5 for releasing the

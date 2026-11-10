@@ -5,7 +5,7 @@ namespace OpenCode.Sdk;
 /// The query of &apos;session.list&apos; (GET /api/session).
 /// </summary>
 /// <remarks>
-/// &apos;limit&apos;: Maximum number of sessions to return. Defaults to the newest 50 sessions. &apos;order&apos;: Session order for the first page. Use desc for newest first or asc for oldest first. &apos;cursor&apos;: Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response.
+/// &apos;limit&apos;: Maximum number of sessions to return. Defaults to the newest 50 sessions. &apos;cursor&apos;: Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response.
 /// </remarks>
 public sealed record SessionListRequest : ListRequest
 {

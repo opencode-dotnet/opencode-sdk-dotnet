@@ -392,8 +392,8 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:72",
-          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+          "location": "packages/ai/src/schema/options.ts:79",
+          "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
     },
@@ -409,8 +409,8 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:72",
-          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+          "location": "packages/ai/src/schema/options.ts:79",
+          "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
     },
@@ -426,16 +426,16 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:74",
-          "excerpt": "  /** Time allowed for response headers to arrive. */"
+          "location": "packages/ai/src/schema/options.ts:81",
+          "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:55",
-          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+          "location": "packages/core/src/provider.ts:230",
+          "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:56",
-          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+          "location": "packages/core/src/provider.ts:231",
+          "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
     },
@@ -451,16 +451,16 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:74",
-          "excerpt": "  /** Time allowed for response headers to arrive. */"
+          "location": "packages/ai/src/schema/options.ts:81",
+          "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:55",
-          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+          "location": "packages/core/src/provider.ts:230",
+          "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:56",
-          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+          "location": "packages/core/src/provider.ts:231",
+          "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
     },
@@ -476,15 +476,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:76",
-          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+          "location": "packages/ai/src/schema/options.ts:83",
+          "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:59",
-          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+          "location": "packages/core/src/provider.ts:234",
+          "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:62",
+          "location": "packages/core/src/provider.ts:238",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -501,15 +501,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:76",
-          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+          "location": "packages/ai/src/schema/options.ts:83",
+          "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:59",
-          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+          "location": "packages/core/src/provider.ts:234",
+          "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:62",
+          "location": "packages/core/src/provider.ts:238",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -526,8 +526,8 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:72",
-          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+          "location": "packages/ai/src/schema/options.ts:79",
+          "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
     },
@@ -543,8 +543,8 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:72",
-          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+          "location": "packages/ai/src/schema/options.ts:79",
+          "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
     },
@@ -560,16 +560,16 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:74",
-          "excerpt": "  /** Time allowed for response headers to arrive. */"
+          "location": "packages/ai/src/schema/options.ts:81",
+          "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:55",
-          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+          "location": "packages/core/src/provider.ts:230",
+          "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:56",
-          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+          "location": "packages/core/src/provider.ts:231",
+          "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
     },
@@ -585,16 +585,16 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:74",
-          "excerpt": "  /** Time allowed for response headers to arrive. */"
+          "location": "packages/ai/src/schema/options.ts:81",
+          "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:55",
-          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+          "location": "packages/core/src/provider.ts:230",
+          "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:56",
-          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+          "location": "packages/core/src/provider.ts:231",
+          "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
     },
@@ -610,15 +610,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:76",
-          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+          "location": "packages/ai/src/schema/options.ts:83",
+          "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:59",
-          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+          "location": "packages/core/src/provider.ts:234",
+          "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:62",
+          "location": "packages/core/src/provider.ts:238",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -635,15 +635,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:76",
-          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+          "location": "packages/ai/src/schema/options.ts:83",
+          "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:59",
-          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+          "location": "packages/core/src/provider.ts:234",
+          "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:62",
+          "location": "packages/core/src/provider.ts:238",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -813,7 +813,7 @@
       "summary": "Idle time in milliseconds since the Unix epoch.",
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:816", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
+        { "location": "packages/protocol/src/groups/session.ts:812", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
         { "location": "packages/schema/src/schema.ts:36", "excerpt": "export const DateTimeUtcFromMillis = Schema.Finite.pipe(" },
         { "location": "packages/schema/src/schema.ts:39", "excerpt": "encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value))," }
       ]
@@ -1277,17 +1277,17 @@
     {
       "type": "ConfigWarming",
       "member": "Interval",
-      "summary": "Idle time between keep-alive requests, as a duration string; default “4 minutes”.",
+      "summary": "Idle time between keep-alive requests, as a duration string (default “4 minutes”), or `auto` for 90% of the model's `cache.ttl`; models without one are skipped.",
       "remarks": null,
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
           "location": "packages/schema/src/config/warming.ts:10",
-          "excerpt": "  interval: Schema.DurationFromString.pipe(optional).annotate({"
+          "excerpt": "  interval: Schema.Union([Schema.Literal(\"auto\"), Schema.DurationFromString])"
         },
         {
-          "location": "packages/schema/src/config/warming.ts:11",
-          "excerpt": "    description: 'Idle time between keep-alive requests (default: \"4 minutes\")',"
+          "location": "packages/schema/src/config/warming.ts:14",
+          "excerpt": "        'Idle time between keep-alive requests (default: \"4 minutes\"). \"auto\" uses 90% of the model\\'s cache.ttl and skips models without one.',"
         }
       ]
     },
@@ -3205,6 +3205,11 @@
       "reason": "A session ID; upstream's client takes a string."
     },
     {
+      "operationId": "experimental.job.list",
+      "parameter": "sessionID",
+      "reason": "A session ID (Session.ID) that filters to its background jobs; upstream's client takes a string."
+    },
+    {
       "operationId": "experimental.artifacts.list",
       "parameter": "provider",
       "reason": "An artifact provider ID; upstream's client takes a string."
@@ -3360,6 +3365,11 @@
       "schema": "session.instructions.updated#/properties/data/properties/delta/additionalProperties",
       "dotnetName": "SessionInstructionChange",
       "reason": "Each value says how one instruction changed: its new content hash, or removed."
+    },
+    {
+      "schema": "Provider.CacheWarming#/anyOf/1",
+      "dotnetName": "ProviderCacheWarmingSettings",
+      "reason": "The object arm of a provider's or model's cache.warming, beside the boolean switch: the keep-alive interval and duration that override the top-level warming."
     }
   ],
   "enumMemberNames": [
@@ -3585,6 +3595,11 @@
       "match": "Voice",
       "owner": "Experimental",
       "reason": "The voice transport unions and their WebRTC and WebSocket arms belong to the experimental voice session operation alone."
+    },
+    {
+      "match": "Job",
+      "owner": "Experimental",
+      "reason": "The background job record, its shell, subagent and image arms, kind, status and timing belong to the experimental job listing alone."
     },
     {
       "match": "Prompt",
@@ -3853,6 +3868,11 @@
       "schema": "Config.InfoEncoded#/properties/experimental/properties/image_generate/anyOf/1/properties/model",
       "aliasOf": "Config.AgentEncoded#/properties/model",
       "reason": "Both are upstream's Config.ModelSelection, which the document inlines on every configuration that selects a model."
+    },
+    {
+      "schema": "Provider.CacheWarming#/anyOf/1/properties/interval",
+      "aliasOf": "Config.WarmingEncoded#/properties/interval",
+      "reason": "Upstream declares the provider cache warming's interval separately from the top-level Config.Warming interval, as \"auto\" or a duration string; both project to the same anyOf of the auto literal and a string."
     }
   ]
 }

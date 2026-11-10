@@ -95,6 +95,7 @@ ConfigReferenceLocal owner=Config reached-by=Config
 ConfigShellOption owner=Config reached-by=Config
 ConfigUpdated owner=Config reached-by=Events
 ConfigWarming owner=Config reached-by=Config
+ConfigWarmingInterval owner=Config reached-by=Agents,Config,LanguageModels,Providers
 ConfigWebSearchInfo owner=Config reached-by=Config
 ConfigWorktree owner=Config reached-by=Config
 ConflictError owner=Common reached-by=Credentials,Experimental,Permissions,Sessions,Vcs
@@ -220,6 +221,7 @@ IIntegrationAttemptStatusTime owner=Integrations reached-by=Integrations
 IIntegrationCommandAttemptStatus owner=Integrations reached-by=Integrations
 IIntegrationCommandAttemptStatusTime owner=Integrations reached-by=Integrations
 IIntegrationMethod owner=Integrations reached-by=Integrations
+IJobInfo owner=Experimental reached-by=Experimental
 IMcpServerConfig owner=McpServers reached-by=Config,Experimental
 IMcpStatus owner=McpServers reached-by=McpServers
 IMcpTimeout owner=McpServers reached-by=Config,Experimental
@@ -293,6 +295,12 @@ IntegrationOAuthMethod owner=Integrations reached-by=Integrations
 IntegrationUpdated owner=Integrations reached-by=Events
 InvalidCursorError owner=Sessions reached-by=Sessions
 InvalidRequestError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
+JobImage owner=Experimental reached-by=Experimental
+JobKind owner=Experimental reached-by=Experimental
+JobShell owner=Experimental reached-by=Experimental
+JobStatus owner=Experimental reached-by=Experimental
+JobSubagent owner=Experimental reached-by=Experimental
+JobTime owner=Experimental reached-by=Experimental
 LocationNotFoundError owner=Location reached-by=Agents,Commands,Config,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,Plugins,Providers,Ptys,References,Rpc,Sessions,Shells,Skills,Vcs,Websearch
 LocationPublicInfo owner=Location reached-by=Location
 LocationPublicInfoProject owner=Location reached-by=Location
@@ -407,6 +415,9 @@ PromptInputSkillAttachment owner=Sessions reached-by=Sessions
 PromptMention owner=Sessions reached-by=Events,Experimental,Sessions
 PromptSkillAttachment owner=Sessions reached-by=Events,Experimental,Sessions
 ProviderCache owner=Providers reached-by=Agents,Config,LanguageModels,Providers
+ProviderCacheWarming owner=Providers reached-by=Agents,Config,LanguageModels,Providers
+ProviderCacheWarmingKind owner=Providers reached-by=Agents,Config,LanguageModels,Providers
+ProviderCacheWarmingSettings owner=Providers reached-by=Agents,Config,LanguageModels,Providers
 ProviderCompactionNative owner=Providers reached-by=Agents,Config,LanguageModels,Providers
 ProviderCompactionSummary owner=Providers reached-by=Agents,Config,LanguageModels,Providers
 ProviderCompatibility owner=Providers reached-by=Config,Providers
@@ -802,6 +813,7 @@ UnknownGenerateDecisionQuestion owner=Experimental reached-by=Experimental
 UnknownIntegrationAttemptStatus owner=Integrations reached-by=Integrations
 UnknownIntegrationCommandAttemptStatus owner=Integrations reached-by=Integrations
 UnknownIntegrationMethod owner=Integrations reached-by=Integrations
+UnknownJobInfo owner=Experimental reached-by=Experimental
 UnknownMcpServerConfig owner=McpServers reached-by=Config,Experimental
 UnknownMcpStatus owner=McpServers reached-by=McpServers
 UnknownOpenCodeError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees

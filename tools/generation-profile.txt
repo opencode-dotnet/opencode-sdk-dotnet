@@ -27,6 +27,7 @@ experimental.generate.decisions
 experimental.generate.image
 experimental.generate.text
 experimental.integration.wellknown.add
+experimental.job.list
 experimental.mcp.add
 experimental.mcp.connect
 experimental.mcp.disconnect

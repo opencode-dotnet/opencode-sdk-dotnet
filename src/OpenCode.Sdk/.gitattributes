@@ -73,6 +73,7 @@
 /Config/Internal/ConfigReferenceEntryJsonConverter.cs linguist-generated
 /Config/Internal/ConfigResponseAdapter.cs linguist-generated
 /Config/Internal/ConfigShellsResponseAdapter.cs linguist-generated
+/Config/Internal/ConfigWarmingIntervalJsonConverter.cs linguist-generated
 /Config/Internal/OpenCodeRoutes.Config.cs linguist-generated
 /Config/Internal/UnknownConfigEntryJsonConverter.cs linguist-generated
 /Config/Internal/UnknownConfigModelReasoningJsonConverter.cs linguist-generated
@@ -156,6 +157,7 @@
 /Config/Models/ConfigShellOption.cs linguist-generated
 /Config/Models/ConfigUpdated.cs linguist-generated
 /Config/Models/ConfigWarming.cs linguist-generated
+/Config/Models/ConfigWarmingInterval.cs linguist-generated
 /Config/Models/ConfigWebSearchInfo.cs linguist-generated
 /Config/Models/ConfigWorktree.cs linguist-generated
 /Config/Models/IConfigEntry.cs linguist-generated
@@ -262,6 +264,8 @@
 /Experimental/ExperimentalGenerateTextResponse.cs linguist-generated
 /Experimental/ExperimentalIntegrationWellknownAddRequest.cs linguist-generated
 /Experimental/ExperimentalIntegrationWellknownAddResponse.cs linguist-generated
+/Experimental/ExperimentalJobListRequest.cs linguist-generated
+/Experimental/ExperimentalJobListResponse.cs linguist-generated
 /Experimental/ExperimentalMcpAddRequest.cs linguist-generated
 /Experimental/ExperimentalMcpAddResponse.cs linguist-generated
 /Experimental/ExperimentalMcpConnectRequest.cs linguist-generated
@@ -324,6 +328,8 @@
 /Experimental/Internal/ExperimentalGenerateTextResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalGenerateTextResponseEnvelope.cs linguist-generated
 /Experimental/Internal/ExperimentalIntegrationWellknownAddResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalJobListResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalJobListResponseEnvelope.cs linguist-generated
 /Experimental/Internal/ExperimentalMcpAddResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalMcpConnectResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalMcpDisconnectResponseAdapter.cs linguist-generated
@@ -368,6 +374,9 @@
 /Experimental/Internal/GenerateDecisionPartJsonConverter.cs linguist-generated
 /Experimental/Internal/GenerateDecisionQuestionJsonConverter.cs linguist-generated
 /Experimental/Internal/GenerateImageResolutionJsonConverter.cs linguist-generated
+/Experimental/Internal/JobInfoJsonConverter.cs linguist-generated
+/Experimental/Internal/JobKindJsonConverter.cs linguist-generated
+/Experimental/Internal/JobStatusJsonConverter.cs linguist-generated
 /Experimental/Internal/OpenCodeRoutes.Experimental.cs linguist-generated
 /Experimental/Internal/ScheduleConditionInputJsonConverter.cs linguist-generated
 /Experimental/Internal/ScheduleConditionJsonConverter.cs linguist-generated
@@ -378,6 +387,7 @@
 /Experimental/Internal/UnknownGenerateDecisionAnswerJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownGenerateDecisionPartJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownGenerateDecisionQuestionJsonConverter.cs linguist-generated
+/Experimental/Internal/UnknownJobInfoJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownScheduleConditionJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownScheduleWhenJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownVoiceTransportInputJsonConverter.cs linguist-generated
@@ -431,6 +441,7 @@
 /Experimental/Models/IGenerateDecisionAnswer.cs linguist-generated
 /Experimental/Models/IGenerateDecisionPart.cs linguist-generated
 /Experimental/Models/IGenerateDecisionQuestion.cs linguist-generated
+/Experimental/Models/IJobInfo.cs linguist-generated
 /Experimental/Models/IScheduleCondition.cs linguist-generated
 /Experimental/Models/IScheduleWhen.cs linguist-generated
 /Experimental/Models/IVoiceTransport.cs linguist-generated
@@ -438,6 +449,12 @@
 /Experimental/Models/InstructionEntryInfo.cs linguist-generated
 /Experimental/Models/InstructionEntrySnapshot.cs linguist-generated
 /Experimental/Models/InstructionEntryValueTooLargeError.cs linguist-generated
+/Experimental/Models/JobImage.cs linguist-generated
+/Experimental/Models/JobKind.cs linguist-generated
+/Experimental/Models/JobShell.cs linguist-generated
+/Experimental/Models/JobStatus.cs linguist-generated
+/Experimental/Models/JobSubagent.cs linguist-generated
+/Experimental/Models/JobTime.cs linguist-generated
 /Experimental/Models/ScheduleActionPrompt.cs linguist-generated
 /Experimental/Models/ScheduleConditionCode.cs linguist-generated
 /Experimental/Models/ScheduleConditionInput.cs linguist-generated
@@ -464,6 +481,7 @@
 /Experimental/Models/UnknownGenerateDecisionAnswer.cs linguist-generated
 /Experimental/Models/UnknownGenerateDecisionPart.cs linguist-generated
 /Experimental/Models/UnknownGenerateDecisionQuestion.cs linguist-generated
+/Experimental/Models/UnknownJobInfo.cs linguist-generated
 /Experimental/Models/UnknownScheduleCondition.cs linguist-generated
 /Experimental/Models/UnknownScheduleWhen.cs linguist-generated
 /Experimental/Models/UnknownVoiceTransport.cs linguist-generated
@@ -906,6 +924,7 @@
 /Projects/ProjectUpdateResponse.cs linguist-generated
 /Projects/ProjectsClient.cs linguist-generated
 /Providers/Internal/OpenCodeRoutes.Providers.cs linguist-generated
+/Providers/Internal/ProviderCacheWarmingJsonConverter.cs linguist-generated
 /Providers/Internal/ProviderCompactionJsonConverter.cs linguist-generated
 /Providers/Internal/ProviderEncodingJsonConverter.cs linguist-generated
 /Providers/Internal/ProviderInfoActivationJsonConverter.cs linguist-generated
@@ -922,6 +941,9 @@
 /Providers/Internal/UnknownProviderCompactionJsonConverter.cs linguist-generated
 /Providers/Models/IProviderCompaction.cs linguist-generated
 /Providers/Models/ProviderCache.cs linguist-generated
+/Providers/Models/ProviderCacheWarming.cs linguist-generated
+/Providers/Models/ProviderCacheWarmingKind.cs linguist-generated
+/Providers/Models/ProviderCacheWarmingSettings.cs linguist-generated
 /Providers/Models/ProviderCompactionNative.cs linguist-generated
 /Providers/Models/ProviderCompactionSummary.cs linguist-generated
 /Providers/Models/ProviderCompatibility.cs linguist-generated

@@ -61,10 +61,17 @@ public sealed record McpRemoteConfig : IMcpServerConfig
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public McpProtocol? Protocol { get; init; }
 
+    /// <summary>
+    /// Gets the pool value.
+    /// </summary>
+    [JsonPropertyName("pool")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Pool { get; init; }
+
     IMcpTimeout? IMcpServerConfig.Timeout => Timeout;
 
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(McpRemoteConfig), ("Type", Type), ("Url", Url), ("Headers", RecordPrinter.Redact(Headers)), ("OAuth", OAuth), ("Disabled", Disabled), ("Codemode", Codemode), ("Timeout", Timeout), ("Protocol", Protocol));
+    public override string ToString() => RecordPrinter.Format(nameof(McpRemoteConfig), ("Type", Type), ("Url", Url), ("Headers", RecordPrinter.Redact(Headers)), ("OAuth", OAuth), ("Disabled", Disabled), ("Codemode", Codemode), ("Timeout", Timeout), ("Protocol", Protocol), ("Pool", Pool));
 }

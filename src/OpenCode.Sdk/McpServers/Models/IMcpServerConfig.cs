@@ -45,4 +45,10 @@ public interface IMcpServerConfig
     /// </summary>
     [JsonPropertyName("protocol")]
     public McpProtocol? Protocol { get; }
+
+    /// <summary>
+    /// Gets the pool value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcpServerConfig.
+    /// </summary>
+    [JsonPropertyName("pool")]
+    public bool? Pool { get; }
 }

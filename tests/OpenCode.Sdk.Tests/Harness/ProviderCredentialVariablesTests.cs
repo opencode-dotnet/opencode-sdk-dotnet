@@ -88,8 +88,8 @@ public sealed class ProviderCredentialVariablesTests
     /// <summary>
     /// Fails when the pin gains an env method the scrub would not remove, read with a parser of
     /// its own rather than the scan's. A method whose names are not a literal list is computed;
-    /// the pin has one, the catalog's own, whose names are the catalog's plus literals the scan
-    /// reads, and a new one fails here until it is read. A method's names are the property that
+    /// the pin has two, the catalog's and the web search registration's, whose names are the
+    /// catalog's or literals the scan reads, and a new one fails here until it is read. A method's names are the property that
     /// follows its type, so a method whose next property is anything else fails here rather than
     /// letting the parser read some later, unrelated list.
     /// </summary>
@@ -109,9 +109,9 @@ public sealed class ProviderCredentialVariablesTests
             unpaired.AddRange(Enumerable.Repeat(FileSystem.Path.GetFileName(file), methods.Unpaired));
         }
 
-        string[] expectedComputed = ["models-dev.ts"];
+        string[] expectedComputed = ["models-dev.ts", "provider.ts"];
         await Assert.That(unpaired).IsEmpty();
-        // Only membership and cardinality matter; this expected collection has one item.
+        // Only membership and cardinality matter, not order.
         await Assert.That(computed).IsEquivalentTo(expectedComputed, CollectionOrdering.Any);
         await Assert.That(declared).Contains("SNOWFLAKE_CORTEX_PAT");
         await Assert.That(declared.Where(name => !credentials.Names.Contains(name))).IsEmpty();
@@ -309,7 +309,8 @@ public sealed class ProviderCredentialVariablesTests
             }
 
             var list = SkipLineComments(next[1..])[Names.Length..].TrimStart();
-            if (list is not ['[', ..] || list[..list.IndexOf(']')].Contains("...".AsSpan(), StringComparison.Ordinal))
+            if (list is not ['[', ..] || list[..list.IndexOf(']')].Contains("...".AsSpan(), StringComparison.Ordinal)
+                || list[1..].TrimStart() is not ['"', ..])
             {
                 computed++;
                 continue;

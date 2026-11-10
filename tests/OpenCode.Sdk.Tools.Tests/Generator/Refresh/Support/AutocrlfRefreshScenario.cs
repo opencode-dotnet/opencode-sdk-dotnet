@@ -37,7 +37,7 @@ internal sealed class AutocrlfRefreshScenario : IProcessRunner, IDisposable
         if (!_fileSystem.Directory.Exists(_clone))
         {
             _ = await GitAsync(["clone", "--no-hardlinks", "--no-checkout", _fileSystem.Path.Combine(_repository, SnapshotPaths.Submodule), _clone], _root);
-            var manifestPath = _fileSystem.Path.Combine(_repository, SnapshotPaths.PatchesRoot, "001-restore-sse-payloads.json");
+            var manifestPath = _fileSystem.Path.Combine(_repository, SnapshotPaths.PatchesRoot, "002-restore-artifact-location-style.json");
             var manifest = JsonSerializer.Deserialize(await _fileSystem.File.ReadAllTextAsync(manifestPath), ToolJsonContext.Default.PatchManifest)!;
             _patch = new LoadedPatch
             {
@@ -72,17 +72,14 @@ internal sealed class AutocrlfRefreshScenario : IProcessRunner, IDisposable
             var patched = _generation++ > 0;
             var document = RefreshScenarioData.DocumentBytes(spec =>
             {
-                Debug.Assert(_patch.Manifest.RepairPredicate.Components is not null, "The committed SSE patch declares component targets.");
-                foreach (var component in _patch.Manifest.RepairPredicate.Components)
+                var predicate = _patch.Manifest.RepairPredicate;
+                Debug.Assert(predicate.Operations is not null && predicate.Parameter is not null && predicate.Style == "deepObject",
+                    "The committed artifact patch declares operation targets, a parameter and deepObject style.");
+                foreach (var operation in predicate.Operations)
                 {
-                    _ = spec.WithSchema(component, schema =>
-                    {
-                        _ = schema.Type("string");
-                        if (patched)
-                        {
-                            _ = schema.ContentSchema("application/json", payload => payload.Type("string"));
-                        }
-                    });
+                    _ = spec.WithOperation(operation, path: "/" + operation, configure: endpoint => endpoint
+                        .Parameter(predicate.Parameter, "query", schema => schema.Type("object"),
+                            deepObject: patched));
                 }
             });
             await _fileSystem.File.WriteAllBytesAsync(_fileSystem.Path.Combine(workingDirectory, "openapi.json"), document, cancellationToken);

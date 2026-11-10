@@ -6,8 +6,8 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// How an owned server ended, as <see cref="OpenCodeServer.Exited"/> reports it: an exit code, a
 /// terminating signal, or an unknown status. Exactly the members <see cref="Kind"/> names are set.
-/// The server handles <c>SIGTERM</c>/<c>SIGINT</c>: Linux/macOS disposal normally reports
-/// <see cref="OpenCodeServerExitKind.Exited"/> with code 130 (Windows: code 1).
+/// The server handles <c>SIGTERM</c> and <c>SIGINT</c> itself: Linux/macOS disposal sends <c>SIGTERM</c>
+/// and normally reports <see cref="OpenCodeServerExitKind.Exited"/> with code 143 (Windows: code 1).
 /// Only unhandled signals, such as <c>SIGKILL</c>, report <see cref="OpenCodeServerExitKind.Signaled"/>.
 /// </summary>
 public sealed record OpenCodeServerExit
