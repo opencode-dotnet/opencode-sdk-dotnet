@@ -131,8 +131,9 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    ([#388](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/388)).
 8. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). `1.0.0`
    is built on the go-live .NET 11 release-candidate SDK, a one-time exception the maintainer made
-   to ADR-0002's GA-SDK rule; `1.0.1` rebuilds it on the GA SDK
-   ([#172](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/172)) with no API change.
+   to ADR-0002's GA-SDK rule; `1.0.1` is built on the GA SDK
+   ([#172](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/172)) and moves the pin to
+   opencode `2.2.6`.
    Exit: `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the
    README's rename notice gone, and milestone `1.1` ordered with its first items assigned.
 

@@ -9,6 +9,15 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [1.0.1] - 2026-11-11
+
+**`1.0.1` pins opencode `2.2.6` and is built on the GA .NET 11 SDK.** It is a patch that moves the
+protocol pin, so two generated types change the way upstream changed them: `ConfigWarming.Interval`
+is now a `ConfigWarmingInterval?`, and `IMcpServerConfig` gains `Pool`. Both are listed as
+**breaking** under protocol changes. Disposing a standalone server on Linux and macOS reports exit
+code 143, where it reported 130. The Important Notes explain the version rule this release follows,
+which differs from the one `1.0.0` stated.
+
 ### 🔌 Protocol changes
 
 - The SDK pins opencode `2.2.6`, where it pinned `2.2.5`.
@@ -34,7 +43,7 @@ Nightly builds of `master` are on
 
 ### 📋 Important Notes
 
-- A version follows the bump type of the upstream opencode release it pins, and the SDK's own fixes, additions and hand-written breaks apply on top (ADR-0034). A release that moves the pin may change generated protocol types the way upstream changed them, and lists each such change as **breaking** under protocol changes.
+- **The version rule differs from the one `1.0.0` stated.** A version follows the bump type of the upstream opencode release it pins, where `1.0.0`'s notes said only a minor moves the pin. A patch such as this one can therefore move the pin and change generated protocol types the way upstream changed them; each such change is listed as **breaking** under protocol changes. A family marked `[Experimental]` may change in any release that moves the pin, where it was any minor. The SDK's own fixes and additions are a patch, and a break of the hand-written surface needs a major (ADR-0034). `1.0.0`'s notes also said `1.0.1` would have no API change; it moves the pin to opencode `2.2.6`.
 
 ## [1.0.0] - 2026-11-06
 
@@ -2113,6 +2122,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[1.0.1]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.0.1
 [1.0.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.0.0
 [0.9.0-preview.15]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.15
 [0.9.0-preview.14]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.14
