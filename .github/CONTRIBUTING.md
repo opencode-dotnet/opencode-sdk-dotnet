@@ -29,9 +29,9 @@ sign.
 
 ### Prerequisites
 
-- [.NET SDK 11.0](https://dotnet.microsoft.com/download/dotnet/11.0) — the release candidate is
-  pinned in [`global.json`](../global.json) (`11.0.100-rc.3.26522.148`,
-  `rollForward: latestFeature`, `allowPrerelease: true`)
+- [.NET SDK 11.0](https://dotnet.microsoft.com/download/dotnet/11.0), pinned in
+  [`global.json`](../global.json) (`11.0.100`, `rollForward: latestFeature`,
+  `allowPrerelease: false`)
 - The **.NET 10 runtime**, for the `net10.0` test legs and the repository tools, which run on the
   LTS release (the .NET 10 SDK carries it)
 - On Windows, the **.NET Framework 4.7.2 targeting pack** for the `net472` legs

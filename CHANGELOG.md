@@ -24,6 +24,7 @@ Nightly builds of `master` are on
 ### 🔧 Changes
 
 - Disposing a standalone server on Linux and macOS now reports `Exited` with code 143, where it was 130: the pinned opencode 2.2.6 exits with 143 on `SIGTERM`. `SIGINT` still exits with 130, and Windows still reports code 1.
+- The packages are built on the GA .NET 11 SDK (`11.0.100`), where `1.0.0` was built on the go-live release candidate as a one-time exception to the rule that a non-preview package is built only on a GA SDK (ADR-0002).
 
 ### 📚 Documentation
 
