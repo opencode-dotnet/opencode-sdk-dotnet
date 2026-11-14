@@ -10,6 +10,8 @@ namespace OpenCode.Sdk.Tests.Vcs;
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class VcsClientLiveTests(SimulatedDriveServerFixture server)
 {
+    private const string GitPluginId = "opencode.vcs.git";
+
     [Test]
     [Timeout(60_000)]
     public async Task InitializeRepositoryAsync_Should_Refuse_Reinitialization_When_The_First_Call_Initialized_Git(
@@ -17,6 +19,7 @@ public sealed class VcsClientLiveTests(SimulatedDriveServerFixture server)
     {
         using var workspace = server.CreateWorkspace();
         using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        await LiveReadiness.PluginAsync(client, GitPluginId, cancellationToken);
         var location = await client.GetLocationAsync(cancellationToken: cancellationToken);
         var request = new VcsInitRequest { Provider = "git" };
 

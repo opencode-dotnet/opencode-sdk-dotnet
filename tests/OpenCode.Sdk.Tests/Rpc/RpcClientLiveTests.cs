@@ -10,14 +10,12 @@ namespace OpenCode.Sdk.Tests.Rpc;
 /// The rpc family's live proof against the pinned server: the repository-owned local plugin
 /// exercises exact input/output plus every deterministic 400/500 RPC arm. An rpc id nobody
 /// registered retains the declared <see cref="RpcError"/> unavailable proof on both error channels.
-/// External mode exercises the unavailable arm, then checks inventory after the RPC activation barrier.
+/// External mode exercises the unavailable arm, then checks that inventory omits the seeded plugin.
 /// </summary>
 /// <remarks>
-/// No <see cref="LiveReadiness.PluginAsync"/> wait precedes the owned calls, unlike the families
-/// that read <c>plugin.list</c>: the pinned <c>rpc.call</c> handler awaits plugin activation
-/// server-side (<c>packages/server/src/handlers/rpc.ts:11</c> at the pin) before it looks the rpc
-/// id up, so a cold location's first call cannot observe the registry before the seeded plugin
-/// registers. <c>plugin.list</c> does not wait, which is why those readers poll.
+/// The pinned <c>rpc.call</c> handler does not wait for plugin activation, so each owned call
+/// first waits for the seeded plugin with <see cref="LiveReadiness.PluginAsync"/>.
+/// The unavailable arms stay one-shot; their calls are not activation barriers.
 /// </remarks>
 [ClassDataSource<PinnedOpenCodeServerFixture>(Shared = SharedType.PerTestSession)]
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
@@ -70,6 +68,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return;
         }
 
+        await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
         var response = await client.Rpc.CallAsync(
             TestRpcPlugin.Id,
             EchoMethod,
@@ -97,6 +96,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return;
         }
 
+        await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
         var response = await client.Rpc.CallAsync(
             TestRpcPlugin.Id,
             MissingMethod,
@@ -123,6 +123,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return;
         }
 
+        await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
         var response = await client.Rpc.CallAsync(
             TestRpcPlugin.Id,
             EchoMethod,
@@ -151,6 +152,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return;
         }
 
+        await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
         var response = await client.Rpc.CallAsync(
             TestRpcPlugin.Id,
             DeclaredErrorMethod,
@@ -179,6 +181,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return;
         }
 
+        await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
         var response = await client.Rpc.CallAsync(
             TestRpcPlugin.Id,
             InvalidOutputMethod,
@@ -205,6 +208,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return;
         }
 
+        await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
         var response = await client.Rpc.CallAsync(
             TestRpcPlugin.Id,
             InternalErrorMethod,
