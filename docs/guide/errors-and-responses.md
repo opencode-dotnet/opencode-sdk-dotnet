@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -91,7 +91,7 @@ Three limits worth internalising:
   They take `requestOptions`, but their API errors always throw. A stream has no response envelope
   to carry an error. See [streaming](streaming.md#-streams-always-throw) and [pagination](pagination.md).
 - **`LanguageModels.WaitForDefaultAsync` refuses `NoThrow` at the call,** because it decides on each
-  unavailable answer whether to ask again, so an error response would end it with nothing to read.
+  plugin-list answer whether to keep waiting.
 
 `OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.

@@ -218,7 +218,7 @@ if (model is not null)
   does not make them complete, and the server exposes no activation barrier: when your application
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
   deadline (`GLOSSARY.md`, Plugin activation).
-- **Some catalog and model calls wait for plugins; wait out unavailable answers at startup.**
+- **Some catalog and model calls wait for plugins; give activation a moment at startup.**
   Listing the location's models and providers; the default model; a web search query;
   and experimental generation and voice wait up to five seconds for plugins to load.
   The agent list, usage limits and artifacts do not wait for plugin activation, so the agent list
@@ -230,15 +230,16 @@ if (model is not null)
   server's periodic plugin refresh, they can answer `503` with a `ServiceUnavailableError` whose
   `Service` is `plugin`, meaning "plugins still loading"; usage limits and web search queries also
   return `ServiceUnavailableError` for upstream failures. Before anything model-related, call
-  `WaitForDefaultAsync`: it asks for the default model and, on a `ServiceUnavailableError`, asks
-  again on the schedule opencode's app uses for its boot-time catalog sync, up to twelve attempts
-  with waits from one to five seconds. Any other failure surfaces at once, and the last unavailable
-  answer surfaces when the attempts run out. If a later config or plugin change brings the answer
-  back, call it again before the next model call. It does not complete plugin activation;
-  a catalog can still grow after it returns. The wait ends by itself after its twelfth attempt:
-  its eleven delays total 47 seconds, and with each attempt held up to five seconds by the server
-  it can run about 107 seconds plus request time, so a caller's deadline should exceed about two
-  minutes, or be left out.
+  `WaitForDefaultAsync`: like opencode's CLI one-shot commands, it lists the location's plugins until
+  non-empty, waiting 25 ms after each empty answer for about five seconds, then reads the default
+  model once. A failed plugin list is ignored and ends the wait early. Every failure of the default
+  read propagates, including `ServiceUnavailableError`, with no further attempt. A non-empty plugin
+  list is not a completion barrier: a catalog can still grow after the method returns. On a mocking
+  instance built through the protected constructor, it skips the poll and reads once. The bound is
+  at most about five seconds of polling plus one read, which the server can hold up to five seconds,
+  plus request time: the polling schedule limit is checked after answers, not a deadline that
+  interrupts requests. If a later config or plugin change starts activation again, call it before
+  the next model call.
 
   ```csharp
   await client.LanguageModels.WaitForDefaultAsync();

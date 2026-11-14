@@ -87,6 +87,10 @@ internal static class WireBodyData
 
     public static readonly string PluginActivationUnavailableError = PluginUnavailable("Location plugins did not finish activating");
 
+    public static readonly string EmptyPluginList = LocationEnvelope("[]");
+
+    public static readonly string OnePluginList = LocationEnvelope("[{\"source\":{\"type\":\"builtin\"},\"features\":{},\"state\":{\"status\":\"active\"}}]");
+
     public static string PluginUnavailable(string message) => new JsonObject
     {
         ["_tag"] = "ServiceUnavailableError",

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
@@ -15,9 +14,6 @@ public sealed class LanguageModelsClientContractTests
         + "\"variants\":[{\"id\":\"default\"}],\"time\":{\"released\":1710000000},"
         + "\"cost\":[{\"input\":3,\"output\":15,\"cache\":{\"read\":0.3,\"write\":3.75}}],"
         + "\"status\":\"active\",\"enabled\":true,\"limit\":{\"context\":200000,\"output\":8192}}";
-
-    /// <summary>The eleven waits between twelve attempts: one second, doubling, at most five.</summary>
-    private static readonly TimeSpan[] EveryWait = [.. new[] { 1, 2, 4, 5, 5, 5, 5, 5, 5, 5, 5 }.Select(static seconds => TimeSpan.FromSeconds(seconds))];
 
     [Test]
     public async Task GetDefaultAsync_Should_Return_The_Typed_Default_Model()
@@ -74,106 +70,141 @@ public sealed class LanguageModelsClientContractTests
     }
 
     [Test]
-    public async Task WaitForDefaultAsync_Should_Ask_Again_After_Each_Unavailable_Answer()
+    public async Task WaitForDefaultAsync_Should_Read_Once_After_A_Non_Empty_Plugin_List()
     {
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
-        var requests = 0;
-        using var scenario = ContractScenario.Responding(_ => ++requests switch
-        {
-            1 => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.PluginActivationUnavailableError),
-            2 => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError),
-            _ => Answer(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel)),
-        });
+        var polls = 0;
+        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request,
+            request.RequestUri!.AbsolutePath == "/api/plugin" && ++polls <= 2 ? WireBodyData.EmptyPluginList : WireBodyData.OnePluginList));
 
-        var response = await Assert.That(ConsumeWaitsAsync(
-            time, token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, token), [EveryWait[0], EveryWait[1]], caller)).ThrowsNothing();
+        var response = await ConsumeWaitsAsync(time,
+            token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, token),
+            [TimeSpan.FromMilliseconds(25), TimeSpan.FromMilliseconds(25)], caller);
 
-        await Assert.That(response!.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
-        await Assert.That(scenario.Requests.Count).IsEqualTo(3);
+        await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
+            ["/api/plugin", "/api/plugin", "/api/plugin", "/api/model/default"], CollectionOrdering.Matching);
     }
 
     [Test]
-    public async Task WaitForDefaultAsync_Should_Surface_The_Last_Unavailable_Answer_After_Twelve_Attempts()
+    public async Task WaitForDefaultAsync_Should_Read_Once_When_The_Plugin_List_Stays_Empty()
     {
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
-        var requests = 0;
-        using var scenario = ContractScenario.Responding(_ => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.PluginUnavailable(string.Format(CultureInfo.InvariantCulture, "attempt {0}", ++requests))));
+        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request, WireBodyData.EmptyPluginList));
 
-        using var decided = new CancellationTokenSource();
-        Task<ModelDefaultResponse>? wait = null;
-        Task? passing = null, anotherWait = null;
-        try
+        var response = await ConsumeWaitsAsync(time,
+            token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, token),
+            [.. Enumerable.Repeat(TimeSpan.FromMilliseconds(25), 201)], caller);
+
+        await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
+            Enumerable.Repeat("/api/plugin", 202).Append("/api/model/default"), CollectionOrdering.Matching);
+        await Assert.That(time.ArmedIn(TimeSpan.FromMilliseconds(25))).IsEqualTo(0);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task WaitForDefaultAsync_Should_Read_Once_When_The_Plugin_List_Fails(bool transportFailure)
+    {
+        using var caller = new CancellationTokenSource();
+        using var scenario = ContractScenario.Responding(request => request.RequestUri!.AbsolutePath switch
         {
-            passing = PassWaitsAsync(time, () => wait = new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, caller.Token), EveryWait);
-            // This check has no cancellation token; its owner cancels the operation during cleanup.
-            await passing.WaitAsync(HangGuard.Bound, CancellationToken.None);
-            var operation = wait!;
-            anotherWait = time.WaitForArmedOrCanceledAsync(EveryWait[^1], HangGuard.Bound, decided.Token);
-            var first = await Task.WhenAny(operation, anotherWait).WaitAsync(HangGuard.Bound);
-            await Assert.That(first).IsSameReferenceAs(operation);
-            var failure = await Assert.That(operation.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
-            var error = await Assert.That(failure!.Error).IsTypeOf<ServiceUnavailableError>();
-            await Assert.That(error!.Message).IsEqualTo("attempt 12");
-            await Assert.That(time.ArmedIn(EveryWait[^1])).IsEqualTo(0);
-            await Assert.That(scenario.Requests.Count).IsEqualTo(12);
-        }
-        finally
+            "/api/plugin" => transportFailure ? throw new HttpRequestException("Plugin list failed.") : Answer(HttpStatusCode.InternalServerError, WireBodyData.UnknownError),
+            "/api/model/default" => Answer(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel)),
+            _ => throw new InvalidOperationException("Unexpected request path."),
+        });
+
+        var response = await scenario.Client.LanguageModels.WaitForDefaultAsync(cancellationToken: caller.Token).WaitAsync(HangGuard.Bound);
+
+        await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
+            ["/api/plugin", "/api/model/default"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task WaitForDefaultAsync_Should_Surface_A_Default_Unavailable_Answer_Without_Asking_Again()
+    {
+        var time = new ManualTimeProvider();
+        using var caller = new CancellationTokenSource();
+        using var scenario = ContractScenario.Responding(request => request.RequestUri!.AbsolutePath switch
         {
-            // Cleanup observes every started task even after its owner has cancelled.
-            await decided.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            await ObserveAsync(passing, anotherWait, wait);
-        }
+            "/api/plugin" => Answer(HttpStatusCode.OK, WireBodyData.OnePluginList),
+            "/api/model/default" => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError),
+            _ => throw new InvalidOperationException("Unexpected request path."),
+        });
+
+        await AssertUnavailableWithoutWaitAsync(time,
+            token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, token), caller);
+
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
+            ["/api/plugin", "/api/model/default"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task WaitForDefaultAsync_Should_Skip_The_Plugin_Poll_On_A_Mocking_Instance()
+    {
+        var time = new ManualTimeProvider();
+        using var caller = new CancellationTokenSource();
+        var client = new UnavailableLanguageModels();
+
+        await AssertUnavailableWithoutWaitAsync(time,
+            token => new DefaultModelWait(client, time).WaitAsync(null, null, token), caller);
+
+        await Assert.That(client.Tokens).IsEquivalentTo([caller.Token], CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task WaitForDefaultAsync_Should_Surface_Another_Failure_At_Once()
     {
         using var caller = new CancellationTokenSource();
-        var requests = 0;
-        using var scenario = ContractScenario.Responding(_ => ++requests == 1
-            ? Answer(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError)
-            : Answer(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel)));
+        using var scenario = ContractScenario.Responding(request => request.RequestUri!.AbsolutePath switch
+        {
+            "/api/plugin" => Answer(HttpStatusCode.OK, WireBodyData.OnePluginList),
+            "/api/model/default" => Answer(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError),
+            _ => throw new InvalidOperationException("Unexpected request path."),
+        });
 
         var failure = await Assert.That(scenario.Client.LanguageModels.WaitForDefaultAsync(cancellationToken: caller.Token).WaitAsync(HangGuard.Bound))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(failure!.Error).IsTypeOf<InvalidRequestError>();
-        await Assert.That(scenario.Requests.Count).IsEqualTo(1);
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
+            ["/api/plugin", "/api/model/default"], CollectionOrdering.Matching);
     }
 
     [Test]
-    public async Task WaitForDefaultAsync_Should_Stop_When_Cancelled_Between_Attempts()
+    public async Task WaitForDefaultAsync_Should_Stop_When_Cancelled_Between_Plugin_Polls()
     {
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
-        var client = new UnavailableLanguageModels();
+        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request, WireBodyData.EmptyPluginList));
 
-        var wait = new DefaultModelWait(client, time).WaitAsync(null, null, caller.Token);
+        var wait = new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, caller.Token);
         using var decided = new CancellationTokenSource();
         var created = time.WaitForTimerAsync(HangGuard.Bound, decided.Token);
         try
         {
             var first = await Task.WhenAny(wait, created).WaitAsync(HangGuard.Bound);
             await Assert.That(first).IsSameReferenceAs(created);
+            await created;
+            await Assert.That(time.ArmedIn(TimeSpan.FromMilliseconds(25))).IsEqualTo(1);
             await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound);
 
-            await Assert.That(time.ArmedIn(EveryWait[0])).IsEqualTo(0);
             var failure = await Assert.That(wait.WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
             await Assert.That(failure!.CancellationToken == caller.Token).IsTrue();
-            await Assert.That(client.Tokens).IsEquivalentTo([caller.Token], CollectionOrdering.Matching);
+            await Assert.That(time.ArmedIn(TimeSpan.FromMilliseconds(25))).IsEqualTo(0);
+            await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
+                ["/api/plugin"], CollectionOrdering.Matching);
         }
         finally
         {
             // Cleanup observes both tasks even after their owners have cancelled.
             await decided.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
             await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = await Task.WhenAny(created).WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = created.Exception;
-            _ = await Task.WhenAny(wait).WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = wait.Exception;
+            await ObserveAsync(created, wait);
         }
     }
 
@@ -189,16 +220,13 @@ public sealed class LanguageModelsClientContractTests
     }
 
     [Test]
-    public async Task WaitForDefaultAsync_Should_Pass_Request_And_Options_To_Every_Attempt()
+    public async Task WaitForDefaultAsync_Should_Pass_Request_And_Options_To_The_Poll_And_The_Read()
     {
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
-        var requests = 0;
-        using var scenario = ContractScenario.Responding(_ => ++requests == 1
-            ? Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.PluginActivationUnavailableError)
-            : Answer(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel)));
+        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request, WireBodyData.OnePluginList));
         var response = await ConsumeWaitsAsync(time, token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(
-            ForwardedRequest(), ForwardedOptions(), token), [EveryWait[0]], caller);
+            ForwardedRequest(), ForwardedOptions(), token), [], caller);
         await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
         await Assert.That(scenario.Requests.Count).IsEqualTo(2);
         foreach (var request in scenario.Requests)
@@ -211,11 +239,33 @@ public sealed class LanguageModelsClientContractTests
     public async Task WaitForDefaultAsync_Should_Pass_Request_And_Options_Through_The_Public_Door()
     {
         using var caller = new CancellationTokenSource();
-        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel));
+        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request, WireBodyData.OnePluginList));
         var response = await scenario.Client.LanguageModels.WaitForDefaultAsync(
             ForwardedRequest(), ForwardedOptions(), caller.Token).WaitAsync(HangGuard.Bound);
         await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
-        await AssertLocationAsync(scenario.Requests.Single());
+        await AssertLocationAsync(scenario.Requests.Single(static request => request.RequestUri!.AbsolutePath == "/api/plugin"));
+        await AssertLocationAsync(scenario.Requests.Single(static request => request.RequestUri!.AbsolutePath == "/api/model/default"));
+    }
+
+    private static async Task AssertUnavailableWithoutWaitAsync(ManualTimeProvider time, Func<CancellationToken, Task<ModelDefaultResponse>> start, CancellationTokenSource caller)
+    {
+        var operation = start(caller.Token);
+        using var decided = new CancellationTokenSource();
+        var created = time.WaitForTimerAsync(HangGuard.Bound, decided.Token);
+        try
+        {
+            var first = await Task.WhenAny(operation, created).WaitAsync(HangGuard.Bound, caller.Token);
+            await Assert.That(first).IsSameReferenceAs(operation);
+            var failure = await Assert.That(operation.WaitAsync(HangGuard.Bound, caller.Token)).Throws<OpenCodeApiException>();
+            await Assert.That(failure!.Error).IsTypeOf<ServiceUnavailableError>();
+        }
+        finally
+        {
+            // Cleanup observes the operation and its losing timer observer after cancellation.
+            await decided.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await ObserveAsync(operation, created);
+        }
     }
 
     private static ModelDefaultRequest ForwardedRequest() => new() { Location = new LocationSelector { Directory = "/query/dir" } };
@@ -294,6 +344,13 @@ public sealed class LanguageModelsClientContractTests
     }
 
     private static HttpResponseMessage Answer(HttpStatusCode status, string body) => new(status) { Content = new StringContent(body) };
+
+    private static HttpResponseMessage AnswerWithModel(HttpRequestMessage request, string plugins) => request.RequestUri!.AbsolutePath switch
+    {
+        "/api/plugin" => Answer(HttpStatusCode.OK, plugins),
+        "/api/model/default" => Answer(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel)),
+        _ => throw new InvalidOperationException("Unexpected request path."),
+    };
 
     private sealed class UnavailableLanguageModels : LanguageModelsClient
     {
