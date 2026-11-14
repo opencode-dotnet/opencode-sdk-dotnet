@@ -195,7 +195,7 @@ public class SessionClient
     }
 
     /// <summary>
-    /// Generate text from session context. Generate transient text from the current session context without mutating session history.
+    /// Generate text from session context. Generate transient text from the current session context without mutating session history. Its tokens and cost count toward the session&apos;s totals.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>

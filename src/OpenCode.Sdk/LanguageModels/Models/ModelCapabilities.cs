@@ -15,6 +15,13 @@ public sealed record ModelCapabilities
     public required bool Tools { get; init; }
 
     /// <summary>
+    /// Gets the freeform value.
+    /// </summary>
+    [JsonPropertyName("freeform")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<ToolFreeformFormat>? Freeform { get; init; }
+
+    /// <summary>
     /// Gets the input value.
     /// </summary>
     [JsonPropertyName("input")]

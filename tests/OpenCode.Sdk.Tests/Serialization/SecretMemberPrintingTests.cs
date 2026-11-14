@@ -79,6 +79,41 @@ public sealed class SecretMemberPrintingTests
     }
 
     [Test]
+    public async Task ProviderTls_Should_Mask_The_Certificate_Key_And_Passphrase()
+    {
+        var tls = new ProviderTls { Cert = Secret + "-cert", Key = Secret + "-key", Passphrase = Secret + "-passphrase" };
+
+        var printed = tls.ToString();
+
+        await Assert.That(printed).IsEqualTo("ProviderTls { Cert = [REDACTED], Key = [REDACTED], Passphrase = [REDACTED] }");
+        await Assert.That(printed).DoesNotContain(tls.Cert);
+        await Assert.That(printed).DoesNotContain(tls.Key);
+        await Assert.That(printed).DoesNotContain(tls.Passphrase);
+    }
+
+    [Test]
+    public async Task ProviderSettings_Should_Mask_Its_Tls_Members()
+    {
+        var settings = Deserialize("Serialization.provider-settings-tls.json", OpenCodeJsonContext.Default.ProviderSettings);
+        var printed = settings.ToString();
+
+        await Assert.That(printed).IsEqualTo(
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , Tls = ProviderTls { Cert = [REDACTED], Key = [REDACTED], Passphrase = [REDACTED] }, AdditionalProperties =  }");
+        await Assert.That(printed).DoesNotContain(Secret);
+    }
+
+    [Test]
+    public async Task ConfigProviderSettings_Should_Mask_Its_Tls_Members()
+    {
+        var settings = Deserialize("Serialization.provider-settings-tls.json", OpenCodeJsonContext.Default.ConfigProviderSettings);
+        var printed = settings.ToString();
+
+        await Assert.That(printed).IsEqualTo(
+            "ConfigProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , Tls = ProviderTls { Cert = [REDACTED], Key = [REDACTED], Passphrase = [REDACTED] }, AdditionalProperties =  }");
+        await Assert.That(printed).DoesNotContain(Secret);
+    }
+
+    [Test]
     public async Task Credential_OAuth_Tokens_Should_Be_Masked()
     {
         var oauth = new CredentialOAuth { MethodId = "device", Access = Secret, Refresh = Secret + "-refresh", Expires = 1 };
@@ -203,7 +238,7 @@ public sealed class SecretMemberPrintingTests
         var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ProviderSettings)!;
 
         await Assert.That(settings.ToString()).IsEqualTo(
-            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , AdditionalProperties = [REDACTED] }");
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , Tls = , AdditionalProperties = [REDACTED] }");
     }
 
     [Test]
@@ -212,7 +247,7 @@ public sealed class SecretMemberPrintingTests
         var settings = new ProviderSettings();
 
         await Assert.That(settings.ToString()).IsEqualTo(
-            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , AdditionalProperties =  }");
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , Tls = , AdditionalProperties =  }");
     }
 
     /// <summary>Masking is the printed form only: the open members still go back on the wire.</summary>
@@ -250,7 +285,7 @@ public sealed class SecretMemberPrintingTests
         var settings = JsonSerializer.Deserialize($$"""{"bearerToken":"{{Secret}}"}""", OpenCodeJsonContext.Default.ConfigProviderSettings)!;
 
         await Assert.That(settings.ToString()).IsEqualTo(
-            "ConfigProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , AdditionalProperties = [REDACTED] }");
+            "ConfigProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , Tls = , AdditionalProperties = [REDACTED] }");
     }
 
     [Test]

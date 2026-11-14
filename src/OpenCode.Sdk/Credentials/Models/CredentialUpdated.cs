@@ -45,5 +45,5 @@ public sealed record CredentialUpdated : IEvent
     /// Gets the data value.
     /// </summary>
     [JsonPropertyName("data")]
-    public required IReadOnlyDictionary<string, JsonElement> Data { get; init; }
+    public required CredentialUpdatedData Data { get; init; }
 }

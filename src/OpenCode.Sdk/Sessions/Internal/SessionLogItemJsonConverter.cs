@@ -45,6 +45,7 @@ internal sealed class SessionLogItemJsonConverter : JsonConverter<ISessionLogIte
         ["session.skill.activated"] = UnionArm<ISessionLogItem>.Of<SessionSkillActivated>(),
         ["session.step.ended"] = UnionArm<ISessionLogItem>.Of<SessionStepEnded>(),
         ["session.step.failed"] = UnionArm<ISessionLogItem>.Of<SessionStepFailed>(),
+        ["session.step.first-token"] = UnionArm<ISessionLogItem>.Of<SessionStepFirstToken>(),
         ["session.step.started"] = UnionArm<ISessionLogItem>.Of<SessionStepStarted>(),
         ["session.step.streamed"] = UnionArm<ISessionLogItem>.Of<SessionStepStreamed>(),
         ["session.synthetic"] = UnionArm<ISessionLogItem>.Of<SessionSynthetic>(),

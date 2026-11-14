@@ -189,6 +189,7 @@
 /Credentials/Models/CredentialSwitched.cs linguist-generated
 /Credentials/Models/CredentialSwitchedData.cs linguist-generated
 /Credentials/Models/CredentialUpdated.cs linguist-generated
+/Credentials/Models/CredentialUpdatedData.cs linguist-generated
 /Credentials/Models/ICredentialValue.cs linguist-generated
 /Credentials/Models/UnknownCredentialValue.cs linguist-generated
 /Debug/DebugClient.cs linguist-generated
@@ -406,6 +407,8 @@
 /Experimental/Models/ArtifactTime.cs linguist-generated
 /Experimental/Models/ArtifactUpdated.cs linguist-generated
 /Experimental/Models/ExperimentalGenerateTextData.cs linguist-generated
+/Experimental/Models/ExperimentalMcpEvent.cs linguist-generated
+/Experimental/Models/ExperimentalMcpEventData.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1Status.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1StatusError.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1StatusIdle.cs linguist-generated
@@ -433,6 +436,7 @@
 /Experimental/Models/GenerateImageResult.cs linguist-generated
 /Experimental/Models/GeneratePredicateAnswer.cs linguist-generated
 /Experimental/Models/GeneratePredicateQuestion.cs linguist-generated
+/Experimental/Models/GeneratePredicateQuestionCriteria.cs linguist-generated
 /Experimental/Models/GenerateScoreAnswer.cs linguist-generated
 /Experimental/Models/GenerateScoreAnswerProbabilities.cs linguist-generated
 /Experimental/Models/GenerateScoreQuestion.cs linguist-generated
@@ -961,6 +965,7 @@
 /Providers/Models/ProviderSettingsHeaderTimeoutKind.cs linguist-generated
 /Providers/Models/ProviderSettingsTimeout.cs linguist-generated
 /Providers/Models/ProviderSettingsTimeoutKind.cs linguist-generated
+/Providers/Models/ProviderTls.cs linguist-generated
 /Providers/Models/ProviderTransport.cs linguist-generated
 /Providers/Models/ProviderUpdated.cs linguist-generated
 /Providers/Models/UnknownProviderCompaction.cs linguist-generated
@@ -1220,6 +1225,7 @@
 /Sessions/Internal/TokenUsageInfoJsonReader.cs linguist-generated
 /Sessions/Internal/ToolContentJsonConverter.cs linguist-generated
 /Sessions/Internal/ToolFileContentJsonReader.cs linguist-generated
+/Sessions/Internal/ToolFreeformFormatJsonConverter.cs linguist-generated
 /Sessions/Internal/ToolTextContentJsonReader.cs linguist-generated
 /Sessions/Internal/UnknownPromptFileSourceJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionEventDurableJsonConverter.cs linguist-generated
@@ -1490,6 +1496,9 @@
 /Sessions/Models/Turn/SessionStepFailed.cs linguist-generated
 /Sessions/Models/Turn/SessionStepFailedData.cs linguist-generated
 /Sessions/Models/Turn/SessionStepFailedDurable.cs linguist-generated
+/Sessions/Models/Turn/SessionStepFirstToken.cs linguist-generated
+/Sessions/Models/Turn/SessionStepFirstTokenData.cs linguist-generated
+/Sessions/Models/Turn/SessionStepFirstTokenDurable.cs linguist-generated
 /Sessions/Models/Turn/SessionStepStarted.cs linguist-generated
 /Sessions/Models/Turn/SessionStepStartedData.cs linguist-generated
 /Sessions/Models/Turn/SessionStepStartedDurable.cs linguist-generated
@@ -1530,6 +1539,7 @@
 /Sessions/Models/Turn/SessionUsageUpdated.cs linguist-generated
 /Sessions/Models/Turn/SessionUsageUpdatedData.cs linguist-generated
 /Sessions/Models/Turn/ToolFileContent.cs linguist-generated
+/Sessions/Models/Turn/ToolFreeformFormat.cs linguist-generated
 /Sessions/Models/Turn/ToolTextContent.cs linguist-generated
 /Sessions/Models/Turn/UnknownToolContent.cs linguist-generated
 /Sessions/Models/UnknownSessionEventDurable.cs linguist-generated

@@ -9,6 +9,23 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔌 Protocol changes
+
+- The SDK pins opencode `2.3.0`, where it pinned `2.2.6`.
+- **Breaking:** `CredentialUpdated.Data` changes from `IReadOnlyDictionary<string, JsonElement>` to `CredentialUpdatedData`, because opencode 2.2.7 declares the event's data as the required string members `IntegrationId` and `CredentialId`. A reader changes `IReadOnlyDictionary<string, JsonElement> data = updated.Data;` to `CredentialUpdatedData data = updated.Data;` and reads those members directly.
+- `SessionGenerateData` gains required `TokenUsageInfo Tokens` and `double Cost`, so code that constructs the record sets both alongside `Text`; the generation's usage counts toward the session's totals.
+- `GeneratePredicateQuestion.Criteria` accepts a `GeneratePredicateQuestionCriteria` with optional `True` and `False` strings describing the two outcomes.
+- `ConfigInfoExperimental.ConsoleWatches` exposes the console-watch feature flag.
+- `SessionUsageRecordedDataSource.Generate` names usage recorded by session generation.
+- `ProviderSettings.Tls` and `ConfigProviderSettings.Tls` accept `ProviderTls`, with required `Cert` and `Key` strings and optional `Passphrase`, for a provider gateway's mutual TLS. The three values are masked in the record's printed form.
+- `ToolFreeformFormat` names `Text`, `Regex` and `Lark`; `ModelCapabilities.Freeform` and `ConfigModelCapabilities.Freeform` list the formats a model supports.
+- `ConfigInfoExperimental.McpEvents` exposes the MCP-event feature flag.
+- `ConfigInfoExperimental.ShellTimeoutBackground` exposes the shell-timeout-background feature flag.
+- `SessionMessageAssistantTime.FirstToken` records when the provider streamed the first output token, in epoch milliseconds, as `double?`.
+- `ExperimentalMcpEvent`, with `ExperimentalMcpEventData`, joins `IEvent`, and `EventType.ExperimentalMcpEvent` filters the event subscription to `experimental.mcp.event`.
+- `SessionStepFirstToken`, with `SessionStepFirstTokenData` and `SessionStepFirstTokenDurable`, joins `IEvent`, `ISessionEventDurable` and `ISessionLogItem`; `EventType.SessionStepFirstToken` filters the event subscription to `session.step.first-token`.
+- `AgentsClient.ListAgentsAsync` (`agent.list`) no longer declares `503`, because opencode 2.2.7 answers with the agents loaded so far instead of waiting for plugins.
+
 ## [1.0.1] - 2026-11-11
 
 **`1.0.1` pins opencode `2.2.6` and is built on the GA .NET 11 SDK.** It is a patch that moves the

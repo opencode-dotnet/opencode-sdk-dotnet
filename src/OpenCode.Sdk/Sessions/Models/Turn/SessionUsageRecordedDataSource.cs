@@ -36,6 +36,10 @@ public readonly struct SessionUsageRecordedDataSource : IEquatable<SessionUsageR
         /// The &apos;compaction&apos; wire spelling.
         /// </summary>
         public const string Compaction = "compaction";
+        /// <summary>
+        /// The &apos;generate&apos; wire spelling.
+        /// </summary>
+        public const string Generate = "generate";
     }
 
     /// <summary>
@@ -47,13 +51,17 @@ public readonly struct SessionUsageRecordedDataSource : IEquatable<SessionUsageR
     /// </summary>
     public static SessionUsageRecordedDataSource Compaction { get; } = new(Values.Compaction);
     /// <summary>
+    /// Gets the &apos;generate&apos; wire value.
+    /// </summary>
+    public static SessionUsageRecordedDataSource Generate { get; } = new(Values.Generate);
+    /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
     public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.Title or Values.Compaction;
+    public bool IsKnown => _value is Values.Title or Values.Compaction or Values.Generate;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

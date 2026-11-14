@@ -122,8 +122,8 @@
       "summary": "A live-only text fragment.",
       "reason": "Retain the declared fragment role without the implementation-only batching policy.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:408", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
-        { "location": "packages/schema/src/session-event.ts:415", "excerpt": "      delta: Schema.String," }
+        { "location": "packages/schema/src/session-event.ts:419", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
+        { "location": "packages/schema/src/session-event.ts:426", "excerpt": "      delta: Schema.String," }
       ]
     },
     {
@@ -132,8 +132,8 @@
       "summary": "The complete text of the part at the replayable full-value boundary.",
       "reason": "Retain the declared full-value boundary without prescribing replacement of accumulated deltas.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:408", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
-        { "location": "packages/schema/src/session-event.ts:427", "excerpt": "      text: Schema.String," }
+        { "location": "packages/schema/src/session-event.ts:419", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
+        { "location": "packages/schema/src/session-event.ts:438", "excerpt": "      text: Schema.String," }
       ]
     },
     {
@@ -297,7 +297,7 @@
       "summary": "A non-negative ordinal for this text part.",
       "reason": "Retain the declared non-negative ordinal without inferring zero-based indexing or separate reasoning numbering.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:410", "excerpt": "    type: \"session.text.delta\"," },
+        { "location": "packages/schema/src/session-event.ts:421", "excerpt": "    type: \"session.text.delta\"," },
         { "location": "packages/schema/src/session-event.ts:414", "excerpt": "      ordinal: NonNegativeInt," },
         { "location": "packages/schema/src/schema.ts:4", "excerpt": "export const NonNegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))" }
       ]
@@ -342,7 +342,7 @@
       "reason": "Builders kept only deltas and lost text across reconnects; upstream declares stream fragments live-only.",
       "sources": [
         {
-          "location": "packages/schema/src/session-event.ts:408",
+          "location": "packages/schema/src/session-event.ts:419",
           "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary."
         },
         {
@@ -354,7 +354,7 @@
           "excerpt": "      ordinal: NonNegativeInt,"
         },
         {
-          "location": "packages/schema/src/session-event.ts:415",
+          "location": "packages/schema/src/session-event.ts:426",
           "excerpt": "      delta: Schema.String,"
         }
       ]
@@ -367,15 +367,15 @@
       "reason": "Upstream declares Text.Ended the replayable full-value boundary.",
       "sources": [
         {
-          "location": "packages/schema/src/session-event.ts:408",
+          "location": "packages/schema/src/session-event.ts:419",
           "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary."
         },
         {
-          "location": "packages/schema/src/session-event.ts:420",
+          "location": "packages/schema/src/session-event.ts:431",
           "excerpt": "  export const Ended = Event.durable({"
         },
         {
-          "location": "packages/schema/src/session-event.ts:427",
+          "location": "packages/schema/src/session-event.ts:438",
           "excerpt": "      text: Schema.String,"
         }
       ]
@@ -392,7 +392,7 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:79",
+          "location": "packages/ai/src/schema/options.ts:88",
           "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
@@ -409,7 +409,7 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:79",
+          "location": "packages/ai/src/schema/options.ts:88",
           "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
@@ -426,15 +426,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:81",
+          "location": "packages/ai/src/schema/options.ts:90",
           "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/core/src/provider.ts:230",
+          "location": "packages/core/src/provider.ts:242",
           "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/core/src/provider.ts:231",
+          "location": "packages/core/src/provider.ts:243",
           "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
@@ -451,15 +451,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:81",
+          "location": "packages/ai/src/schema/options.ts:90",
           "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/core/src/provider.ts:230",
+          "location": "packages/core/src/provider.ts:242",
           "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/core/src/provider.ts:231",
+          "location": "packages/core/src/provider.ts:243",
           "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
@@ -476,15 +476,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:83",
+          "location": "packages/ai/src/schema/options.ts:92",
           "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/core/src/provider.ts:234",
+          "location": "packages/core/src/provider.ts:246",
           "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/core/src/provider.ts:238",
+          "location": "packages/core/src/provider.ts:250",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -501,15 +501,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:83",
+          "location": "packages/ai/src/schema/options.ts:92",
           "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/core/src/provider.ts:234",
+          "location": "packages/core/src/provider.ts:246",
           "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/core/src/provider.ts:238",
+          "location": "packages/core/src/provider.ts:250",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -526,7 +526,7 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:79",
+          "location": "packages/ai/src/schema/options.ts:88",
           "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
@@ -543,7 +543,7 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:79",
+          "location": "packages/ai/src/schema/options.ts:88",
           "excerpt": "  /** The whole request, from send until the response completes. Unbounded when unset. */"
         }
       ]
@@ -560,15 +560,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:81",
+          "location": "packages/ai/src/schema/options.ts:90",
           "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/core/src/provider.ts:230",
+          "location": "packages/core/src/provider.ts:242",
           "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/core/src/provider.ts:231",
+          "location": "packages/core/src/provider.ts:243",
           "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
@@ -585,15 +585,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:81",
+          "location": "packages/ai/src/schema/options.ts:90",
           "excerpt": "  /** Until response headers arrive. */"
         },
         {
-          "location": "packages/core/src/provider.ts:230",
+          "location": "packages/core/src/provider.ts:242",
           "excerpt": "/** Applied to `headerTimeout` when provider settings leave it unset or invalid. */"
         },
         {
-          "location": "packages/core/src/provider.ts:231",
+          "location": "packages/core/src/provider.ts:243",
           "excerpt": "export const DEFAULT_TIMEOUT_MS = 300_000"
         }
       ]
@@ -610,15 +610,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:83",
+          "location": "packages/ai/src/schema/options.ts:92",
           "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/core/src/provider.ts:234",
+          "location": "packages/core/src/provider.ts:246",
           "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/core/src/provider.ts:238",
+          "location": "packages/core/src/provider.ts:250",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -635,15 +635,15 @@
           "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
         },
         {
-          "location": "packages/ai/src/schema/options.ts:83",
+          "location": "packages/ai/src/schema/options.ts:92",
           "excerpt": "  /** Between streamed response chunks once headers have arrived. */"
         },
         {
-          "location": "packages/core/src/provider.ts:234",
+          "location": "packages/core/src/provider.ts:246",
           "excerpt": " * Applied to `chunkTimeout` when provider settings leave it unset or invalid. Some providers, such as DeepSeek, have"
         },
         {
-          "location": "packages/core/src/provider.ts:238",
+          "location": "packages/core/src/provider.ts:250",
           "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
         }
       ]
@@ -813,7 +813,7 @@
       "summary": "Idle time in milliseconds since the Unix epoch.",
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:812", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
+        { "location": "packages/protocol/src/groups/session.ts:819", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
         { "location": "packages/schema/src/schema.ts:36", "excerpt": "export const DateTimeUtcFromMillis = Schema.Finite.pipe(" },
         { "location": "packages/schema/src/schema.ts:39", "excerpt": "encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value))," }
       ]
@@ -1277,7 +1277,7 @@
     {
       "type": "ConfigWarming",
       "member": "Interval",
-      "summary": "Idle time between keep-alive requests, as a duration string (default “4 minutes”), or `auto` for 90% of the model's `cache.ttl`; models without one are skipped.",
+      "summary": "Idle time between keep-alive requests, as a duration string, or `auto` (the default) for 90% of the model's `cache.ttl`, or 4 minutes when it has none.",
       "remarks": null,
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
@@ -1287,7 +1287,7 @@
         },
         {
           "location": "packages/schema/src/config/warming.ts:14",
-          "excerpt": "        'Idle time between keep-alive requests (default: \"4 minutes\"). \"auto\" uses 90% of the model\\'s cache.ttl and skips models without one.',"
+          "excerpt": "        'Idle time between keep-alive requests (default: \"auto\"). \"auto\" uses 90% of the model\\'s cache.ttl, or 4 minutes when it has none.',"
         }
       ]
     },
@@ -3516,6 +3516,24 @@
       "reason": "Upstream's recorder has no field for it, but a request-header map carries whatever the user configured, an Authorization or API-key header included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
     },
     {
+      "model": "ProviderTls",
+      "property": "cert",
+      "redact": true,
+      "reason": "Upstream declares a PEM client certificate (packages/schema/src/provider.ts:84), but the unchecked string receives a file's whole text through config substitution (packages/core/src/config/variable.ts:47-76), so a PEM bundle that also holds the private key would print it; masked defensively, as the headers rows mask whatever the user configured."
+    },
+    {
+      "model": "ProviderTls",
+      "property": "key",
+      "redact": true,
+      "reason": "Upstream's mutual-TLS client certificate carries its PEM private key here (packages/schema/src/provider.ts:82-85); config substitution puts a {file:} or {env:} reference's text into the value (packages/core/src/config/variable.ts:27-31,47-76); the secretLookingNames row for 'key' clears every other model's key, so this one is decided here."
+    },
+    {
+      "model": "ProviderTls",
+      "property": "passphrase",
+      "redact": true,
+      "reason": "Upstream declares the passphrase for the encrypted private key (packages/schema/src/provider.ts:86); the name carries no secret-marker word from upstream's ENV_SECRET_NAMES (packages/http-recorder/src/redaction/secrets.ts:13), so the name wall never stops it."
+    },
+    {
       "model": "PtyCreateRequest",
       "property": "env",
       "redact": true,
@@ -3570,8 +3588,12 @@
       "reason": "The identifier of a stored credential, never the credential itself."
     },
     {
+      "property": "firstToken",
+      "reason": "When the provider streamed an assistant message's first output token, a millisecond timestamp (packages/schema/src/session-message.ts:242-243), never a credential."
+    },
+    {
       "property": "key",
-      "reason": "A form field's, form condition's, or instruction entry's identifier; the two keys that are credentials (IntegrationConnectKeyRequest, CredentialKey) have their own redactedMembers rows."
+      "reason": "A form field's, form condition's, or instruction entry's identifier; the three keys that are credentials (IntegrationConnectKeyRequest, CredentialKey, ProviderTls) have their own redactedMembers rows."
     },
     {
       "property": "maxTokensField",

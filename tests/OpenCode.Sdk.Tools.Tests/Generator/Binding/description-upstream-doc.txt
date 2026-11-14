@@ -3,14 +3,11 @@ SessionMessageAssistant
 SessionMessageAssistant.Content
 SessionTextDeltaData.Delta
 SessionTextEndedData.Text
-SessionPromptRequest.Id
 SessionPromptRequest.Skills
 SessionPromptRequest.Delivery
 SessionExecutionFailed
 SessionExecutionInterrupted
-SessionCreateRequest.Id
 SessionTextDeltaData.Ordinal
-SessionCreateRequest.Model
 SessionTextDelta
 SessionTextEnded
 SessionViewRequest.Idle
@@ -24,6 +21,8 @@ SessionMessageShellTime.Created
 SessionMessageShellTime.Completed
 PermissionSavedInfoTime.Created
 PermissionSavedInfoTime.Updated
+OpenCodeClient.Agents
+AgentsClient
 OpenCodeClient.Credentials
 CredentialsClient
 OpenCodeClient.FileSystem

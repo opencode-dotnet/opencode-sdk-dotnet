@@ -44,6 +44,7 @@ internal sealed class SessionEventDurableJsonConverter : JsonConverter<ISessionE
         ["session.skill.activated"] = UnionArm<ISessionEventDurable>.Of<SessionSkillActivated>(),
         ["session.step.ended"] = UnionArm<ISessionEventDurable>.Of<SessionStepEnded>(),
         ["session.step.failed"] = UnionArm<ISessionEventDurable>.Of<SessionStepFailed>(),
+        ["session.step.first-token"] = UnionArm<ISessionEventDurable>.Of<SessionStepFirstToken>(),
         ["session.step.started"] = UnionArm<ISessionEventDurable>.Of<SessionStepStarted>(),
         ["session.step.streamed"] = UnionArm<ISessionEventDurable>.Of<SessionStepStreamed>(),
         ["session.synthetic"] = UnionArm<ISessionEventDurable>.Of<SessionSynthetic>(),
