@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -202,11 +202,13 @@ select this as the session's current terminal; renaming alone does not change th
 `PersistentPtyInfo.UserTitle` holds the user's override, or null to let the shell's title show again;
 `Title` is the effective terminal title. Renaming publishes `PersistentPtyUpdated` on the event bus.
 
-A terminal service that predates renaming answers **501**, `PtyFeatureUnsupportedError`.
-If the same request includes `Size`, that resize has already been applied: the handler resizes
-before it renames.
+The protocol document still declares **501**, `PtyFeatureUnsupportedError`, but the pinned server
+no longer answers it: a failed rename answers **404**, `PtyNotFoundError`, or **503**,
+`ServiceUnavailableError` with service `opencode-pty`.
+If a failed rename's request includes `Size`, that resize has already been applied: the handler
+resizes before it renames.
 By default it is `OpenCodeApiException.Error`; with `OpenCodeRequestOptions.NoThrow`, it is
-`response.Error` on the returned envelope (`Status == 501`).
+`response.Error` on the returned envelope.
 
 Then attach and drive it:
 

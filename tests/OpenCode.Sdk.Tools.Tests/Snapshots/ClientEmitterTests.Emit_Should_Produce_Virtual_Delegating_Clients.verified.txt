@@ -70,6 +70,10 @@ public class OpenCodeClient : IDisposable
     /// </summary>
     public virtual WidgetsClient Widgets => _widgets ?? throw MockSeam.CreateError("OpenCodeClient", "Widgets");
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("OpenCodeClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Check example ping. Reports the example service state.
@@ -128,6 +132,10 @@ public class WidgetClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("WidgetClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
     private string WidgetId => _widgetId ?? throw MockSeam.CreateError("WidgetClient", "WidgetId");
 
     /// <summary>
@@ -231,6 +239,10 @@ public class WidgetsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("WidgetsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// List the widget overview

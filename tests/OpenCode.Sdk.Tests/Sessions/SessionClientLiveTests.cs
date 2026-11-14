@@ -141,9 +141,13 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
         {
             var before = await session.GetAsync(cancellationToken: cancellationToken);
             await Assert.That(before.Session.Agent).IsEqualTo(SimulationConfigSeed.PermissionProbeAgentId);
-            // Unlike agent.list, integration.list joins this location's plugin activation.
-            _ = await client.Integrations.ListIntegrationsAsync(cancellationToken: cancellationToken);
-            var agents = await client.Agents.ListAgentsAsync(cancellationToken: cancellationToken);
+            // agent.list answers with the agents loaded so far; wait for the seeded one.
+            var agents = await LiveReadiness.WaitAsync(
+                token => client.Agents.ListAgentsAsync(cancellationToken: token),
+                result => result.Agents.Any(agent => agent.Id == SimulationConfigSeed.ReadAskAgentId),
+                "seeded agent " + SimulationConfigSeed.ReadAskAgentId,
+                result => string.Join(", ", result.Agents.Select(agent => agent.Id)),
+                cancellationToken);
             await Assert.That(agents.Agents.Select(agent => agent.Id)).Contains(SimulationConfigSeed.ReadAskAgentId);
 
             _ = await session.SwitchAgentAsync(new SessionSwitchAgentRequest

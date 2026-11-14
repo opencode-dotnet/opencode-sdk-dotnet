@@ -9,8 +9,27 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔌 Protocol changes
+
+- The SDK pins opencode `2.3.0`, where it pinned `2.2.6`.
+- **Breaking:** `CredentialUpdated.Data` changes from `IReadOnlyDictionary<string, JsonElement>` to `CredentialUpdatedData`, because opencode 2.2.7 declares the event's data as the required string members `IntegrationId` and `CredentialId`. A reader changes `IReadOnlyDictionary<string, JsonElement> data = updated.Data;` to `CredentialUpdatedData data = updated.Data;` and reads those members directly.
+- `SessionGenerateData` gains required `TokenUsageInfo Tokens` and `double Cost`, so code that constructs the record sets both alongside `Text`; the generation's usage counts toward the session's totals.
+- `GeneratePredicateQuestion.Criteria` accepts a `GeneratePredicateQuestionCriteria` with optional `True` and `False` strings describing the two outcomes.
+- `ConfigInfoExperimental.ConsoleWatches` exposes the console-watch feature flag.
+- `SessionUsageRecordedDataSource.Generate` names usage recorded by session generation.
+- `ProviderSettings.Tls` and `ConfigProviderSettings.Tls` accept `ProviderTls`, with required `Cert` and `Key` strings and optional `Passphrase`, for a provider gateway's mutual TLS. The three values are masked in the record's printed form.
+- `ToolFreeformFormat` names `Text`, `Regex` and `Lark`; `ModelCapabilities.Freeform` and `ConfigModelCapabilities.Freeform` list the formats a model supports.
+- `ConfigInfoExperimental.McpEvents` exposes the MCP-event feature flag.
+- `ConfigInfoExperimental.ShellTimeoutBackground` exposes the shell-timeout-background feature flag.
+- `SessionMessageAssistantTime.FirstToken` records when the provider streamed the first output token, in epoch milliseconds, as `double?`.
+- `ExperimentalMcpEvent`, with `ExperimentalMcpEventData`, joins `IEvent`, and `EventType.ExperimentalMcpEvent` filters the event subscription to `experimental.mcp.event`.
+- `SessionStepFirstToken`, with `SessionStepFirstTokenData` and `SessionStepFirstTokenDurable`, joins `IEvent`, `ISessionEventDurable` and `ISessionLogItem`; `EventType.SessionStepFirstToken` filters the event subscription to `session.step.first-token`.
+- `AgentsClient.ListAgentsAsync` (`agent.list`) no longer declares `503`, because opencode 2.2.7 answers with the agents loaded so far instead of waiting for plugins.
+
 ### 🔧 Changes
 
+- `LanguageModels.WaitForDefaultAsync` now waits the way opencode's CLI does at 2.3.0: it polls the location's plugin list every 25 ms for up to five seconds, until non-empty, then reads the default model once. A `ServiceUnavailableError` from that read now surfaces where it was retried up to twelve times. The call is unchanged: `await client.LanguageModels.WaitForDefaultAsync();`.
+- `OpenCodeServer.StopAsync` no longer asks the daemon to shut its persistent terminals down before it ends the process, and makes no request to the daemon at all, as the CLI's `service stop` does since opencode 2.3.0; ending the daemon still ends its terminals.
 - The status sentence of `OpenCodeApiException.Message` now includes the server's own message, chosen as opencode's own client chooses it, for example `The opencode API returned status 503 ('ServiceUnavailableError'): opencode-pty request timed out.`. `Error`, `Status` and `RawBody` are unchanged; code that matched the old message text exactly now sees the longer text whenever the server sends a non-empty message.
 
 ## [1.0.1] - 2026-11-11

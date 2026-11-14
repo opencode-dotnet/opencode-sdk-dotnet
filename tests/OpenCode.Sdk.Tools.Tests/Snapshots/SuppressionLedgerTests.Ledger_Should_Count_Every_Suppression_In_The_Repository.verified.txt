@@ -222,7 +222,7 @@ slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Ensure/Se
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs SW003 x3
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceMigration.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ServiceFileSystem.cs SW003
-slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceStopper.cs SW003 x2
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceStopper.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceTerminator.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs SW003 x3
@@ -231,6 +231,7 @@ slopwatch-suppress src/OpenCode.Sdk/Hosting/Launcher/Internal/PosixServerChild.c
 slopwatch-suppress src/OpenCode.Sdk/Internal/Terminal/TerminalSendQueue.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/LoopbackConnect.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/LanguageModels/Internal/DefaultModelWait.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.Performance.Tests/Macro/RetainedMemory.cs SW002
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW004

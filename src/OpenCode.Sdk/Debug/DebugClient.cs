@@ -23,6 +23,10 @@ public class DebugClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("DebugClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Evict a loaded location. Dispose the requested location&apos;s cached services so its next use boots them fresh.

@@ -16,7 +16,7 @@ public sealed record ConfigWarming
     public string? Prompt { get; init; }
 
     /// <summary>
-    /// Idle time between keep-alive requests, as a duration string (default “4 minutes”), or <c>auto</c> for 90% of the model&apos;s <c>cache.ttl</c>; models without one are skipped.
+    /// Idle time between keep-alive requests, as a duration string, or <c>auto</c> (the default) for 90% of the model&apos;s <c>cache.ttl</c>, or 4 minutes when it has none.
     /// </summary>
     [JsonPropertyName("interval")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

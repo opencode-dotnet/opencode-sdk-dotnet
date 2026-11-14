@@ -93,7 +93,7 @@ Three limits worth internalising:
   They take `requestOptions`, but their API errors always throw. A stream has no response envelope
   to carry an error. See [streaming](streaming.md#-streams-always-throw) and [pagination](pagination.md).
 - **`LanguageModels.WaitForDefaultAsync` refuses `NoThrow` at the call,** because it decides on each
-  unavailable answer whether to ask again, so an error response would end it with nothing to read.
+  plugin-list answer whether to keep waiting.
 
 `OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.
@@ -363,7 +363,7 @@ extensions .COM, .EXE, .BAT, .CMD. Pass the executable's full path in
 OpenCodeServerOptions.Command, or install the CLI package @opencode/cli.
 ```
 
-Those two suggestions are the two real fixes: install the pinned CLI (`npm install -g @opencode/cli@2.2.6`), or
+Those two suggestions are the two real fixes: install the pinned CLI (`npm install -g @opencode/cli@2.3.0`), or
 stop depending on the search and name the file — `Command = ["/opt/opencode/bin/opencode", "serve"]`.
 The [resolution rules](connection-modes.md#how-the-command-is-resolved) say exactly what was tried.
 

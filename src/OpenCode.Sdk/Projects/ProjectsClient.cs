@@ -25,6 +25,10 @@ public class ProjectsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ProjectsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// List projects. List known projects. Archived projects are excluded unless archived=true.

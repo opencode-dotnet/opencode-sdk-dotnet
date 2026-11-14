@@ -532,6 +532,7 @@ public sealed class OperationPlanBinderTests
     [Test]
     [Arguments("Dispose")]
     [Arguments("Pipeline")]
+    [Arguments("PipelineOrNull")]
     [Arguments("EmptyWidgetCreateRequest")]
     [Arguments("OpenCodeClient")]
     [Arguments("handle")]

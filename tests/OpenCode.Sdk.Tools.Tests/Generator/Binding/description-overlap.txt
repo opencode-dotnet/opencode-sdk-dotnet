@@ -1,2 +1,3 @@
 # Type[.Member] - reason for retaining a row whose target has an upstream projected description.
+SessionCreateRequest.ParentId - the curated location rule replaces upstream's linked-child reporting description
 EventsClient.SubscribeAsync - the SDK's reconnect contract is appended as remarks; upstream's summary stays

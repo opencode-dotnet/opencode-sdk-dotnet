@@ -28,6 +28,7 @@ internal static class ReservedNamePolicy
 
     public const string ContentParameter = "content";
     public const string PipelineProperty = "Pipeline";
+    public const string PipelineOrNullProperty = "PipelineOrNull";
     public const string PipelineField = "_pipeline";
     public const string DisposeMethod = "Dispose";
     public const string EmptyBodyPrefix = "Empty";

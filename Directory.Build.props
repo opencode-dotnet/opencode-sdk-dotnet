@@ -15,7 +15,7 @@
     <!-- The single source of the package version; nothing else declares Version or PackageVersion.
          Nightlies add their suffix at pack time (the pack command's version-suffix option). The release
          lane stamps its exact version input with -p:Version, and refuses one whose core differs from this. -->
-    <VersionPrefix>1.0.2</VersionPrefix>
+    <VersionPrefix>1.1.0</VersionPrefix>
     <Authors>Deniz İrgin</Authors>
     <Company>Deniz İrgin</Company>
     <Owners>Deniz İrgin</Owners>

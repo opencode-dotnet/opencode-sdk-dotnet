@@ -17,6 +17,6 @@ internal sealed record ServiceProbeResult(ServiceState? State, string? Version, 
     /// <summary>Gets a value indicating whether the answer identified this registration's daemon.</summary>
     public bool IsService => State is not null;
 
-    /// <summary>Gets a value indicating whether the daemon answered ready in this protocol: the one state Discover returns and Stop asks to shut its terminals down.</summary>
+    /// <summary>Gets a value indicating whether the daemon answered ready in this protocol: the one state Discover returns.</summary>
     public bool IsReadyAndCompatible => State == ServiceState.Ready && Compatible;
 }

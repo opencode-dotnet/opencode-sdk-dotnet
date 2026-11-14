@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
@@ -6,10 +7,11 @@ using Testably.Abstractions;
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;
 
 /// <summary>
-/// The stop door's escalation end to end: a registered process that ignores the first rung — the
-/// isolated fixture's <c>ignore-sigterm</c> mode, registered under a closed endpoint so no daemon
-/// is asked anything — is ended by the second rung and its registration removed. On Unix the
-/// terminate rung's bound elapses first; on Windows the first rung is already a hard kill.
+/// The stop door sends no request to the registered endpoint and removes the registration once
+/// the process exits. Its escalation runs end to end: a process that ignores the first rung — the
+/// isolated fixture's <c>ignore-sigterm</c> mode — is ended by the second rung and its registration
+/// removed. On Unix the terminate rung's bound elapses first; on Windows the first rung is
+/// already a hard kill.
 /// </summary>
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class OpenCodeServerStopEscalationTests
@@ -21,6 +23,23 @@ public sealed class OpenCodeServerStopEscalationTests
 
     /// <summary>The pinned terminate rung: 50 ms × 100 polls, so the kill rung starts after about five seconds.</summary>
     private static readonly TimeSpan TerminateRungFloor = TimeSpan.FromSeconds(4);
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task StopAsync_Should_Send_No_Request_To_The_Registered_Endpoint(CancellationToken cancellationToken)
+    {
+        using var root = new TestRunRoot(FileSystem);
+        await using var process = await ServiceFixtureProcess.StartAsync(FileSystem, "idle", cancellationToken);
+        await using var daemon = LoopbackHttpServer.Start(_ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.OK });
+        var registration = FileSystem.Path.Combine(root.Path, "service.json");
+        Seed(registration, ServiceRegistrationDocument.Compose("idle", "0.0.0-test", daemon.Endpoint, process.ProcessId, LingeringPassword));
+
+        await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions { RegistrationFilePath = registration }, cancellationToken);
+
+        await Assert.That(await process.ObserveExitWithinAsync(ExitBound, cancellationToken)).IsTrue();
+        await Assert.That(registration).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(daemon.RequestPaths).IsEmpty();
+    }
 
     [Test]
     [Timeout(120_000)]

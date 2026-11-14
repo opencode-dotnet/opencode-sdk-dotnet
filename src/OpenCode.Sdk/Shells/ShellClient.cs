@@ -31,6 +31,10 @@ public class ShellClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ShellClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
     private string ShellId => _shellId ?? throw MockSeam.CreateError("ShellClient", "ShellId");
 
     /// <summary>

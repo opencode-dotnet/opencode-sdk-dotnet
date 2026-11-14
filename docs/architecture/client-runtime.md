@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -60,7 +60,7 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   existing call behaves as before until the consumer opts in; retry in particular never starts
   retrying a call that did not ask for it. `OpenCodeClient(OpenCodeClientOptions)` stays the only
   public construction path, with today's transport and server ownership, so a capability arrives
-  as a new option or a new type and never as a changed constructor. The one door that asks again,
+  as a new option or a new type and never as a changed constructor. The one door that waits before it reads,
   `LanguageModels.WaitForDefaultAsync`, is described under [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
   environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`
@@ -313,10 +313,15 @@ resolves the message's network window from those carried traits.
 - A one-shot call may select per-call `NoThrow`, returning the same typed error data on its response
   spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals and
   `LanguageModels.WaitForDefaultAsync` refuse it at the call.
-- `LanguageModels.WaitForDefaultAsync` follows upstream's app boot-time catalog sync: on a
-  `ServiceUnavailableError` it asks again, up to twelve attempts, waiting one second after the first
-  and doubling to at most five seconds, then surfaces the last answer. It is the one one-shot door
-  that asks again; it is a method the consumer calls, not a pipeline policy.
+- `LanguageModels.WaitForDefaultAsync` follows the CLI's one-shot wait (`plugin-startup.ts:6-13`): it
+  lists the location's plugins until non-empty, waiting 25 ms after each empty answer for about five
+  seconds, then reads the default model once. The schedule limit is checked after each answer, not
+  a deadline that interrupts requests. A failed plugin list is ignored and ends the wait early;
+  every failure of the default read propagates, including `ServiceUnavailableError`, with no further
+  attempt. A non-empty plugin list is not a completion barrier: a catalog can still grow after the
+  method returns. On a mocking instance (the protected constructor), it skips the poll and reads
+  once. It is the one one-shot door that waits before it reads. It is a method the consumer calls,
+  not a pipeline policy.
 - Throwing API errors retain the raw response body. `NoThrow` responses retain it on the shared
   response spine, including when typed error parsing fails (ADR-0007). A response's printed form
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,
@@ -931,9 +936,7 @@ registration and throws only for refused input (`ArgumentException`), caller can
 unresolvable user home (`OpenCodeServerException`).
 
 `OpenCodeServer.StopAsync` is the CLI's `service stop`. It resolves the registration the way
-discovery does (channel rules, legacy migration, or a direct file) and reads it once; asks a ready
-and compatible daemon to shut its persistent terminals down through the generated
-`PersistentPtys.ShutdownAsync` door, ignoring a refused or failed answer the way the CLI does;
+discovery does (channel rules, legacy migration, or a direct file) and reads it once;
 removes the handoff sidecar the CLI keeps beside the registration (`<file>.pty-handoff`); then ends
 the registered process the way the pinned client's `terminate` does — `SIGTERM`, the pin's own poll
 for the process to leave (every 50 ms, up to 100 times), `SIGKILL` when it is still there, the same
@@ -1022,7 +1025,7 @@ loser's exit 0 the way upstream's does. The CLI's `reconnect` and `restart` have
 own; a caller composes them from `StopAsync` and `EnsureAsync`.
 
 Each background-service door chooses `TimeProvider.System` once at its composition root:
-Discover supplies its probe; Stop shares it across the probe, handoff and terminator; Ensure
+Discover supplies its probe; Stop shares it across the handoff and terminator; Ensure
 shares it across the election collaborators and spawned contenders. Internal collaborators require
 that provider, including the handoff ticket's request pipeline. Request deadlines, election and
 termination polls, and contender exit backoff run on it. Election deadline comparisons and spawn

@@ -63,7 +63,7 @@ public class PersistentPtyClient
     /// <returns>The 'PersistentPtyUpdateResponse' envelope.</returns>
     /// <exception cref="OpenCodeApiException">
     /// The API returned an error status (declared: 400, 401, 404, 501, 503) and NoThrow was not selected.
-    /// A 501 carries <see cref="PtyFeatureUnsupportedError"/>: the running terminal service predates renaming.
+    /// A 501 with <see cref="PtyFeatureUnsupportedError"/> is still declared, but the pinned server no longer answers it: a failed rename answers 404 or 503.
     /// </exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>

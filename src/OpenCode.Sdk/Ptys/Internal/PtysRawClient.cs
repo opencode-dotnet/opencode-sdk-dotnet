@@ -33,6 +33,10 @@ internal sealed class PtysRawClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PtysRawClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Create PTY session. Create a pseudo-terminal session for a location.

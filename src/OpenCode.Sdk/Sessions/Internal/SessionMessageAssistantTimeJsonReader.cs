@@ -14,6 +14,7 @@ internal static class SessionMessageAssistantTimeJsonReader
         public double value0;
         public double? value1;
         public double? value2;
+        public double? value3;
         public ulong present0;
     }
 
@@ -64,6 +65,11 @@ internal static class SessionMessageAssistantTimeJsonReader
             return ReadCreated(ref reader, ref state, options);
         }
 
+        if (reader.ValueTextEquals("firstToken"u8))
+        {
+            return ReadFirstToken(ref reader, ref state, options);
+        }
+
         if (reader.ValueTextEquals("streamed"u8))
         {
             return ReadStreamed(ref reader, ref state, options);
@@ -91,8 +97,9 @@ internal static class SessionMessageAssistantTimeJsonReader
         return new SessionMessageAssistantTime
         {
             Created = state.value0,
-            Streamed = state.value1,
-            Completed = state.value2
+            FirstToken = state.value1,
+            Streamed = state.value2,
+            Completed = state.value3
         };
     }
 
@@ -109,17 +116,24 @@ internal static class SessionMessageAssistantTimeJsonReader
         return true;
     }
 
-    private static bool ReadStreamed(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    private static bool ReadFirstToken(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
         AdvanceToValue(ref reader);
         state.value1 = reader.TokenType == JsonTokenType.Null ? default(double?) : reader.GetDouble();
         return true;
     }
 
-    private static bool ReadCompleted(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    private static bool ReadStreamed(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
         AdvanceToValue(ref reader);
         state.value2 = reader.TokenType == JsonTokenType.Null ? default(double?) : reader.GetDouble();
+        return true;
+    }
+
+    private static bool ReadCompleted(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
+        state.value3 = reader.TokenType == JsonTokenType.Null ? default(double?) : reader.GetDouble();
         return true;
     }
 }

@@ -16,6 +16,13 @@ public sealed record ConfigInfoExperimental
     public bool? PortableShellScanner { get; init; }
 
     /// <summary>
+    /// Gets the codemode vm value.
+    /// </summary>
+    [JsonPropertyName("codemode_vm")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CodemodeVm { get; init; }
+
+    /// <summary>
     /// Gets the all flags value.
     /// </summary>
     [JsonPropertyName("all_flags")]
@@ -58,18 +65,32 @@ public sealed record ConfigInfoExperimental
     public bool? Artifacts { get; init; }
 
     /// <summary>
+    /// Gets the shell timeout background value.
+    /// </summary>
+    [JsonPropertyName("shell_timeout_background")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ShellTimeoutBackground { get; init; }
+
+    /// <summary>
+    /// Gets the console watches value.
+    /// </summary>
+    [JsonPropertyName("console_watches")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ConsoleWatches { get; init; }
+
+    /// <summary>
+    /// Gets the MCP events value.
+    /// </summary>
+    [JsonPropertyName("mcp_events")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? McpEvents { get; init; }
+
+    /// <summary>
     /// Gets the part rows value.
     /// </summary>
     [JsonPropertyName("part_rows")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? PartRows { get; init; }
-
-    /// <summary>
-    /// Gets the codemode vm value.
-    /// </summary>
-    [JsonPropertyName("codemode_vm")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? CodemodeVm { get; init; }
 
     /// <summary>
     /// Gets the image generate value.

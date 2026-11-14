@@ -41,6 +41,10 @@ public class SessionsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("SessionsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Create session. Create a session at the requested location. A parentID creates a linked child session at its parent&apos;s location.

@@ -15,6 +15,13 @@ public sealed record SessionMessageAssistantTime
     public required double Created { get; init; }
 
     /// <summary>
+    /// Gets the first token value.
+    /// </summary>
+    [JsonPropertyName("firstToken")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? FirstToken { get; init; }
+
+    /// <summary>
     /// Time the provider response body ended, before tool settlement, in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("streamed")]

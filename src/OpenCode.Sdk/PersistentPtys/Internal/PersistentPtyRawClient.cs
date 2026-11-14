@@ -25,6 +25,10 @@ internal sealed class PersistentPtyRawClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PersistentPtyRawClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
     private string PtyId => _ptyId ?? throw MockSeam.CreateError("PersistentPtyRawClient", "PtyId");
 
     /// <summary>

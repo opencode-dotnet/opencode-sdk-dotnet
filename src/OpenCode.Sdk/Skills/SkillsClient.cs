@@ -23,6 +23,10 @@ public class SkillsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("SkillsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// List skills. Retrieve currently registered skills.

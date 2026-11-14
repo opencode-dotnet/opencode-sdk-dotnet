@@ -67,6 +67,7 @@ internal sealed class UnionReaderFixtureCatalog
         ["numeric-diff-status"] = "FileDiffInfo",
         ["numeric-status-session"] = "SessionInfo",
         ["Packaging.reader-tool-states"] = "ISessionMessageInfo",
+        ["provider-settings-tls"] = "ProviderSettings",
         ["reader-escaped-members"] = "ISessionMessageToolState",
         ["reader-event-arms"] = "IEvent",
         ["reader-message-arms"] = "ISessionMessageInfo",

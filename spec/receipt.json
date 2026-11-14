@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "releaseTag": "v2.2.6",
-  "upstreamCommit": "dc2ffcf8bf26f9e669b6aa22b95f50e12be15e06",
-  "rawDocumentSha256": "b96e18abefbce821448f0c8b0ca5b4ab3db121bc67548446ed9a967fdebfd7e2",
-  "generatedBaselineSha256": "b96e18abefbce821448f0c8b0ca5b4ab3db121bc67548446ed9a967fdebfd7e2",
+  "releaseTag": "v2.3.0",
+  "upstreamCommit": "a6b15d33daf6ab7d35569f6d711fdb630b9f04e7",
+  "rawDocumentSha256": "cbb2182b56063bf6b37f0273602546a13be62e86fe0f46b36d834a99d4f5c474",
+  "generatedBaselineSha256": "cbb2182b56063bf6b37f0273602546a13be62e86fe0f46b36d834a99d4f5c474",
   "patches": [
     {
       "manifest": "002-restore-artifact-location-style.json",
@@ -16,15 +16,13 @@
       ]
     }
   ],
-  "normalizedDocumentSha256": "2f472f7e097e7ed5fb165c83ed65f2b9a515a5c55bd3b860f5b7a6f88192c2c1",
+  "normalizedDocumentSha256": "271f092257e3f8f88964f722a43bf96ecb43178486fbfa7b7affd5b185cdfc87",
   "normalizedDocumentPath": null,
   "operationSetDigest": "8985cd36ad8de68fec00e7a5d00639a4e96905b03fdc6ef0ebfaa5fbf06fd4a9",
   "operationCount": 170,
-  "addedOperations": [
-    "experimental.job.list"
-  ],
+  "addedOperations": [],
   "removedOperations": [],
-  "componentCount": 497,
+  "componentCount": 501,
   "contentSchemaCount": 2,
   "watchedSources": [
     {
@@ -69,7 +67,7 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "0f9090cc9639864acd06e0455e823b8bb2787f6d45e2e3f3a33d41050cf4fb92",
+      "sha256": "8964bbc10be6aa4b24b742edeb779bdd94269a2a4d47595d765d098158338610",
       "anchorMatched": true
     },
     {
@@ -79,17 +77,17 @@
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
-      "sha256": "6fff2b84ac12347facbd8cbdecb11539b094929ff1d2dd93c03f79e907c153ac",
+      "sha256": "d6ea42302fa89f44c49b3895fe3765b3f105a5702b5287c4014cc1ad033bc68f",
       "anchorMatched": true
     },
     {
       "path": "packages/core/src/persistent-pty/index.ts",
-      "sha256": "d4f8a401635a11ca298062289e07b7c9ce3fc381ded731589c47253f105973d3",
+      "sha256": "c56b06f9b772976d9145c060521cf630884ba1071d5fd2c4fde8da956dea20dc",
       "anchorMatched": true
     },
     {
       "path": "packages/core/src/persistent-pty/daemon.ts",
-      "sha256": "d0905f90ab4c38f266c6ffcd5ae2edfcf9a43a83ddb1bd767584d07bfca64607",
+      "sha256": "3b6c822463340edbd5c04598a376ea9c009f85a943c0a7d3294d448bb71c4548",
       "anchorMatched": true
     },
     {
@@ -114,12 +112,12 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "bf813c4b1cb930cd374319566499875a0e9c54e182b6b090847ca60726d480df",
+      "sha256": "02ee0bec865e7320e143cd1d1feb7140d9eaf51276ff89646b47bc52c696121b",
       "anchorMatched": true
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "eaf584b7e559fa67a4a47ca0c7d717377e6c82b2c53a00573d30423c4b21623f",
+      "sha256": "a63ec9d96a37fca377eba26f01edf66f8a0c88acf561ecb67078d267b966d7c5",
       "anchorMatched": true
     },
     {
@@ -134,7 +132,7 @@
     },
     {
       "path": "packages/server/test/persistent-pty.test.ts",
-      "sha256": "d7af54c0245f7bff3485a61c9da43a6c60dd67dad952b922597cc7fdb06586da",
+      "sha256": "8fd93439ae3f968e76099b80553aa84d2af5252b9859af9b1283d0de06d2a52a",
       "anchorMatched": true
     },
     {
@@ -159,7 +157,7 @@
     },
     {
       "path": "packages/util/src/cross-spawn-spawner.ts",
-      "sha256": "30491245252b34188a4762032c48101a0a96cd85d7b0570d3035884ea26b3850",
+      "sha256": "0c0108b4597e1706d2e0770e7c472802e3628182e9f07bfb8ff87e4aabb0566e",
       "anchorMatched": true
     },
     {
@@ -179,7 +177,7 @@
     },
     {
       "path": "packages/server/src/location.ts",
-      "sha256": "8f8cac178efa51059b79a6ce1bd13da334b7cd1d0d4a4a0fbc2211e80ff484ea",
+      "sha256": "1819a54459964f5ea719c2dec24bc43779a6e854be621cd2a43ed8796e7696ae",
       "anchorMatched": true
     },
     {
@@ -188,13 +186,8 @@
       "anchorMatched": true
     },
     {
-      "path": "packages/app/src/providers/catalog/providers.ts",
-      "sha256": "6f78a5f83b3af9dd68929eb66bfdaf315db617fe0a210059b5f49d83e45796cd",
-      "anchorMatched": true
-    },
-    {
-      "path": "packages/util/src/retry.ts",
-      "sha256": "43c39eb47b626309449a863b9fc842f4cdfd09669e93f7045246093c9380f3e4",
+      "path": "packages/cli/src/services/plugin-startup.ts",
+      "sha256": "aea746a551c82a42cf72973fb5da3638a16e6f46104f3e184f4e046351556767",
       "anchorMatched": true
     },
     {
@@ -224,7 +217,7 @@
     },
     {
       "path": "packages/core/src/session/generate.ts",
-      "sha256": "9e050420f96d74284b5e142f3d6568855dab04d5fa337e91264d67ab2548caed",
+      "sha256": "b102dc1dff0321fc9ca65dab2e553ee93f7c19fa26c22d6907d99c97025cb84e",
       "anchorMatched": true
     },
     {
@@ -249,7 +242,7 @@
     },
     {
       "path": "packages/protocol/src/groups/session.ts",
-      "sha256": "90fedbe22e49e99b4798c094862bf09512590d3394f833741ed29f49e5052d13",
+      "sha256": "cd1b7063c80b7c5085c275f4f1f264ac9f04b31d3d58325690d47f68833388fa",
       "anchorMatched": true
     },
     {
@@ -374,12 +367,12 @@
     },
     {
       "path": "packages/cli/src/commands/handlers/service/stop.ts",
-      "sha256": "832723656ca2eb5d6e71acf32944888b0c739d9ba043f1a0fbe37ad0fe2607e9",
+      "sha256": "2c2c9339422e9748f6e42de68032f463057390513ad750aec389a9774d2adc62",
       "anchorMatched": true
     },
     {
       "path": "package.json",
-      "sha256": "3a0c7be0a73913e8dbc61c5dd4a8e7f12c17fc06bb09598144fbdda895e18bf0",
+      "sha256": "0b257c5382b162df7e3016d874e0ee7578ba5428416b62dbf936cbb21a9e9054",
       "anchorMatched": true
     },
     {

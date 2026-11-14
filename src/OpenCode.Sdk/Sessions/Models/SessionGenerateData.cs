@@ -13,4 +13,16 @@ public sealed record SessionGenerateData
     /// </summary>
     [JsonPropertyName("text")]
     public required string Text { get; init; }
+
+    /// <summary>
+    /// Gets the tokens value.
+    /// </summary>
+    [JsonPropertyName("tokens")]
+    public required TokenUsageInfo Tokens { get; init; }
+
+    /// <summary>
+    /// Gets the cost value.
+    /// </summary>
+    [JsonPropertyName("cost")]
+    public required double Cost { get; init; }
 }

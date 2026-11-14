@@ -25,6 +25,10 @@ public class PluginsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PluginsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Check plugin updates. Check one or all package plugins for available updates.

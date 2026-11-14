@@ -23,6 +23,10 @@ public class FileSystemClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("FileSystemClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Find files. Find recursively ranked filesystem entries relative to the requested location.

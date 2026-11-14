@@ -112,6 +112,7 @@ CredentialSwitched owner=Credentials reached-by=Events
 CredentialSwitchedData owner=Credentials reached-by=Events
 CredentialUpdateRequest owner=Credentials reached-by=Credentials
 CredentialUpdated owner=Credentials reached-by=Events
+CredentialUpdatedData owner=Credentials reached-by=Events
 DebugHeapDumpData owner=Debug reached-by=Debug
 DebugHeapDumpMemory owner=Debug reached-by=Debug
 EventLogSynced owner=Events reached-by=Experimental
@@ -129,6 +130,8 @@ ExperimentalGenerateTextData owner=Experimental reached-by=Experimental
 ExperimentalGenerateTextRequest owner=Experimental reached-by=Experimental
 ExperimentalIntegrationWellknownAddRequest owner=Experimental reached-by=Experimental
 ExperimentalMcpAddRequest owner=Experimental reached-by=Experimental
+ExperimentalMcpEvent owner=Experimental reached-by=Events
+ExperimentalMcpEventData owner=Experimental reached-by=Events
 ExperimentalMigrationV1Status owner=Experimental reached-by=Experimental
 ExperimentalMigrationV1StatusError owner=Experimental reached-by=Experimental
 ExperimentalMigrationV1StatusIdle owner=Experimental reached-by=Experimental
@@ -200,6 +203,7 @@ GenerateImageResolution owner=Experimental reached-by=Experimental
 GenerateImageResult owner=Experimental reached-by=Experimental
 GeneratePredicateAnswer owner=Experimental reached-by=Experimental
 GeneratePredicateQuestion owner=Experimental reached-by=Experimental
+GeneratePredicateQuestionCriteria owner=Experimental reached-by=Experimental
 GenerateScoreAnswer owner=Experimental reached-by=Experimental
 GenerateScoreAnswerProbabilities owner=Experimental reached-by=Experimental
 GenerateScoreQuestion owner=Experimental reached-by=Experimental
@@ -435,6 +439,7 @@ ProviderSettingsHeaderTimeout owner=Providers reached-by=Agents,Providers
 ProviderSettingsHeaderTimeoutKind owner=Providers reached-by=Agents,Providers
 ProviderSettingsTimeout owner=Providers reached-by=Agents,Providers
 ProviderSettingsTimeoutKind owner=Providers reached-by=Agents,Providers
+ProviderTls owner=Providers reached-by=Agents,Config,Providers
 ProviderTransport owner=Providers reached-by=Agents,Config,Providers
 ProviderUpdated owner=Providers reached-by=Events
 Pty owner=Ptys reached-by=Events,Ptys
@@ -488,7 +493,7 @@ ScheduleWhenInputKind owner=Experimental reached-by=Experimental
 ServerInfo owner=Server reached-by=Server
 ServerInfoCapabilities owner=Server reached-by=Server
 ServerInfoPaths owner=Server reached-by=Server
-ServiceUnavailableError owner=Common reached-by=Agents,Experimental,LanguageModels,Location,PersistentPtys,Plugins,Providers,Sessions,Vcs,Websearch
+ServiceUnavailableError owner=Common reached-by=Experimental,LanguageModels,Location,PersistentPtys,Plugins,Providers,Sessions,Vcs,Websearch
 SessionActive owner=Sessions reached-by=Sessions
 SessionAgentSelected owner=Sessions reached-by=Events,Experimental
 SessionAgentSelectedData owner=Sessions reached-by=Events,Experimental
@@ -710,6 +715,9 @@ SessionStepEndedDurable owner=Sessions reached-by=Events,Experimental
 SessionStepFailed owner=Sessions reached-by=Events,Experimental
 SessionStepFailedData owner=Sessions reached-by=Events,Experimental
 SessionStepFailedDurable owner=Sessions reached-by=Events,Experimental
+SessionStepFirstToken owner=Sessions reached-by=Events,Experimental
+SessionStepFirstTokenData owner=Sessions reached-by=Events,Experimental
+SessionStepFirstTokenDurable owner=Sessions reached-by=Events,Experimental
 SessionStepStarted owner=Sessions reached-by=Events,Experimental
 SessionStepStartedData owner=Sessions reached-by=Events,Experimental
 SessionStepStartedDurable owner=Sessions reached-by=Events,Experimental
@@ -787,6 +795,7 @@ StreamFailureCauseInterrupt owner=Common reached-by=Events,Experimental
 TokenUsageInfo owner=Sessions reached-by=Events,Experimental,Sessions
 TokenUsageInfoCache owner=Sessions reached-by=Events,Experimental,Sessions
 ToolFileContent owner=Sessions reached-by=Events,Experimental,Sessions
+ToolFreeformFormat owner=Sessions reached-by=Config,LanguageModels
 ToolTextContent owner=Sessions reached-by=Events,Experimental,Sessions
 TuiCommandExecute owner=Events reached-by=Events
 TuiCommandExecuteData owner=Events reached-by=Events

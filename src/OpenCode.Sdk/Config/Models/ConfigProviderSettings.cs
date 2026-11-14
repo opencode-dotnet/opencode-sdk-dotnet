@@ -60,6 +60,13 @@ public sealed record ConfigProviderSettings
     public ProviderEncoding? Encoding { get; init; }
 
     /// <summary>
+    /// Gets the tls value.
+    /// </summary>
+    [JsonPropertyName("tls")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderTls? Tls { get; init; }
+
+    /// <summary>
     /// Gets the members the pinned document leaves open, keyed by wire name; empty when the body carried none.
     /// </summary>
     [JsonIgnore]
@@ -83,5 +90,5 @@ public sealed record ConfigProviderSettings
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ConfigProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Cache", Cache), ("Transport", Transport), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Cache", Cache), ("Transport", Transport), ("Encoding", Encoding), ("Tls", Tls), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

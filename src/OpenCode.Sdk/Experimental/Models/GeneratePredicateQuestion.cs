@@ -26,4 +26,11 @@ public sealed record GeneratePredicateQuestion : IGenerateDecisionQuestion
     /// </summary>
     [JsonPropertyName("instructions")]
     public required string Instructions { get; init; }
+
+    /// <summary>
+    /// Gets the criteria value.
+    /// </summary>
+    [JsonPropertyName("criteria")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GeneratePredicateQuestionCriteria? Criteria { get; init; }
 }

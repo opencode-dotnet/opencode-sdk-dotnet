@@ -35,6 +35,10 @@ public class SessionClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("SessionClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
     private string SessionId => _sessionId ?? throw MockSeam.CreateError("SessionClient", "SessionId");
 
     /// <summary>
@@ -195,7 +199,7 @@ public class SessionClient
     }
 
     /// <summary>
-    /// Generate text from session context. Generate transient text from the current session context without mutating session history.
+    /// Generate text from session context. Generate transient text from the current session context without mutating session history. Its tokens and cost count toward the session&apos;s totals.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>

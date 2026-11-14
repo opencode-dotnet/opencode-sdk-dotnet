@@ -46,6 +46,7 @@ internal static class ClientEmitter
         }
 
         members.Add(EmitGuardedAccessor(client, ReservedNamePolicy.PipelineProperty, "Pipeline", ReservedNamePolicy.PipelineField));
+        members.Add(EmitPipelineOrNullAccessor());
         if (client.HandleParameter is not null)
         {
             members.Add(EmitGuardedAccessor(
@@ -360,6 +361,15 @@ internal static class ClientEmitter
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
         return declaration;
     }
+
+    private static PropertyDeclarationSyntax EmitPipelineOrNullAccessor() =>
+        SyntaxFactory.PropertyDeclaration(
+                SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("Pipeline")), ReservedNamePolicy.PipelineOrNullProperty)
+            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.InternalKeyword)))
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineField)))
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
+                "Gets the pipeline of a client the SDK built, or null on a mocking instance."));
 
     private static BinaryExpressionSyntax GuardedRead(ClientPlan client, string fieldName, string memberName) =>
         SyntaxFactory.BinaryExpression(

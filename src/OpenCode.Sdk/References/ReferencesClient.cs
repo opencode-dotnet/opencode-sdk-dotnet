@@ -23,6 +23,10 @@ public class ReferencesClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ReferencesClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// List references. List references available in the requested location.

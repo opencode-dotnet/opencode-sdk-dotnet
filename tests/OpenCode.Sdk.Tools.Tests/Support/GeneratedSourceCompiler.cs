@@ -39,8 +39,8 @@ internal static class GeneratedSourceCompiler
     /// so a renamed or dropped twin fails that assertion loudly instead of silently vanishing
     /// from this probe's coverage. A synthetic emitter fixture is free to omit a twin, in which
     /// case its consumers are skipped here rather than failing to compile. The background-service
-    /// info probe has its own decoder and depends on no generated model; the stop door's
-    /// persistent-terminal shutdown rides the generated <c>persistentPty.shutdown</c> door, so its
+    /// info probe has its own decoder and depends on no generated model; the handoff's prepare
+    /// fallback shutdown rides the generated <c>persistentPty.shutdown</c> door, so its
     /// shipped implementation and <c>OpenCodeServer</c>, which composes it, ride along with the
     /// persistent family's raw twin: all three of its partial files, because a class compiles only
     /// whole. The handoff sidecar requests its ticket raw through the
@@ -51,7 +51,7 @@ internal static class GeneratedSourceCompiler
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
-        ("Hosting/BackgroundService/Internal/Stop/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/BackgroundService/Internal/Handoff/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/Launcher/OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),

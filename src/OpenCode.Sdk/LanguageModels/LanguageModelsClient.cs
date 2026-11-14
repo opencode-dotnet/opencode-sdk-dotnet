@@ -23,6 +23,10 @@ public class LanguageModelsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("LanguageModelsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Get default model. Retrieve the model used when a session has no explicit model selection.
