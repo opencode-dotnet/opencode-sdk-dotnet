@@ -1,0 +1,1 @@
+{"id":"evt_4","created":4,"type":"session.execution.interrupted","durable":{"aggregateID":"ses_9","seq":4,"version":1},"data":{"sessionID":"ses_9","reason":"watchdog"}}

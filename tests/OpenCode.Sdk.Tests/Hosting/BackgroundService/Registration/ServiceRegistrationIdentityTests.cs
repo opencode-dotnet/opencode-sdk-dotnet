@@ -1,5 +1,6 @@
 using System.Text;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Harness;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 
@@ -11,7 +12,7 @@ public sealed class ServiceRegistrationIdentityTests
     [Test]
     public async Task Of_Should_Take_The_Four_Registration_Fields_And_Ignore_The_Password()
     {
-        var withPassword = Read(ServiceRegistrationData.PasswordedTwin);
+        var withPassword = Read(new FixtureLoader().LoadJson("BackgroundService.registration-passworded-twin.json"));
         var without = Read(ServiceRegistrationData.Passwordless);
 
         var identity = ServiceRegistrationIdentity.Of(withPassword);
@@ -22,10 +23,11 @@ public sealed class ServiceRegistrationIdentityTests
 
     [Test]
     [Arguments(ServiceRegistrationData.Minimal)]
-    [Arguments(ServiceRegistrationData.DevPrerelease)]
+    [Arguments("BackgroundService.registration-dev-prerelease.json")]
     [Arguments(ServiceRegistrationData.DuplicatePidResolved)]
     public async Task Identity_Should_Differ_When_A_Registration_Field_Differs(string other)
     {
+        other = other == "BackgroundService.registration-dev-prerelease.json" ? new FixtureLoader().LoadJson(other) : other;
         var identity = ServiceRegistrationIdentity.Of(Read(ServiceRegistrationData.Passwordless));
 
         await Assert.That(identity).IsNotEqualTo(ServiceRegistrationIdentity.Of(Read(other)));

@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Events.Support;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 
@@ -16,6 +17,8 @@ namespace OpenCode.Sdk.Tests.Events;
 /// </summary>
 public sealed class EventsClientContractTests
 {
+    private readonly FixtureLoader _fixtures = new();
+
     [Test]
     public async Task SubscribeAsync_Should_Send_Types_On_Every_Reconnect_Attempt()
     {
@@ -62,7 +65,7 @@ public sealed class EventsClientContractTests
     [Test]
     public async Task SubscribeAsync_Should_Type_A_Shared_Durable_Leaf()
     {
-        using var scenario = RespondingWithEvents(WireBodyData.SessionCreatedEvent);
+        using var scenario = RespondingWithEvents(_fixtures.LoadJson("Events.session-created.json"));
 
         var items = await CollectAsync(scenario, count: 1);
 
@@ -79,7 +82,8 @@ public sealed class EventsClientContractTests
     [Test]
     public async Task SubscribeAsync_Should_Route_A_Session_Scoped_Event_By_Its_Session()
     {
-        using var scenario = RespondingWithEvents(WireBodyData.SessionCreatedEvent, WireBodyData.UnknownLogEvent);
+        using var scenario = RespondingWithEvents(
+            _fixtures.LoadJson("Events.session-created.json"), _fixtures.LoadJson("Events.unknown-log-event.json"));
 
         var items = await CollectAsync(scenario, count: 2);
 
@@ -90,7 +94,7 @@ public sealed class EventsClientContractTests
     [Test]
     public async Task SubscribeAsync_Should_Preserve_An_Unknown_Event_Tag()
     {
-        using var scenario = RespondingWithEvents(WireBodyData.UnknownLogEvent);
+        using var scenario = RespondingWithEvents(_fixtures.LoadJson("Events.unknown-log-event.json"));
 
         var items = await CollectAsync(scenario, count: 1);
 
@@ -106,7 +110,8 @@ public sealed class EventsClientContractTests
     [Test]
     public async Task SubscribeAsync_Should_Continue_Past_An_Event_With_An_Unknown_Enum_Value()
     {
-        using var scenario = RespondingWithEvents(WireBodyData.UnknownReasonInterruptedEvent, WireBodyData.SessionCreatedEvent);
+        using var scenario = RespondingWithEvents(
+            _fixtures.LoadJson("Events.unknown-reason-interrupted.json"), _fixtures.LoadJson("Events.session-created.json"));
 
         var items = await CollectAsync(scenario, count: 2);
 
@@ -130,8 +135,8 @@ public sealed class EventsClientContractTests
     [Test]
     public async Task SubscribeAsync_Should_Preserve_An_Unreadable_Known_Event_And_Its_Neighbour()
     {
-        var bad = WireBodyData.EventWithoutData("session.created");
-        using var scenario = RespondingWithEvents(bad, WireBodyData.SessionDeletedEvent);
+        var bad = WireBodyData.EventWithoutData("session.created", _fixtures.LoadJson("Events.session-created.json"));
+        using var scenario = RespondingWithEvents(bad, _fixtures.LoadJson("Events.session-deleted.json"));
         using var caller = new CancellationTokenSource();
         using var waiterOwner = new CancellationTokenSource();
         var events = scenario.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();

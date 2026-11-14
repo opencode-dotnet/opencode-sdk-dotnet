@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Config;
@@ -10,7 +11,7 @@ public sealed class ConfigClientContractTests
     [Test]
     public async Task GetShellsAsync_Should_Return_The_Bare_Typed_List()
     {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.ConfigShells);
+        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, new FixtureLoader().LoadJson("Config.shells.json"));
 
         var response = await scenario.Client.Config.GetShellsAsync();
 

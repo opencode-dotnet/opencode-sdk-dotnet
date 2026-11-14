@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Streaming;
@@ -123,7 +124,8 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Keep_The_Primary_Failure_For_An_Unreadable_Rpc_Event()
     {
-        var frame = TestFrames.FromText(ServerSentEvent.DefaultName, WireBodyData.EventWithoutData("rpc.foo"));
+        var body = new FixtureLoader().LoadJson("Events.session-created.json");
+        var frame = TestFrames.FromText(ServerSentEvent.DefaultName, WireBodyData.EventWithoutData("rpc.foo", body));
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, EventSubscribeResponseStreamAdapter.Instance));
 

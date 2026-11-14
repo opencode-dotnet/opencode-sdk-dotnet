@@ -107,19 +107,19 @@ public sealed class OpenCodeJsonContextTests
     [Test]
     public async Task Serialize_Should_Write_A_Durable_Event_Exactly_As_It_Arrived()
     {
-        var result = _serializer.Deserialize<ISessionLogItem>(WireBodyData.SessionCreatedEvent);
+        var result = _serializer.Deserialize<ISessionLogItem>(_fixtures.LoadJson("Events.session-created.json"));
 
         var written = _serializer.Serialize(result);
 
         // A hoisted member is an explicit interface implementation, which is not a public
         // property, so System.Text.Json never sees it and the wire shape is unchanged.
-        await Assert.That(written).IsEqualTo(WireBodyData.SessionCreatedEvent);
+        await Assert.That(written).IsEqualTo(_fixtures.LoadJson("Events.session-created.json"));
     }
 
     [Test]
     public async Task Deserialize_Should_Answer_Null_Hoisted_Members_On_The_Durable_Unknown_Carrier()
     {
-        var result = _serializer.Deserialize<ISessionEventDurable>(WireBodyData.UnknownLogEvent);
+        var result = _serializer.Deserialize<ISessionEventDurable>(_fixtures.LoadJson("Events.unknown-log-event.json"));
 
         await Assert.That(result).IsTypeOf<UnknownSessionEventDurable>();
         await Assert.That(result.Type).IsEqualTo("session.invented.tomorrow");
@@ -136,7 +136,7 @@ public sealed class OpenCodeJsonContextTests
     [Test]
     public async Task Deserialize_Should_Read_The_Durable_Envelope_Through_The_Union_Interface()
     {
-        var result = _serializer.Deserialize<ISessionEventDurable>(WireBodyData.SessionDeletedEvent);
+        var result = _serializer.Deserialize<ISessionEventDurable>(_fixtures.LoadJson("Events.session-deleted.json"));
 
         await Assert.That(result.Durable!.Seq).IsEqualTo(2L);
         await Assert.That(result.Durable.Version).IsEqualTo(2d);

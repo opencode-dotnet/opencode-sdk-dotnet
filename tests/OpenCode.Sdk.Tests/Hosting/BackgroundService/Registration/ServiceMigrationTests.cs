@@ -20,10 +20,11 @@ public sealed class ServiceMigrationTests
     private readonly MockFileSystem _fileSystem = new();
 
     [Test]
-    [Arguments(ServiceRegistrationData.DevPrerelease)]
+    [Arguments("BackgroundService.registration-dev-prerelease.json")]
     [Arguments(ServiceRegistrationData.DevPrereleaseDotted)]
     public async Task ApplyAsync_Should_Copy_A_Legacy_Registration_Whose_Version_Belongs_To_The_Channel(string donor)
     {
+        donor = donor == "BackgroundService.registration-dev-prerelease.json" ? new FixtureLoader().LoadJson(donor) : donor;
         var paths = ChannelPaths(Channel);
         Seed(paths.LegacyRegistrationFiles[0], donor);
 
@@ -114,7 +115,7 @@ public sealed class ServiceMigrationTests
     public async Task ApplyAsync_Should_Keep_An_Existing_Target_Without_Truncating_It()
     {
         var paths = ChannelPaths(Channel);
-        Seed(paths.LegacyRegistrationFiles[0], ServiceRegistrationData.DevPrerelease);
+        Seed(paths.LegacyRegistrationFiles[0], new FixtureLoader().LoadJson("BackgroundService.registration-dev-prerelease.json"));
         Seed(paths.RegistrationFile, ServiceRegistrationData.Minimal);
 
         await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
@@ -128,7 +129,7 @@ public sealed class ServiceMigrationTests
         var paths = ChannelPaths(Channel);
         var stateDirectory = _fileSystem.Path.GetDirectoryName(paths.RegistrationFile)!;
         var elsewhere = Path("elsewhere", "legacy.json");
-        Seed(elsewhere, ServiceRegistrationData.DevPrerelease);
+        Seed(elsewhere, new FixtureLoader().LoadJson("BackgroundService.registration-dev-prerelease.json"));
         var detached = paths with { LegacyRegistrationFiles = [elsewhere] };
 
         // The state directory was never created: the CLI's Global layer would have made it, the
@@ -144,7 +145,7 @@ public sealed class ServiceMigrationTests
         var paths = ChannelPaths(Channel);
         var failing = Substitute.For<IServiceFileSystem>();
         failing.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(Encoding.UTF8.GetBytes(ServiceRegistrationData.DevPrerelease));
+            .Returns(Encoding.UTF8.GetBytes(new FixtureLoader().LoadJson("BackgroundService.registration-dev-prerelease.json")));
         failing.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new UnauthorizedAccessException("read-only state directory"));
 
@@ -222,7 +223,7 @@ public sealed class ServiceMigrationTests
     public async Task ApplyAsync_Should_Rethrow_Caller_Cancellation()
     {
         var paths = ChannelPaths(Channel);
-        Seed(paths.LegacyRegistrationFiles[0], ServiceRegistrationData.DevPrerelease);
+        Seed(paths.LegacyRegistrationFiles[0], new FixtureLoader().LoadJson("BackgroundService.registration-dev-prerelease.json"));
         var cancelled = new CancellationToken(canceled: true);
 
         _ = await Assert

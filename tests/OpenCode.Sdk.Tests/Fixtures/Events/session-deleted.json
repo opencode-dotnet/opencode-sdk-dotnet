@@ -1,0 +1,1 @@
+{"id":"evt_2","created":2,"type":"session.deleted","durable":{"aggregateID":"ses_9","seq":2,"version":2},"location":{"directory":"/repo"},"data":{"sessionID":"ses_9"}}

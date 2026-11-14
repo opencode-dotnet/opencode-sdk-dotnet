@@ -10,57 +10,6 @@ namespace OpenCode.Sdk.Tests.Support;
 /// </summary>
 internal static class PersistentPtyFrameData
 {
-    /// <summary>
-    /// The info literal up to its <c>size</c> member. Every member but the viewport is the same
-    /// terminal in each variant below, so the size object is the only part a variant restates.
-    /// </summary>
-    private const string InfoHead =
-        "{\"id\":\"pty_persistent_7\",\"title\":\"sdk terminal\",\"userTitle\":null,\"command\":\"/bin/bash\",\"args\":[\"-l\"],\"cwd\":\"/\",\"status\":\"running\",\"pid\":5150,\"sessionID\":\"ses_1\",\"foregroundProcess\":null,\"size\":";
-
-    /// <summary>The info literal after its <c>size</c> member.</summary>
-    private const string InfoTail = ",\"output\":{\"head\":0,\"tail\":42}}";
-
-    /// <summary>The terminal at the server's own default viewport.</summary>
-    public const string InfoJson = InfoHead + "{\"cols\":80,\"rows\":24}" + InfoTail;
-
-    /// <summary>
-    /// The same terminal at a viewport the server did not default to. Only the size differs, so a
-    /// framed write proves it carries the size the server reported rather than a built-in 80x24.
-    /// </summary>
-    public const string WideInfoJson = InfoHead + "{\"cols\":132,\"rows\":50}" + InfoTail;
-
-    public const string AttachedJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"att_1\",\"inputProtocol\":1,\"info\":" + InfoJson +
-        ",\"role\":\"controller\",\"generation\":3,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":42,\"truncated\":false}}";
-
-    public const string AttachedObserverJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"att_2\",\"inputProtocol\":1,\"info\":" + InfoJson +
-        ",\"role\":\"observer\",\"generation\":3,\"replay\":{\"requestedOffset\":10,\"availableOffset\":20,\"endOffset\":42,\"truncated\":true}}";
-
-    public const string AttachedRawProtocolJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"att_3\",\"inputProtocol\":0,\"info\":" + InfoJson +
-        ",\"role\":\"controller\",\"generation\":3,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":0,\"truncated\":false}}";
-
-    /// <summary>An attach reporting a terminal the server did not create at its default viewport.</summary>
-    public const string AttachedWideViewportJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"att_6\",\"inputProtocol\":1,\"info\":" + WideInfoJson +
-        ",\"role\":\"controller\",\"generation\":3,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":42,\"truncated\":false}}";
-
-    /// <summary>An attach whose promised <c>attachmentID</c> string the server sent as JSON null.</summary>
-    public const string AttachedNullAttachmentIdJson =
-        "{\"type\":\"attached\",\"attachmentID\":null,\"inputProtocol\":1,\"info\":" + InfoJson +
-        ",\"role\":\"controller\",\"generation\":3,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":42,\"truncated\":false}}";
-
-    /// <summary>An attach whose promised <c>role</c> string the server sent as JSON null.</summary>
-    public const string AttachedNullRoleJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"att_4\",\"inputProtocol\":1,\"info\":" + InfoJson +
-        ",\"role\":null,\"generation\":3,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":42,\"truncated\":false}}";
-
-    /// <summary>An attach whose <c>role</c> is a spelling the wire's two literals do not carry.</summary>
-    public const string AttachedUnknownRoleJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"att_5\",\"inputProtocol\":1,\"info\":" + InfoJson +
-        ",\"role\":\"supervisor\",\"generation\":3,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":42,\"truncated\":false}}";
-
     public const string ReplayCompleteJson = "{\"type\":\"replay_complete\",\"endOffset\":42}";
 
     /// <summary>The checkpoint is base64 of ESC c (0x1B 0x63).</summary>

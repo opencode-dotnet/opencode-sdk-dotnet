@@ -1,5 +1,6 @@
 using System.Net;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Worktrees;
@@ -64,7 +65,7 @@ public sealed class WorktreesClientContractTests
     [Test]
     public async Task CreateWorktreeAsync_Should_Throw_The_Declared_400_Worktree_Error()
     {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.WorktreeError);
+        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, new FixtureLoader().LoadJson("Worktrees.worktree-error.json"));
 
         var exception = await Assert
             .That(async () => _ = await scenario.Client.Worktrees.CreateWorktreeAsync(CreateRequest()))
@@ -105,7 +106,7 @@ public sealed class WorktreesClientContractTests
     [Test]
     public async Task RemoveWorktreeAsync_Should_Throw_The_Declared_400_Worktree_Error()
     {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.WorktreeError);
+        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, new FixtureLoader().LoadJson("Worktrees.worktree-error.json"));
 
         var exception = await Assert
             .That(async () => _ = await scenario.Client.Worktrees.RemoveWorktreeAsync(RemoveRequest()))
