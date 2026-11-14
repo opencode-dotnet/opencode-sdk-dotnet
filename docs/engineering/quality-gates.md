@@ -324,7 +324,10 @@ The lint job packs both packages with validation on for every code pull request,
 workflow's pack is the final check. Cross-asset validation checks compatible target frameworks even
 without a baseline. From `1.0.1`, the same packs also compare against the previous published
 release, named by `PackageValidationBaselineVersion` in `Directory.Build.props`; the previews and
-`1.0.0` had no baseline. The Tools suppression test enforces ADR-0034: patch and minor steps accept
+`1.0.0` had no baseline. Suppressions answer the current baseline only: the change that moves
+`PackageValidationBaselineVersion` to a new release removes every suppression that release already
+shipped, and a project with none keeps no `CompatibilitySuppressions.xml`. The Tools suppression
+test enforces ADR-0034: patch and minor steps accept
 a generated-type break only when the pin differs from the baseline release's pin, read from
 `spec/receipt.json` at the baseline tag, and refuse it when the pin is unchanged; a hand-written
 break needs a major, a major accepts any baseline break, and cross-asset suppressions are never
