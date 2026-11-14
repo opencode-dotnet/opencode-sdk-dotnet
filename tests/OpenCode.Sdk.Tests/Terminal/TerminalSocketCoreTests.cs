@@ -591,6 +591,9 @@ public sealed class TerminalSocketCoreTests
             await first.WaitAsync(HangGuard.Bound);
         }
 
+        // A never-expiring queued call fails at released, not the expiry assertions: await queued
+        // still pends when the post-send hold's bound ends (release.Set is in the finally). Expiry
+        // completes inline on one target framework only; no check after Advance replaces it (#758).
         await Assert.That(released).IsTrue();
         await Assert.That(failure).IsNotNull();
         await Assert.That(failure!.InnerException).IsTypeOf<TimeoutException>();
