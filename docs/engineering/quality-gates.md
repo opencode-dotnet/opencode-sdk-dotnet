@@ -80,9 +80,11 @@ two parents, its second parent is still the queued PR's head, and that PR target
 The attempt's unique, unexpired `tested-tree-<run_attempt>` artifact must record the group's tree
 and the same base tree its diff uses, and have been created within that attempt's successful
 `Changes` job window. The decision is built and run from the merge group's base commit, in a
-separate worktree outside the workspace, with the base's own `global.json`, so the PR cannot change
-its judge. The PR's changes from its merge base must not touch `.github/`, matched
-case-insensitively, because the workflow itself always comes from the group's tree.
+separate worktree outside the workspace, with the base's own `global.json`, so a PR is judged by
+the base's tool and the base's rules, never its own. The PR's changes from its merge base must not
+touch `.github/`, matched case-insensitively, because the workflow that gathers the facts and calls
+the judge always comes from the group's tree; review covers a workflow change, as for any required
+check.
 In practice, a PR whose base has not moved since its green run and which does not touch `.github/`
 avoids the second full run. Any missing, malformed or uncertain fact, or a failed reuse job,
 means the normal full CI runs. `Changes` must still succeed; the reuse branch of `CI result`
