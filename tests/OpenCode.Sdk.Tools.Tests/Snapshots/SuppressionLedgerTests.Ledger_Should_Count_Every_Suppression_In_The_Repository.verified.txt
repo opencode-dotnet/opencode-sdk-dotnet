@@ -11,7 +11,7 @@ slopwatch-suppress: 31
 suppress-message: 1
 
 build-switch .github/workflows/ci.yml [command line] RunAnalyzers = false
-build-switch Directory.Build.props AnalysisLevel = 10.0
+build-switch Directory.Build.props AnalysisLevel = 11.0
 build-switch Directory.Build.props AnalysisMode = All
 build-switch Directory.Build.props CodeAnalysisTreatWarningsAsErrors = true
 build-switch Directory.Build.props EnableNETAnalyzers = true
