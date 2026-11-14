@@ -62,6 +62,9 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// <summary>The service the daemon-absent 503 names; the one value that tells it from any other 503.</summary>
     private const string DaemonService = "opencode-pty";
 
+    /// <summary>The daemon reply timeout accepted only when the removed terminal is already gone.</summary>
+    private const string DaemonRequestTimedOut = "opencode-pty request timed out";
+
     [Test]
     [Timeout(120_000)]
     public async Task Terminal_Lifecycle_Should_Round_Trip_Or_Answer_The_Daemon_Absent_Arm(
@@ -80,7 +83,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     public async Task SubmitAsync_Should_Execute_A_Line_Or_Answer_The_Daemon_Absent_Arm(
         CancellationToken cancellationToken) =>
         await WithTerminalAsync(
-            static (client, _, created, token) => AssertSubmittedLineRunsAsync(client, created, token),
+            static (client, sessionId, created, token) => AssertSubmittedLineRunsAsync(client, sessionId, created, token),
             cancellationToken, AssertSubmitHasNoTerminalAsync);
 
     [Test]
@@ -174,11 +177,13 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// cannot have come from the terminal's echo of the typed text.
     /// </summary>
     /// <param name="client">The client the test owns.</param>
+    /// <param name="sessionId">The session whose terminal list proves removal.</param>
     /// <param name="created">The terminal the daemon created.</param>
     /// <param name="cancellationToken">The test's own deadline.</param>
     /// <returns>The assertion.</returns>
     private static async Task AssertSubmittedLineRunsAsync(
         OpenCodeClient client,
+        string sessionId,
         PersistentPtyCreateResponse created,
         CancellationToken cancellationToken)
     {
@@ -190,7 +195,9 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(output).Contains(SubmitMarker);
 
         var removed = await terminal.RemoveAsync(OpenCodeRequestOptions.NoThrow, cancellationToken);
-        await Assert.That(removed.Status).IsEqualTo(204).Because("Server answer: " + removed.RawBody);
+        var remaining = await client.PersistentPtys.ListPersistentPtysAsync(
+            sessionId, cancellationToken: cancellationToken);
+        await AssertRemovalAcceptedAsync(removed, remaining, created.PersistentPty.Id);
 
         Console.WriteLine(
             "ppty-live: arm=round-trip id=" + created.PersistentPty.Id +
@@ -308,11 +315,10 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
         var drive = await DriveTerminalAsync(client, terminal, sessionId, cancellationToken);
 
         var removed = await terminal.RemoveAsync(OpenCodeRequestOptions.NoThrow, cancellationToken);
-        await Assert.That(removed.Status).IsEqualTo(204).Because("Server answer: " + removed.RawBody);
 
         var remaining = await client.PersistentPtys.ListPersistentPtysAsync(
             sessionId, cancellationToken: cancellationToken);
-        await Assert.That(remaining.PersistentPtys.Select(static pty => pty.Id).ToArray()).DoesNotContain(ptyId);
+        await AssertRemovalAcceptedAsync(removed, remaining, ptyId);
 
         // Every value is observed: the echo and read excerpts are what the terminal and the read
         // route actually returned, so the line stays evidence rather than a restatement of the
@@ -328,6 +334,28 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
             " read=" + Observed(drive.Screen, EchoMarker) +
             " remove=" + Number(removed.Status) +
             " listed-after=" + Describe(remaining.PersistentPtys.FirstOrDefault(pty => pty.Id == ptyId)?.Id));
+    }
+
+    /// <summary>Accepts only a completed removal, including the daemon's exact reply-timeout answer.</summary>
+    /// <param name="removed">The removal answer.</param>
+    /// <param name="remaining">The immediate list answer after removal.</param>
+    /// <param name="ptyId">The terminal that must no longer be listed.</param>
+    /// <returns>The assertions on both answers.</returns>
+    internal static async Task AssertRemovalAcceptedAsync(
+        PersistentPtyRemoveResponse removed, PersistentPtyListResponse remaining, string ptyId)
+    {
+        // #756 / anomalyco/opencode#61644: the daemon can remove the terminal but miss its reply.
+        // #855 returns this to a strict 204 once upstream fixes the daemon's reply.
+        if (removed.Status != 204)
+        {
+            await Assert.That(removed.Status).IsEqualTo(503).Because("Server answer: " + removed.RawBody);
+            await Assert.That(removed.Error).IsTypeOf<ServiceUnavailableError>();
+            var unavailable = removed.Error as ServiceUnavailableError;
+            await Assert.That(unavailable?.Service).IsEqualTo(DaemonService);
+            await Assert.That(unavailable?.Message).IsEqualTo(DaemonRequestTimedOut);
+        }
+
+        await Assert.That(remaining.PersistentPtys.Select(static pty => pty.Id).ToArray()).DoesNotContain(ptyId);
     }
 
     /// <summary>

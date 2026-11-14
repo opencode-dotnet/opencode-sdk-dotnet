@@ -46,6 +46,9 @@ internal static class WireBodyData
     public const string ServiceUnavailableTimeoutError =
         "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"opencode-pty request timed out\",\"service\":\"opencode-pty\"}";
 
+    public const string ServiceUnavailableTimeoutOtherServiceError =
+        "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"opencode-pty request timed out\",\"service\":\"other-service\"}";
+
     public const string FutureErrorWithNestedMessage = "{\"_tag\":\"SomeFutureError\",\"data\":{\"message\":\"x\"}}";
 
     public const string FutureErrorWithBothMessages =
