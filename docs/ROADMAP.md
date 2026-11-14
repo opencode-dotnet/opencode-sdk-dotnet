@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -151,12 +151,6 @@ These do not block `1.0.0` and run beside the road.
   - references that point one way: a few hundred lines in source, tools, tests, and workflows still
     cite documentation, against `engineering/documentation.md`
     ([#202](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/202));
-  - a dependency bump: `Microsoft.OpenApi` `3.11.0` carries
-    [microsoft/OpenAPI.NET#3108](https://github.com/microsoft/OpenAPI.NET/pull/3108), the fix for
-    [#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101) that this repository reported,
-    which lets the generator drop its own timeout-free components-key rule; the bump first confirms
-    in the shipped assembly that the generated key regex never checks its timeout
-    ([#211](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/211));
   - operations: automation for the upstream observation lanes and the nightly source-run canary
     ([#205](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/205)), the remaining
     Restore-patch retirement, the

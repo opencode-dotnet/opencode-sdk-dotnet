@@ -64,11 +64,10 @@ internal sealed class SpecReader(IFileSystem fileSystem)
         }
     }
 
-    /// <summary>The reader settings every load uses: the stream stays open for the raw re-parse, and the rule set carries the components-key rule without its match timeout.</summary>
+    /// <summary>The reader settings every load uses: the stream stays open for the raw re-parse, and the library's default validation rule set is used.</summary>
     internal static OpenApiReaderSettings CreateReaderSettings() =>
         new()
         {
             LeaveStreamOpen = true,
-            RuleSet = ComponentKeyRule.CreateReaderRuleSet(),
         };
 }
