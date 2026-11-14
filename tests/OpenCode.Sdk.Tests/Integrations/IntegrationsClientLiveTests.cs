@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Integrations;
 
@@ -14,7 +15,12 @@ public sealed class IntegrationsClientLiveTests(SimulatedDriveServerFixture serv
         using var workspace = server.CreateWorkspace();
         using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
 
-        var response = await client.Integrations.ListIntegrationsAsync(cancellationToken: cancellationToken);
+        var response = await LiveReadiness.WaitAsync(
+            token => client.Integrations.ListIntegrationsAsync(cancellationToken: token),
+            result => result.Integrations.Any(item => item.Id == SimulationConfigSeed.ProviderId),
+            "seeded integration " + SimulationConfigSeed.ProviderId,
+            result => string.Join(", ", result.Integrations.Select(item => item.Id)),
+            cancellationToken);
 
         var seeded = response.Integrations.Where(item => item.Id == SimulationConfigSeed.ProviderId).ToList();
         await Assert.That(seeded.Select(item => item.Id)).Contains(SimulationConfigSeed.ProviderId);

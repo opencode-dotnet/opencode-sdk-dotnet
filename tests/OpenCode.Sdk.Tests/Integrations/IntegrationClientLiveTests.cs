@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Integrations;
 
@@ -57,8 +58,12 @@ public sealed class IntegrationClientLiveTests(SimulatedDriveServerFixture serve
         Exception? failure = null;
         try
         {
-            // The list handler awaits plugin activation; Get deliberately does not.
-            var catalog = await client.Integrations.ListIntegrationsAsync(cancellationToken: token);
+            var catalog = await LiveReadiness.WaitAsync(
+                listToken => client.Integrations.ListIntegrationsAsync(cancellationToken: listToken),
+                result => result.Integrations.Any(item => item.Id == SimulationConfigSeed.ProviderId),
+                "seeded integration " + SimulationConfigSeed.ProviderId,
+                result => string.Join(", ", result.Integrations.Select(item => item.Id)),
+                token);
             var seeded = catalog.Integrations.Single(item => item.Id == SimulationConfigSeed.ProviderId);
             await Assert.That(seeded.Methods).Contains(method => method is IntegrationKeyMethod);
             await scenario(client, client.Integrations.GetIntegrationClient(SimulationConfigSeed.ProviderId), cleanup);
