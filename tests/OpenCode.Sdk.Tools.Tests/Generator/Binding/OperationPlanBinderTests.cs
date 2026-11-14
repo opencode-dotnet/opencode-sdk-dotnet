@@ -660,7 +660,7 @@ public sealed class OperationPlanBinderTests
         "ConfigClient",
         "CredentialsClient",
         "DebugClient",
-        "EventsClient",
+        "EventsRawClient",
         "ExperimentalClient",
         "FileSystemClient",
         "FormsClient",

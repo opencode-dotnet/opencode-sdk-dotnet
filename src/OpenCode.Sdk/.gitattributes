@@ -205,11 +205,11 @@
 /Debug/Models/DebugHeapDumpData.cs linguist-generated
 /Debug/Models/DebugHeapDumpMemory.cs linguist-generated
 /Events/EventSubscribeRequest.cs linguist-generated
-/Events/EventsClient.cs linguist-generated
 /Events/Internal/EventJsonConverter.cs linguist-generated
 /Events/Internal/EventServerConnectedJsonReader.cs linguist-generated
 /Events/Internal/EventSubscribeResponseStreamAdapter.cs linguist-generated
 /Events/Internal/EventTypeJsonConverter.cs linguist-generated
+/Events/Internal/EventsRawClient.cs linguist-generated
 /Events/Internal/OpenCodeRoutes.Events.cs linguist-generated
 /Events/Internal/TuiCommandNameJsonConverter.cs linguist-generated
 /Events/Internal/TuiToastShowDataVariantJsonConverter.cs linguist-generated

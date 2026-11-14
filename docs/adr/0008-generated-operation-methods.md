@@ -1,6 +1,6 @@
 # All operation methods are generated; excluded operations are fingerprint-pinned
 
-Date: 2026-10-17
+Date: 2026-11-14
 
 Every operation method on the generated surface is generator-emitted
 as a one-line delegation into the hand-written behavior core; behavior (retry, error
@@ -10,9 +10,9 @@ turn every spec drift into a loud diff or a broken build (the earlier hand-writt
 of internal research, 2026-08-08, ".NET SDK design decisions: packaging, process management, TFMs"
 §1, was overturned by the maintainer on this argument).
 Hand-written remains the identity core: transport pipeline, SSE engine, launcher,
-exception hierarchy, envelope base, options types, DI extensions. One recorded
-family-ownership exception exists: the normal and persistent PTY families' public doors are hand-written
-over generated internals (ADR-0021).
+exception hierarchy, envelope base, options types, DI extensions. Two recorded
+family-ownership exceptions exist: the normal and persistent PTY families' public doors, and the
+Events family's public door, are hand-written over generated internals (ADR-0021).
 
 **Streaming operations are generated on the same rule.** An SSE endpoint is an ordinary
 HTTP response the client reads incrementally, and the pinned contract declares it in

@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-10
+Date: 2026-11-15
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -427,7 +427,8 @@ materializable.
 ## Operations, streams, and exclusions
 
 - Every HTTP operation method, including streaming operations, is generated as a short delegation
-  into the hand-written behavior core (ADR-0008).
+  into the hand-written behavior core (ADR-0008). The PTY families' and Events family's public
+  doors are the ownership exceptions (ADR-0021); their raw endpoints stay generated.
 - Bound root payload-union identity supplies a stream adapter's optional concrete unknown-arm
   metadata and scopes its carrier documentation; an adapter without such a union emits null.
   A stream payload union that reaches known-impossible tags, directly or through a nested union,

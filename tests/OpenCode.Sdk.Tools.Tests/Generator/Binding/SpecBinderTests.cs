@@ -708,7 +708,7 @@ public sealed class SpecBinderTests
 
         var plan = new BindingTestHost().Bind(document, selection, curation);
 
-        var operation = plan.Clients.Single(static client => client.Name == "EventsClient").Operations.Single();
+        var operation = plan.Clients.Single(static client => client.Name == "EventsRawClient").Operations.Single();
         await Assert.That(operation.MethodName).IsEqualTo("SubscribeAsync");
         await Assert.That(operation.HttpMethod).IsEqualTo("get");
         await Assert.That(operation.RouteTemplate).IsEqualTo("/api/event");
@@ -963,14 +963,14 @@ public sealed class SpecBinderTests
             .WithOperation("event.subscribe", path: "/api/event", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("EventReady")))));
         var curation = Curation(
-            Groups("event", ClientGroup(clientName: "Events", handleName: null, handleParameter: null)),
+            Groups("event", ClientGroup(clientName: "Feeds", handleName: null, handleParameter: null)),
             operationNames: [OperationName("event.subscribe", "SubscribeAsync")]);
 
         var plan = new BindingTestHost().Bind(document, Selection("event.subscribe"), curation);
 
-        var operation = plan.Clients.Single(static client => client.Name == "EventsClient").Operations.Single();
+        var operation = plan.Clients.Single(static client => client.Name == "FeedsClient").Operations.Single();
         await Assert.That(operation.MethodName).IsEqualTo("SubscribeAsync");
-        await Assert.That(operation.RouteContainerName).IsEqualTo("Events");
+        await Assert.That(operation.RouteContainerName).IsEqualTo("Feeds");
         await Assert.That(operation.RouteMemberName).IsEqualTo("Subscribe");
     }
 

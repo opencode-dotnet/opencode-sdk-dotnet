@@ -96,21 +96,33 @@ public sealed class DocumentationSyntaxTests
     }
 
     [Test]
-    [ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
-    public async Task MemberDocumentation_Should_Emit_The_Reconnect_Remark_With_Its_Event_As_Code(PinnedBinding pinned)
+    public async Task MemberDocumentation_Should_Emit_The_Reconnect_Remark_With_Its_Event_As_Code()
     {
-        ArgumentNullException.ThrowIfNull(pinned);
-        var source = ClientEmitter.Emit(pinned.Plan.Clients, pinned.Plan.Namespaces)
-            .Single(static source => source.RelativePath == "Events/EventsClient.cs");
+        var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario());
+        var description = Description("OpenCodeClient", "SubscribeAsync", remarks:
+            "The stream reconnects after a failure, with a new attempt 1 s later and no backoff."
+            + " It does not complete on its own; caller cancellation or root-client disposal ends it."
+            + " After 1 minute in which every attempt fails, it throws the last failure."
+            + " A repeated `server.connected` event means events published in between were missed; refresh authoritative state.") with
+        {
+            Summary = null,
+        };
+        var curation = EventCuration(description) with
+        {
+            OperationNames = [OperationName("event.get", "SubscribeAsync")],
+        };
+        var plan = new BindingTestHost().Bind(document, Selection("event.get"), curation);
+        var source = ClientEmitter.Emit(plan.Clients, plan.Namespaces)
+            .Single(static source => source.RelativePath == "OpenCodeClient.cs");
 
         await Assert.That(Unindented(Encoding.UTF8.GetString(source.Utf8Source.Span))).Contains(
             "/// <remarks>\n"
-            + "/// Operation <c>event.subscribe</c>: <c>GET /api/event</c>. The stream reconnects after a failure, with a new attempt 1 s later and no backoff."
+            + "/// Operation <c>event.get</c>: <c>GET /api/x</c>. The stream reconnects after a failure, with a new attempt 1 s later and no backoff."
             + " It does not complete on its own; caller cancellation or root-client disposal ends it."
             + " After 1 minute in which every attempt fails, it throws the last failure."
             + " A repeated <c>server.connected</c> event means events published in between were missed; refresh authoritative state.\n"
             + "/// </remarks>\n"
-            + "public virtual IAsyncEnumerable<IEvent> SubscribeAsync(");
+            + "public virtual IAsyncEnumerable<IEvents> SubscribeAsync(");
     }
 
     [Test]

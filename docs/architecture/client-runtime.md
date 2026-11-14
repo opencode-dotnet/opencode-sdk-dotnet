@@ -104,9 +104,9 @@ resolves the message's network window from those carried traits.
   in the header/query serializers. A generated wire model may still contain a workspace ID
   when its own pinned component declares one; that is not a request-targeting channel.
 
-## PTY family ownership
+## Internal-raw family ownership
 
-- The normal PTY family is one of the two families whose **public** surface is hand-written:
+- The normal PTY family is one of the three families whose **public** surface is hand-written:
   `PtysClient` and `PtyClient` live in `src/OpenCode.Sdk/Ptys/` as ordinary hand-written code,
   and the generator emits `PtysRawClient`/`PtyRawClient` internally beside them under the
   `internalRaw` curation emission. Everything else the family needs — routes, query shapers,
@@ -115,6 +115,10 @@ resolves the message's network window from those carried traits.
 - The hand-written doors keep the generated family's shape: the protected mocking constructor,
   `virtual` members, and the `MockSeam` guard. Each door delegates once into its raw twin and
   adds nothing but the knowledge generation may not import.
+- The Events family is the third: `EventsClient` is hand-written over the generated internal
+  `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its public signature and
+  SSE behaviour are unchanged; the raw endpoint, routes, adapters, wire models and serializer
+  metadata remain generated.
 - `CreateConnectTokenAsync` is that knowledge. The server's connect-token handler requires a
   fixed `x-opencode-ticket` value that exists only in upstream implementation source, which
   ADR-0013 forbids importing into generation; the constant therefore lives in the hand-written

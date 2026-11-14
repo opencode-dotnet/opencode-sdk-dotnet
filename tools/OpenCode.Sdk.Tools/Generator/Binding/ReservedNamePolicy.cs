@@ -78,6 +78,7 @@ internal static class ReservedNamePolicy
         [
             "CursorSequence",
             "ErrorBehavior",
+            "EventsClient",
             EffectStreamTypeNamePolicy.CauseMarkerInterface,
             SessionScopedEventContract.InterfaceName,
             "LanguageModelsClientExtensions",

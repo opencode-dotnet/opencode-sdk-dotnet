@@ -17,19 +17,29 @@ public sealed partial class CanonDescriptionSourceTests
     [Arguments(1)]
     [Arguments(2)]
     [Arguments(3)]
-    public async Task Sources_Should_Prove_Each_Committed_Reconnect_Source(int index)
+    public async Task Sources_Should_Prove_Each_Canon_Excerpt(int index)
     {
-        var fileSystem = new RealFileSystem();
-        var (_, _, curation) = await BindingTestHost.LoadPinnedInputsAsync();
-        var row = curation.Descriptions.Single(static row => row.Type == "EventsClient" && row.Member == "SubscribeAsync");
-        await Assert.That(row.Sources).Count().IsEqualTo(4);
-        var sources = row.Sources!.ToArray(); // The assertion requires the committed four-source contract.
-        sources[index] = sources[index]! with { Excerpt = "This quotation is not in the canon." };
+        var fileSystem = await CanonFileSystemAsync();
+        string[] excerpts = ["Keep the stream", "alive.", "Keep the stream alive.", "Keep the"];
+        var sources = excerpts.Select(static excerpt => new DescriptionSource
+        {
+            Canon = "docs/architecture/example.md#reconnect-contract",
+            Excerpt = excerpt,
+        }).ToArray();
+        var row = new DescriptionCuration
+        {
+            Type = "EventsClient",
+            Member = "SubscribeAsync",
+            Summary = "The event stream.",
+            Reason = "Prove every canon excerpt.",
+            Sources = sources,
+        };
+        sources[index] = sources[index] with { Excerpt = "This quotation is not in the canon." };
 
-        await Assert.That(await CheckAsync(fileSystem, new RepositoryRoot(fileSystem).Locate(), [row with { Sources = sources }]))
+        await Assert.That(await CheckAsync(fileSystem, fileSystem.Directory.GetCurrentDirectory(), [row]))
             .IsEquivalentTo(
             [
-                "EventsClient.SubscribeAsync: docs/architecture/client-runtime.md#server-sent-events: excerpt not found in heading section",
+                "EventsClient.SubscribeAsync: docs/architecture/example.md#reconnect-contract: excerpt not found in heading section",
             ], CollectionOrdering.Matching);
     }
 
@@ -48,11 +58,7 @@ public sealed partial class CanonDescriptionSourceTests
     [Arguments("valid", null)]
     public async Task Sources_Should_Refuse_Unproven_Canon(string fault, string? problem)
     {
-        var real = new RealFileSystem();
-        var fixture = await real.File.ReadAllTextAsync(real.Path.Combine(new RepositoryRoot(real).Locate(),
-            "tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/Fixtures/canon-source.md"), CancellationToken.None);
-        var fileSystem = new MockFileSystem();
-        fileSystem.Initialize().WithFile("docs/architecture/example.md").Which(file => file.HasStringContent(fixture));
+        var fileSystem = await CanonFileSystemAsync();
         var canon = "docs/architecture/" + (fault == "missing" ? "missing" : "example") + ".md#" + (fault == "anchor" ? "absent" : "reconnect-contract");
         DescriptionCuration[] rows = [new()
         {
@@ -152,6 +158,16 @@ public sealed partial class CanonDescriptionSourceTests
         string[] expected = problem is null ? [] : ["EventsClient.SubscribeAsync: docs/architecture/example.md#" + anchor + ": " + problem];
         await Assert.That(await CheckAsync(fileSystem, fileSystem.Directory.GetCurrentDirectory(), rows))
             .IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
+    private static async Task<MockFileSystem> CanonFileSystemAsync()
+    {
+        var real = new RealFileSystem();
+        var fixture = await real.File.ReadAllTextAsync(real.Path.Combine(new RepositoryRoot(real).Locate(),
+            "tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/Fixtures/canon-source.md"), CancellationToken.None);
+        var fileSystem = new MockFileSystem();
+        fileSystem.Initialize().WithFile("docs/architecture/example.md").Which(file => file.HasStringContent(fixture));
+        return fileSystem;
     }
 
     private static async Task<IReadOnlyList<string>> CheckAsync(IFileSystem fileSystem, string root, IReadOnlyList<DescriptionCuration> rows)
