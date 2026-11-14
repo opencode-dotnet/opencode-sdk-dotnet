@@ -1,6 +1,6 @@
 # Background-service behaviour follows the accepted-pin first-party chain
 
-Date: 2026-09-17
+Date: 2026-11-14
 
 The registration file, its channel-dependent path, legacy migration, the info probe, and the
 Ensure/Stop lifecycle are not in the OpenAPI document. The SDK ports the first-party CLI/Effect
@@ -23,9 +23,8 @@ but incompatible — the pinned client's ensure fails on such a daemon, and repl
 version requirement is unmet — so discovery reports no service for it. The request bound and the owned non-redirecting transport are the SDK's own,
 and the transport keeps the pinned client's classification on every host: a refused loopback
 connect is no service, never a timeout, which on Windows takes the same no-SYN-retransmission
-socket option the pinned client's runtime sets for loopback. One deliberate divergence is that the
-probe never sends a loopback request through a proxy, where the pinned client would; the full list
-of the SDK's deliberate divergences from the chain lives in `docs/architecture/client-runtime.md`.
+socket option the pinned client's runtime sets for loopback. The full list of the SDK's deliberate
+divergences from the chain lives in `docs/architecture/client-runtime.md`.
 ADR-0031 states the general rule this record applies to the background service: upstream as the
 north star, and every divergence reasoned and recorded.
 

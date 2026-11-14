@@ -12,9 +12,8 @@ using TUnit.Assertions.Enums;
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 
 /// <summary>
-/// The probe transport's sealed policy, read off the handler it builds: a loopback endpoint is
-/// never routed through a proxy (an environment proxy without <c>NO_PROXY</c> would otherwise hide
-/// a live daemon), any other endpoint keeps the platform default, and no redirect is followed. On
+/// The probe transport's sealed policy, read off the handler it builds: it takes the same proxy
+/// decision as the client's owned transport, and no redirect is followed. On
 /// the modern runtime a Windows loopback endpoint also connects through the transport's own
 /// callback, on a socket that took the option disabling SYN retransmission; every other endpoint,
 /// and every endpoint on another platform, keeps the handler's default connect. On the downlevel
@@ -28,20 +27,16 @@ public sealed class LoopbackTransportTests
     [Arguments("http://127.0.0.1:4096/")]
     [Arguments("http://[::1]:4096/")]
     [Arguments("http://localhost:4096/")]
-    public async Task CreateHandler_Should_Bypass_Every_Proxy_For_A_Loopback_Endpoint(string endpoint)
+    [Arguments("http://opencode.example:4096/")]
+    public async Task CreateHandler_Should_Make_The_Owned_Transports_Proxy_Decision(string endpoint)
     {
         using var handler = PlatformTransport().CreateHandler(new Uri(endpoint));
 
-        await Assert.That(UseProxy(handler)).IsFalse();
-        await Assert.That(AllowAutoRedirect(handler)).IsFalse();
-    }
-
-    [Test]
-    public async Task CreateHandler_Should_Keep_The_Proxy_Default_For_Another_Endpoint()
-    {
-        using var handler = PlatformTransport().CreateHandler(new Uri("http://opencode.example:4096/"));
-
         await Assert.That(UseProxy(handler)).IsTrue();
+#if NET
+        using var owned = TransportPolicy.CreateOwnedHttpHandler(new Uri(endpoint));
+        await Assert.That(UseProxy(handler)).IsEqualTo(UseProxy(owned));
+#endif
         await Assert.That(AllowAutoRedirect(handler)).IsFalse();
     }
 
