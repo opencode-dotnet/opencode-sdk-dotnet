@@ -1,13 +1,14 @@
 # Roadmap
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
 current architecture and engineering canon; decision records live in `adr/`. The live operational
 queue is the [project board](https://github.com/orgs/opencode-dotnet/projects/1); its to-dos link
-to issues in the milestones [`1.0`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/1)
-and [`1.1`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2).
+to issues in [the milestones](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestones): one
+per release, and [`1.x`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2) for the
+work deferred from `1.0.0`.
 
 ## Status
 
@@ -31,11 +32,11 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   change must pass before it is called done.
 - **Terminal lifetime** — consumer cancellation, send deadlines, local viewport ordering, and shared
   cleanup are implemented. `architecture/client-runtime.md` and ADR-0023 own the contract.
-- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.2.6`, with no
+- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.3.0`, with no
   compatibility layer between them, and the CHANGELOG lists what each refresh changes. One restore
   patch applies: the artifact `location` query style
   ([anomalyco/opencode#60960](https://github.com/anomalyco/opencode/issues/60960)). Upstream's
-  `v2.2.6` document links the SSE payloads again, so their patch is retired
+  `v2.3.0` document still links the SSE payloads, so their patch stays retired
   ([#56](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/56)). Each refresh's
   CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and `net11.0`, Linux and
   macOS on `net10.0` and `net11.0`, with regeneration and receipt verification passing.
@@ -46,7 +47,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   right before a release, not between releases. The accepted protocol identity is owned by `../spec/SNAPSHOT.md`.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
   `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
-  single-sourced `VersionPrefix 1.0.2`, the next version. Every `master` push publishes a nightly of
+  single-sourced `VersionPrefix 1.1.0`, the next version. Every `master` push publishes a nightly of
   it to the organization's GitHub Packages feed, and `1.0.1`, the latest release, is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
@@ -59,7 +60,7 @@ with no `-rc` package. Each workstream has a
 short plan in the private companion repository when it starts, and its issues sit in milestone
 `1.0` on the project board. Only work that breaks or decides the public surface, the gates that enforce the freeze,
 and the items named below come before `1.0.0`; additive and internal work waits in milestone
-`1.1`. In order:
+`1.x`. In order:
 
 1. **Support policy.** The MCP server's repository (ADR-0030), the target-framework policy
    (ADR-0002), and the end of the .NET 5–7 promise
@@ -91,7 +92,7 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    types live in `OpenCode.Sdk.Internal`, and the folders are vertical slices. The package,
    test-roster, and Native AOT gates are in CI
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). **Complete.** The
-   parked handle questions are additive and wait for `1.1`. So does the client-hosted MCP door
+   parked handle questions are additive and wait in milestone `1.x`. So does the client-hosted MCP door
    ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)), which closes the
    two client-MCP declines: an application hosts its own tools for the server over the experimental
    client-MCP WebSocket. It adds public surface without breaking any, so it lands after `1.0.0`; it
@@ -113,11 +114,11 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    internal allocation that changes no public API is fixed before the release candidate, including
    the generated union readers of ADR-0039
    ([#739](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/739)); every other cost
-   becomes an issue in milestone `1.1`. The release candidate is the commit `1.0.0` is built from;
+   becomes an issue in milestone `1.x`. The release candidate is the commit `1.0.0` is built from;
    no `1.0.0-rc.N` package is published. A generator baseline and the suite's allocation sweep on
    that commit close the gate, together with a release rehearsal: the exact `1.0.0` packages built
    locally, inspected, and run by the playground apps from a local feed. The suite's full run follows
-   on the same commit before any `1.1` work merges
+   on the same commit before any `1.x` performance work merges
    ([#796](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/796)). Exit: a reviewed
    sweep with no unexplained regression in the shipped packages, and a clean rehearsal.
 7. **Playground and documentation.** Done. `playground/` holds four apps modeled on
@@ -135,7 +136,7 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    ([#172](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/172)) and moves the pin to
    opencode `2.2.6`.
    Exit: `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the
-   README's rename notice gone, and milestone `1.1` ordered with its first items assigned.
+   README's rename notice gone, and milestone `1.x` ordered with its first items assigned.
 
 ## Parallel tracks
 
@@ -143,7 +144,7 @@ These do not block `1.0.0` and run beside the road.
 
 - **MCP server** in its own repository (ADR-0030), a thin adapter over the published SDK. The
   namespace decision keeps the public namespaces, so code against the SDK can start.
-- **Milestone `1.1`** holds the work deferred from `1.0.0`, one issue each, and a lane takes an
+- **Milestone `1.x`** holds the work deferred from `1.0.0`, one issue each, and a lane takes an
   item early when it is idle and the item conflicts with nothing:
   - the maintainability areas the 1.0 review leaves, test categorization among them
     ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201));
