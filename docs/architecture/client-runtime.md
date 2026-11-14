@@ -1002,8 +1002,9 @@ never wins. The first contender failure is held: while it stands no further cont
 the call throws it once no contender is left live, and the bound expires with it rather than with
 the timeout. Three consecutive probe timeouts on one registered daemon end it through the stop
 ladder — like Stop, Ensure may end a service other clients share — after which a contender starts at
-once. The replacement stop acts on the registration it probed, so a record that changed since is
-never touched; its handoff or sidecar clear is best-effort and never skips the terminate, its
+once. The replacement stop reads the registration afresh and acts on the service registered now,
+as upstream's `stop` does; the terminator's identity check then skips a record that changed again
+since. Its handoff or sidecar clear is best-effort and never skips the terminate, its
 failures do not end the election, and when no contender failure is held the last one becomes the
 timeout's inner exception. After a recovery or a replacement stop, contenders that are the stopped
 process or have finished are released and a held failure is dropped. The spawned command registers
