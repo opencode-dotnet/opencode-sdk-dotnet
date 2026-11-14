@@ -83,9 +83,7 @@ internal static class MergeGroupReuseDecision
     }
 
     private static bool IsGuarded(string path) =>
-        path.StartsWith(".github/", StringComparison.OrdinalIgnoreCase) || path.StartsWith("tools/", StringComparison.OrdinalIgnoreCase) ||
-        path.Split('/')[^1].ToUpperInvariant() is "DIRECTORY.BUILD.PROPS" or "DIRECTORY.BUILD.TARGETS" or "DIRECTORY.PACKAGES.PROPS" or
-            "DIRECTORY.BUILD.RSP" or "GLOBAL.JSON" or "NUGET.CONFIG";
+        path.StartsWith(".github/", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsHash(string value) => value.Trim().Length == 40 && value.Trim().All(char.IsAsciiHexDigit);
     private static string? Text(JsonElement element, string name) => element.GetProperty(name).GetString();
