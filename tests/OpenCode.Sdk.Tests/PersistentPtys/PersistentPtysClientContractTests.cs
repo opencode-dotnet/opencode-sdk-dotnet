@@ -4,6 +4,7 @@ using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 using TUnit.Assertions.Enums;
+using TUnit.Assertions.Exceptions;
 
 namespace OpenCode.Sdk.Tests.PersistentPtys;
 
@@ -273,6 +274,50 @@ public sealed class PersistentPtysClientContractTests
         var request = scenario.Requests.Single();
         await Assert.That(request.Method).IsEqualTo(HttpMethod.Delete);
         await Assert.That(request.RequestUri).IsEqualTo(Terminal);
+    }
+
+    [Test]
+    [Arguments(HttpStatusCode.InternalServerError, WireBodyData.ServiceUnavailableTimeoutError, false)]
+    [Arguments(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableTimeoutOtherServiceError, false)]
+    [Arguments(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError, false)]
+    [Arguments(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableTimeoutError, true)]
+    [Arguments(HttpStatusCode.NoContent, "", true)]
+    public async Task AssertRemovalAcceptedAsync_Should_Reject_Any_Removal_But_A_204_Or_The_Daemon_Timeout_With_The_Terminal_Gone(
+        HttpStatusCode status, string body, bool terminalRemains)
+    {
+        var payload = new FixtureLoader().LoadJson("Serialization.known-persistent-pty.json");
+        var listed = WireBodyData.Envelope(terminalRemains ? $"[{payload}]" : "[]");
+        using var scenario = ContractScenario.Responding(request => new HttpResponseMessage(
+            request.Method == HttpMethod.Delete ? status : HttpStatusCode.OK)
+        {
+            Content = new StringContent(request.Method == HttpMethod.Delete
+                ? body : listed),
+        });
+        var removed = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId)
+            .RemoveAsync(OpenCodeRequestOptions.NoThrow);
+        var remaining = await scenario.Client.PersistentPtys.ListPersistentPtysAsync("ses_1");
+
+        _ = await Assert.That(async () => await PersistentPtyLiveTests.AssertRemovalAcceptedAsync(removed, remaining, PtyId))
+            .Throws<AssertionException>();
+    }
+
+    [Test]
+    [Arguments(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableTimeoutError)]
+    [Arguments(HttpStatusCode.NoContent, "")]
+    public async Task AssertRemovalAcceptedAsync_Should_Accept_A_204_Or_The_Daemon_Timeout_Once_The_Terminal_Is_Gone(
+        HttpStatusCode status, string body)
+    {
+        using var scenario = ContractScenario.Responding(request => new HttpResponseMessage(
+            request.Method == HttpMethod.Delete ? status : HttpStatusCode.OK)
+        {
+            Content = new StringContent(request.Method == HttpMethod.Delete
+                ? body : WireBodyData.Envelope("[]")),
+        });
+        var removed = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId)
+            .RemoveAsync(OpenCodeRequestOptions.NoThrow);
+        var remaining = await scenario.Client.PersistentPtys.ListPersistentPtysAsync("ses_1");
+
+        await PersistentPtyLiveTests.AssertRemovalAcceptedAsync(removed, remaining, PtyId);
     }
 
     [Test]
