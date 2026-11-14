@@ -31,7 +31,7 @@ internal static class ExperimentalModelPolicy
             {
                 if (!reachedBy.TryGetValue(name, out var ids))
                 {
-                    ids = new SortedSet<string>(StringComparer.Ordinal);
+                    ids = [with(StringComparer.Ordinal)];
                     reachedBy.Add(name, ids);
                 }
 

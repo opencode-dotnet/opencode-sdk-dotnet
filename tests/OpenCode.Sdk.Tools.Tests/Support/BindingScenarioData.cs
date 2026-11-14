@@ -325,7 +325,7 @@ internal static class BindingScenarioData
             Reason = reason,
         };
 
-    public static Dictionary<string, GroupCuration> Groups() => new(StringComparer.Ordinal);
+    public static Dictionary<string, GroupCuration> Groups() => [with(StringComparer.Ordinal)];
 
     public static Dictionary<string, GroupCuration> Groups(string wireName, GroupCuration group) =>
         new(StringComparer.Ordinal)

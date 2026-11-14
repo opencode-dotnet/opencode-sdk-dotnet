@@ -34,11 +34,11 @@ internal sealed class HoistedCarrierComposer(
 
     public IReadOnlyList<GeneratedTypeNameClaim> Claims => _claims.AsReadOnly();
 
-    private readonly Dictionary<string, string> _byRecordSet = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _byRecordSet = [with(StringComparer.Ordinal)];
 
-    private readonly Dictionary<string, HoistedInterfacePlan> _interfaces = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, HoistedInterfacePlan> _interfaces = [with(StringComparer.Ordinal)];
 
-    private readonly HashSet<string> _usedRows = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _usedRows = [with(StringComparer.Ordinal)];
 
     public IReadOnlyList<HoistedInterfacePlan> Interfaces =>
         Array.AsReadOnly([.. _interfaces.Values.OrderBy(static plan => plan.Name, StringComparer.Ordinal)]);

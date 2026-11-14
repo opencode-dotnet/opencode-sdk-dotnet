@@ -18,7 +18,7 @@ internal sealed class TypePlanBinder(
         ArgumentException.ThrowIfNullOrWhiteSpace(propertyName);
         ArgumentNullException.ThrowIfNull(schema);
 
-        return BindCore(schema, $"{schemaKey}.{propertyName}", []);
+        return BindCore(schema, $"{schemaKey}.{propertyName}", [with(StringComparer.Ordinal)]);
     }
 
     public TypeReferencePlan? BindStructuralArm(string schemaKey, string armName, SchemaNode schema)
@@ -27,7 +27,7 @@ internal sealed class TypePlanBinder(
         ArgumentException.ThrowIfNullOrWhiteSpace(armName);
         ArgumentNullException.ThrowIfNull(schema);
 
-        return BindCore(schema, $"{schemaKey}/anyOf/{armName}", []);
+        return BindCore(schema, $"{schemaKey}/anyOf/{armName}", [with(StringComparer.Ordinal)]);
     }
 
     private TypeReferencePlan? BindCore(SchemaNode schema, string subject, HashSet<string> aliases) => schema switch

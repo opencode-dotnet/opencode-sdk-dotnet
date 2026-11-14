@@ -38,7 +38,7 @@ internal static class SchemaNodeComparer
 
         private readonly IReadOnlyDictionary<string, string>? _aliases = aliases;
 
-        private readonly HashSet<string> _visitedPairs = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _visitedPairs = [with(StringComparer.Ordinal)];
 
         public bool NodesEqual(SchemaNode left, SchemaNode right)
         {

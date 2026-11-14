@@ -9,12 +9,13 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 /// </summary>
 internal static class SpecialNumberPolicy
 {
-    private static readonly HashSet<string> SpecialNumberValues = new(StringComparer.Ordinal)
-    {
+    private static readonly HashSet<string> SpecialNumberValues =
+    [
+        with(StringComparer.Ordinal),
         "NaN",
         "Infinity",
         "-Infinity",
-    };
+    ];
 
     /// <summary>Whether a union is the special-number union, nested one level as the v2 dialect writes it or not.</summary>
     public static bool IsWhole(IEnumerable<IOpenApiSchema> branches)

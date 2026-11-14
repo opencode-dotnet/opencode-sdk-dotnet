@@ -2,7 +2,7 @@ namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
 public sealed class GeneratedSuppressionTargetClassifierTests
 {
-    private readonly HashSet<string> _generated = new(StringComparer.Ordinal) { "OpenCode.Sdk.Models.AgentInfo" };
+    private readonly HashSet<string> _generated = [with(StringComparer.Ordinal), "OpenCode.Sdk.Models.AgentInfo"];
 
     [Test]
     [Arguments("T:OpenCode.Sdk.Models.AgentInfo")]

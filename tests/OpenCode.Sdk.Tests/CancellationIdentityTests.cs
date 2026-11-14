@@ -652,7 +652,7 @@ public sealed class CancellationIdentityTests
             "missing-row" => known,
             _ => throw new InvalidOperationException(challenge),
         };
-        var rows = challenge == "missing-row" ? new HashSet<string>(StringComparer.Ordinal)
+        var rows = challenge == "missing-row" ? [with(StringComparer.Ordinal)]
             : Cases().Select(static entry => entry.Row).ToHashSet(StringComparer.Ordinal);
 
         var failure = Assert.Throws<InvalidOperationException>(() => _ = CancellationDoorClassifier.RequireRow(member, rows));

@@ -6,8 +6,8 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class ProjectionState
 {
-    private readonly Dictionary<string, SchemaNode> _graph = new(StringComparer.Ordinal);
-    private readonly HashSet<IOpenApiSchema> _visited = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<string, SchemaNode> _graph = [with(StringComparer.Ordinal)];
+    private readonly HashSet<IOpenApiSchema> _visited = [with(ReferenceEqualityComparer.Instance)];
 
     public ProjectionState(IngestionErrorCollector errors, OpenApiDocument document)
     {

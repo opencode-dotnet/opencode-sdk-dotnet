@@ -6,8 +6,8 @@ namespace OpenCode.Sdk.Tools.Tests.CommentResidue.Support;
 internal sealed class CommentResidueScenario
 {
     private readonly MockFileSystem _fileSystem = new();
-    private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _ignored = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _files = [with(StringComparer.Ordinal)];
+    private readonly HashSet<string> _ignored = [with(StringComparer.Ordinal)];
 
     /// <summary>Adds one repository file from its lines, joined with line feeds as the repository stores them.</summary>
     public CommentResidueScenario WithFile(string path, params string[] lines)

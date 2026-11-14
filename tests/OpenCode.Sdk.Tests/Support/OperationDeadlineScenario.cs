@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tests.Support;
 
 internal sealed class OperationDeadlineScenario
 {
-    private readonly Dictionary<string, ControlledOperationDeadline> _deadlines = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ControlledOperationDeadline> _deadlines = [with(StringComparer.Ordinal)];
     private readonly ConcurrentQueue<Task> _operations = new();
 
     public OperationDeadlineScenario()

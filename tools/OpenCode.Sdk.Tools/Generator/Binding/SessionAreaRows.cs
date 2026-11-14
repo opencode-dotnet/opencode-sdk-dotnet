@@ -17,7 +17,7 @@ internal sealed class SessionAreaRows
     private static readonly string[] ReservedAreaNames = ["Common", "Internal", "Hosting", "Properties", "Models"];
 
     private readonly IReadOnlyList<SessionAreaCuration> _rows;
-    private readonly HashSet<string> _usedPatterns = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _usedPatterns = [with(StringComparer.Ordinal)];
 
     private SessionAreaRows(IReadOnlyList<SessionAreaCuration> rows)
     {

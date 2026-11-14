@@ -28,7 +28,7 @@ internal sealed class PtyReceiveQueueMacro
     private const int UsageExitCode = 2;
     private const int MacroPrefixLength = 2;
 
-    private readonly List<Row> _rows = new(RowCapacity);
+    private readonly List<Row> _rows = [with(RowCapacity)];
     private readonly List<string> _absent = [];
     private readonly List<string> _burst = [];
     private readonly List<string> _formulas = [];

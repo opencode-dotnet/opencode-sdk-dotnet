@@ -7,9 +7,9 @@
     <LatestTargetFramework>net11.0</LatestTargetFramework>
     <AllTargetFrameworks>netstandard2.0;net472;$(DefaultTargetFramework);$(LatestTargetFramework)</AllTargetFrameworks>
     <TestTargetFrameworks>$(DefaultTargetFramework);$(LatestTargetFramework)</TestTargetFrameworks>
-    <!-- Pinned: 'latest' resolves differently per machine and SDK. C# 14 on net472 is
+    <!-- Pinned: 'latest' resolves differently per machine and SDK. C# 15 on net472 is
          unsupported-but-standard practice via polyfills (Polly/Serilog do the same). -->
-    <LangVersion>14.0</LangVersion>
+    <LangVersion>15.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <!-- The single source of the package version; nothing else declares Version or PackageVersion.
@@ -124,7 +124,7 @@
   </ItemGroup>
 
   <!-- Downlevel support: Polyfill (source-only, internal) supplies the compiler attributes
-       C# 14 needs on netstandard2.0/net472 plus BCL API polyfills (Stream Memory overloads,
+       C# 15 needs on netstandard2.0/net472 plus BCL API polyfills (Stream Memory overloads,
        Task.WaitAsync, ...). Upstream guidance: reference it on ALL TFMs, not just downlevel. -->
   <PropertyGroup>
     <PolyArgumentExceptions>true</PolyArgumentExceptions>
