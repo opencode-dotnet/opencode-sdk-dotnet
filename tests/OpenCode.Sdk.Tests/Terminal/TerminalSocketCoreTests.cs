@@ -527,15 +527,22 @@ public sealed class TerminalSocketCoreTests
         var time = new ManualTimeProvider();
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
         using var transport = Substitute.For<ITerminalWebSocket>();
-        var physicalSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var recordedSend = Task.CompletedTask;
+        using var physicalRelease = new ManualResetEventSlim();
+        var physicalReleased = false;
+        var recordedSendPublished = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
         _ = transport.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>())
             .Returns(call => socket.ReceiveAsync(call.Arg<ArraySegment<byte>>(), call.Arg<CancellationToken>()));
         _ = transport.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
-            .Returns(physicalSend.Task).AndDoes(call =>
+            .Returns(call =>
             {
-                recordedSend = socket.SendAsync(
+                var recordedSend = socket.SendAsync(
                     call.Arg<ArraySegment<byte>>(), call.Arg<WebSocketMessageType>(), call.Arg<CancellationToken>());
+                if (recordedSendPublished.TrySetResult(recordedSend))
+                {
+                    physicalReleased = physicalRelease.Wait(HangGuard.Bound);
+                }
+
+                return Task.CompletedTask;
             });
         _ = transport.CloseOutputAsync(Arg.Any<CancellationToken>())
             .Returns(call => socket.CloseOutputAsync(call.Arg<CancellationToken>()));
@@ -545,14 +552,18 @@ public sealed class TerminalSocketCoreTests
         var resumed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var release = new ManualResetEventSlim();
         var released = false;
-        // Hold the first call in its own post-send step, before it releases the send gate, so only
-        // the queued call can expire; the hold never throws, and the test thread asserts its result.
+        var onSentOnPool = false;
+        // Hold the first call on its dedicated thread in its post-send step, before it releases the
+        // send gate, so only the queued call can expire; the hold never throws, and the test thread
+        // asserts its result.
         var holdAfterSend = new TerminalSendActions(OnSent: () =>
         {
+            onSentOnPool = Thread.CurrentThread.IsThreadPoolThread;
             _ = resumed.TrySetResult(true);
             released = release.Wait(HangGuard.Bound);
         });
-        var first = core.SendAsync(static payload => payload, new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, holdAfterSend, CancellationToken.None);
+        var first = DedicatedThread.Run(() => core.SendAsync(
+            static payload => payload, new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, holdAfterSend, CancellationToken.None)).Unwrap();
 
         await socket.SendEntered;
         var queued = core.SendAsync(new ArraySegment<byte>([0x62]), WebSocketMessageType.Text, CancellationToken.None);
@@ -560,8 +571,8 @@ public sealed class TerminalSocketCoreTests
         try
         {
             socket.ReleaseSends();
-            await recordedSend.WaitAsync(HangGuard.Bound);
-            physicalSend.SetResult(true);
+            await (await recordedSendPublished.Task.WaitAsync(HangGuard.Bound)).WaitAsync(HangGuard.Bound);
+            physicalRelease.Set();
             await resumed.Task.WaitAsync(HangGuard.Bound);
             await time.WaitForArmedAsync(core.SendTimeout, HangGuard.Bound, count: 2);
             time.Advance(core.SendTimeout);
@@ -575,8 +586,8 @@ public sealed class TerminalSocketCoreTests
         {
             release.Set();
             socket.ReleaseSends();
-            await recordedSend.WaitAsync(HangGuard.Bound);
-            _ = physicalSend.TrySetResult(true);
+            physicalRelease.Set();
+            await (await recordedSendPublished.Task.WaitAsync(HangGuard.Bound)).WaitAsync(HangGuard.Bound);
             await first.WaitAsync(HangGuard.Bound);
         }
 
@@ -587,6 +598,8 @@ public sealed class TerminalSocketCoreTests
         await Assert.That(socket.DisposeCalls).IsEqualTo(0);
         await core.SendAsync(new ArraySegment<byte>([0x63]), WebSocketMessageType.Text, CancellationToken.None);
         await Assert.That(socket.SentMessages.Count).IsEqualTo(2);
+        await Assert.That(onSentOnPool).IsFalse();
+        await Assert.That(physicalReleased).IsTrue();
     }
 
     [Test]
