@@ -30,6 +30,7 @@ Nightly builds of `master` are on
 
 - `LanguageModels.WaitForDefaultAsync` now waits the way opencode's CLI does at 2.3.0: it polls the location's plugin list every 25 ms for up to five seconds, until non-empty, then reads the default model once. A `ServiceUnavailableError` from that read now surfaces where it was retried up to twelve times. The call is unchanged: `await client.LanguageModels.WaitForDefaultAsync();`.
 - `OpenCodeServer.StopAsync` no longer asks the daemon to shut its persistent terminals down before it ends the process, and makes no request to the daemon at all, as the CLI's `service stop` does since opencode 2.3.0; ending the daemon still ends its terminals.
+- The status sentence of `OpenCodeApiException.Message` now includes the server's own message, chosen as opencode's own client chooses it, for example `The opencode API returned status 503 ('ServiceUnavailableError'): opencode-pty request timed out.`. `Error`, `Status` and `RawBody` are unchanged; code that matched the old message text exactly now sees the longer text whenever the server sends a non-empty message.
 
 ## [1.0.1] - 2026-11-11
 

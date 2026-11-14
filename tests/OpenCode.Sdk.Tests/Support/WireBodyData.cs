@@ -43,6 +43,25 @@ internal static class WireBodyData
 
     public const string UnauthorizedError = "{\"_tag\":\"UnauthorizedError\",\"message\":\"password required\"}";
 
+    public const string ServiceUnavailableTimeoutError =
+        "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"opencode-pty request timed out\",\"service\":\"opencode-pty\"}";
+
+    public const string FutureErrorWithNestedMessage = "{\"_tag\":\"SomeFutureError\",\"data\":{\"message\":\"x\"}}";
+
+    public const string FutureErrorWithBothMessages =
+        "{\"_tag\":\"SomeFutureError\",\"message\":\"top\",\"data\":{\"message\":\"nested\"}}";
+
+    public const string FutureErrorWithSpacedMessage = "{\"_tag\":\"SomeFutureError\",\"message\":\" spaced! \"}";
+
+    public const string MessageLessFutureError = "{\"_tag\":\"MessageLessFutureError\"}";
+
+    public const string FutureErrorWithEmptyMessage =
+        "{\"_tag\":\"SomeFutureError\",\"message\":\"\",\"data\":{\"message\":\"nested\"}}";
+
+    public const string FutureErrorWithNullData = "{\"_tag\":\"SomeFutureError\",\"data\":null}";
+
+    public const string FutureErrorWithScalarData = "{\"_tag\":\"SomeFutureError\",\"data\":\"scalar\"}";
+
     public const string SessionNotFoundError = "{\"_tag\":\"SessionNotFoundError\",\"sessionID\":\"ses_9\",\"message\":\"gone\"}";
 
     public const string MessageNotFoundError =

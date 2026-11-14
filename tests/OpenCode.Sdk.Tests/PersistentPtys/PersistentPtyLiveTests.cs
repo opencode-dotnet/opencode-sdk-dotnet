@@ -189,8 +189,8 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
         var output = await SubmitOneLineAsync(terminal, cancellationToken);
         await Assert.That(output).Contains(SubmitMarker);
 
-        var removed = await terminal.RemoveAsync(cancellationToken: cancellationToken);
-        await Assert.That(removed.Status).IsEqualTo(204);
+        var removed = await terminal.RemoveAsync(OpenCodeRequestOptions.NoThrow, cancellationToken);
+        await Assert.That(removed.Status).IsEqualTo(204).Because("Server answer: " + removed.RawBody);
 
         Console.WriteLine(
             "ppty-live: arm=round-trip id=" + created.PersistentPty.Id +
@@ -307,8 +307,8 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
 
         var drive = await DriveTerminalAsync(client, terminal, sessionId, cancellationToken);
 
-        var removed = await terminal.RemoveAsync(cancellationToken: cancellationToken);
-        await Assert.That(removed.Status).IsEqualTo(204);
+        var removed = await terminal.RemoveAsync(OpenCodeRequestOptions.NoThrow, cancellationToken);
+        await Assert.That(removed.Status).IsEqualTo(204).Because("Server answer: " + removed.RawBody);
 
         var remaining = await client.PersistentPtys.ListPersistentPtysAsync(
             sessionId, cancellationToken: cancellationToken);
