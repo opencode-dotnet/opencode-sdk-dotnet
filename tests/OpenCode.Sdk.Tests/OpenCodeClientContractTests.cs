@@ -14,6 +14,13 @@ public sealed class OpenCodeClientContractTests
         await Assert.That(request.Method).IsEqualTo(HttpMethod.Get);
     }
 
+    private static async Task<OpenCodeApiException> ThrowsApiFailureAsync(Func<Task> call)
+    {
+        var exception = await Assert.That(call).Throws<OpenCodeApiException>();
+        // Throws verifies that the call produced an exception of this type.
+        return exception!;
+    }
+
     [Test]
     public async Task GetInfoAsync_Should_Return_The_Typed_Payload()
     {
@@ -62,11 +69,10 @@ public sealed class OpenCodeClientContractTests
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
 
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Server.GetInfoAsync())
-            .Throws<OpenCodeApiException>();
+        var exception = await ThrowsApiFailureAsync(
+            async () => _ = await scenario.Client.Server.GetInfoAsync());
 
-        await Assert.That(exception!.Status).IsEqualTo(401);
+        await Assert.That(exception.Status).IsEqualTo(401);
         await Assert.That(exception.Error).IsTypeOf<UnauthorizedError>();
         await Assert.That(((UnauthorizedError)exception.Error!).Message).IsEqualTo("password required");
         await Assert.That(exception.RawBody).Contains("UnauthorizedError");
@@ -74,9 +80,9 @@ public sealed class OpenCodeClientContractTests
 
     /// <summary>
     /// The first-contact failure PF-8 recorded: an <c>opencode serve</c> process always runs with a
-    /// password, answers an uncredentialed request with a bare 401, and the caller sees nothing to
-    /// diagnose with. The diagnostic rides the exception message only when the client itself sent no
-    /// credential, so it can never mislead a caller whose password was merely wrong.
+    /// password and answers an uncredentialed request with UnauthorizedError. That body cannot tell a
+    /// missing credential from a wrong one, so the hint rides the exception message only when the
+    /// client itself sent no credential, never when its password was merely wrong.
     /// </summary>
     [Test]
     [Arguments(WireBodyData.UnauthorizedError)]
@@ -91,7 +97,7 @@ public sealed class OpenCodeClientContractTests
 
         await Assert.That(exception!.Status).IsEqualTo(401);
         await Assert.That(exception.Message).IsEqualTo(
-            "The opencode API returned status 401" + (body.Length == 0 ? "." : " ('UnauthorizedError').") +
+            "The opencode API returned status 401" + (body.Length == 0 ? "." : " ('UnauthorizedError'): password required.") +
             " The client sent no credential: the opencode CLI always starts its server with a password, " +
             "so pass the one it printed as 'server password <pw>', or the one you set through " +
             "OPENCODE_PASSWORD, in OpenCodeClientOptions.Password.");
@@ -103,12 +109,51 @@ public sealed class OpenCodeClientContractTests
         using var scenario = ContractScenario.RespondingToCredentialed(
             HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError, "wrong-password");
 
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Server.GetInfoAsync())
-            .Throws<OpenCodeApiException>();
+        var exception = await ThrowsApiFailureAsync(
+            async () => _ = await scenario.Client.Server.GetInfoAsync());
 
-        await Assert.That(exception!.Status).IsEqualTo(401);
-        await Assert.That(exception.Message).IsEqualTo("The opencode API returned status 401 ('UnauthorizedError').");
+        await Assert.That(exception.Status).IsEqualTo(401);
+        await Assert.That(exception.Message).IsEqualTo("The opencode API returned status 401 ('UnauthorizedError'): password required.");
+    }
+
+    [Test]
+    [Arguments(WireBodyData.ServiceUnavailableTimeoutError,
+        "The opencode API returned status 503 ('ServiceUnavailableError'): opencode-pty request timed out.")]
+    [Arguments(WireBodyData.FutureErrorWithNestedMessage,
+        "The opencode API returned status 500 ('SomeFutureError'): x.")]
+    [Arguments(WireBodyData.FutureErrorWithBothMessages,
+        "The opencode API returned status 500 ('SomeFutureError'): top.")]
+    [Arguments(WireBodyData.FutureErrorWithSpacedMessage,
+        "The opencode API returned status 500 ('SomeFutureError'):  spaced! .")]
+    public async Task ApiFailure_Should_Include_The_Server_Message_Upstream_Selects(string body, string expectedMessage)
+    {
+        var status = body == WireBodyData.ServiceUnavailableTimeoutError
+            ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.InternalServerError;
+        using var scenario = ContractScenario.Responding(status, body);
+
+        var exception = await ThrowsApiFailureAsync(
+            async () => _ = await scenario.Client.LanguageModels.ListModelsAsync());
+
+        await Assert.That(exception.Message).IsEqualTo(expectedMessage);
+        await Assert.That(exception.Status).IsEqualTo((int)status);
+        await Assert.That(exception.RawBody).IsEqualTo(body);
+    }
+
+    [Test]
+    [Arguments(WireBodyData.MessageLessFutureError, "MessageLessFutureError")]
+    [Arguments(WireBodyData.FutureErrorWithEmptyMessage, "SomeFutureError")]
+    [Arguments(WireBodyData.FutureErrorWithNullData, "SomeFutureError")]
+    [Arguments(WireBodyData.FutureErrorWithScalarData, "SomeFutureError")]
+    public async Task ApiFailure_Should_Keep_The_Status_Sentence_When_Upstream_Selects_No_Message(string body, string tag)
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.InternalServerError, body);
+
+        var exception = await ThrowsApiFailureAsync(
+            async () => _ = await scenario.Client.LanguageModels.ListModelsAsync());
+
+        await Assert.That(exception.Message).IsEqualTo($"The opencode API returned status 500 ('{tag}').");
+        await Assert.That(exception.Error).IsTypeOf<UnknownOpenCodeError>();
+        await Assert.That(((UnknownOpenCodeError)exception.Error!).Tag).IsEqualTo(tag);
     }
 
     /// <summary>The hint is scoped to 401: no other status is evidence about the credential.</summary>

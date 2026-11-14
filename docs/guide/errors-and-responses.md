@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -48,9 +48,11 @@ catch (OpenCodeApiException failure)
 ```
 
 `OpenCodeApiException.Status`, `.Error`, and `.RawBody` mean exactly what their spine counterparts
-mean — including `RawBody`, so an error you could not type is still fully inspectable. The whole
-family descends from `OpenCodeException`, so one `catch` covers everything the SDK throws on
-purpose:
+mean — including `RawBody`, so an error you could not type is still fully inspectable.
+`OpenCodeApiException.Message`'s status sentence includes the server's own message before any 401
+hint: a top-level string `message` wins over `data.message`, as opencode's own client chooses it.
+An empty selected string adds nothing. The whole family descends from `OpenCodeException`, so one
+`catch` covers everything the SDK throws on purpose:
 
 ```text
 OpenCodeException
@@ -166,22 +168,27 @@ SDK could type. `RawBody` then has whatever the server did send, which can be no
 
 An `opencode serve` process **always** runs with a password — the one you set through
 `OPENCODE_PASSWORD`, or one it generates and prints as `server password <pw>` — and it rejects an
-uncredentialed request before the API layer runs. The answer is a `401` carrying the declared
-`UnauthorizedError` (`Authentication required`) with a `WWW-Authenticate: Basic` challenge, so
-`Error` is typed — but the same answer comes back whether the client sent no credential or a wrong
-one, so the body cannot tell you which mistake you made.
+uncredentialed request before the API layer runs. The CLI's server answers with `401`, the typed
+`UnauthorizedError` (`Authentication required`) and a `WWW-Authenticate: Basic realm="Secure Area"`
+challenge. The same answer comes back for a missing or a wrong credential, so the body cannot tell
+you which mistake you made.
 
 The SDK can. When a call answers 401 *and* the client was built
-with `Password` left `null`, the exception message carries one extra sentence:
+with `Password` left `null`, the exception message appends one extra sentence after the status
+sentence, which includes the server's own message when present:
 
 ```text
-The opencode API returned status 401. The client sent no credential: the opencode CLI always
-starts its server with a password, so pass the one it printed as 'server password <pw>', or the
-one you set through OPENCODE_PASSWORD, in OpenCodeClientOptions.Password.
+The opencode API returned status 401 ('UnauthorizedError'): Authentication required. The client
+sent no credential: the opencode CLI always starts its server with a password, so pass the one
+it printed as 'server password <pw>', or the one you set through OPENCODE_PASSWORD, in
+OpenCodeClientOptions.Password.
 ```
 
+If a server answers with no body, the status sentence has no tag or server text, and the hint is still added.
+
 It is scoped as tightly as it reads: 401 only, and only when no password was configured. A
-credential the server *rejected* is a different mistake and keeps the plain message. And it is a
+credential the server *rejected* is a different mistake and keeps only the status sentence,
+including the server's own message when present. And it is a
 message, not a new member — the `NoThrow` envelope is unchanged, where `Status == 401` on a client
 you built without a password is the same signal.
 
