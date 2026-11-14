@@ -9,6 +9,10 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔧 Changes
+
+- The status sentence of `OpenCodeApiException.Message` now includes the server's own message, chosen as opencode's own client chooses it, for example `The opencode API returned status 503 ('ServiceUnavailableError'): opencode-pty request timed out.`. `Error`, `Status` and `RawBody` are unchanged; code that matched the old message text exactly now sees the longer text whenever the server sends a non-empty message.
+
 ## [1.0.1] - 2026-11-11
 
 **`1.0.1` pins opencode `2.2.6` and is built on the GA .NET 11 SDK.** It is a patch that moves the

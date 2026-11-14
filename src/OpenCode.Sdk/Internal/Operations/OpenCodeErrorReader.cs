@@ -15,7 +15,7 @@ internal static class OpenCodeErrorReader
     private const int UnauthorizedStatus = 401;
 
     /// <summary>
-    /// The sentence a bare 401 cannot supply itself. It names the option rather than reading the
+    /// The hint distinguishes missing from wrong credentials; a 401 cannot. It names the option, not the
     /// environment: the SDK never reads an environment variable, so resolving
     /// <c>OPENCODE_PASSWORD</c> stays the caller's own step.
     /// </summary>
@@ -48,17 +48,16 @@ internal static class OpenCodeErrorReader
     }
 
     /// <summary>
-    /// Builds the failure an error status raises on the throwing channel. A 401 reached by a client
-    /// that was built without a password carries one extra sentence: an <c>opencode serve</c>
-    /// process always runs with a password and short-circuits an uncredentialed request with an
-    /// empty 401 body, so the wire itself gives that caller nothing to diagnose with.
+    /// Builds the throwing-channel failure. Its status sentence includes the server's message,
+    /// selected as upstream's <c>client.ts</c> <c>declared(body)</c> does. A passwordless client's 401
+    /// adds a hint because a 401 cannot distinguish a missing credential from a wrong one.
     /// </summary>
     /// <param name="status">The HTTP status the server answered with.</param>
     /// <param name="error">The typed error the body carried, when there was one.</param>
     /// <param name="rawBody">The exact response body, retained on every failure.</param>
     /// <param name="credentialSent">
-    /// Whether the request carried a Basic credential. A wrong password is not a missing one, so the
-    /// message is unchanged whenever the client had a credential to send.
+    /// Whether the request carried a Basic credential. The hint is withheld when a credential was
+    /// sent; the status sentence still includes the server's message when present.
     /// </param>
     public static OpenCodeApiException CreateApiException(int status, IOpenCodeError? error, string? rawBody,
         bool credentialSent)
@@ -67,6 +66,28 @@ internal static class OpenCodeErrorReader
         var message = error is null
             ? $"The opencode API returned status {statusText}."
             : $"The opencode API returned status {statusText} ('{error.Tag}').";
+
+        if (error is not null)
+        {
+            // Read only returns a non-null error after parsing the body as JSON.
+            using var document = JsonDocument.Parse(rawBody!);
+            var root = document.RootElement;
+            string? selected = null;
+            if (root.TryGetProperty("message", out var top) && top.ValueKind is JsonValueKind.String)
+            {
+                selected = top.GetString();
+            }
+            else if (root.TryGetProperty("data", out var data) && data.ValueKind is JsonValueKind.Object
+                     && data.TryGetProperty("message", out var nested) && nested.ValueKind is JsonValueKind.String)
+            {
+                selected = nested.GetString();
+            }
+
+            if (selected is { Length: > 0 })
+            {
+                message = $"The opencode API returned status {statusText} ('{error.Tag}'): {selected}.";
+            }
+        }
 
         if (status is UnauthorizedStatus && !credentialSent)
         {
