@@ -41,7 +41,7 @@ kind follows the suppression policy in `slop-review.md`.
   repository-root `.globalconfig`, with the same winner-naming reason and a removal trigger. A
   file-scoped `.editorconfig` severity hides the diagnostic, but the analyzer still runs: Roslyn
   skips an analyzer only when all its diagnostics are off for the whole compilation.
-- `LangVersion=14.0` and `AnalysisLevel=10.0` are deliberate numeric pins. Never replace either
+- `LangVersion=14.0` and `AnalysisLevel=11.0` are deliberate numeric pins. Never replace either
   with `latest`.
 - C# 14 on net472 is unsupported by the platform documentation but deliberate repository practice,
   enabled by source polyfills. Future language changes move the numeric pin intentionally.
