@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -302,7 +302,7 @@ The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: t
 `tools/jscpd/`, installed with the machine's Bun from its own lockfile, at a 50-token minimum over four
 scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
 `tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
-duplicated lines, and `tests/` above 5%. The tests ceiling is the measurement plus 0.25 points,
+duplicated lines, and `tests/` above 4%. The tests ceiling is the measurement plus 0.25 points,
 rounded up to the next 0.5%, and it only ever falls: a change that removes test clones lowers it
 to that value when it is lower than the current ceiling. Generated output is
 reported, not gated. The generator's manifest decides which `src/` files are generated, so the split

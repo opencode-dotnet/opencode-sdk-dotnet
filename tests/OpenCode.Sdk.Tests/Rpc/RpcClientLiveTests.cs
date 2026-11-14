@@ -97,12 +97,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         }
 
         await LiveReadiness.PluginAsync(client, TestRpcPlugin.Id, cancellationToken);
-        var response = await client.Rpc.CallAsync(
-            TestRpcPlugin.Id,
-            MissingMethod,
-            new RpcCallRequestBuilder().WithNonce(Nonce).Build(),
-            OpenCodeRequestOptions.NoThrow,
-            cancellationToken);
+        var response = await CallMissingMethodAsync(client, cancellationToken);
 
         var error = await RequireRpcErrorAsync(response, 400);
         await Assert.That(error.Type).IsEqualTo(MissingMethodReason);
@@ -304,12 +299,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
             return false;
         }
 
-        var response = await client.Rpc.CallAsync(
-            TestRpcPlugin.Id,
-            MissingMethod,
-            new RpcCallRequestBuilder().WithNonce(Nonce).Build(),
-            OpenCodeRequestOptions.NoThrow,
-            cancellationToken);
+        var response = await CallMissingMethodAsync(client, cancellationToken);
         var error = await RequireRpcErrorAsync(response, 400);
         await Assert.That(error.Type).IsEqualTo(UnavailableReason);
         await Assert.That(error.Message).IsEqualTo("RPC is unavailable: " + TestRpcPlugin.Id);
@@ -351,6 +341,14 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(rawBody).Contains(error.Type);
         return error;
     }
+
+    private static Task<RpcCallResponse> CallMissingMethodAsync(OpenCodeClient client, CancellationToken cancellationToken) =>
+        client.Rpc.CallAsync(
+            TestRpcPlugin.Id,
+            MissingMethod,
+            new RpcCallRequestBuilder().WithNonce(Nonce).Build(),
+            OpenCodeRequestOptions.NoThrow,
+            cancellationToken);
 
     private static async Task<RpcInternalError> RequireRpcInternalErrorAsync(
         RpcCallResponse response,
