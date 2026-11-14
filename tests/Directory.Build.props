@@ -10,6 +10,6 @@
          which the fee exempts. The exemption runs at most 12 months: the dependency refresh
          renews it. -->
     <Verify_SponsorshipExemption>OpenSource</Verify_SponsorshipExemption>
-    <Verify_SponsorshipExemptionUntil>2027-09</Verify_SponsorshipExemptionUntil>
+    <Verify_SponsorshipExemptionUntil>2027-11</Verify_SponsorshipExemptionUntil>
   </PropertyGroup>
 </Project>
