@@ -1,6 +1,7 @@
 using System.Net;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 
@@ -8,6 +9,8 @@ namespace OpenCode.Sdk.Tests.LanguageModels;
 
 public sealed class LanguageModelsClientContractTests
 {
+    private readonly FixtureLoader _fixtures = new();
+
     private const string KnownModel = "{\"id\":\"anthropic/claude-3-5-sonnet\",\"modelID\":\"claude-3-5-sonnet\","
         + "\"providerID\":\"anthropic\",\"name\":\"Claude 3.5 Sonnet\","
         + "\"capabilities\":{\"tools\":true,\"input\":[\"text\"],\"output\":[\"text\"]},"
@@ -76,7 +79,8 @@ public sealed class LanguageModelsClientContractTests
         using var caller = new CancellationTokenSource();
         var polls = 0;
         using var scenario = ContractScenario.Responding(request => AnswerWithModel(request,
-            request.RequestUri!.AbsolutePath == "/api/plugin" && ++polls <= 2 ? WireBodyData.EmptyPluginList : WireBodyData.OnePluginList));
+            request.RequestUri!.AbsolutePath == "/api/plugin" && ++polls <= 2
+                ? WireBodyData.EmptyPluginList : _fixtures.LoadJson("LanguageModels.one-plugin-list.json")));
 
         var response = await ConsumeWaitsAsync(time,
             token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, token),
@@ -131,7 +135,7 @@ public sealed class LanguageModelsClientContractTests
         using var caller = new CancellationTokenSource();
         using var scenario = ContractScenario.Responding(request => request.RequestUri!.AbsolutePath switch
         {
-            "/api/plugin" => Answer(HttpStatusCode.OK, WireBodyData.OnePluginList),
+            "/api/plugin" => Answer(HttpStatusCode.OK, _fixtures.LoadJson("LanguageModels.one-plugin-list.json")),
             "/api/model/default" => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError),
             _ => throw new InvalidOperationException("Unexpected request path."),
         });
@@ -162,7 +166,7 @@ public sealed class LanguageModelsClientContractTests
         using var caller = new CancellationTokenSource();
         using var scenario = ContractScenario.Responding(request => request.RequestUri!.AbsolutePath switch
         {
-            "/api/plugin" => Answer(HttpStatusCode.OK, WireBodyData.OnePluginList),
+            "/api/plugin" => Answer(HttpStatusCode.OK, _fixtures.LoadJson("LanguageModels.one-plugin-list.json")),
             "/api/model/default" => Answer(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError),
             _ => throw new InvalidOperationException("Unexpected request path."),
         });
@@ -224,7 +228,8 @@ public sealed class LanguageModelsClientContractTests
     {
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
-        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request, WireBodyData.OnePluginList));
+        using var scenario = ContractScenario.Responding(request =>
+            AnswerWithModel(request, _fixtures.LoadJson("LanguageModels.one-plugin-list.json")));
         var response = await ConsumeWaitsAsync(time, token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(
             ForwardedRequest(), ForwardedOptions(), token), [], caller);
         await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
@@ -239,7 +244,8 @@ public sealed class LanguageModelsClientContractTests
     public async Task WaitForDefaultAsync_Should_Pass_Request_And_Options_Through_The_Public_Door()
     {
         using var caller = new CancellationTokenSource();
-        using var scenario = ContractScenario.Responding(request => AnswerWithModel(request, WireBodyData.OnePluginList));
+        using var scenario = ContractScenario.Responding(request =>
+            AnswerWithModel(request, _fixtures.LoadJson("LanguageModels.one-plugin-list.json")));
         var response = await scenario.Client.LanguageModels.WaitForDefaultAsync(
             ForwardedRequest(), ForwardedOptions(), caller.Token).WaitAsync(HangGuard.Bound);
         await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");

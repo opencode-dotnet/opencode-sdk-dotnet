@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using static OpenCode.Sdk.Tests.Events.Support.EventStreamSteps;
 
@@ -11,6 +12,10 @@ namespace OpenCode.Sdk.Tests.Events;
 /// </summary>
 public sealed class EventsClientIdleWindowTests
 {
+    private readonly FixtureLoader _fixtures = new();
+
+    private string SessionCreatedFrame => WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json"));
+
     [Test]
     public async Task A_Connected_Stream_Should_Be_Cut_After_45_Seconds_Without_A_Byte()
     {
@@ -75,11 +80,9 @@ public sealed class EventsClientIdleWindowTests
         await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
         server.Time.Advance(window - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
-        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
+        body.Append(SessionCreatedFrame);
 
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
+        await AssertSessionCreatedAsync(await next.WaitAsync(HangGuard.Bound), events, server);
     }
 
     /// <summary>A heartbeat re-arms the full idle window before the next empty read, without delivering an event.</summary>
@@ -153,11 +156,9 @@ public sealed class EventsClientIdleWindowTests
         await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(IdleWindow - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
-        body.Append(" heartbeat\n\n" + WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
+        body.Append(" heartbeat\n\n" + SessionCreatedFrame);
 
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
+        await AssertSessionCreatedAsync(await next.WaitAsync(HangGuard.Bound), events, server);
     }
 
     [Test]
@@ -175,9 +176,14 @@ public sealed class EventsClientIdleWindowTests
         await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(IdleWindow - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
-        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
+        body.Append(SessionCreatedFrame);
 
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
+        await AssertSessionCreatedAsync(await next.WaitAsync(HangGuard.Bound), events, server);
+    }
+
+    private static async Task AssertSessionCreatedAsync(bool moved, IAsyncEnumerator<IEvent> events, ScriptedEventServer server)
+    {
+        await Assert.That(moved).IsTrue();
         await Assert.That(events.Current).IsTypeOf<SessionCreated>();
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
@@ -192,7 +198,7 @@ public sealed class EventsClientIdleWindowTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         server.Time.Advance(TimeSpan.FromMinutes(10));
-        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
+        body.Append(SessionCreatedFrame);
 
         await Assert.That(await NextAsync(events)).IsTypeOf<SessionCreated>();
         await Assert.That(server.RequestCount).IsEqualTo(1);

@@ -9,7 +9,8 @@ public readonly record struct DeclaredErrorCase(
     string WireBody,
     string Tag,
     Type ErrorType,
-    string JsonPointer)
+    string JsonPointer,
+    string? WireBodyFixture = null)
 {
     public override string ToString() => CaseId + " " + Door.MemberName;
 }

@@ -125,10 +125,11 @@ public static class PersistentPtysDeclaredErrors
             "experimental.persistentPty.update:501:PtyFeatureUnsupportedError",
             UpdateDoor,
             HttpStatusCode.NotImplemented,
-            WireBodyData.PtyFeatureUnsupportedError,
+            string.Empty,
             "PtyFeatureUnsupportedError",
             typeof(PtyFeatureUnsupportedError),
-            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/put/responses/501/content/application~1json/schema"),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/put/responses/501/content/application~1json/schema",
+            WireBodyFixture: "PersistentPtys.feature-unsupported-error.json"),
         static () => new(
             "experimental.persistentPty.remove:404:PtyNotFoundError",
             RemoveDoor,

@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -113,10 +113,15 @@ test body states *intent*; the data it runs on lives in one of three sanctioned 
    variation reads as a domain statement in the test body, not as a diff between two
    pasted strings.
 3. **Centralized constants** — small, single-file-scoped values in a static
-   `<Domain>Data` class. Never the same literal repeated across test methods.
+   `<Domain>Data` class. A `const` or `static readonly` string field may hold a small JSON wire body:
+   one top-level JSON value whose text sits on one source line within the 150-column limit. Nesting
+   is allowed, as is composition from the class's own constants on that line; the declaration may
+   wrap after `=`. A body spanning several source lines or a wider line goes through 1 or 2. A fragment
+   that is not a complete JSON value stays only while something uses it. Never the same literal
+   repeated across test methods.
 
 A short literal is acceptable only when the literal *is* the subject under test (a
-media-type string in a media-type parsing test). Data that describes structure always
+media-type string in a media-type parsing test). Structured data beyond the boundary in item 3
 goes through 1 or 2.
 
 Representative wire fixtures prove runtime behavior, not exhaustive union membership. Do not

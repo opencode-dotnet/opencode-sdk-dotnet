@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Sessions;
@@ -12,12 +13,14 @@ namespace OpenCode.Sdk.Tests.Sessions;
 /// </summary>
 public sealed class SessionLogContractTests
 {
+    private readonly FixtureLoader _fixtures = new();
+
     [Test]
     public async Task GetLogAsync_Should_Type_Each_Frame_By_Its_Own_Tag()
     {
         using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(
-            WireBodyData.SessionCreatedEvent,
-            WireBodyData.SessionDeletedEvent,
+            _fixtures.LoadJson("Events.session-created.json"),
+            _fixtures.LoadJson("Events.session-deleted.json"),
             WireBodyData.LogSyncedEvent));
 
         var items = await CollectAsync(scenario);
@@ -37,8 +40,8 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Carry_Both_Durable_Envelope_Versions()
     {
         using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(
-            WireBodyData.SessionCreatedEvent,
-            WireBodyData.SessionDeletedEvent));
+            _fixtures.LoadJson("Events.session-created.json"),
+            _fixtures.LoadJson("Events.session-deleted.json")));
 
         var items = await CollectAsync(scenario);
 
@@ -55,8 +58,8 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Read_The_Durable_Envelope_Through_The_Union_Interface()
     {
         using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(
-            WireBodyData.SessionCreatedEvent,
-            WireBodyData.SessionDeletedEvent,
+            _fixtures.LoadJson("Events.session-created.json"),
+            _fixtures.LoadJson("Events.session-deleted.json"),
             WireBodyData.LogSyncedEvent));
 
         var items = await CollectAsync(scenario);
@@ -83,7 +86,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Group_Durable_Events_Apart_From_The_Watermark()
     {
         using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(
-            WireBodyData.SessionCreatedEvent,
+            _fixtures.LoadJson("Events.session-created.json"),
             WireBodyData.LogSyncedEvent));
 
         var items = await CollectAsync(scenario);
@@ -97,7 +100,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Preserve_A_Tag_No_Variant_Owns()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.Frames(WireBodyData.UnknownLogEvent));
+            WireBodyData.Frames(_fixtures.LoadJson("Events.unknown-log-event.json")));
 
         var items = await CollectAsync(scenario);
 
@@ -109,9 +112,9 @@ public sealed class SessionLogContractTests
     [Test]
     public async Task GetLogAsync_Should_Preserve_An_Unreadable_Known_Item_And_Its_Neighbour()
     {
-        var bad = WireBodyData.EventWithoutData("session.created");
+        var bad = WireBodyData.EventWithoutData("session.created", _fixtures.LoadJson("Events.session-created.json"));
         using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(
-            WireBodyData.SessionCreatedEvent, bad, WireBodyData.LogSyncedEvent));
+            _fixtures.LoadJson("Events.session-created.json"), bad, WireBodyData.LogSyncedEvent));
 
         var items = await Assert.That(CollectAsync(scenario)).ThrowsNothing();
 
@@ -130,7 +133,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Expose_A_Typed_Mid_Stream_Failure_Cause()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.Frames(WireBodyData.SessionCreatedEvent)
+            WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json"))
             + WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.StreamFailureCause));
 
         var exception = await Assert

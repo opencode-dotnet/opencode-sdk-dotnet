@@ -54,9 +54,10 @@ public sealed class OpenCodeClientContractTests
     [Test]
     [Arguments(WireBodyData.InfoMissingRequiredMember)]
     [Arguments(WireBodyData.InfoMissingUrls)]
-    [Arguments(WireBodyData.InfoWithWrongTokenType)]
+    [Arguments("info-wrong-token-type.json")]
     public async Task GetInfoAsync_Should_Treat_Unmaterializable_Known_Members_As_Protocol_Failures(string body)
     {
+        body = body == "info-wrong-token-type.json" ? new FixtureLoader().LoadJson(body) : body;
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, body);
 
         _ = await Assert

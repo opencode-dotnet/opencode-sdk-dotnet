@@ -126,7 +126,7 @@ public sealed class ServiceDiscoveryTests
         // A dev build registered under the hashed legacy name and nothing under the current one:
         // the copy the CLI would make is what discovery reads.
         var legacy = _fileSystem.Path.Combine(Root("state"), "opencode", ServiceLegacyFilename.For("dev"));
-        Seed(legacy, ServiceRegistrationData.DevPrerelease);
+        Seed(legacy, new FixtureLoader().LoadJson("BackgroundService.registration-dev-prerelease.json"));
         Answer(new ServiceProbeResult(ServiceState.Ready, "0.0.0-dev-19646", TimedOut: false, Compatible: true));
 
         var registration = await Discovery().DiscoverAsync(new OpenCodeServerDiscoverOptions { Channel = "dev" }, CancellationToken.None);

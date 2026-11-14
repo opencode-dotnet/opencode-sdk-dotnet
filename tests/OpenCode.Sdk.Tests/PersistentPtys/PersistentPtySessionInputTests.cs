@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 
@@ -17,9 +18,9 @@ public sealed class PersistentPtySessionInputTests
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
         await using var core = new TerminalSocketCore<PersistentPtyFrame>(socket, PersistentPtyFrameDecoder.Instance,
             PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession), new ManualTimeProvider(), pool);
+        var attached = new FixtureLoader().LoadJson("PersistentPtys.attached.json");
         var attachment = ((PersistentPtyAttachedFrame)PersistentPtyFrameDecoder.Instance.Decode(
-            WebSocketMessageType.Text, Encoding.UTF8.GetBytes(PersistentPtyFrameData.AttachedJson),
-            Encoding.UTF8.GetByteCount(PersistentPtyFrameData.AttachedJson))).Attachment;
+            WebSocketMessageType.Text, Encoding.UTF8.GetBytes(attached), Encoding.UTF8.GetByteCount(attached))).Attachment;
         await using var session = new PersistentPtySession(core, attachment);
 
         var input = Enumerable.Repeat((byte)0x61, 100).ToArray();

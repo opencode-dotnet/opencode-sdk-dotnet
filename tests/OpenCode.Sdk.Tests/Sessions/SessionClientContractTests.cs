@@ -75,7 +75,7 @@ public sealed class SessionClientContractTests
             time.Advance(window + TimeSpan.FromMinutes(2));
             await Assert.That(next.IsCompleted).IsFalse();
             await Assert.That(body.IsDisposed).IsFalse();
-            body.Append(WireBodyData.Frames(WireBodyData.UnknownLogEvent));
+            body.Append(WireBodyData.Frames(new FixtureLoader().LoadJson("Events.unknown-log-event.json")));
             await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
             await Assert.That(log.Current).IsTypeOf<UnknownSessionLogItem>();
             body.End();

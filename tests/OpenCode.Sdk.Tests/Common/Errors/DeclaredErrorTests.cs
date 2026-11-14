@@ -62,7 +62,8 @@ public sealed class DeclaredErrorTests
     [DisplayName(nameof(Door_Should_Throw_The_Declared_Error) + "($row)")]
     public async Task Door_Should_Throw_The_Declared_Error(DeclaredErrorCase row)
     {
-        using var scenario = ContractScenario.Responding(row.Status, row.WireBody);
+        using var scenario = ContractScenario.Responding(row.Status,
+            row.WireBodyFixture is { } fixture ? new FixtureLoader().LoadJson(fixture) : row.WireBody);
 
         var exception = await Assert.That(async () => _ = await row.Door.Invoke(scenario.Client, null))
             .Throws<OpenCodeApiException>();
@@ -76,7 +77,8 @@ public sealed class DeclaredErrorTests
     [DisplayName(nameof(Door_Should_Return_The_Declared_Error_On_NoThrow) + "($row)")]
     public async Task Door_Should_Return_The_Declared_Error_On_NoThrow(DeclaredErrorCase row)
     {
-        using var scenario = ContractScenario.Responding(row.Status, row.WireBody);
+        using var scenario = ContractScenario.Responding(row.Status,
+            row.WireBodyFixture is { } fixture ? new FixtureLoader().LoadJson(fixture) : row.WireBody);
 
         var response = await row.Door.Invoke(scenario.Client, OpenCodeRequestOptions.NoThrow);
 

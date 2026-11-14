@@ -421,7 +421,7 @@ public sealed class ServiceStopperTests
         // A dev build registered under the hashed legacy name and nothing under the current one:
         // the copy the CLI would make is what the stop reads, ends, and removes; the donor stays.
         var legacy = _fileSystem.Path.Combine(Root("state"), "opencode", ServiceLegacyFilename.For("dev"));
-        Seed(legacy, ServiceRegistrationData.DevPrerelease);
+        Seed(legacy, new FixtureLoader().LoadJson("BackgroundService.registration-dev-prerelease.json"));
 
         await Stopper().StopAsync(new OpenCodeServerStopOptions { Channel = "dev" }, CancellationToken.None);
 

@@ -67,10 +67,11 @@ public static class WorktreesDeclaredErrors
             "worktree.refresh:400:WorktreeError",
             RefreshWorktreesDoor,
             HttpStatusCode.BadRequest,
-            WireBodyData.WorktreeError,
+            string.Empty,
             "WorktreeError",
             typeof(WorktreeError),
-            "#/paths/~1api~1worktree~1refresh/post/responses/400/content/application~1json/schema/anyOf/0"),
+            "#/paths/~1api~1worktree~1refresh/post/responses/400/content/application~1json/schema/anyOf/0",
+            WireBodyFixture: "Worktrees.worktree-error.json"),
         static () => new(
             "worktree.refresh:401:UnauthorizedError",
             RefreshWorktreesDoor,

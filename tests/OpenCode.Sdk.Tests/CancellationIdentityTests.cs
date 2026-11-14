@@ -329,7 +329,7 @@ public sealed class CancellationIdentityTests
         using var socket = new ScriptedTerminalWebSocket();
         if (persistent)
         {
-            _ = socket.Text(PersistentPtyFrameData.AttachedJson).Parking();
+            _ = socket.Text(new FixtureLoader().LoadJson("PersistentPtys.attached.json")).Parking();
             await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, new ManualTimeProvider(), CancellationToken.None);
             return await AtParkedReadAsync(session.ReadAsync(MethodToken(entry, caller.Token)), entry, socket, caller);
         }
@@ -369,7 +369,7 @@ public sealed class CancellationIdentityTests
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
         if (row.StartsWith("persistent-", StringComparison.Ordinal))
         {
-            _ = socket.Text(PersistentPtyFrameData.AttachedJson);
+            _ = socket.Text(new FixtureLoader().LoadJson("PersistentPtys.attached.json"));
             await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, new ManualTimeProvider(), CancellationToken.None);
             var failure = await AtSendGateAsync(token => row switch
             {

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tests.Events.Support.EventStreamSteps;
@@ -18,6 +19,8 @@ namespace OpenCode.Sdk.Tests.Events;
 /// </summary>
 public sealed class EventsClientReconnectTests
 {
+    private readonly FixtureLoader _fixtures = new();
+
     [Test]
     [Arguments("door")]
     [Arguments("spine")]
@@ -76,8 +79,9 @@ public sealed class EventsClientReconnectTests
     [Test]
     public async Task A_Dropped_Stream_Should_Reconnect_After_One_Second_And_Announce_It_With_Server_Connected()
     {
-        using var first = new LiveEventBody(WireBodyData.Frames(ScriptedEventServer.Connected, WireBodyData.SessionCreatedEvent), ends: true);
-        using var second = new LiveEventBody(WireBodyData.Frames(ScriptedEventServer.Connected, WireBodyData.UnknownLogEvent));
+        using var first = new LiveEventBody(
+            WireBodyData.Frames(ScriptedEventServer.Connected, _fixtures.LoadJson("Events.session-created.json")), ends: true);
+        using var second = new LiveEventBody(WireBodyData.Frames(ScriptedEventServer.Connected, _fixtures.LoadJson("Events.unknown-log-event.json")));
         using var server = new ScriptedEventServer(number => ScriptedEventServer.Stream(number is 1 ? first : second));
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
@@ -190,7 +194,7 @@ public sealed class EventsClientReconnectTests
     public async Task A_First_Event_That_Is_Not_Server_Connected_Should_Not_Be_Delivered()
     {
         using var server = new ScriptedEventServer(number => ScriptedEventServer.StreamOf(
-            number is 1 ? WireBodyData.Frames(WireBodyData.SessionCreatedEvent) : ConnectedFrame, ends: true));
+            number is 1 ? WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json")) : ConnectedFrame, ends: true));
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
         var received = new List<Type>();
         var reading = ReadThroughConnectionAsync();
@@ -467,7 +471,7 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         server.Time.Advance(TimeSpan.FromSeconds(5));
-        connection.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
+        connection.Append(WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json")));
         await Assert.That(await NextAsync(events)).IsTypeOf<SessionCreated>();
 
         var next = PendingNext(events);
@@ -703,13 +707,13 @@ public sealed class EventsClientReconnectTests
         }
     }
 
-    private static HttpResponseMessage FailedOpen(string failure) => failure switch
+    private HttpResponseMessage FailedOpen(string failure) => failure switch
     {
         "unauthorized" => ScriptedEventServer.Status(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError),
         "server-error" => ScriptedEventServer.Status(HttpStatusCode.InternalServerError, "{}"),
         "undeclared-success" => ScriptedEventServer.Status(HttpStatusCode.Created, "{}"),
         "not-an-event-stream" => ScriptedEventServer.Status(HttpStatusCode.OK, "{}"),
-        "first-event-not-server-connected" => ScriptedEventServer.StreamOf(WireBodyData.Frames(WireBodyData.SessionCreatedEvent)),
+        "first-event-not-server-connected" => ScriptedEventServer.StreamOf(WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json"))),
         "failure-frame-first" => ScriptedEventServer.StreamOf(
             WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.StreamFailureCause)),
         "malformed-frame-first" => ScriptedEventServer.StreamOf("data: {not json\n\n"),
@@ -763,8 +767,8 @@ public sealed class EventsClientReconnectTests
     [Test]
     public async Task A_First_Event_Refusal_Should_Report_The_Exact_First_Frame_Text()
     {
-        using var server = new ScriptedEventServer(static _ =>
-            ScriptedEventServer.StreamOf(WireBodyData.Frames(WireBodyData.SessionCreatedEvent)));
+        using var server = new ScriptedEventServer(_ =>
+            ScriptedEventServer.StreamOf(WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json"))));
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
         var first = PendingNext(events);
 
