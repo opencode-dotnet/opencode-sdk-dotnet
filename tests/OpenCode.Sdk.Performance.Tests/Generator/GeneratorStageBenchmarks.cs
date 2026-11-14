@@ -1,4 +1,3 @@
-#if NET
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,11 +21,11 @@ namespace OpenCode.Sdk.Performance.Tests.Generator;
 /// The run's bindability probe is a measured stage over the pinned plan's pending and declined
 /// operations. The rows return <see cref="object"/> or <see cref="Task"/>:
 /// the stage types are internal to the tool, and a benchmark method is public.
-/// The class carries its own .NET 10 job, so the invocation passes no <c>--runtimes</c> and its rows
-/// keep the <c>.NET 10.0</c> label that joins the archived before-set.
+/// The class carries its own .NET 11 job, so the invocation passes no <c>--runtimes</c> and its rows
+/// carry the <c>.NET 11.0</c> label.
 /// </remarks>
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net10_0)]
+[SimpleJob(RuntimeMoniker.Net11_0)]
 public class GeneratorStageBenchmarks : IDisposable
 {
     private ServiceProvider? _services;
@@ -108,4 +107,3 @@ public class GeneratorStageBenchmarks : IDisposable
         _services?.Dispose();
     }
 }
-#endif

@@ -427,7 +427,7 @@ The CI benchmark readiness guard runs SDK-only `--job Dry` steps in the parallel
 matrix: net10.0 and net11.0 on Linux, and net472 on Windows. Each job builds only the performance
 project and its references, using the pinned SDK. A separate `benchmark-generator-stage` job runs
 each `GeneratorStageBenchmarks` case twice: once under the command line's Dry job and once under
-the class's own `[SimpleJob(RuntimeMoniker.Net10_0)]` default-strategy job, without `--runtimes`;
+the class's own `[SimpleJob(RuntimeMoniker.Net11_0)]` default-strategy job, without `--runtimes`;
 `GeneratorRunBenchmarks` never runs in CI. Each SDK Dry step and the stage step has a
 20-minute timeout. The `net10` leg also runs the cold-start invocation below once, with the same
 timeout. The benchmark process returns non-zero for no summaries, zero expected cases in
@@ -451,23 +451,23 @@ the aggregate.
 The canonical comparable run, and the comparison it feeds:
 
 ```bash
-dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --runtimes net10.0 net472 net11.0 --artifacts .benchmarks/<run-name>
+dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --runtimes net10.0 net472 net11.0 --artifacts .benchmarks/<run-name>
 dotnet run --file tools/opencode-tool.cs -- compare-benchmarks .benchmarks/<before-run> .benchmarks/<after-run> --output .benchmarks/<comparison>.csv
 ```
 
 The generator's own benchmarks (`OpenCode.Sdk.Performance.Tests.Generator`) measure the repository
-tool, which targets `net10.0` only, so they run as a separate invocation; the SDK filter above keeps
-them out of the `net472` leg, whose generated runner could not compile them. Their run rows rewrite
+tool, which targets `net11.0` only, so they run as a separate invocation; the SDK filter above keeps
+them out of the `net10.0` and `net472` legs, whose targets do not compile them. Their run rows rewrite
 the repository's generated tree, so they refuse to start unless the tree is clean and
 `OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow` is set: run them in a disposable clone, never in a
 working checkout.
 
 ```bash
-OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.*' --artifacts .benchmarks/<run-name>-generator
+OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.*' --artifacts .benchmarks/<run-name>-generator
 ```
 
 The generator invocation passes no `--runtimes`, because each generator class declares its own job
-(the stage rows `.NET 10.0`, the run rows the Monitoring job), so every case runs once; `--runtimes`
+(the stage rows `.NET 11.0`, the run rows the Monitoring job), so every case runs once; `--runtimes`
 there would add a second, default-strategy job to every class. For the SDK suite, `--runtimes` is
 load-bearing: it labels each case's leg with the runtime name (`.NET 10.0`, `.NET 11.0`,
 `.NET Framework 4.7.2`) in the exports, and `compare-benchmarks` joins
@@ -493,12 +493,14 @@ exits, and the report's last-read gap approximates that interval; BuildHost, rea
 its short life, gives a weak one. The script exits non-zero when it finds no format process.
 
 The cold-start classes (`OpenCode.Sdk.Performance.Tests.ColdStart`) declare their own
-`RunStrategy.ColdStart` job and run as a separate invocation with neither `--job` nor `--runtimes`,
+`RunStrategy.ColdStart` job pinned to .NET 10 and run as a separate invocation with neither `--job` nor `--runtimes`,
 either of which would add a second job to every class; CI runs that invocation once, on the `net10`
-leg.
+leg. Because the job names its runtime, its rows carry the `.NET 10.0` label; rows measured before
+2026-11-15, when the job followed the host, carry the job's name, so a comparison across that date
+joins no cold-start case and needs a before-run re-measured on a current tree.
 
 ```bash
-dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/<run-name>-coldstart
+dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 -- --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/<run-name>-coldstart
 ```
 
 `compare-benchmarks` fails the comparison without writing a CSV when either run contains a failed

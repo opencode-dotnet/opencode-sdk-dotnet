@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>$(DefaultTargetFramework)</TargetFrameworks>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <!-- The net472 target measures the downlevel runtime itself and can only execute on Windows;
-         adding it conditionally keeps Linux/macOS builds single-target. IncludeNet472Tests adds it
+         adding it conditionally keeps net472 out of normal Linux/macOS builds. IncludeNet472Tests adds it
          elsewhere for a build that only compiles, such as the CI lint job's analyzer build. -->
     <TargetFrameworks Condition="'$(BuildOs)' == 'windows' Or '$(IncludeNet472Tests)' == 'true'">net472;$(TargetFrameworks)</TargetFrameworks>
     <!-- BenchmarkDotNet refuses to measure unoptimized assemblies. -->
@@ -31,15 +31,19 @@
     <Compile Include="../Shared/GeneratorPeakMemoryPolicy.cs" LinkBase="Shared" />
   </ItemGroup>
 
-  <!-- The generator benchmarks measure the repository tool, which targets the default framework only.
-       The .NET Framework leg measures the SDK alone. -->
-  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+  <!-- The generator benchmarks measure the repository tool, which builds on the latest framework only.
+       The other targets measure the SDK alone. -->
+  <ItemGroup Condition="'$(TargetFramework)' == '$(LatestTargetFramework)'">
     <ProjectReference Include="../../tools/OpenCode.Sdk.Tools/OpenCode.Sdk.Tools.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' != '$(LatestTargetFramework)'">
+    <Compile Include="../../tools/OpenCode.Sdk.Tools/Benchmarks/WireMetricIds.cs" Link="Support/WireMetricIds.cs" />
+    <Compile Remove="Generator/**;Support/GeneratorInput.cs;Support/NoOpProjectFormatter.cs;Support/CapturingGenerationWriter.cs" />
   </ItemGroup>
 
   <!-- .NET Framework ships HttpClient in this framework assembly; no NuGet HTTP stack is added. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Compile Include="../../tools/OpenCode.Sdk.Tools/Benchmarks/WireMetricIds.cs" Link="Support/WireMetricIds.cs" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

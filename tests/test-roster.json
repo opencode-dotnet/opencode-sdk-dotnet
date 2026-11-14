@@ -9,7 +9,7 @@
         "OpenCode.Sdk.Tests/net10.0",
         "OpenCode.Sdk.Tests/net11.0",
         "OpenCode.Sdk.Tests/net472",
-        "OpenCode.Sdk.Tools.Tests/net10.0"
+        "OpenCode.Sdk.Tools.Tests/net11.0"
       ],
       "linux": [
         "OpenCode.Playground.Hq.Tests/net11.0",
@@ -17,7 +17,7 @@
         "OpenCode.Sdk.Extensions.Tests/net11.0",
         "OpenCode.Sdk.Tests/net10.0",
         "OpenCode.Sdk.Tests/net11.0",
-        "OpenCode.Sdk.Tools.Tests/net10.0"
+        "OpenCode.Sdk.Tools.Tests/net11.0"
       ],
       "macos": [
         "OpenCode.Playground.Hq.Tests/net11.0",
@@ -25,7 +25,7 @@
         "OpenCode.Sdk.Extensions.Tests/net11.0",
         "OpenCode.Sdk.Tests/net10.0",
         "OpenCode.Sdk.Tests/net11.0",
-        "OpenCode.Sdk.Tools.Tests/net10.0"
+        "OpenCode.Sdk.Tools.Tests/net11.0"
       ]
     },
     "service-elections": {
@@ -45,13 +45,13 @@
     },
     "native-aot": {
       "windows": [
-        "OpenCode.Sdk.Tools.Tests/net10.0"
+        "OpenCode.Sdk.Tools.Tests/net11.0"
       ],
       "linux": [
-        "OpenCode.Sdk.Tools.Tests/net10.0"
+        "OpenCode.Sdk.Tools.Tests/net11.0"
       ],
       "macos": [
-        "OpenCode.Sdk.Tools.Tests/net10.0"
+        "OpenCode.Sdk.Tools.Tests/net11.0"
       ]
     }
   }

@@ -68,7 +68,7 @@ public sealed class MetadataUnionOracleEmitterTests(PinnedBinding pinned)
         await Assert.That(oracle.Metadata.Options.TypeInfoResolverChain)
             .IsEquivalentTo<IList<IJsonTypeInfoResolver>, IJsonTypeInfoResolver>([oracle.Metadata], CollectionOrdering.Matching);
         await Assert.That(oracle.Metadata.GetTypeInfo(typeof(MetadataUnionOracleEmitterTests))).IsNull();
-        _ = await Assert.That(() => oracle.Metadata.Options.GetTypeInfo(typeof(MetadataUnionOracleEmitterTests))).Throws<NotSupportedException>();
+        _ = await Assert.That(() => oracle.Metadata.Options.GetTypeInfo<MetadataUnionOracleEmitterTests>()).Throws<NotSupportedException>();
         foreach (var property in oracle.Metadata.GetType().GetProperties().Where(static property =>
                      typeof(JsonTypeInfo).IsAssignableFrom(property.PropertyType)))
         {

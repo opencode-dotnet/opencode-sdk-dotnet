@@ -1,4 +1,3 @@
-#if NET
 using System.IO.Abstractions;
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator;
@@ -78,4 +77,3 @@ internal sealed class GeneratorInput
             Verify = verify,
         };
 }
-#endif

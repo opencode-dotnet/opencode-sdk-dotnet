@@ -1,6 +1,6 @@
 #!/usr/bin/env -S dotnet --
 #:project ./OpenCode.Sdk.Tools/OpenCode.Sdk.Tools.csproj
-#:property TargetFramework=$(DefaultTargetFramework)
+#:property TargetFramework=$(LatestTargetFramework)
 
 using var cancellation = new CancellationTokenSource();
 using var interrupted = new SemaphoreSlim(0);
