@@ -11,7 +11,7 @@ internal sealed class TestRosterScenario
     public const string RosterPath = "tests/test-roster.json";
     public const string ResultsDirectory = "test-results/main";
 
-    private readonly Dictionary<string, Dictionary<string, List<string>>> _passes = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Dictionary<string, List<string>>> _passes = [with(StringComparer.Ordinal)];
 
     private readonly List<(string RelativePath, string Content)> _files = [];
 
@@ -19,7 +19,7 @@ internal sealed class TestRosterScenario
     {
         if (!_passes.TryGetValue(passName, out var operatingSystems))
         {
-            operatingSystems = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            operatingSystems = [with(StringComparer.Ordinal)];
             _passes[passName] = operatingSystems;
         }
 

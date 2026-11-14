@@ -22,7 +22,7 @@ internal sealed class HoistedMemberIdentityPolicy(IReadOnlyDictionary<string, Ob
     private readonly IReadOnlyDictionary<string, ObjectModelPlan> _models =
         models ?? throw new ArgumentNullException(nameof(models));
 
-    private readonly HashSet<string> _comparing = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _comparing = [with(StringComparer.Ordinal)];
 
     public bool Identical(ModelPropertyPlan left, ModelPropertyPlan right)
     {

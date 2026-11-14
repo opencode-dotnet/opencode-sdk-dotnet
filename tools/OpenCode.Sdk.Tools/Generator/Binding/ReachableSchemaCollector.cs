@@ -54,9 +54,9 @@ internal static class ReachableSchemaCollector
     {
         private readonly BindingErrorCollector _errors = errors ?? throw new ArgumentNullException(nameof(errors));
         private readonly IReadOnlyDictionary<string, SchemaNode> _graph = graph ?? throw new ArgumentNullException(nameof(graph));
-        private readonly HashSet<string> _keys = new(StringComparer.Ordinal);
-        private readonly HashSet<string> _responseRoots = new(StringComparer.Ordinal);
-        private readonly HashSet<string> _streamCauseKeys = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _keys = [with(StringComparer.Ordinal)];
+        private readonly HashSet<string> _responseRoots = [with(StringComparer.Ordinal)];
+        private readonly HashSet<string> _streamCauseKeys = [with(StringComparer.Ordinal)];
 
         public void VisitResponse(string operationId, SpecResponse response)
         {

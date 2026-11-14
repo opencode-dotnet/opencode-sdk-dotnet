@@ -17,7 +17,7 @@ internal sealed class RequestReachableSchemaWalker(IReadOnlyDictionary<string, S
 {
     private readonly IReadOnlyDictionary<string, SchemaNode> _graph = graph ?? throw new ArgumentNullException(nameof(graph));
 
-    private readonly HashSet<string> _keys = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _keys = [with(StringComparer.Ordinal)];
 
     public IReadOnlyList<string> Collect(IReadOnlyList<SpecOperation> operations)
     {

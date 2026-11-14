@@ -14,8 +14,8 @@ internal sealed class RecordCorpusGenerator
     private readonly EmitPlan _plan;
     private readonly Dictionary<string, ModelPlan> _models;
     private readonly Dictionary<string, UnionPlan> _unions;
-    private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _sites = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, int> _numbers = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyDictionary<string, string>> _sites = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, int> _numbers = [with(StringComparer.Ordinal)];
     private IReadOnlyDictionary<string, string> _choices = new Dictionary<string, string>(StringComparer.Ordinal);
     private bool _maximal;
 

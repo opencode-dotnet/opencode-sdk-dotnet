@@ -19,7 +19,7 @@ internal sealed class SchemaInhabitationPolicy
     public bool IsInhabited(SchemaNode schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
-        return IsInhabited(schema, []);
+        return IsInhabited(schema, [with(StringComparer.Ordinal)]);
     }
 
     private bool IsInhabited(SchemaNode schema, HashSet<string> visited) => schema switch

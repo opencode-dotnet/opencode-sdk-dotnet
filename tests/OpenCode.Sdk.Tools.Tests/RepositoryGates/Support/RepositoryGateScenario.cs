@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.Tools.Tests.RepositoryGates.Support;
 
 internal sealed class RepositoryGateScenario
 {
-    private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _files = [with(StringComparer.Ordinal)];
 
     public MockFileSystem FileSystem { get; } = new();
 

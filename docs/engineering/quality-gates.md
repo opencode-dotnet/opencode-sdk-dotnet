@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -41,9 +41,9 @@ kind follows the suppression policy in `slop-review.md`.
   repository-root `.globalconfig`, with the same winner-naming reason and a removal trigger. A
   file-scoped `.editorconfig` severity hides the diagnostic, but the analyzer still runs: Roslyn
   skips an analyzer only when all its diagnostics are off for the whole compilation.
-- `LangVersion=14.0` and `AnalysisLevel=11.0` are deliberate numeric pins. Never replace either
+- `LangVersion=15.0` and `AnalysisLevel=11.0` are deliberate numeric pins. Never replace either
   with `latest`.
-- C# 14 on net472 is unsupported by the platform documentation but deliberate repository practice,
+- C# 15 on net472 is unsupported by the platform documentation but deliberate repository practice,
   enabled by source polyfills. Future language changes move the numeric pin intentionally.
 - `GenerateDocumentationFile=true` is load-bearing because CLI builds do not report IDE0005
   consistently without it. Keep the adjacent guard comment in `Directory.Build.props`.

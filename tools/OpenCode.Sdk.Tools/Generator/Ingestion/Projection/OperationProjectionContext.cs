@@ -9,11 +9,11 @@ internal sealed class OperationProjectionContext(
     ProjectionState state,
     IReadOnlyDictionary<string, string> operationIdentities)
 {
-    private readonly HashSet<string> _consumedIdentitySubjects = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _consumedIdentitySubjects = [with(StringComparer.Ordinal)];
     private readonly IReadOnlyDictionary<string, string> _operationIdentities =
         operationIdentities ?? throw new ArgumentNullException(nameof(operationIdentities));
 
-    private readonly HashSet<string> _operationIds = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _operationIds = [with(StringComparer.Ordinal)];
     private readonly List<SpecOperation> _operations = [];
     private readonly JsonNode _rawPaths = rawPaths ?? throw new ArgumentNullException(nameof(rawPaths));
 

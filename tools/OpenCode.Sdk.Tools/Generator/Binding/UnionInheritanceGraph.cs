@@ -4,7 +4,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 internal sealed class UnionInheritanceGraph
 {
-    private readonly Dictionary<string, IReadOnlyList<string>> _memberships = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<string>> _memberships = [with(StringComparer.Ordinal)];
 
     private UnionInheritanceGraph() { }
 

@@ -8,7 +8,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
 {
     private readonly List<ConversationLine> _lines = [];
     private readonly Dictionary<(string AssistantMessageId, long Ordinal), int> _live = [];
-    private readonly HashSet<string> _outbox = [];
+    private readonly HashSet<string> _outbox = [with(StringComparer.Ordinal)];
     private bool _executing;
     private int _sending;
 

@@ -136,7 +136,7 @@ public sealed partial class UpstreamOmissionTests
         // Anything left beside the literals and their commas means the list is no longer plain strings.
         var body = matches[0].Groups["body"].Value;
         return StringElement().Replace(body, string.Empty).All(static character => character == ',' || char.IsWhiteSpace(character))
-            ? [.. StringElement().Matches(body).Select(static match => match.Groups["key"].Value)]
+            ? [with(StringComparer.Ordinal), .. StringElement().Matches(body).Select(static match => match.Groups["key"].Value)]
             : null;
     }
 

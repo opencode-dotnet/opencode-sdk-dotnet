@@ -5,8 +5,8 @@ namespace OpenCode.Playground.Hq.Features.Forms;
 /// <summary>A person's answers to one form, built into the reply the server takes.</summary>
 internal sealed class FormDraft(FormInfo form)
 {
-    private readonly Dictionary<string, string> _texts = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, HashSet<string>> _choices = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _texts = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, HashSet<string>> _choices = [with(StringComparer.Ordinal)];
 
     public FormInfo Form => form;
     public bool Answerable => form.Fields.All(static item => item is FormStringField or FormMultiselectField);
@@ -20,7 +20,7 @@ internal sealed class FormDraft(FormInfo form)
     {
         if (!_choices.TryGetValue(key, out var chosen))
         {
-            chosen = new HashSet<string>(StringComparer.Ordinal);
+            chosen = [with(StringComparer.Ordinal)];
             _choices[key] = chosen;
         }
 

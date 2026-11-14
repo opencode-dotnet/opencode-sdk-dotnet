@@ -26,7 +26,7 @@ public static class SessionIsolation
         ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TMPDIR", "TMP", "TEMP"];
 
     private static readonly RealFileSystem FileSystem = new();
-    private static readonly HashSet<string> Applied = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> Applied = [with(StringComparer.OrdinalIgnoreCase)];
     private static TestRunRoot? _root;
     private static IsolationBoundary? _boundary;
 

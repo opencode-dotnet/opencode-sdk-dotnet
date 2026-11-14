@@ -11,10 +11,10 @@ namespace OpenCode.Sdk.Tools.Tests.Packaging.Support;
 internal sealed class PackageValidationScenario
 {
     private readonly MockFileSystem _fileSystem = new();
-    private readonly Dictionary<string, string> _currentSources = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _removedSources = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, List<CompatibilitySuppression>> _suppressions = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _currentSources = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, string> _removedSources = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, List<CompatibilitySuppression>> _suppressions = [with(StringComparer.Ordinal)];
+    private readonly Dictionary<string, string> _files = [with(StringComparer.Ordinal)];
     private string _version = "0.9.0";
     private string _baseline = string.Empty;
     private bool _missingBaseline;

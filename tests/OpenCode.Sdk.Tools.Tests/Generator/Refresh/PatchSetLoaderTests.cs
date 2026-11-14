@@ -145,7 +145,7 @@ public sealed class PatchSetLoaderTests
         {
             "empty operations" => [],
             "blank operation" => new JsonArray("experimental.artifacts.list", " "),
-            _ => new JsonArray("experimental.artifacts.list"),
+            _ => [with("experimental.artifacts.list")],
         };
         predicate["parameter"] = variation == "blank parameter" ? " " : "location";
         predicate["style"] = variation == "blank style" ? " " : "deepObject";

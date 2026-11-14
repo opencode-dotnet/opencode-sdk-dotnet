@@ -145,7 +145,7 @@ internal sealed class ConversationScenario : OpenCodeClient
                 await release.Task.WaitAsync(cancellationToken);
             }
 
-            return new() { Status = 200, Active = Running ? new Dictionary<string, SessionActive>(StringComparer.Ordinal) { [SessionId] = new() { Type = "running" } } : new Dictionary<string, SessionActive>(StringComparer.Ordinal) };
+            return new() { Status = 200, Active = Running ? new Dictionary<string, SessionActive>(StringComparer.Ordinal) { [SessionId] = new() { Type = "running" } } : [with(StringComparer.Ordinal)] };
         }
     }
 

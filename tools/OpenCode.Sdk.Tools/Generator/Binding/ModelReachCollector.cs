@@ -92,7 +92,7 @@ internal static class ModelReachCollector
     {
         if (!reach.TryGetValue(typeName, out var families))
         {
-            families = new SortedSet<string>(StringComparer.Ordinal);
+            families = [with(StringComparer.Ordinal)];
             reach.Add(typeName, families);
         }
 

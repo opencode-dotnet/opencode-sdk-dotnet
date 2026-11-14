@@ -73,7 +73,7 @@ internal sealed class CloneScenario
     private readonly List<string> _generated = [];
     private readonly List<string> _handWritten = [];
     private readonly RealFileSystem _detectorFileSystem = new();
-    private readonly Dictionary<string, IReadOnlyList<string>> _baselineFingerprints = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<string>> _baselineFingerprints = [with(StringComparer.Ordinal)];
     private bool _solution = true;
     private bool _detector = true;
     private bool _manifest = true;
@@ -88,7 +88,7 @@ internal sealed class CloneScenario
 
     public ScriptedProcessRunner Runner { get; } = new();
 
-    public Dictionary<string, byte[]> SarifReports { get; } = new(StringComparer.Ordinal);
+    public Dictionary<string, byte[]> SarifReports { get; } = [with(StringComparer.Ordinal)];
 
     public string Root { get; }
 

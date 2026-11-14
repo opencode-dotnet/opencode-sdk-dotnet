@@ -9,9 +9,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// </summary>
 internal sealed class HoistedImplementationAccumulator
 {
-    private readonly Dictionary<string, List<string>> _carriers = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<string>> _carriers = [with(StringComparer.Ordinal)];
 
-    private readonly Dictionary<string, List<HoistedImplementationPlan>> _explicits = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<HoistedImplementationPlan>> _explicits = [with(StringComparer.Ordinal)];
 
     public void AddCarrier(string modelName, string interfaceName)
     {
