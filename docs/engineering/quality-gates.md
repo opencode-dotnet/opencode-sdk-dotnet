@@ -166,9 +166,9 @@ dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" 
 dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=NativeAot]"
 ```
 
-The project path is absolute because the .NET 11 release-candidate SDK resolves a relative
-`--project` path, file or directory, a second time against the project's own directory when the
-project has more than one target framework and no `-f` selects one.
+The project path is absolute, as in CI. The pinned SDK, `11.0.100`, resolves a relative
+`--project` path, file or directory, the same way for a project with more than one target framework
+and no `-f`.
 
 Changes to the protocol, generator, curation, or generated output also run:
 
