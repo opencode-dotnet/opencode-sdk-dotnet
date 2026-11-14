@@ -186,13 +186,8 @@
       "anchorMatched": true
     },
     {
-      "path": "packages/app/src/providers/catalog/providers.ts",
-      "sha256": "8e670666f2d741b5699fb66f0ce55fdf9123b294c778e311d0539310ea031649",
-      "anchorMatched": true
-    },
-    {
-      "path": "packages/util/src/retry.ts",
-      "sha256": "43c39eb47b626309449a863b9fc842f4cdfd09669e93f7045246093c9380f3e4",
+      "path": "packages/cli/src/services/plugin-startup.ts",
+      "sha256": "aea746a551c82a42cf72973fb5da3638a16e6f46104f3e184f4e046351556767",
       "anchorMatched": true
     },
     {

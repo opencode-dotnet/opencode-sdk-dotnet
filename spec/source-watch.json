@@ -290,21 +290,12 @@
       }
     },
     {
-      "path": "packages/app/src/providers/catalog/providers.ts",
-      "sha256": "8e670666f2d741b5699fb66f0ce55fdf9123b294c778e311d0539310ea031649",
-      "behavior": "The app\u0027s boot-time catalog sync loads a location\u0027s providers and models once in parallel and ignores a load failure. The retry schedule LanguageModels.WaitForDefaultAsync mirrors is no longer present in the app.",
+      "path": "packages/cli/src/services/plugin-startup.ts",
+      "sha256": "aea746a551c82a42cf72973fb5da3638a16e6f46104f3e184f4e046351556767",
+      "behavior": "The CLI\u0027s models and debug agents commands and the auth commands\u0027 integration load wait for the location\u0027s plugins before their own catalog read: they list the location\u0027s plugins at once and again 25 ms after each answer, until the list is non-empty or a step after an answer finds that more than 5 s have passed since the first answer; a failed listing also ends the wait, without an error, and the read follows either way. LanguageModels.WaitForDefaultAsync follows this wait.",
       "anchor": {
         "type": "contains",
-        "text": "await Promise.all([data.location.provider.sync(resolved), data.location.model.sync(resolved)])"
-      }
-    },
-    {
-      "path": "packages/util/src/retry.ts",
-      "sha256": "43c39eb47b626309449a863b9fc842f4cdfd09669e93f7045246093c9380f3e4",
-      "behavior": "retry waits min(delay * factor^attempt, maxDelay) after each failed attempt but the last that the predicate accepts, with factor 2 by default, and rethrows the last error once the attempts run out or the predicate refuses it. WaitForDefaultAsync\u0027s delays between attempts follow this formula.",
-      "anchor": {
-        "type": "contains",
-        "text": "Math.min(delay * Math.pow(factor, attempt), maxDelay)"
+        "text": "until: (plugins) =\u003E plugins.data.length \u003E 0,"
       }
     },
     {
