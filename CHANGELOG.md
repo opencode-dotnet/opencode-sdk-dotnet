@@ -9,6 +9,10 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔧 Changes
+
+- Background-service discovery (`OpenCodeServer.DiscoverAsync` and the probe `EnsureAsync` runs) now takes the client's proxy decision for a loopback service. Behind an environment proxy (`HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`), set `NO_PROXY` to reach a loopback service directly, as with opencode's CLI; behind a system proxy, that proxy's own bypass list applies, as it does for the client. .NET Framework is unchanged.
+
 ## [1.1.0] - 2026-11-14
 
 **`1.1.0` pins opencode `2.3.0`.** It is a minor that moves the protocol pin, so two generated types

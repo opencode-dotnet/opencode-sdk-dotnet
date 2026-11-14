@@ -912,9 +912,10 @@ only the required first-party pid/version evidence. Every owned loopback connect
 (.NET 5 and later), in both the probe's transport (`LoopbackTransport`) and the pipeline's owned
 handler, disables SYN retransmission (`SIO_TCP_INITIAL_RTO`, the option libuv, Go, and the pinned
 client's own runtime set for loopback), so a refused port is reported at once instead of after the
-retransmissions that would outlast the bound. The no-proxy rule stays the probe's own: a loopback
-endpoint is never routed through a proxy, so an environment proxy without `NO_PROXY` cannot hide a
-live daemon. On .NET Framework, the pipeline's owned handler keeps Windows' default SYN
+retransmissions that would outlast the bound. The probe and the client's owned transport take the
+same proxy decision: the environment proxy with `NO_PROXY` as the only loopback exception, as
+upstream's probe and client do. On .NET Framework, the runtime itself bypasses a proxy for loopback.
+The pipeline's owned handler on .NET Framework keeps Windows' default SYN
 retransmissions, so a refused loopback port reports through the connect bound's "did not answer"
 text, not as a refusal: `HttpClientHandler` has no connect seam, and a refusal check before each
 attempt would add a second mechanism to the hot path. A failed exchange is classified refusal
@@ -1048,8 +1049,6 @@ reason (ADR-0031):
   where upstream would connect without credentials. Reason: the SDK never yields an
   unauthenticated connection. The pinned daemon always writes a password, so the two only differ
   for a hand-made file.
-- **No proxy for a loopback probe.** Reason: an environment proxy without `NO_PROXY` would
-  otherwise hide a live daemon.
 - **A refusal is no service even when the probe's bound expires with it.** Upstream reads every
   rejected exchange as `timedOut: signal.aborted`; its runtime settles a refused loopback connect
   within microseconds, before its abort timer fires, so there too a refusal reads as no service.

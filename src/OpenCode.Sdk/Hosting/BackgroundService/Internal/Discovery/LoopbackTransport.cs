@@ -5,14 +5,15 @@ using System.Net.Sockets;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The discovery probe's own transport: the non-redirecting handler for one info exchange against
-/// the registered endpoint. A loopback endpoint is never routed through a proxy, because an
-/// environment proxy without <c>NO_PROXY</c> would hide a live daemon. The connect uses
+/// The discovery probe's non-redirecting transport for one info exchange against the registered
+/// endpoint. It takes the same proxy decision as the client's owned transport. The connect uses
 /// <see cref="LoopbackConnect"/> so a refused loopback port reaches the probe before its bound.
 /// </summary>
 internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IServiceProbeTransport
 {
-    /// <summary>Creates the probe's handler: no proxy for loopback, no redirect, and on Windows the loopback connect below.</summary>
+    /// <summary>
+    /// Creates the probe's non-redirecting handler with the client's owned transport proxy decision and the Windows loopback connect.
+    /// </summary>
     public HttpMessageHandler CreateHandler(Uri endpoint)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -20,7 +21,6 @@ internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IS
         var handler = new SocketsHttpHandler
         {
             AllowAutoRedirect = false,
-            UseProxy = !endpoint.IsLoopback,
         };
         if (endpoint.IsLoopback && OperatingSystem.IsWindows())
         {
@@ -32,7 +32,6 @@ internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IS
         return new HttpClientHandler
         {
             AllowAutoRedirect = false,
-            UseProxy = !endpoint.IsLoopback,
         };
 #endif
     }

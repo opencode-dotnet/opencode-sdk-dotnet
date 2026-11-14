@@ -496,9 +496,11 @@ registered password, bounded at two seconds. A 2xx answer whose pid matches the 
 ready service; a 404 identifies a registered daemon that speaks another protocol version, a 500
 is a daemon that failed to boot, and anything else is a daemon still starting — and only the
 first becomes a handle. The probe follows no redirects and sends the credential to the
-registered origin only. It never goes through a proxy for a loopback address, so `HTTP_PROXY`
-without `NO_PROXY` does not hide a running service from discovery, and a registration whose
-daemon is gone answers null in milliseconds on every operating system, including Windows.
+registered origin only. Discovery uses the same proxy as the client, so a loopback service behind
+an environment proxy needs `NO_PROXY` (for example `NO_PROXY=127.0.0.1,localhost`), as with opencode's
+own CLI. On .NET Framework the runtime bypasses the proxy for loopback. With a direct connection, a
+registration whose daemon is gone answers null in milliseconds on every operating system, including
+Windows: its refused port answers at once, while a proxy in the way can take up to the probe's bound.
 
 ### What the handle is
 
