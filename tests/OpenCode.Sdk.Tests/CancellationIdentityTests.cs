@@ -565,7 +565,7 @@ public sealed class CancellationIdentityTests
         finally
         {
             // The response stays held until cancellation settled: Ensure cannot reach termination
-            // or recruit a contender, and Stop cannot reach its first process signal.
+            // or recruit a contender.
             await caller.CancelOnWorkerAsync();
             try
             {

@@ -9,9 +9,9 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;
 /// <summary>
 /// The stop door sends no request to the registered endpoint and removes the registration once
 /// the process exits. Its escalation runs end to end: a process that ignores the first rung — the
-/// isolated fixture's <c>ignore-sigterm</c> mode, registered under a closed endpoint so no daemon
-/// is asked anything — is ended by the second rung and its registration removed. On Unix the
-/// terminate rung's bound elapses first; on Windows the first rung is already a hard kill.
+/// isolated fixture's <c>ignore-sigterm</c> mode — is ended by the second rung and its registration
+/// removed. On Unix the terminate rung's bound elapses first; on Windows the first rung is
+/// already a hard kill.
 /// </summary>
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class OpenCodeServerStopEscalationTests

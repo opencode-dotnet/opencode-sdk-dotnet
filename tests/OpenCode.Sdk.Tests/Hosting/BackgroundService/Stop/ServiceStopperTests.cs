@@ -162,29 +162,71 @@ public sealed class ServiceStopperTests
     }
 
     [Test]
-    public async Task StopAsync_Should_Complete_And_Clear_The_Sidecar_When_The_Registration_Is_Missing()
+    [Arguments(null)]
+    [Arguments(ServiceRegistrationData.Malformed)]
+    [Arguments(ServiceRegistrationData.ArrayRoot)]
+    public async Task StopAsync_Should_Clear_The_Sidecar_And_Signal_Nothing_When_The_Registration_Is_Missing_Or_Corrupt(string? document)
     {
+        if (document is not null)
+        {
+            Seed(SharedRegistrationPath(), document);
+        }
+
         Seed(Sidecar(), SidecarContent);
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
         await Assert.That(Sidecar()).Satisfies(path => !_fileSystem.File.Exists(path));
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+        if (document is not null)
+        {
+            await AssertSharedRegistrationPresentAsync();
+        }
+        else
+        {
+            await AssertSharedRegistrationAbsentAsync();
+        }
     }
 
     [Test]
-    [Arguments(ServiceRegistrationData.Malformed)]
-    [Arguments(ServiceRegistrationData.ArrayRoot)]
-    public async Task StopAsync_Should_Leave_A_Corrupt_Registration_Alone_And_Clear_The_Sidecar(string document)
+    [Arguments("successor")]
+    [Arguments("removed")]
+    public async Task StopAsync_Should_Signal_Nothing_When_The_Registration_Changes_Hands_Before_The_First_Signal(string outcome)
     {
-        Seed(SharedRegistrationPath(), document);
-        Seed(Sidecar(), SidecarContent);
+        SeedModern();
+        var handoff = Substitute.For<IServicePtyHandoff>();
+        handoff.ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (outcome == "successor")
+            {
+                Seed(SharedRegistrationPath(), ServiceRegistrationData.DuplicatePidResolved);
+            }
+            else
+            {
+                _fileSystem.File.Delete(SharedRegistrationPath());
+            }
 
-        await Stopper().StopAsync(options: null, CancellationToken.None);
+            return Task.CompletedTask;
+        });
+        var stopper = new ServiceStopper(
+            _environment,
+            new TestablyServiceFileSystem(_fileSystem),
+            handoff,
+            _processControl,
+            Timing,
+            _clock);
 
-        await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);
-        await Assert.That(Sidecar()).Satisfies(path => !_fileSystem.File.Exists(path));
+        await stopper.StopAsync(options: null, CancellationToken.None);
+
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+        if (outcome == "successor")
+        {
+            await Assert.That(ReadText(SharedRegistrationPath())).IsEqualTo(ServiceRegistrationData.DuplicatePidResolved);
+        }
+        else
+        {
+            await AssertSharedRegistrationAbsentAsync();
+        }
     }
 
     [Test]
@@ -428,9 +470,12 @@ public sealed class ServiceStopperTests
     private async Task AssertSharedRegistrationAbsentAsync() =>
         await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
 
-    private async Task AssertCancelledStopAsync(CancellationToken cancellationToken) =>
-        _ = await Assert.That(async () => await Stopper().StopAsync(options: null, cancellationToken))
+    private async Task AssertCancelledStopAsync(CancellationToken cancellationToken)
+    {
+        var exception = await Assert.That(async () => await Stopper().StopAsync(options: null, cancellationToken))
             .Throws<OperationCanceledException>();
+        await Assert.That(exception!.CancellationToken).IsEqualTo(cancellationToken);
+    }
 
     private async Task AssertSharedRegistrationPresentAsync() =>
         await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);

@@ -65,16 +65,16 @@ public partial class OpenCodeServer
 
     /// <summary>
     /// Stops the registered background service the way <c>opencode service stop</c> does: resolves
-    /// the registration the options name (channel rules and legacy migration included), clears the handoff
-    /// sidecar as far as it can, then ends the registered process — a request to stop first, a
+    /// the registration the options name (channel rules and legacy migration included), clears the
+    /// handoff sidecar as far as it can, then ends the registered process — a request to stop first, a
     /// hard kill when it survives — and removes the registration once the process is gone. The
     /// registration is re-read before the first signal and before the removal, so a service that
-    /// re-registered before the stop began is never signalled and a successor's registration is
-    /// never removed; the hard kill follows the signalled process alone. Every signal compares the
-    /// process's identity (pid and start time), so a pid the operating system reused is never
-    /// signalled. A missing or corrupt registration completes successfully; the shared service is
-    /// shared, and this call is the one deliberate way to end it — disposing a discovered handle
-    /// never does.
+    /// re-registered after the stop read the registration is never signalled and a successor's
+    /// registration is never removed; the hard kill follows the signalled process alone. Every
+    /// signal compares the process's identity (pid and start time), so a pid the operating system
+    /// reused after the stop first looked at it is never signalled. A missing or corrupt registration
+    /// completes successfully; the shared service is shared, and this call is the one deliberate
+    /// way to end it — disposing a discovered handle never does.
     /// </summary>
     /// <param name="options">The stop options; null stops the shared release registration.</param>
     /// <param name="cancellationToken">The caller's token. Cancellation before the first signal prevents it; after a signal it ends the bounded wait and leaves the registration in place.</param>
