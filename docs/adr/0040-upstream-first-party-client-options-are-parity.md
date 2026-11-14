@@ -23,8 +23,7 @@ client options: ADR-0031 wins.
 ## Considered options
 
 - **Keep ADR-0010's trigger for these options.** Rejected. It makes parity wait on a consumer
-  request, which contradicts ADR-0031's default and the release goal of no missing first-party
-  surface.
+  request, which contradicts ADR-0031's default.
 - **Admit each option as a recorded divergence from ADR-0010.** Rejected. A divergence record
   per option would restate one rule many times; the rule itself is the decision.
 

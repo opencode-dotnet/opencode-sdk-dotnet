@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-Date: 2026-08-18
+Date: 2026-11-15
 
 Decision records for this repository. Each ADR is a standalone file named `NNNN-slug.md`,
 numbered sequentially — scan the directory for the highest number and increment. No index is
@@ -41,7 +41,7 @@ That is the whole required format — an ADR can be a single paragraph. The valu
 *that* a decision was made and *why*, not in filling out sections. Optional sections, only when
 they add real value:
 
-- **Status** frontmatter (`proposed | accepted | deprecated | superseded by ADR-NNNN`) — when
-  a decision is revisited.
+- **Status** frontmatter (`proposed | accepted | deprecated | superseded by ADR-NNNN |
+  superseded in part by ADR-NNNN`) — when a decision is revisited.
 - **Considered Options** — when the rejected alternatives are worth remembering.
 - **Consequences** — when non-obvious downstream effects need calling out.
