@@ -162,6 +162,7 @@ internal static class OperationPlanBinder
                     .Select(static operation => operation.Pagination!.MethodName))
                 .Concat(client.SubClients.Select(static reference => reference.PropertyName))
                 .Append(ReservedNamePolicy.PipelineProperty)
+                .Append(ReservedNamePolicy.PipelineOrNullProperty)
                 .Concat(ReservedNamePolicy.OptionalBodyTypeNames(client).Select(ReservedNamePolicy.EmptyBodyFieldName));
             if (client.Role is ClientRole.Root)
             {

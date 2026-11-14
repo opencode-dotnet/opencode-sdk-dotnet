@@ -24,6 +24,10 @@ public class EventsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("EventsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Subscribe to events. Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.

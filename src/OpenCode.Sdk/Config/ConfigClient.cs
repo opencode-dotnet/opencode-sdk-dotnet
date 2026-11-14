@@ -23,6 +23,10 @@ public class ConfigClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ConfigClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Get configuration. Return configuration documents and discovery sources for the requested location, from lowest to highest priority.

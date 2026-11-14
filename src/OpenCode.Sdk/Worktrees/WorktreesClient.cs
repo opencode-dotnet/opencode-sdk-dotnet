@@ -24,6 +24,10 @@ public class WorktreesClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("WorktreesClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Create worktree. Load the project&apos;s canonical configuration, create a local worktree using its selected strategy, then run the project&apos;s setup script.

@@ -40,6 +40,10 @@ public class ShellsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ShellsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Run shell command. Spawn one non-interactive shell command for a location. Combined stdout/stderr is captured to a file pageable via output.

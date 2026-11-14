@@ -250,6 +250,10 @@ public class OpenCodeClient : IDisposable
     /// </summary>
     public virtual WorktreesClient Worktrees => _worktrees ?? throw MockSeam.CreateError("OpenCodeClient", "Worktrees");
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("OpenCodeClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Get location. Resolve the requested location or the server default location.

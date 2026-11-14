@@ -23,6 +23,10 @@ public class AgentsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("AgentsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Get agent. Retrieve a single currently registered agent.

@@ -23,6 +23,10 @@ public class ProvidersClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ProvidersClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Get provider. Retrieve a single AI provider so clients can inspect its availability and endpoint settings.

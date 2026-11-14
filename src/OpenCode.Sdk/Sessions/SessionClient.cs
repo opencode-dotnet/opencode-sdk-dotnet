@@ -35,6 +35,10 @@ public class SessionClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("SessionClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
     private string SessionId => _sessionId ?? throw MockSeam.CreateError("SessionClient", "SessionId");
 
     /// <summary>

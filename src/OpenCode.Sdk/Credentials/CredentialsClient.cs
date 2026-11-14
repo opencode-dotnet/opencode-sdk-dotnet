@@ -24,6 +24,10 @@ public class CredentialsClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("CredentialsClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Activate credential. Activate a stored integration credential.

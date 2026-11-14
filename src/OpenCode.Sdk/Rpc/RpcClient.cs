@@ -25,6 +25,10 @@ public class RpcClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("RpcClient", "Pipeline");
+    /// <summary>
+    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
+    /// </summary>
+    internal Pipeline? PipelineOrNull => _pipeline;
 
     /// <summary>
     /// Call a plugin RPC. Dispatch a method to the currently registered RPC at the requested location.
