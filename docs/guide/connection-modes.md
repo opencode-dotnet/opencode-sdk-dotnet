@@ -556,7 +556,7 @@ the process that owns the persistent-terminal daemon, which ends the terminals w
 
 Before the first signal and before the removal it re-reads the registration and checks that it
 still names the same service (`id`, `version`, `url`, `pid`), so a service that re-registered under
-the file before the stop began is never signalled and a successor's registration is never removed.
+the file after the stop read it is never signalled and a successor's registration is never removed.
 Once the first signal is sent, the hard kill follows that process alone, even when its registration
 disappears or changes hands meanwhile. It identifies the process by pid *and* start time — before
 every signal and at every look while it waits — so a pid the operating system handed to an
