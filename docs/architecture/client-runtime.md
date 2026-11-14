@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -52,9 +52,11 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   the container does not already hold that service type, so a consumer's earlier registration wins.
   Default sub-clients resolve from the registered root. It does not use `IHttpClientFactory` or
   depend on `Microsoft.Extensions.Http` (ADR-0010).
-- No consumer transport-composition seam is public today. Adding one requires a concrete consumer
-  need and a deliberate design; omission is reversible because a future public seam is additive
-  (ADR-0010).
+- No consumer transport-composition seam is public today. An option upstream's first-party client
+  declares, a caller-supplied transport or request headers among them, is admitted as parity
+  without a consumer request, and lands as an option (ADR-0040). Any other seam requires a concrete
+  consumer need and a deliberate design; omission is reversible because a future public seam is
+  additive (ADR-0010).
 - Pipeline retry, telemetry and hooks are not part of `1.0.0`; each can land later as an addition
   through the policy roster (ADR-0018) under two rules. A new capability is off by default, so an
   existing call behaves as before until the consumer opts in; retry in particular never starts
