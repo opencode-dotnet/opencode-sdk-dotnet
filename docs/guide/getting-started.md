@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-05
+Date: 2026-11-14
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -219,11 +219,13 @@ if (model is not null)
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
   deadline (`GLOSSARY.md`, Plugin activation).
 - **Some catalog and model calls wait for plugins; wait out unavailable answers at startup.**
-  Listing the location's models, providers and agents; the default model; a web search query;
-  usage limits; and experimental generation, voice and artifacts wait up to five seconds for plugins
-  to load. Experimental generation and voice use the global config's location, not the request's;
-  a default-model wait on one location does not establish their activation. Artifact routes take
-  their session's or artifact's location when the request names none.
+  Listing the location's models and providers; the default model; a web search query;
+  and experimental generation and voice wait up to five seconds for plugins to load.
+  The agent list, usage limits and artifacts do not wait for plugin activation, so the agent list
+  can be incomplete while plugins load. Artifact routes take their session's or artifact's location
+  when the request names none.
+  Experimental generation and voice use the global config's location, not the request's;
+  a default-model wait on one location does not establish their activation.
   On the first request to a location, after a config or plugin change, or on the
   server's periodic plugin refresh, they can answer `503` with a `ServiceUnavailableError` whose
   `Service` is `plugin`, meaning "plugins still loading"; usage limits and web search queries also
