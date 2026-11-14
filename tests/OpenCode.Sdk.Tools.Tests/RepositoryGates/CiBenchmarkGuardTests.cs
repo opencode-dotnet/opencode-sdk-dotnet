@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+using OpenCode.Sdk.Tools.Tests.RepositoryGates.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 using TUnit.Assertions.Enums;
@@ -13,11 +13,12 @@ public sealed class CiBenchmarkGuardTests
     [Test]
     public async Task Ci_Should_Keep_The_Ordered_Sdk_Dry_Commands()
     {
-        var workflow = await WorkflowAsync();
-        await Assert.That(Job(workflow, "build-and-test")).DoesNotContain("--job Dry");
-        await Assert.That(Job(workflow, "publish-nightly")).Contains("needs: [lint, build-and-test, benchmark-sdk]");
-        await Assert.That(Job(workflow, "publish-nightly")).Contains("if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.lint.result == 'success' && needs.build-and-test.result == 'success' && needs.benchmark-sdk.result == 'success' }}");
-        var matrix = Job(workflow, "benchmark-sdk");
+        var fileSystem = new RealFileSystem();
+        var workflow = await new CiWorkflow(fileSystem).ReadAsync(new RepositoryRoot(fileSystem).Locate());
+        await Assert.That(CiWorkflow.Job(workflow, "build-and-test")).DoesNotContain("--job Dry");
+        await Assert.That(CiWorkflow.Job(workflow, "publish-nightly")).Contains("needs: [lint, build-and-test, benchmark-sdk]");
+        await Assert.That(CiWorkflow.Job(workflow, "publish-nightly")).Contains("if: ${{ !cancelled() && github.ref == 'refs/heads/master' && github.event_name == 'push' && needs.lint.result == 'success' && needs.build-and-test.result == 'success' && needs.benchmark-sdk.result == 'success' }}");
+        var matrix = CiWorkflow.Job(workflow, "benchmark-sdk");
         await Assert.That(matrix).Contains("needs: [changes, reuse]");
         await Assert.That(matrix).Contains("if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.benchmarks == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}");
         await Assert.That(matrix).Contains("fail-fast: false");
@@ -42,7 +43,9 @@ public sealed class CiBenchmarkGuardTests
     [Test]
     public async Task Ci_Should_Run_Cold_Start_Once_On_The_Net10_Leg()
     {
-        var matrix = Job(await WorkflowAsync(), "benchmark-sdk");
+        var fileSystem = new RealFileSystem();
+        var workflow = await new CiWorkflow(fileSystem).ReadAsync(new RepositoryRoot(fileSystem).Locate());
+        var matrix = CiWorkflow.Job(workflow, "benchmark-sdk");
         await Assert.That(matrix).Contains("      - name: SDK cold start (net10)\n");
         var start = matrix.IndexOf("      - name: SDK cold start (net10)\n", StringComparison.Ordinal);
         var end = matrix.IndexOf("\n      - name: ", start + 1, StringComparison.Ordinal);
@@ -57,7 +60,9 @@ public sealed class CiBenchmarkGuardTests
     [Test]
     public async Task Ci_Should_Run_Generator_Stages_In_Their_Own_Job_Without_Runtimes()
     {
-        var stage = Job(await WorkflowAsync(), "benchmark-generator-stage");
+        var fileSystem = new RealFileSystem();
+        var workflow = await new CiWorkflow(fileSystem).ReadAsync(new RepositoryRoot(fileSystem).Locate());
+        var stage = CiWorkflow.Job(workflow, "benchmark-generator-stage");
         await Assert.That(stage).Contains("needs: [changes, reuse]");
         await Assert.That(stage).Contains("if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.benchmarks-generator == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}");
         await Assert.That(stage).Contains("- name: Generator stages\n");
@@ -79,7 +84,9 @@ public sealed class CiBenchmarkGuardTests
     [Test]
     public async Task Ci_Should_Bound_Every_Dry_Step()
     {
-        var timeouts = DrySteps(await WorkflowAsync()).Select(static step =>
+        var fileSystem = new RealFileSystem();
+        var workflow = await new CiWorkflow(fileSystem).ReadAsync(new RepositoryRoot(fileSystem).Locate());
+        var timeouts = DrySteps(workflow).Select(static step =>
             step.Split('\n').SingleOrDefault(static line => line.TrimStart().StartsWith("timeout-minutes:", StringComparison.Ordinal))?.Trim() ?? "<missing>");
         await Assert.That(timeouts).IsEquivalentTo([
             "timeout-minutes: 20", "timeout-minutes: 20",
@@ -89,8 +96,9 @@ public sealed class CiBenchmarkGuardTests
     [Test]
     public async Task Ci_Should_Require_The_Stage_Result_Only_When_Selected()
     {
-        var workflow = await WorkflowAsync();
-        var changes = Job(workflow, "changes");
+        var fileSystem = new RealFileSystem();
+        var workflow = await new CiWorkflow(fileSystem).ReadAsync(new RepositoryRoot(fileSystem).Locate());
+        var changes = CiWorkflow.Job(workflow, "changes");
         await Assert.That(changes).Contains("benchmarks: ${{ steps.diff.outputs.benchmarks }}");
         await Assert.That(changes).Contains("echo \"benchmarks=true\" >> \"$GITHUB_OUTPUT\"");
         await Assert.That(changes).Contains("src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;");
@@ -100,7 +108,7 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(changes).Contains("benchmarks_generator=false");
         await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=$benchmarks_generator\" >> \"$GITHUB_OUTPUT\"");
-        var aggregate = Job(workflow, "ci-result");
+        var aggregate = CiWorkflow.Job(workflow, "ci-result");
         await Assert.That(aggregate).Contains("needs: [changes, reuse, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]");
         await Assert.That(aggregate).Contains("SDK_BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}");
         await Assert.That(aggregate).Contains("SDK: ${{ needs.benchmark-sdk.result }}");
@@ -123,16 +131,6 @@ public sealed class CiBenchmarkGuardTests
                       fi
             """);
     }
-
-    private static async Task<string> WorkflowAsync()
-    {
-        var fileSystem = new RealFileSystem();
-        return (await fileSystem.File.ReadAllTextAsync(fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), ".github", "workflows", "ci.yml")))
-            .ReplaceLineEndings("\n");
-    }
-
-    private static string Job(string workflow, string name) =>
-        Regex.Match(workflow, $@"(?ms)^  {Regex.Escape(name)}:\n.*?(?=^  \S|\z)", RegexOptions.None, Regex.InfiniteMatchTimeout).Value;
 
     private static IEnumerable<string> DrySteps(string workflow) =>
         workflow.Split("      - name: ", StringSplitOptions.None).Where(static step => step.Contains("--job Dry", StringComparison.Ordinal));

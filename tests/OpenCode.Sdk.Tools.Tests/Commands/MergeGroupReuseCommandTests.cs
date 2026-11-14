@@ -32,18 +32,21 @@ public sealed class MergeGroupReuseCommandTests
     [Arguments("expired-artifact", "rule 4: unproven tree")]
     [Arguments("failed-changes", "rule 4: unproven tree")]
     [Arguments(".github/workflows/ci.yml", "rule 5: guarded path")]
-    [Arguments("tools/example.cs", "rule 5: guarded path")]
-    [Arguments("tools/Directory.Build.props", "rule 5: guarded path")]
-    [Arguments("global.json", "rule 5: guarded path")]
-    [Arguments("nested/Directory.Build.targets", "rule 5: guarded path")]
-    [Arguments("nested/Directory.Packages.props", "rule 5: guarded path")]
-    [Arguments("nested/Directory.Build.rsp", "rule 5: guarded path")]
-    [Arguments("nested/nuget.config", "rule 5: guarded path")]
-    [Arguments("nested/NuGet.Config", "rule 5: guarded path")]
-    [Arguments("nested/Global.json", "rule 5: guarded path")]
-    [Arguments("nested/directory.build.props", "rule 5: guarded path")]
+    [Arguments("tools/example.cs", "all rules hold")]
+    [Arguments("tools/Directory.Build.props", "all rules hold")]
+    [Arguments("global.json", "all rules hold")]
+    [Arguments("Directory.Packages.props", "all rules hold")]
+    [Arguments("nested/Directory.Build.targets", "all rules hold")]
+    [Arguments("nested/Directory.Packages.props", "all rules hold")]
+    [Arguments("nested/Directory.Build.rsp", "all rules hold")]
+    [Arguments("nested/nuget.config", "all rules hold")]
+    [Arguments("nested/NuGet.Config", "all rules hold")]
+    [Arguments("nested/Global.json", "all rules hold")]
+    [Arguments("nested/directory.build.props", "all rules hold")]
     [Arguments(".GITHUB/workflows/ci.yml", "rule 5: guarded path")]
-    [Arguments("TOOLS/example.cs", "rule 5: guarded path")]
+    [Arguments("TOOLS/example.cs", "all rules hold")]
+    [Arguments("tools/example.cs+different-tree", "rule 4: unproven tree")]
+    [Arguments("Directory.Packages.props+different-base-tree", "rule 4: unproven tree")]
     [Arguments("malformed", "malformed facts")]
     [Arguments("missing", "unreadable facts")]
     public async Task Execute_Should_Write_The_Decision_And_Reason(string row, string reason, CancellationToken cancellationToken)
@@ -67,11 +70,18 @@ public sealed class MergeGroupReuseCommandTests
 
         await Assert.That(exitCode).IsEqualTo(0);
         await Assert.That(await fileSystem.File.ReadAllTextAsync("output", cancellationToken)).IsEqualTo(
-            $"reuse={(row == "all" ? "true" : "false")}\nreason={reason}\n");
+            $"reuse={(reason == "all rules hold" ? "true" : "false")}\nreason={reason}\n");
     }
 
     private static void ApplyRow(Dictionary<string, string> facts, string row)
     {
+        var parts = row.Split('+');
+        if (parts.Length == 2)
+        {
+            facts["changed-paths"] = parts[0] + '\0';
+            row = parts[1];
+        }
+
         // These documents are built below with non-null arrays and members.
         var runs = JsonNode.Parse(facts["runs.json"])!["workflow_runs"]!.AsArray();
         var jobs = JsonNode.Parse(facts["jobs.json"])!["jobs"]!.AsArray();
@@ -80,7 +90,7 @@ public sealed class MergeGroupReuseCommandTests
         facts["runs.json"] = new JsonObject { ["workflow_runs"] = runs.DeepClone() }.ToJsonString();
         facts["jobs.json"] = new JsonObject { ["jobs"] = jobs.DeepClone() }.ToJsonString();
         facts["artifacts.json"] = new JsonObject { ["artifacts"] = artifacts.DeepClone() }.ToJsonString();
-        if (row.Contains('/', StringComparison.Ordinal) || row == "global.json")
+        if (row.Contains('/', StringComparison.Ordinal) || row is "global.json" or "Directory.Packages.props")
         {
             facts["changed-paths"] = row + '\0';
         }

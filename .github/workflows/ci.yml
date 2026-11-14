@@ -120,7 +120,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Guard against self-vouching before executing repository tooling
+      - name: Gather the group's facts
         id: guard
         env:
           QUEUE_REF: ${{ github.ref }}
@@ -140,12 +140,9 @@ jobs:
             reason="unavailable guard facts"
           else
             gather base-tree git rev-parse "$QUEUE_BASE^{tree}" || true
-            shopt -s nocasematch
-            while IFS= read -r -d '' path; do
-              case "$path" in
-                .github/* | tools/* | Directory.Build.props | */Directory.Build.props | Directory.Build.targets | */Directory.Build.targets | Directory.Packages.props | */Directory.Packages.props | Directory.Build.rsp | */Directory.Build.rsp | global.json | */global.json | nuget.config | */nuget.config) reason="rule 5: guarded path" ;;
-              esac
-            done < "$facts/changed-paths"
+            if ! git worktree add --detach "$RUNNER_TEMP/judge" "$QUEUE_BASE"; then
+              reason="unavailable judge"
+            fi
           fi
           if [ -n "$reason" ]; then
             printf 'reuse=false\nreason=%s\nblocked=true\n' "$reason" >> "$GITHUB_OUTPUT"
@@ -155,7 +152,7 @@ jobs:
         if: steps.guard.outputs.blocked != 'true'
         uses: actions/setup-dotnet@v6
         with:
-          global-json-file: global.json
+          global-json-file: ${{ runner.temp }}/judge/global.json
           dotnet-version: 10.0.x
       - name: Gather GitHub facts
         id: facts
@@ -183,6 +180,7 @@ jobs:
       - name: Decide reuse
         id: decide
         if: steps.guard.outputs.blocked != 'true'
+        working-directory: ${{ runner.temp }}/judge
         env:
           REUSED_RUN: ${{ steps.facts.outputs.link }}
         run: |
