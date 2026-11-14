@@ -11,6 +11,12 @@ Nightly builds of `master` are on
 
 ## [1.1.0] - 2026-11-14
 
+**`1.1.0` pins opencode `2.3.0`.** It is a minor that moves the protocol pin, so two generated types
+change the way upstream changed them: `CredentialUpdated.Data` becomes `CredentialUpdatedData`, and
+`SessionGenerateData` gains required `Tokens` and `Cost`. Both are listed as **breaking** under
+protocol changes. Since opencode 2.2.7 fewer endpoints wait for plugins, and
+`LanguageModels.WaitForDefaultAsync` now waits the way opencode's CLI does.
+
 ### 🔌 Protocol changes
 
 - The SDK pins opencode `2.3.0`, where it pinned `2.2.6`.
