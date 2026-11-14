@@ -1,8 +1,7 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The one API call the stop lifecycle makes before signalling: the pinned CLI's
-/// <c>shutdownPersistentPty</c> (<c>server-connection.ts</c>), the generated
+/// The API call the handoff's prepare fallback makes (<c>pty-handoff.ts</c>): the generated
 /// <c>experimental.persistentPty.shutdown</c> door against the registered endpoint. Behind a seam so the
 /// orchestration runs without a socket; the shipped implementation rides the public client.
 /// </summary>

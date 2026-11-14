@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Internal;
 /// temporary file and a replace-on-success rename in the same directory, and a JSON-null handoff
 /// carries a 30-second fallback expiry. The ticket is requested through the SDK's own request
 /// pipeline and kept raw, so it crosses to the replacement daemon exactly as the route answered it;
-/// the shutdown fallback goes through the Stop lifecycle's <see cref="IServicePtyShutdown"/> seam.
+/// the shutdown fallback goes through its own <see cref="IServicePtyShutdown"/> seam.
 /// Preparation never fails the replacement: persistent terminals are best-effort, so any failure
 /// but the caller's cancellation replaces the service without a handoff.
 /// Time comes from the injected clock so every expiry rule is testable without waiting.

@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -931,9 +931,7 @@ registration and throws only for refused input (`ArgumentException`), caller can
 unresolvable user home (`OpenCodeServerException`).
 
 `OpenCodeServer.StopAsync` is the CLI's `service stop`. It resolves the registration the way
-discovery does (channel rules, legacy migration, or a direct file) and reads it once; asks a ready
-and compatible daemon to shut its persistent terminals down through the generated
-`PersistentPtys.ShutdownAsync` door, ignoring a refused or failed answer the way the CLI does;
+discovery does (channel rules, legacy migration, or a direct file) and reads it once;
 removes the handoff sidecar the CLI keeps beside the registration (`<file>.pty-handoff`); then ends
 the registered process the way the pinned client's `terminate` does — `SIGTERM`, the pin's own poll
 for the process to leave (every 50 ms, up to 100 times), `SIGKILL` when it is still there, the same
@@ -1022,7 +1020,7 @@ loser's exit 0 the way upstream's does. The CLI's `reconnect` and `restart` have
 own; a caller composes them from `StopAsync` and `EnsureAsync`.
 
 Each background-service door chooses `TimeProvider.System` once at its composition root:
-Discover supplies its probe; Stop shares it across the probe, handoff and terminator; Ensure
+Discover supplies its probe; Stop shares it across the handoff and terminator; Ensure
 shares it across the election collaborators and spawned contenders. Internal collaborators require
 that provider, including the handoff ticket's request pipeline. Request deadlines, election and
 termination polls, and contender exit backoff run on it. Election deadline comparisons and spawn

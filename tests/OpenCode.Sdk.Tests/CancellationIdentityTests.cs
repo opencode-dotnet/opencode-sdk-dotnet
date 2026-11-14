@@ -46,7 +46,9 @@ public sealed class CancellationIdentityTests
         yield return new("discover", "authenticated-probe", caller => AtServiceRequestAsync("discover", "probe", caller));
         yield return new("ensure", "handoff-ticket", caller => AtServiceRequestAsync("ensure", "ticket", caller));
         yield return new("ensure", "shutdown-fallback", caller => AtServiceRequestAsync("ensure", "fallback", caller));
-        yield return new("stop", "daemon-shutdown", caller => AtServiceRequestAsync("stop", "shutdown", caller));
+        // Since upstream v2.3.0 stop has no cancellable network wait: entry is its first cancellation point.
+        // Mid-poll cancellation is proven by StopAsync_Should_Leave_The_Registration_When_Cancelled_After_The_Terminate_Signal.
+        yield return new("stop", "pre-cancelled", AtStopPreCancelledAsync);
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -480,6 +482,29 @@ public sealed class CancellationIdentityTests
         }
     }
 
+    private static async Task<OperationCanceledException> AtStopPreCancelledAsync(CancellationTokenSource caller)
+    {
+        var fileSystem = new RealFileSystem();
+        using var root = new TestRunRoot(fileSystem);
+        await using var daemon = LoopbackHttpServer.Start(_ => new LoopbackHttpResponse
+        {
+            StatusCode = HttpStatusCode.OK,
+            ContentType = "application/json",
+            Body = ServiceInfoBodyData.Ready,
+        });
+        var registrationPath = fileSystem.Path.Combine(root.Path, "service.json");
+        var registrationFiles = new TestablyServiceFileSystem(fileSystem);
+        var document = await WriteServiceRegistrationAsync(registrationFiles, registrationPath, daemon.Endpoint);
+
+        await caller.CancelOnWorkerAsync();
+        var failure = await CancellationAsync(() => InvokeServiceAsync("stop", registrationPath, caller.Token));
+
+        await Assert.That(daemon.RequestPaths).IsEmpty();
+        var retained = await registrationFiles.TryReadAllBytesAsync(registrationPath, CancellationToken.None);
+        await Assert.That(retained).IsEquivalentTo(Encoding.UTF8.GetBytes(document), CollectionOrdering.Matching);
+        return failure;
+    }
+
     private static async Task<OperationCanceledException> AtServiceRequestAsync(string row, string stage, CancellationTokenSource caller)
     {
         var fileSystem = new RealFileSystem();
@@ -513,11 +538,8 @@ public sealed class CancellationIdentityTests
             };
         });
         var registrationPath = fileSystem.Path.Combine(root.Path, "service.json");
-        var document = ServiceRegistrationDocument.Compose("srv_identity", ServiceInfoBodyData.Version,
-            daemon.Endpoint, ServiceInfoBodyData.Pid, ServicePassword);
         var registrationFiles = new TestablyServiceFileSystem(fileSystem);
-        await Assert.That(await registrationFiles.TryCreateExclusiveAsync(
-            registrationPath, Encoding.UTF8.GetBytes(document), CancellationToken.None)).IsTrue();
+        var document = await WriteServiceRegistrationAsync(registrationFiles, registrationPath, daemon.Endpoint);
         var observed = CancellationAsync(() => InvokeServiceAsync(row, registrationPath, caller.Token));
         try
         {
@@ -554,6 +576,16 @@ public sealed class CancellationIdentityTests
                 daemon.ReleaseResponses();
             }
         }
+    }
+
+    private static async Task<string> WriteServiceRegistrationAsync(
+        TestablyServiceFileSystem registrationFiles, string registrationPath, Uri endpoint)
+    {
+        var document = ServiceRegistrationDocument.Compose("srv_identity", ServiceInfoBodyData.Version,
+            endpoint, ServiceInfoBodyData.Pid, ServicePassword);
+        await Assert.That(await registrationFiles.TryCreateExclusiveAsync(
+            registrationPath, Encoding.UTF8.GetBytes(document), CancellationToken.None)).IsTrue();
+        return document;
     }
 
     private static async Task InvokeServiceAsync(string row, string registrationPath, CancellationToken caller)

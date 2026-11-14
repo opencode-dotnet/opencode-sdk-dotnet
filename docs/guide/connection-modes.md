@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-10
+Date: 2026-11-14
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -545,13 +545,14 @@ What it does, in order:
 
 1. Resolves the registration exactly as discovery does — the shared release registration by
    default, a named `Channel`, or a `RegistrationFilePath` — including the CLI's legacy migration.
-2. Asks a ready, compatible daemon to shut down its persistent terminals
-   (`PersistentPtys.ShutdownAsync`); a daemon that refuses or does not answer is not an error.
-3. Removes the handoff sidecar the CLI keeps beside the registration.
-4. Ends the registered process: a request to stop first (`SIGTERM`), a hard kill (`SIGKILL`) if it
+2. Removes the handoff sidecar the CLI keeps beside the registration.
+3. Ends the registered process: a request to stop first (`SIGTERM`), a hard kill (`SIGKILL`) if it
    is still there about five seconds later, then the same wait again. On Windows both rungs are a
    hard kill, because another process cannot be signalled there.
-5. Removes the registration once the process is gone.
+4. Removes the registration once the process is gone.
+
+The stop does not contact the daemon: like the CLI's `service stop` since opencode 2.3.0, it ends
+the process that owns the persistent-terminal daemon, which ends the terminals with it.
 
 Before the first signal and before the removal it re-reads the registration and checks that it
 still names the same service (`id`, `version`, `url`, `pid`), so a service that re-registered under

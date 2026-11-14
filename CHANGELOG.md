@@ -26,6 +26,10 @@ Nightly builds of `master` are on
 - `SessionStepFirstToken`, with `SessionStepFirstTokenData` and `SessionStepFirstTokenDurable`, joins `IEvent`, `ISessionEventDurable` and `ISessionLogItem`; `EventType.SessionStepFirstToken` filters the event subscription to `session.step.first-token`.
 - `AgentsClient.ListAgentsAsync` (`agent.list`) no longer declares `503`, because opencode 2.2.7 answers with the agents loaded so far instead of waiting for plugins.
 
+### 🔧 Changes
+
+- `OpenCodeServer.StopAsync` no longer asks the daemon to shut its persistent terminals down before it ends the process, and makes no request to the daemon at all, as the CLI's `service stop` does since opencode 2.3.0; ending the daemon still ends its terminals.
+
 ## [1.0.1] - 2026-11-11
 
 **`1.0.1` pins opencode `2.2.6` and is built on the GA .NET 11 SDK.** It is a patch that moves the
