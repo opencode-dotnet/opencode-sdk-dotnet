@@ -963,7 +963,7 @@ unresolvable user home (`OpenCodeServerException`).
 
 `OpenCodeServer.StopAsync` is the CLI's `service stop`. It resolves the registration the way
 discovery does (channel rules, legacy migration, or a direct file) and reads it once;
-removes the handoff sidecar the CLI keeps beside the registration (`<file>.pty-handoff`); then ends
+by default removes the handoff sidecar the CLI keeps beside the registration (`<file>.pty-handoff`); then ends
 the registered process the way the pinned client's `terminate` does — `SIGTERM`, the pin's own poll
 for the process to leave (every 50 ms, up to 100 times), `SIGKILL` when it is still there, the same
 poll again. On Windows both rungs are a hard kill, which is what the pinned client's runtime does
@@ -982,7 +982,11 @@ ignored, as the pinned client's `stop` ignores it, so the process is still ended
 running after the kill rung throws `OpenCodeServerException`, the registration then left in place;
 cancellation before a signal prevents it and after one ends the wait. Stop targets exactly one pid,
 never a tree, is never implied by disposal or host shutdown, and may end a service other clients
-share.
+share. `OpenCodeServerStopOptions.PersistentPtys` matches the pinned client's
+`pty: "clear" | "handoff"`: null and `Clear` remove the ticket and the terminals end with the
+service; `Handoff` asks the old service for a ticket and publishes it before termination. This
+preservation is best-effort: preparation must succeed and the next `EnsureAsync` that starts a
+service must adopt the ticket before it expires. A failed preparation still stops the service.
 
 `OpenCodeServer.EnsureAsync` is the CLI's managed-service election (`Service.ensure`). Its options
 are validated and copied before the registration is read or anything is spawned; `Replace` and
@@ -1033,7 +1037,7 @@ sidecar with a 30-second expiry; a sidecar that cannot be published leaves the r
 handoff. `environment` adopts an unexpired sidecar whose source still matches the current
 registration (or whose registration is gone) as `OPENCODE_PTY_HANDOFF` and removes the variable
 otherwise; `complete` clears only a sidecar a different source wrote, with no expiry check; and
-`clear` removes it idempotently, the same seam Stop's sidecar clear routes through.
+`clear` removes it idempotently, the same seam Stop's handoff step routes through.
 
 The background service's recorded divergences from upstream on Windows (ADR-0031):
 
@@ -1048,12 +1052,16 @@ when the POSIX-semantics rename proves unsound on a volume the SDK supports.
 The daemon side of the lifecycle is the spawned CLI's, not the SDK's: the incumbent check, the
 exit-0 loser on a port another daemon holds, the `chdir` into the user home, and the registration
 write all run inside `opencode serve --service` (`server-process.ts`), and the election reads a
-loser's exit 0 the way upstream's does. The CLI's `reconnect` and `restart` have no door of their
-own; a caller composes them from `StopAsync` and `EnsureAsync`.
+loser's exit 0 the way upstream's does. The CLI's `reconnect` is `EnsureAsync`. `StopAsync` then
+`EnsureAsync` is the CLI's `service restart`, where persistent terminals end. With
+`PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff`, the same pair is the managed
+connection's restart: `EnsureAsync` adopts the published ticket to keep the terminals, best-effort
+and only when preparation and adoption precede its expiry.
 
 Each background-service door chooses `TimeProvider.System` once at its composition root:
 Discover supplies its probe; Stop shares it across the handoff and terminator; Ensure
-shares it across the election collaborators and spawned contenders. Internal collaborators require
+shares it across the election collaborators and spawned contenders. Stop and the election share
+the same handoff step. Internal collaborators require
 that provider, including the handoff ticket's request pipeline. Request deadlines, election and
 termination polls, and contender exit backoff run on it. Election deadline comparisons and spawn
 stamps read UTC, and handoff expiry reads UTC epoch milliseconds; neither is a monotonic

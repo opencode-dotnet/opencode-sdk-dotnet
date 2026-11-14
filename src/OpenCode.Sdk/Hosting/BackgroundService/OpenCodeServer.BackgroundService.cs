@@ -66,7 +66,7 @@ public partial class OpenCodeServer
     /// <summary>
     /// Stops the registered background service the way <c>opencode service stop</c> does: resolves
     /// the registration the options name (channel rules and legacy migration included), clears the
-    /// handoff sidecar as far as it can, then ends the registered process — a request to stop first, a
+    /// handoff sidecar by default or attempts a best-effort handoff with <see cref="OpenCodeServerStopOptions.PersistentPtys"/>, then ends the registered process — a request to stop first, a
     /// hard kill when it survives — and removes the registration once the process is gone. The
     /// registration is re-read before the first signal and before the removal, so a service that
     /// re-registered after the stop read the registration is never signalled and a successor's
@@ -77,7 +77,8 @@ public partial class OpenCodeServer
     /// way to end it — disposing a discovered handle never does.
     /// </summary>
     /// <param name="options">The stop options; null stops the shared release registration.</param>
-    /// <param name="cancellationToken">The caller's token. Cancellation before the first signal prevents it; after a signal it ends the bounded wait and leaves the registration in place.</param>
+    /// <param name="cancellationToken">The caller's token. Cancellation before the first signal prevents it; after a signal it ends the bounded wait and leaves the registration in place.
+    /// In handoff mode, a cancellation during the handoff can still leave a published ticket, or terminals already shut down, while the service keeps running.</param>
     /// <returns>A task that completes when the registered process is gone (reaped, when it is a child of this process) or there was none to stop.</returns>
     /// <exception cref="ArgumentException">An option is blank, the registration path is relative, or the options contradict one another.</exception>
     /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback, or the registered process is still running after the hard kill.</exception>

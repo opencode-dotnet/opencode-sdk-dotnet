@@ -467,6 +467,145 @@ public sealed class ServiceStopperTests
             .Throws<OperationCanceledException>();
     }
 
+    [Test]
+    public async Task StopAsync_Should_Await_The_Handoff_Before_Terminating()
+    {
+        SeedModern();
+        var handoff = Substitute.For<IServicePtyHandoff>();
+        var timing = Timing with { RequestTimeout = TimeSpan.FromSeconds(7) };
+        var registration = await ServiceRegistrationReader.TryReadAsync(
+            new TestablyServiceFileSystem(_fileSystem),
+            SharedRegistrationPath(),
+            CancellationToken.None);
+        var identity = ServiceRegistrationIdentity.Of(registration!);
+        var prepared = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        handoff.PrepareAsync(
+            SharedRegistrationPath(),
+            Arg.Is<ServiceRegistration>(r => ServiceRegistrationIdentity.Of(r) == identity),
+            timing.RequestTimeout,
+            Arg.Any<CancellationToken>()).Returns(prepared.Task).AndDoes(_ => entered.TrySetResult());
+
+        var pending = Stopper(handoff, timing).StopAsync(
+            new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff },
+            CancellationToken.None);
+        try
+        {
+            await entered.Task.WaitAsync(HangGuard.Bound);
+            _ = handoff.Received(1).PrepareAsync(
+                SharedRegistrationPath(),
+                Arg.Is<ServiceRegistration>(r => ServiceRegistrationIdentity.Of(r) == identity),
+                TimeSpan.FromSeconds(7),
+                Arg.Any<CancellationToken>());
+            _ = handoff.DidNotReceiveWithAnyArgs().ClearAsync(default!, default);
+            _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+        }
+        finally
+        {
+            prepared.TrySetResult();
+            await pending.WaitAsync(HangGuard.Bound);
+        }
+
+        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+    }
+
+    [Test]
+    public async Task StopAsync_Should_Clear_In_Handoff_Mode_When_No_Service_Is_Registered()
+    {
+        var handoff = Substitute.For<IServicePtyHandoff>();
+
+        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff }, CancellationToken.None);
+
+        _ = handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
+        _ = handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
+        _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task StopAsync_Should_Terminate_When_Handoff_Preparation_Fails(bool endpointRefusal)
+    {
+        SeedModern();
+        if (endpointRefusal)
+        {
+            Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose(
+                "srv_refused", "2.0.4", new Uri("http://synthetic@127.0.0.1:49374"), RegisteredPid, ServiceRegistrationData.Password));
+        }
+
+        var handoff = Substitute.For<IServicePtyHandoff>();
+        handoff.PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                if (endpointRefusal)
+                {
+                    _ = EndpointPolicy.Normalize(call.Arg<ServiceRegistration>().Endpoint);
+                }
+
+                return Task.FromException(new OpenCodeServerException("The handoff failed."));
+            });
+
+        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff }, CancellationToken.None);
+
+        _ = handoff.Received(1).PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, Arg.Any<CancellationToken>());
+        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+    }
+
+    [Test]
+    [Arguments(null)]
+    [Arguments(OpenCodeServerStopPersistentPtyMode.Clear)]
+    public async Task StopAsync_Should_Clear_Without_Preparing_By_Default_Or_When_Explicit(OpenCodeServerStopPersistentPtyMode? mode)
+    {
+        SeedModern();
+        var handoff = Substitute.For<IServicePtyHandoff>();
+
+        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { PersistentPtys = mode }, CancellationToken.None);
+
+        _ = handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
+        _ = handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
+        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+    }
+
+    [Test]
+    public async Task StopAsync_Should_Propagate_Caller_Cancellation_During_Handoff()
+    {
+        SeedModern();
+        using var caller = new CancellationTokenSource();
+        var handoff = Substitute.For<IServicePtyHandoff>();
+        var prepared = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        handoff.PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, caller.Token).Returns(prepared.Task);
+        handoff.When(value => value.PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, caller.Token))
+            .Do(_ =>
+            {
+                caller.Cancel();
+                prepared.SetCanceled(caller.Token);
+            });
+
+        var failure = await Assert.That(async () => await Stopper(handoff).StopAsync(
+            new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff }, caller.Token)).Throws<OperationCanceledException>();
+
+        await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
+        _ = handoff.Received(1).PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, caller.Token);
+        _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+    }
+
+    [Test]
+    public async Task StopAsync_Should_Refuse_An_Undefined_Persistent_Pty_Mode_Before_Reading()
+    {
+        var fileSystem = Substitute.For<IServiceFileSystem>();
+        var handoff = Substitute.For<IServicePtyHandoff>();
+        var stopper = new ServiceStopper(_environment, fileSystem, handoff, _processControl, Timing, _clock);
+
+        var failure = await Assert.That(async () => await stopper.StopAsync(
+            new OpenCodeServerStopOptions { PersistentPtys = (OpenCodeServerStopPersistentPtyMode)99 }, CancellationToken.None)).Throws<ArgumentOutOfRangeException>();
+
+        await Assert.That(failure!.ParamName).IsEqualTo("options");
+        await Assert.That(_environment.ReceivedCalls()).IsEmpty();
+        await Assert.That(fileSystem.ReceivedCalls()).IsEmpty();
+        await Assert.That(handoff.ReceivedCalls()).IsEmpty();
+        await Assert.That(_processControl.ReceivedCalls()).IsEmpty();
+    }
+
     private async Task AssertSharedRegistrationAbsentAsync() =>
         await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
 
@@ -495,6 +634,9 @@ public sealed class ServiceStopperTests
             _processControl,
             Timing,
             _clock);
+
+    private ServiceStopper Stopper(IServicePtyHandoff handoff, ServiceTiming? timing = null) =>
+        new(_environment, new TestablyServiceFileSystem(_fileSystem), handoff, _processControl, timing ?? Timing, _clock);
 
     private void ProcessIs(ProcessIdentity? identity) =>
         _processControl.TrySnapshot(RegisteredPid).Returns(identity);

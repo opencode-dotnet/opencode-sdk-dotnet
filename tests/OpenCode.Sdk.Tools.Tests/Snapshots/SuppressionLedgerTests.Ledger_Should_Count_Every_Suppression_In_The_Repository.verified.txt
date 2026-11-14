@@ -7,7 +7,7 @@ globalconfig: 1
 no-warn: 12
 pragma: 27
 slopwatch-ignore: 7
-slopwatch-suppress: 31
+slopwatch-suppress: 30
 suppress-message: 1
 
 build-switch .github/workflows/ci.yml [command line] RunAnalyzers = false
@@ -218,11 +218,10 @@ slopwatch-ignore src/OpenCode.Sdk/OpenCode.Sdk.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj SW005 x2
 slopwatch-ignore tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj SW005
-slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Ensure/ServiceElection.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs SW003 x3
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoffStep.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceMigration.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ServiceFileSystem.cs SW003
-slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceStopper.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceTerminator.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs SW003 x3

@@ -1075,7 +1075,13 @@ namespace OpenCode.Sdk
         public OpenCodeServerStopOptions() { }
         public string? Channel { get; set; }
         public string? InstalledVersion { get; set; }
+        public OpenCode.Sdk.OpenCodeServerStopPersistentPtyMode? PersistentPtys { get; set; }
         public string? RegistrationFilePath { get; set; }
+    }
+    public enum OpenCodeServerStopPersistentPtyMode
+    {
+        Clear = 0,
+        Handoff = 1,
     }
     public enum OpenCodeServerVersionPolicy
     {
