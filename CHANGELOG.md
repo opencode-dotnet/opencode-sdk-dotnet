@@ -9,11 +9,19 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [1.1.0] - 2026-11-14
+
+**`1.1.0` pins opencode `2.3.0`.** It is a minor that moves the protocol pin, so two generated types
+change the way upstream changed them: `CredentialUpdated.Data` becomes `CredentialUpdatedData`, and
+`SessionGenerateData` gains required `Tokens` and `Cost`. Both are listed as **breaking** under
+protocol changes. Since opencode 2.2.7 fewer endpoints wait for plugins, and
+`LanguageModels.WaitForDefaultAsync` now waits the way opencode's CLI does.
+
 ### 🔌 Protocol changes
 
 - The SDK pins opencode `2.3.0`, where it pinned `2.2.6`.
 - **Breaking:** `CredentialUpdated.Data` changes from `IReadOnlyDictionary<string, JsonElement>` to `CredentialUpdatedData`, because opencode 2.2.7 declares the event's data as the required string members `IntegrationId` and `CredentialId`. A reader changes `IReadOnlyDictionary<string, JsonElement> data = updated.Data;` to `CredentialUpdatedData data = updated.Data;` and reads those members directly.
-- `SessionGenerateData` gains required `TokenUsageInfo Tokens` and `double Cost`, so code that constructs the record sets both alongside `Text`; the generation's usage counts toward the session's totals.
+- **Breaking:** `SessionGenerateData` gains required `TokenUsageInfo Tokens` and `double Cost`, so code that constructs the record sets both alongside `Text`; the generation's usage counts toward the session's totals.
 - `GeneratePredicateQuestion.Criteria` accepts a `GeneratePredicateQuestionCriteria` with optional `True` and `False` strings describing the two outcomes.
 - `ConfigInfoExperimental.ConsoleWatches` exposes the console-watch feature flag.
 - `SessionUsageRecordedDataSource.Generate` names usage recorded by session generation.
@@ -23,14 +31,21 @@ Nightly builds of `master` are on
 - `ConfigInfoExperimental.ShellTimeoutBackground` exposes the shell-timeout-background feature flag.
 - `SessionMessageAssistantTime.FirstToken` records when the provider streamed the first output token, in epoch milliseconds, as `double?`.
 - `ExperimentalMcpEvent`, with `ExperimentalMcpEventData`, joins `IEvent`, and `EventType.ExperimentalMcpEvent` filters the event subscription to `experimental.mcp.event`.
-- `SessionStepFirstToken`, with `SessionStepFirstTokenData` and `SessionStepFirstTokenDurable`, joins `IEvent`, `ISessionEventDurable` and `ISessionLogItem`; `EventType.SessionStepFirstToken` filters the event subscription to `session.step.first-token`.
-- `AgentsClient.ListAgentsAsync` (`agent.list`) no longer declares `503`, because opencode 2.2.7 answers with the agents loaded so far instead of waiting for plugins.
+- `SessionStepFirstToken`, with `SessionStepFirstTokenData` and `SessionStepFirstTokenDurable`, joins `IEvent`, `ISessionEventDurable`, `ISessionLogItem` and `ISessionScopedEvent`; `EventType.SessionStepFirstToken` filters the event subscription to `session.step.first-token`.
+- `AgentsClient.ListAgentsAsync` (`agent.list`) no longer declares `503`, because opencode 2.2.7 answers with the agents loaded so far instead of waiting for plugins. Since 2.2.7 the integration list (`integration.list`), usage limits (`experimental.usage.limits`), repository initialization (`vcs.init`), RPC calls (`rpc.call`) and the artifact routes (`experimental.artifacts.*`) do not wait for plugin activation either. Listing models and providers, the default model, web search, and experimental generation and voice still wait up to five seconds.
+- `ConfigWarming.Interval` defaults to `auto` at opencode 2.3.0: 90% of the model's `cache.ttl`, or 4 minutes when the model has none. The default was 4 minutes, and `auto` skipped models without a ttl. The property's summary says so.
+- A failed persistent-terminal rename (`PersistentPtyClient.UpdateAsync` with a `Title`) answers `404` or `503` on opencode 2.3.0. `501` with `PtyFeatureUnsupportedError` stays declared, but the pinned server no longer answers it.
 
 ### 🔧 Changes
 
-- `LanguageModels.WaitForDefaultAsync` now waits the way opencode's CLI does at 2.3.0: it polls the location's plugin list every 25 ms for up to five seconds, until non-empty, then reads the default model once. A `ServiceUnavailableError` from that read now surfaces where it was retried up to twelve times. The call is unchanged: `await client.LanguageModels.WaitForDefaultAsync();`.
+- `LanguageModels.WaitForDefaultAsync` now waits the way opencode's CLI does at 2.3.0: it polls the location's plugin list every 25 ms for up to five seconds, until non-empty, then reads the default model once. A failed plugin listing ends the wait without an error, and the read follows. A `ServiceUnavailableError` from that read now surfaces where it was retried up to twelve times. The call is unchanged: `await client.LanguageModels.WaitForDefaultAsync();`.
 - `OpenCodeServer.StopAsync` no longer asks the daemon to shut its persistent terminals down before it ends the process, and makes no request to the daemon at all, as the CLI's `service stop` does since opencode 2.3.0; ending the daemon still ends its terminals.
 - The status sentence of `OpenCodeApiException.Message` now includes the server's own message, chosen as opencode's own client chooses it, for example `The opencode API returned status 503 ('ServiceUnavailableError'): opencode-pty request timed out.`. `Error`, `Status` and `RawBody` are unchanged; code that matched the old message text exactly now sees the longer text whenever the server sends a non-empty message.
+
+### 📚 Documentation
+
+- `OpenCodeServer.StopAsync`'s summary says a pid reused after the stop first looked at the process is never signalled, where it said "a pid the operating system reused", and that a service that re-registered after the stop read the registration is never signalled, where it said "before the stop began", and the connection-modes guide says the same.
+- The errors guide names the `401` challenge as `WWW-Authenticate: Basic realm="Secure Area"`, where it said `WWW-Authenticate: Basic`.
 
 ## [1.0.1] - 2026-11-11
 
@@ -2145,6 +2160,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[1.1.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.1.0
 [1.0.1]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.0.1
 [1.0.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.0.0
 [0.9.0-preview.15]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.15
