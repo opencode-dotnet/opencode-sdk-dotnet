@@ -1,6 +1,6 @@
 # Documentation
 
-Date: 2026-11-09
+Date: 2026-11-14
 
 Canonical rules for documentation ownership, authority, lifecycle, references, and lossless
 maintenance.
@@ -87,6 +87,12 @@ live Git and GitHub, then deleted when the follow-up ships or a newer handoff su
 - Every `csharp` fence in `README.md` and `docs/guide/` compiles in CI (`SnippetCompileGuard`), except
   a deliberate fragment, which carries `<!-- snippet: fragment -->` on the line directly above its
   fence; use it only where no complete form exists.
+- Every install instruction (`npm install -g @opencode/cli@<version>`) and every
+  "at the pin (`v<version>`)" mention in `README.md`, `docs/guide/` and `.github/ISSUE_TEMPLATE/`,
+  and every issue form's `server-version` placeholder, name `spec/SNAPSHOT.md`'s upstream release
+  tag. A Tools test fails on a stale one (`ConsumerPinGuard`); it runs with every change CI treats as
+  code, a pin refresh among them, but not with a Markdown-only change. A version recorded as an
+  observation (`Observed on`, `Verified on`, `Measured on`) is history and stays as written.
 - `CHANGELOG.md` gets an entry under `[Unreleased]` for every user-facing change, in the same pull
   request. A released section is the delta from the previous published package: it states the
   status quo a consumer upgrading from that package meets, never the order of intermediate commits
