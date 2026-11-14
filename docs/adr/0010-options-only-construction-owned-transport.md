@@ -2,6 +2,9 @@
 
 Date: 2026-08-15
 
+Status: superseded in part by ADR-0040: the reversal trigger and the consumer-need condition for a
+composition seam do not apply to an option upstream's first-party client declares.
+
 `OpenCodeClient(OpenCodeClientOptions)` is the only public way to build a client. The SDK
 owns its transport — `SocketsHttpHandler` with `PooledConnectionLifetime` on modern TFMs
 (the BCL-documented long-lived-singleton pattern), `ServicePointManager` connection-lease
