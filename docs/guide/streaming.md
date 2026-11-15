@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-05
+Date: 2026-11-15
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -82,7 +82,10 @@ the unknown-arm carrier has no typed values. Fail explicitly for a missing key o
 field rather than using `!` or silently omitting it; this recipe handles `FormStringField` only.
 
 Reject settles every pending ask of the session;
-without feedback, the turn is interrupted once the step's tools settle. This recipe answers what
+without feedback, the turn is interrupted once the step's tools settle. Outside a demonstration,
+pass a `Message` with every Reject, as opencode's own client does; a Reject without one has side
+effects on [background jobs](#-waiting-for-a-turn-to-end). The recipe below rejects without one
+to show the interrupt. This recipe answers what
 is still pending and treats a sibling its Reject already settled as done, as upstream's client
 does, but tolerates typed not-found only after its own earlier Reject in that session: a
 genuinely new ask after that Reject is still pending, so its reply succeeds and never needs the
@@ -191,7 +194,9 @@ A session's turn ends with exactly one of three events: `SessionExecutionSucceed
 session goes from working to idle, however many prompts it worked through. The samples here stop
 on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`. That interrupt means
 the server is stopping, and the server resumes the turn after it restarts, with a new
-`SessionExecutionStarted`. The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
+`SessionExecutionStarted`. One exception at opencode v2.3.0: a Reject without a `Message` also ends
+the turn with `Shutdown` while the server keeps running, and that turn resumes after a later
+restart (open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180)). The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
 server is back within a minute, so to follow the resumed turn keep reading and wait the same way.
 
 Match the three on their wire `Type`, not on their .NET type. A turn-end event whose payload has
@@ -242,6 +247,16 @@ while (await events.MoveNextAsync())
 `SessionIdle` and `SessionStatusUpdated` are declared by the pinned document but not published by
 the server it pins: upstream marks `session.idle` deprecated, and its session runtime reports turns
 through the three execution events only. A loop that waits for either of them never ends.
+
+A turn's end, and `client.Experimental.WaitForSessionAsync`, cover one session only, not the
+background jobs its prompt started, such as a subagent's. `client.Experimental.ListJobsAsync`
+lists those, filtered by `SessionId` and, with `Descendants`, their children's too. A listed job
+is not necessarily still running: read its `Status`, and `Time.Completed` once it has ended. At
+opencode v2.3.0, a background subagent rejected without a `Message` stays listed as `cancelled`
+until the server restarts, and its parent is never told
+(open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180); the
+subagent case was reported as [#64032](https://github.com/anomalyco/opencode/issues/64032)), so a wait for
+every listed job to disappear never ends.
 
 ### ✍️ Streaming an answer as it arrives
 
