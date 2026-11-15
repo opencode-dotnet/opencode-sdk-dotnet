@@ -84,8 +84,11 @@ public partial class OpenCodeServer
     public static Task ShutdownPersistentPtyAsync(
         OpenCodeServerDiscoverOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        ShutdownPersistentPtyWithSeamsAsync(options,
-            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), SystemDiscoveryProbe()), new ServicePtyShutdown(), cancellationToken);
+        ShutdownPersistentPtyWithSeamsAsync(
+            options,
+            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), SystemDiscoveryProbe()),
+            new ServicePtyShutdown(),
+            cancellationToken);
 
     /// <summary>The discovery-and-shutdown composition over injected seams.</summary>
     /// <param name="options">The discovery options.</param>

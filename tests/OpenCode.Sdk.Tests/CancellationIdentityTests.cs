@@ -553,6 +553,11 @@ public sealed class CancellationIdentityTests
             var request = daemon.Requests.Single(request => request.Path == heldPath);
             await Assert.That(request.Headers["Authorization"]).IsEqualTo(
                 "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:" + ServicePassword)));
+            if (heldPath == ShutdownPath)
+            {
+                await Assert.That(request.Headers).DoesNotContainKey("x-opencode-directory");
+            }
+
             string[] expectedPaths = (row, stage) switch
             {
                 ("discover", _) => ["/api/info"],

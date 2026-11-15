@@ -56,7 +56,6 @@ public sealed class OpenCodeServerPersistentPtyShutdownTests
         await Assert.That(registration.ProcessId).IsEqualTo(48213);
         await Assert.That(registration.Password).IsEqualTo(ServiceRegistrationData.Password);
         await Assert.That((CancellationToken)call.GetArguments()[1]!).IsEqualTo(caller.Token);
-        _ = _shutdown.Received(1).ShutdownAsync(registration, caller.Token);
         _ = _probe.Received(1).ProbeAsync(registration, caller.Token);
     }
 

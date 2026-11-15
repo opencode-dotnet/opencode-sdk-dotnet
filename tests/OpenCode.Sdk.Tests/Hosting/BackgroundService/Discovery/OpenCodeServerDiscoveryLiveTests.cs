@@ -112,7 +112,7 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile, ExpectedVersion = service.Version },
             cancellationToken);
         await using var _ = matching;
-        var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System));
+        var probe = new RecordingProbe(PatientProbe());
         var mismatching = await OpenCodeServer.DiscoverWithSeamsAsync(
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile, ExpectedVersion = "0.0.0-never-1" },
             probe,
@@ -132,12 +132,16 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
     public async Task ShutdownPersistentPtyAsync_Should_End_The_Service_Terminals_Or_Answer_The_Daemon_Absent_Arm(CancellationToken cancellationToken)
     {
         var options = new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile };
-        var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System));
+        var probe = PatientProbe();
         await using var handle = await OpenCodeServer.DiscoverWithSeamsAsync(options, probe, cancellationToken);
         await Assert.That(handle).IsNotNull();
         using var client = handle.CreateClient();
         var session = await client.Sessions.CreateSessionAsync(
-            new SessionCreateRequest { Title = ShutdownSessionTitle }, cancellationToken: cancellationToken);
+            new SessionCreateRequest
+            {
+                Title = ShutdownSessionTitle,
+                Location = new LocationPublicRef { Directory = service.RunRoot },
+            }, cancellationToken: cancellationToken);
         var created = await client.PersistentPtys.CreatePersistentPtyAsync(
             session.Session.Id, PersistentPtyLiveTests.CreateRequest(), OpenCodeRequestOptions.NoThrow, cancellationToken);
         var before = await client.PersistentPtys.ListPersistentPtysAsync(session.Session.Id, cancellationToken: cancellationToken);
@@ -153,14 +157,16 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
             await Assert.That(((ServiceUnavailableError)created.Error!).Service).IsEqualTo(PersistentPtyLiveTests.DaemonService);
         }
 
-        var shutdownProbe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System));
+        var shutdownProbe = new RecordingProbe(PatientProbe());
+        var shutdown = new RecordingShutdown(new ServicePtyShutdown());
         await OpenCodeServer.ShutdownPersistentPtyWithSeamsAsync(options,
-            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), shutdownProbe), new ServicePtyShutdown(), cancellationToken);
+            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), shutdownProbe), shutdown, cancellationToken);
 
         var verdict = shutdownProbe.Last;
         await Assert.That(verdict).IsNotNull();
         await Assert.That(verdict!.TimedOut).IsFalse();
         await Assert.That(verdict.IsReadyAndCompatible).IsTrue();
+        await Assert.That(shutdown.Calls).IsEqualTo(1);
         var after = await client.PersistentPtys.ListPersistentPtysAsync(
             session.Session.Id, OpenCodeRequestOptions.NoThrow, cancellationToken);
         await Assert.That(after.Status).IsEqualTo(200).Because("Server answer: " + after.RawBody);
@@ -180,6 +186,9 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
             $"after-ids={string.Join(',', after.PersistentPtys.Select(static pty => pty.Id))}");
     }
 
+    private static ServiceInfoProbe PatientProbe() =>
+        new(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System);
+
     private async Task<OpenCodeServer> DiscoverByFileAsync(CancellationToken cancellationToken)
     {
         var server = await OpenCodeServer.DiscoverAsync(
@@ -195,6 +204,18 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
         var evidence = await service.DescribeHealthAsync(cancellationToken);
         throw new InvalidOperationException(
             $"The managed service registered at '{service.RegistrationFile}' was not discovered although the fixture reported it ready. {evidence}");
+    }
+
+    /// <summary>The shipped shutdown, counting the calls forwarded to it.</summary>
+    private sealed class RecordingShutdown(IServicePtyShutdown inner) : IServicePtyShutdown
+    {
+        public int Calls { get; private set; }
+
+        public async Task ShutdownAsync(ServiceRegistration registration, CancellationToken cancellationToken)
+        {
+            Calls++;
+            await inner.ShutdownAsync(registration, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>The platform probe, remembering the last verdict it gave discovery.</summary>

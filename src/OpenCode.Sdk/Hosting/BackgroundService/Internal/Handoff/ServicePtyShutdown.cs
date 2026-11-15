@@ -3,9 +3,10 @@ namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IServicePtyShutdown"/>: a client over the registration's endpoint and
-/// credential, one <c>PersistentPtys.ShutdownAsync</c> call, no request bound of its own — its
-/// handoff caller's prepare fallback bounds the call, as the pinned client's
-/// <c>prepare</c> does with <c>AbortSignal.timeout(timeout)</c> (<c>pty-handoff.ts</c>).
+/// credential, one <c>PersistentPtys.ShutdownAsync</c> call, no request bound of its own, as upstream's
+/// call has none, so the client's default per-read network window applies. Its handoff caller's
+/// prepare fallback bounds the call, as the pinned client's <c>prepare</c> does with
+/// <c>AbortSignal.timeout(timeout)</c> (<c>pty-handoff.ts</c>).
 /// <see cref="OpenCodeServer.ShutdownPersistentPtyAsync"/> sets no bound, as upstream's
 /// <c>shutdownPersistentPty</c> sets none.
 /// </summary>

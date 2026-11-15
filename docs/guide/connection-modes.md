@@ -299,9 +299,9 @@ OPENCODE_PASSWORD=your-password opencode serve --hostname 127.0.0.1 --port 4096
 the CLI's legacy name for the same value, still honored as a fallback, so an older setup keeps
 working. The client never reads either one, or any other environment variable, for you. Reading it
 in the snippet above is your application's choice; a configuration section or a secret store works
-exactly as well. The one door that does read the environment is
-[background-service discovery](#️-discovering-the-background-service), and it reads exactly the four
-variables that section names — never a credential.
+exactly as well. The canonical
+[construction contract](../architecture/client-runtime.md#construction-and-transport-ownership)
+names the background-service doors that read the environment and the path variables they use.
 
 ### An app-owned server on a fixed endpoint
 
@@ -407,8 +407,8 @@ null means for your application; discovery does not start a daemon on your behal
 
 ### What discovery reads
 
-Discovery follows the CLI's own rules for locating the registration, which makes it the one door
-in the SDK that reads the environment. It reads exactly four variables, all of them paths:
+Discovery follows the CLI's own rules for locating the registration. It reads exactly four
+variables, all of them paths:
 
 | Variable | Role |
 |---|---|

@@ -308,12 +308,11 @@ Terminal sessions own their connections separately. See the canonical
 
 The local-server doors — `OpenCodeServer.StartAsync`, `OpenCodeServer.DiscoverAsync`,
 `OpenCodeServer.ShutdownPersistentPtyAsync`, `OpenCodeServer.StopAsync`, and
-`OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for their local lifecycle failures,
-while the persistent-terminal shutdown's request failures follow the API and transport channels. Discovery uses it
-for exactly one cause: an XDG variable was unset and no user home directory resolved either
-(`USERPROFILE` on Windows, `HOME` elsewhere, and the profile folder all empty), so the registration
-roots cannot be located. Every ordinary way a background service can be absent or unusable — no
-registration, an undecodable one, a daemon still starting or failed, a probe that
+`OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for their local lifecycle failures.
+Discovery uses it for exactly one cause: an XDG variable was unset and no user home directory
+resolved either (`USERPROFILE` on Windows, `HOME` elsewhere, and the profile folder all empty),
+so the registration roots cannot be located. Every ordinary way a background service can be absent
+or unusable — no registration, an undecodable one, a daemon still starting or failed, a probe that
 timed out, a version other than the one you expected — is **not** an exception: `DiscoverAsync`
 answers null, and blank or contradictory options throw `ArgumentException` before anything is read.
 Stop shares the roots cause and adds one of its own: the registered process is still running after
@@ -323,10 +322,11 @@ stop with nothing to stop. Ensure shares the roots cause and adds the ways an el
 without a service: the command cannot be resolved, a contender or the registered service failed to
 start, the registered service speaks an incompatible health protocol at a version the call accepts,
 `VersionPolicy.Error` met a service at another version, or the 120-second bound expired.
-`ShutdownPersistentPtyAsync` shares discovery's roots cause; where discovery answers null it does nothing and completes, and
-a failed shutdown request throws `OpenCodeApiException` or `OpenCodeTransportException`, not `OpenCodeServerException`.
-The [connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery, stop, the
-persistent-terminal shutdown, and ensure.
+`ShutdownPersistentPtyAsync` shares discovery's roots cause; where discovery answers null it does
+nothing and completes, and a failed shutdown request throws `OpenCodeApiException` or
+`OpenCodeTransportException`, not `OpenCodeServerException`. The
+[connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery,
+stop, the persistent-terminal shutdown, and ensure.
 
 The launcher has more to say, because a child process ran:
 
