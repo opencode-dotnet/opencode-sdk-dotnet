@@ -54,9 +54,9 @@ internal sealed class Pipeline : IDisposable
 #pragma warning restore RS0030
 
         // The options are read exactly once, here: the policies hold an immutable snapshot,
-        // so mutating the options object after construction never changes a built client. Only a
-        // null password means no credential, as in the pinned client; any other string is sent
-        // as written, since a server configured with a whitespace password runs with that one.
+        // so mutating the options object after construction never changes a built client. A null
+        // password omits the SDK's own Basic credential; caller headers may supply one. Every other
+        // string is sent as written: a server configured with a whitespace password runs with that one.
         var password = options.Password;
         foreach (var name in options.Headers.Keys)
         {
@@ -69,7 +69,7 @@ internal sealed class Pipeline : IDisposable
             if (conflict is not null)
             {
                 throw new ArgumentException(
-                    $"OpenCodeClientOptions.Headers contains {name}, which conflicts with OpenCodeClientOptions.{conflict}.", nameof(options));
+                    $"OpenCodeClientOptions.Headers conflicts with OpenCodeClientOptions.{conflict}.", nameof(options));
             }
         }
 
@@ -80,7 +80,7 @@ internal sealed class Pipeline : IDisposable
         PipelinePolicy[] policies =
         [
             new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve(),
-                RequestDecorationPolicy.SnapshotHeaders(options.Headers)),
+                RequestDecorationPolicy.SnapshotHeaders(options.Headers, "OpenCodeClientOptions.Headers", nameof(options))),
             new ResponseBufferingPolicy(bufferPool ?? ResponseBufferingPolicy.DefaultPool, time),
             _transport,
         ];
@@ -90,7 +90,7 @@ internal sealed class Pipeline : IDisposable
         // credential, and the ambient location the policies keep to themselves.
         Connection = new ConnectionSnapshot(endpointBase, authorization, options.Location, time);
         _exchange = new PipelineExchange(Connection, options.NetworkTimeout, policies, _lifetime.Token);
-        _streamPlane = new StreamPlane(_exchange, framer, _lifetime, Connection);
+        _streamPlane = new StreamPlane(_exchange, framer, _lifetime);
     }
 
     /// <summary>Gets the construction-time connection facts a non-HTTP door addresses the server with.</summary>
@@ -310,18 +310,14 @@ internal sealed class Pipeline : IDisposable
         // Refused before sending: an undefined value must never silently pick an error channel.
         var errorBehavior = ErrorBehaviorPolicy.Resolve(request.Options);
 
-        TResponse adapted;
         using (var message = _exchange.CreateMessage(request, bufferBody: true, request.Options?.NetworkTimeout, cancellationToken))
         {
             await _exchange.SendThroughPoliciesAsync(message).ConfigureAwait(false);
-            adapted = ResponseMaterializer.Materialize(message, adapter);
+            var adapted = ResponseMaterializer.Materialize(message, adapter);
+            return adapted.IsError && errorBehavior is ErrorBehavior.Default
+                ? throw OpenCodeErrorReader.CreateApiException(adapted.Status, adapted.Error, adapted.RawBody,
+                    message.Request.Headers.Contains("Authorization"))
+                : adapted;
         }
-
-        return adapted.IsError && errorBehavior is ErrorBehavior.Default
-            ? throw CreateApiException(adapted)
-            : adapted;
     }
-
-    private OpenCodeApiException CreateApiException(OpenCodeResponse response) =>
-        OpenCodeErrorReader.CreateApiException(response.Status, response.Error, response.RawBody, Connection.Authorization is not null);
 }

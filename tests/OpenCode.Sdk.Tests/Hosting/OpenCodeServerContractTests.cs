@@ -183,7 +183,7 @@ public sealed class OpenCodeServerContractTests
         // A newly added OpenCodeClientOptions behavior member lands here first: CreateClient's
         // hand-written copy-list cannot know about it on its own, so this assertion is what turns
         // that silence loud instead of quiet. Extend both the expected list and the propagation
-        // check below in the same change that adds the member.
+        // checks, including CreateClient_Should_Copy_And_Snapshot_Configured_Headers_On_The_Wire, when adding the member.
         // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Headers", "Location", "NetworkTimeout"], CollectionOrdering.Any);
 

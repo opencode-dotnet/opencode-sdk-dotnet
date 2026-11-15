@@ -20,7 +20,7 @@ internal sealed record OperationRequest(string OperationId, OperationTraits Trai
 
         return new OpenCodeRequestOptions
         {
-            Headers = RequestDecorationPolicy.SnapshotHeaders(headers),
+            Headers = RequestDecorationPolicy.SnapshotHeaders(headers, "OpenCodeRequestOptions.Headers", "requestOptions"),
             Location = options.Location,
             NetworkTimeout = options.NetworkTimeout,
             ErrorBehavior = options.ErrorBehavior,

@@ -3,8 +3,10 @@ using System.Net.Http.Headers;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// Decorates every request with the construction-time header snapshot: authorization, the
-/// ambient location, and the user agent. Knowledge source: upstream-observed — the location
+/// Decorates every request in four steps: SDK User-Agent; <see cref="OpenCodeClientOptions.Headers"/>;
+/// SDK authorization, merged location and declared headers; <see cref="OpenCodeRequestOptions.Headers"/>.
+/// Later steps replace earlier names. Client-wide values are snapshotted at construction.
+/// Knowledge source: upstream-observed — the location
 /// header mirrors the middleware's percent decoding, re-verified at every spec refresh. A
 /// per-call location in <see cref="PipelineMessage.Options"/> merges over that snapshot: a set
 /// directory wins, an unset one inherits the ambient value, and there is no way to clear the
@@ -46,22 +48,28 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
     }
 
     /// <summary>Validates and copies one caller set, joining case-equivalent names in enumeration order.</summary>
-    public static IReadOnlyDictionary<string, string> SnapshotHeaders(IEnumerable<KeyValuePair<string, string>> headers)
+    public static IReadOnlyDictionary<string, string> SnapshotHeaders(IEnumerable<KeyValuePair<string, string>> headers,
+        string member, string parameterName)
     {
         ArgumentNullException.ThrowIfNull(headers);
         var snapshot = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var header in headers)
         {
-            if (header.Key.Length is 0 || !header.Key.All(static character => character is
+            if (string.IsNullOrEmpty(header.Key) || !header.Key.All(static character => character is
                 (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or
                 '!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-' or '.' or '^' or '_' or '`' or '|' or '~'))
             {
-                throw new ArgumentException("Headers contains an invalid HTTP token name.", nameof(headers));
+                throw new ArgumentException(member + " contains an invalid HTTP token name.", parameterName);
+            }
+
+            if (header.Value is null)
+            {
+                throw new ArgumentException(member + " contains a null value.", parameterName);
             }
 
             if (header.Value.Contains('\r', StringComparison.Ordinal) || header.Value.Contains('\n', StringComparison.Ordinal))
             {
-                throw new ArgumentException("Headers contains a value with CR or LF.", nameof(headers));
+                throw new ArgumentException(member + " contains a value with CR or LF.", parameterName);
             }
 
             snapshot[header.Key] = snapshot.TryGetValue(header.Key, out var preceding) ? preceding + ", " + header.Value : header.Value;
@@ -85,7 +93,7 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
 
         if (escapedDirectory is not null)
         {
-            ReplaceHeader(request, "x-opencode-directory", escapedDirectory);
+            AddOrReplaceRequestHeader(request, "x-opencode-directory", escapedDirectory);
         }
 
         // The document already fixed each name and the raw method already dropped the omitted
@@ -95,7 +103,7 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
             for (var index = 0; index < declaredHeaders.Count; index++)
             {
                 var header = declaredHeaders[index];
-                ReplaceHeader(request, header.Name, header.Value);
+                AddOrReplaceRequestHeader(request, header.Name, header.Value);
             }
         }
 
@@ -134,5 +142,15 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
 
         _ = target.Remove(name);
         _ = target.TryAddWithoutValidation(name, value);
+    }
+
+    private static void AddOrReplaceRequestHeader(HttpRequestMessage request, string name, string value)
+    {
+        if (request.Headers.Contains(name))
+        {
+            _ = request.Headers.Remove(name);
+        }
+
+        _ = request.Headers.TryAddWithoutValidation(name, value);
     }
 }

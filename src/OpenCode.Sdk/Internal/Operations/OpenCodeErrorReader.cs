@@ -49,14 +49,14 @@ internal static class OpenCodeErrorReader
 
     /// <summary>
     /// Builds the throwing-channel failure. Its status sentence includes the server's message,
-    /// selected as upstream's <c>client.ts</c> <c>declared(body)</c> does. A passwordless client's 401
-    /// adds a hint because a 401 cannot distinguish a missing credential from a wrong one.
+    /// selected as upstream's <c>client.ts</c> <c>declared(body)</c> does. A 401 adds a hint only when
+    /// the request carried no Authorization header: a 401 cannot distinguish missing from wrong credentials.
     /// </summary>
     /// <param name="status">The HTTP status the server answered with.</param>
     /// <param name="error">The typed error the body carried, when there was one.</param>
     /// <param name="rawBody">The exact response body, retained on every failure.</param>
     /// <param name="credentialSent">
-    /// Whether the request carried a Basic credential. The hint is withheld when a credential was
+    /// Whether the request carried an Authorization header. The hint is withheld when that header was
     /// sent; the status sentence still includes the server's message when present.
     /// </param>
     public static OpenCodeApiException CreateApiException(int status, IOpenCodeError? error, string? rawBody,

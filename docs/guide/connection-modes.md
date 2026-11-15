@@ -534,11 +534,11 @@ Three things throw; everything else is null.
 > **🔑 `opencode serve` always has a password.** Setting neither variable does not start an open
 > server — it makes the CLI generate one and print it as `server password <pw>` on startup, and no
 > serve flag disables authentication. A client for a CLI-started server therefore always needs
-> `Password`. Leaving it `null` is right only for a host that genuinely runs without one: a server
-> embedded through the opencode server library, as this repository's own simulation host does for
-> its tests. Point a passwordless client at `opencode serve` and every call answers **401 with the
+> `Password` or an `Authorization` header supplied through client-wide or per-call `Headers`.
+> Leaving both absent is right only for a host without authentication, such as an embedded server.
+> Send no credential to `opencode serve` and every call answers **401 with the
 > typed `UnauthorizedError`** (`Authentication required`), the same answer a wrong password gets.
-> The SDK adds a sentence to the exception message when no password was configured; see
+> The SDK adds a sentence to the exception message when the request carried no `Authorization` header; see
 > [a 401 with no credential](errors-and-responses.md#a-401-with-no-credential).
 
 ### 🛑 Stopping the background service

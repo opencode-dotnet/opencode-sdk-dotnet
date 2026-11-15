@@ -119,6 +119,7 @@ resolves the message's network window from those carried traits.
   Content headers from either caller set replace the content's values when content exists.
   - Recorded divergence of form: on a request without content they are dropped, because
     `HttpRequestMessage` cannot carry content headers. Upstream's fetch headers can carry them.
+    Reversal trigger: if `HttpRequestMessage` can carry a content header without content.
 - Both sets reach every HTTP operation, SSE open and reconnect, and cursor page, not terminal
   WebSocket upgrades (as upstream's terminal sockets carry no caller headers), nor the
   background-service info probe, which is not a client.
@@ -163,9 +164,10 @@ resolves the message's network window from those carried traits.
 - **Declared headers are the runtime channel that carries it.** An operation's document-declared
   header parameters ride `PipelineMessage.DeclaredHeaders` (`IReadOnlyList<DeclaredHeader>?`),
   written by `Pipeline` from the value the generated raw method collected and read by
-  `RequestDecorationPolicy`, which adds each entry with `TryAddWithoutValidation` exactly as it
-  adds the directory header. The policy never learns a family or a header name, so no operation's
-  knowledge leaks into it. This is not a general header facility: the channel is assembly-internal,
+  `RequestDecorationPolicy`, which adds absent request headers with `TryAddWithoutValidation` and
+  removes an existing name before adding its replacement, as for the directory header. The policy
+  never learns a family or a header name, so no operation's knowledge leaks into it. This is not a
+  general header facility: the channel is assembly-internal,
   only generated internal-raw methods feed it, and only a parameter the pinned document declares
   ever becomes an entry.
 - The Events family is the third: `EventsClient` is hand-written over the generated internal

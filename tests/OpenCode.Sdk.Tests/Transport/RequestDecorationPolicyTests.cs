@@ -116,9 +116,12 @@ public sealed class RequestDecorationPolicyTests
             ["Content-Language"] = "tr",
         };
         var client = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint };
-        foreach (var header in headers.Where(_ => !perCall))
+        if (!perCall)
         {
-            client.Headers.Add(header);
+            foreach (var header in headers)
+            {
+                client.Headers.Add(header);
+            }
         }
 
         using var pipeline = Pipeline.Create(http, client);
