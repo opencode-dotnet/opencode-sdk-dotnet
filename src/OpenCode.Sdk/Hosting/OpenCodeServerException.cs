@@ -2,6 +2,7 @@ namespace OpenCode.Sdk;
 
 /// <summary>
 /// A local server door failed: a standalone server could not start, report readiness, or stop,
+/// an explicit server the resolver could not reach, authenticate with, or read,
 /// or background-service discovery or ensure could not resolve the user home its registration
 /// roots hang off, timed out, or refused a version mismatch. An absent or unusable registration
 /// is not a failure for discovery, which reports it as null; ensure starts a service instead.

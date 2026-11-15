@@ -63,7 +63,7 @@ OpenCodeException
 │   └── OpenCodeRpcException      a typed plugin RPC call's failure (adds ErrorType and the error's data)
 ├── OpenCodeTransportException    the call never produced a usable response
 │   └── OpenCodeStreamFailureException   a stream ended with a declared failure frame
-└── OpenCodeServerException       a local-server door failed: a start, discovery with no home to search, or a stop that could not end the process
+└── OpenCodeServerException       a local-server door failed, or an explicit server the resolver could not reach or read
 ```
 
 ## 🤝 Ask for the failure as data instead
@@ -315,7 +315,7 @@ Terminal sessions own their connections separately. See the canonical
 ## 🚀 When a local-server door fails
 
 The local-server doors — `OpenCodeServer.StartAsync`, `OpenCodeServer.DiscoverAsync`,
-`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
+`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ResolveAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
 `OpenCodeServer.StopAsync`, and `OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for
 their local lifecycle failures.
 Discovery uses it for exactly one cause: an XDG variable was unset and no user home directory
@@ -341,6 +341,14 @@ nothing and completes, and a failed shutdown request throws `OpenCodeApiExceptio
 `OpenCodeTransportException`, not `OpenCodeServerException`. The
 [connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery,
 the registered owner's state, stop, the persistent-terminal shutdown, and ensure.
+
+`ResolveAsync` also reports an explicit server it could not reach, authenticate with or read as
+`OpenCodeServerException`, retaining the original probe exception in `InnerException`. A tagged
+unauthorized response names the missing Password option or reports a rejected password; the
+five-second total probe bound is a “Could not reach” failure; a malformed body or other API error
+is an incompatible V2 health response. Caller cancellation remains `OperationCanceledException`
+with the caller's token, never a wrapped server failure. Managed and standalone paths retain their
+underlying doors' failure contracts. See [resolving a connection](connection-modes.md#-resolving-a-connection-as-the-cli-does).
 
 The launcher has more to say, because a child process ran:
 
