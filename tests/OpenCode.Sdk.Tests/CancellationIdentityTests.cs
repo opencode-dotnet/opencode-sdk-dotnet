@@ -7,6 +7,7 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Rpc.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 using TUnit.Assertions.Enums;
@@ -36,6 +37,8 @@ public sealed class CancellationIdentityTests
             static (client, token) => client.LanguageModels.WaitForDefaultAsync(cancellationToken: token), caller));
         yield return new("plugin-wait", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Plugins.WaitForPluginsAsync(cancellationToken: token), caller));
+        yield return new("rpc-call", "headers", caller => AtHeadersAsync(
+            static (client, token) => client.Rpc.CallAsync(RpcFacadeData.Echo, RpcFacadeData.EchoInput, cancellationToken: token), caller));
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Ptys.GetPtyClient(PtyId).UpdateAsync(
                 new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
@@ -630,6 +633,10 @@ public sealed class CancellationIdentityTests
                 typeof(LanguageModelsClient), typeof(ModelDefaultRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "default-wait",
             _ when member.Is(typeof(PluginsClientExtensions), nameof(PluginsClientExtensions.WaitForPluginsAsync), typeof(Task),
                 typeof(PluginsClient), typeof(PluginListRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "plugin-wait",
+            _ when member.IsStatic && member.DeclaringType == typeof(RpcClientExtensions) && member.Name == nameof(RpcClientExtensions.CallAsync)
+                && IsGeneric(member.ReturnType, typeof(Task<>)) && member.Parameters.Count == 6 && member.Parameters[0] == typeof(RpcClient)
+                && IsGeneric(member.Parameters[1], typeof(RpcMethod<,>)) && member.Parameters[2].IsGenericParameter
+                && member.Parameters.Skip(3).SequenceEqual([typeof(LocationSelector), typeof(OpenCodeRequestOptions), typeof(CancellationToken)]) => "rpc-call",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.UpdateAsync), typeof(Task<PtyUpdateResponse>),
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(Task<>)) &&

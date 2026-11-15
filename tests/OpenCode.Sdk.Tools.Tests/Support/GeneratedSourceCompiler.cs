@@ -24,8 +24,9 @@ internal static class GeneratedSourceCompiler
     /// pack and this hand-rolled compilation must register itself: System.Text.Json's, for the
     /// generated serializer contexts, and the LibraryImport generator, for the P/Invoke stubs the
     /// background-service door binds in one interop class (ADR-0026, ADR-0027).
+    /// The snippet compile guard runs them too, so a guide example can declare a serializer context.
     /// </summary>
-    private static readonly AnalyzerFileReference[] SourceGenerators = CreateSourceGeneratorReferences();
+    internal static readonly AnalyzerFileReference[] SourceGenerators = CreateSourceGeneratorReferences();
 
     /// <summary>
     /// Hand-written sources sitting <em>above</em> generated output instead of under it: the PTY
@@ -48,6 +49,7 @@ internal static class GeneratedSourceCompiler
     /// pipeline on the persistent family's route, which the route table carries only when that
     /// family is emitted, so it rides the same raw twin. The default-model wait sits above the
     /// generated <c>LanguageModelsClient</c>, so it rides that client's emission.
+    /// The typed RPC call sits above the generated <c>RpcClient</c> and reads its two RPC error models, so it rides their emissions.
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
@@ -81,6 +83,10 @@ internal static class GeneratedSourceCompiler
         ("Plugins/PluginsClientExtensions.cs", "Plugins/PluginsClient.cs"),
         ("Ptys/PtyClient.cs", "Ptys/Internal/PtyRawClient.cs"),
         ("Ptys/PtysClient.cs", "Ptys/Internal/PtysRawClient.cs"),
+        ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/Models/RpcError.cs"),
+        ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/Models/RpcInternalError.cs"),
+        ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/RpcClient.cs"),
+        ("Rpc/RpcClientExtensions.cs", "Rpc/RpcClient.cs"),
     ];
 
     /// <summary>

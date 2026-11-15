@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.DependencyInjection;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.RepositoryGates;
 
@@ -199,7 +200,11 @@ internal sealed partial class SnippetCompileGuard(IFileSystem fileSystem, Snippe
                 }
 
                 var compilation = CSharpCompilation.Create("Snippet", trees, _references, CompilationOptions);
-                foreach (var error in compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
+                GeneratorDriver driver = CSharpGeneratorDriver.Create(
+                    GeneratedSourceCompiler.SourceGenerators.SelectMany(static reference => reference.GetGenerators(LanguageNames.CSharp)),
+                    parseOptions: ParseOptions);
+                _ = driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out var generatorDiagnostics);
+                foreach (var error in generatorDiagnostics.Concat(output.GetDiagnostics()).Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
                 {
                     violations.Add(Format(error.Location.SourceTree is { } source ? origins[source] : block, error));
                 }

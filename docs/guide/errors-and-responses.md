@@ -2,9 +2,11 @@
 
 Date: 2026-11-15
 
-Every one-shot call answers with a **response envelope** that carries the same four members no
+Every one-shot call of a client family answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
-or a transport failure you cannot. Nothing is stringly typed, and nothing is swallowed.
+or a transport failure you cannot. A typed plugin RPC call returns its decoded output instead
+([Calling a plugin's RPC](requests.md#-calling-a-plugins-rpc)). Nothing is stringly typed, and
+nothing is swallowed.
 
 - [🧩 The response spine](#-the-response-spine)
 - [💥 Calls throw by default](#-calls-throw-by-default)
@@ -51,12 +53,14 @@ catch (OpenCodeApiException failure)
 mean — including `RawBody`, so an error you could not type is still fully inspectable.
 `OpenCodeApiException.Message`'s status sentence includes the server's own message before any 401
 hint: a top-level string `message` wins over `data.message`, as opencode's own client chooses it.
+The subtype `OpenCodeRpcException` carries the RPC failure's own message instead.
 An empty selected string adds nothing. The whole family descends from `OpenCodeException`, so one
 `catch` covers everything the SDK throws on purpose:
 
 ```text
 OpenCodeException
 ├── OpenCodeApiException          declared API failure (has Status / Error / RawBody)
+│   └── OpenCodeRpcException      a typed plugin RPC call's failure (adds ErrorType and the error's data)
 ├── OpenCodeTransportException    the call never produced a usable response
 │   └── OpenCodeStreamFailureException   a stream ended with a declared failure frame
 └── OpenCodeServerException       a local-server door failed: a start, discovery with no home to search, or a stop that could not end the process
@@ -86,7 +90,7 @@ instance, and `new OpenCodeRequestOptions { ErrorBehavior = ErrorBehavior.NoThro
 thing spelled out. There is deliberately no client-level switch: whether a failure is exceptional
 depends on the call, not on the client.
 
-Three limits worth internalising:
+Four limits worth internalising:
 
 - **`NoThrow` covers declared API errors only.** It never suppresses a transport failure.
 - **Streams and automatic cursor traversals refuse `NoThrow` at the call, before enumeration.**
@@ -95,6 +99,8 @@ Three limits worth internalising:
   on connection state while retrying. See [streaming](streaming.md#-stream-error-channels) and [pagination](pagination.md).
 - **`Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync` refuse `NoThrow` at the call,**
   because they decide on each plugin-list answer whether to keep waiting.
+- **The typed plugin RPC call refuses `NoThrow` at the call,** because it returns the output,
+  not an envelope. See [Calling a plugin's RPC](requests.md#-calling-a-plugins-rpc).
 
 `OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.
