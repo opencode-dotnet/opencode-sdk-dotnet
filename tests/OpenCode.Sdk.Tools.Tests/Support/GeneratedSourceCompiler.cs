@@ -51,6 +51,13 @@ internal static class GeneratedSourceCompiler
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
         ("Events/EventsClient.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/Abstractions/IEventAttemptSource.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/EventSelection.cs", "Events/Models/EventType.cs"),
+        ("Events/Internal/EventSource.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/EventSourceRunner.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/EventSubscription.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/SharedEventFeed.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/StopWork.cs", "Events/Internal/EventsRawClient.cs"),
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),

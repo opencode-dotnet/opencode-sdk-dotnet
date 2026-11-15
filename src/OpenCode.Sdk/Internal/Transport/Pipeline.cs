@@ -20,6 +20,9 @@ internal sealed class Pipeline : IDisposable
     private readonly PipelineExchange _exchange;
     private readonly StreamPlane _streamPlane;
     private readonly ReconnectingEventStream _reconnectingEventStream;
+    private readonly Lock _disposalGate = new();
+    private readonly List<IDisposable> _ownedResources = [];
+    private bool _disposalStarted;
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
         IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null,
@@ -200,26 +203,78 @@ internal sealed class Pipeline : IDisposable
             : _streamPlane.ExecuteStreamCoreAsync(request, adapter, attempt: null, cancellationToken);
     }
 
+    /// <summary>
+    /// Lets a hand-written family door own a resource whose life ends with the root client, before the transport.
+    /// Registration and disposal share one admission boundary, even while an earlier resource's cleanup is still running.
+    /// </summary>
+    internal void RegisterOwned(IDisposable resource)
+    {
+        lock (_disposalGate)
+        {
+            if (_disposalStarted)
+            {
+                throw FailureClassification.DisposedClient();
+            }
+
+            _ownedResources.Add(resource);
+        }
+    }
+
     public void Dispose()
     {
-        if (!_lifetime.TryBeginDispose())
+        IDisposable[] resources;
+        lock (_disposalGate)
         {
-            return;
+            if (_disposalStarted)
+            {
+                return;
+            }
+
+            _disposalStarted = true;
+            resources = [.. _ownedResources];
+            _ownedResources.Clear();
+        }
+
+        void DisposeOwned(int index)
+        {
+            if (index < 0)
+            {
+                return;
+            }
+
+            try
+            {
+                resources[index].Dispose();
+            }
+            finally
+            {
+                DisposeOwned(index - 1);
+            }
         }
 
         try
         {
-            _lifetimeSource.Cancel();
+            DisposeOwned(resources.Length - 1);
         }
         finally
         {
-            try
+            if (_lifetime.TryBeginDispose())
             {
-                _transport.Dispose();
-            }
-            finally
-            {
-                _lifetimeSource.Dispose();
+                try
+                {
+                    _lifetimeSource.Cancel();
+                }
+                finally
+                {
+                    try
+                    {
+                        _transport.Dispose();
+                    }
+                    finally
+                    {
+                        _lifetimeSource.Dispose();
+                    }
+                }
             }
         }
     }
