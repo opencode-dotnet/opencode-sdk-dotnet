@@ -74,11 +74,12 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   `Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync`, are described under
   [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
-  environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`
-  and `OpenCodeServer.StopAsync` are the doors that read the environment, and they read exactly
-  `XDG_STATE_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR`, and the user profile (`USERPROFILE`
-  on Windows, `HOME` elsewhere), because the registration file those roots locate is that mode's
-  complete endpoint-and-credential contract; they read no `OPENCODE_*` credential variable.
+  environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`,
+  `OpenCodeServer.ShutdownPersistentPtyAsync` and `OpenCodeServer.StopAsync` are the doors that read
+  the environment, and they read exactly `XDG_STATE_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR`,
+  and the user profile (`USERPROFILE` on Windows, `HOME` elsewhere), because the registration file
+  those roots locate is that mode's complete endpoint-and-credential contract; they read no
+  `OPENCODE_*` credential variable.
 
 `Pipeline` owns construction, the policy roster, the one-shot plane and disposal orchestration.
 `ClientLifetime` owns root admission state and the saved lifetime token; `PipelineExchange` creates
@@ -355,9 +356,10 @@ resolves the message's network window from those carried traits.
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
-  `DiscoverAsync`, `EnsureAsync`, and `StopAsync`. This identity guarantee applies when one caller
-  token is supplied, including the same token supplied at both enumeration entry points; two distinct
-  cancellable entry tokens are both observed but have no token-identity guarantee.
+  `DiscoverAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, and `StopAsync`. This identity
+  guarantee applies when one caller token is supplied, including the same token supplied at both
+  enumeration entry points; two distinct cancellable entry tokens are both observed but have no
+  token-identity guarantee.
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
   `ObjectDisposedException`; caller cancellation already observed for the same failure takes
   precedence. A terminal session owns its connection separately: its session-disposal rules apply.
@@ -993,6 +995,22 @@ service; `Handoff` asks the old service for a ticket and publishes it before ter
 preservation is best-effort: preparation must succeed and the next `EnsureAsync` that starts a
 service must adopt the ticket before it expires. A failed preparation still stops the service.
 
+`OpenCodeServer.ShutdownPersistentPtyAsync` is the CLI's `shutdownPersistentPty`
+(`packages/cli/src/services/server-connection.ts:80-87`), which the CLI's uninstall runs for each
+registration, ignoring its failure, before it stops that service. It discovers the service
+exactly as `DiscoverAsync` does, with the same options. A set `ExpectedVersion` is the one
+recorded divergence (below). When discovery answers no service, the call does nothing and
+completes. Otherwise it sends one `POST /api/experimental/persistent-pty/shutdown` to the
+registered endpoint with the registration's credential, no location, and no request bound of its
+own, as upstream's call has none, so the client's default per-read network window applies:
+the service's persistent-terminal daemon stops with every terminal it owns, in every session,
+and a daemon that is not running answers 204, which is success. A failure of that request
+propagates as `OpenCodeApiException` or `OpenCodeTransportException` and nothing is retried;
+discovery's own failures apply unchanged.
+The call ends no service and is not a stop mode: `Clear` only removes the handoff sidecar and
+never asks the daemon to end its terminals. It carries `OPENCODE002`, because it calls an
+experimental route (`protocol-and-generation.md`, Protocol authority and surface).
+
 `OpenCodeServer.EnsureAsync` is the CLI's managed-service election (`Service.ensure`). Its options
 are validated and copied before the registration is read or anything is spawned; `Replace` and
 `Error` need `ExpectedVersion`. A NUL in a command entry or an environment entry is refused during that
@@ -1065,11 +1083,11 @@ connection's restart: `EnsureAsync` adopts the published ticket to keep the term
 and only when preparation and adoption precede its expiry.
 
 Each background-service door chooses `TimeProvider.System` once at its composition root:
-Discover supplies its probe; Stop shares it across the handoff and terminator; Ensure
-shares it across the election collaborators and spawned contenders. Stop and the election share
-the same handoff step. Internal collaborators require
-that provider, including the handoff ticket's request pipeline. Request deadlines, election and
-termination polls, and contender exit backoff run on it. Election deadline comparisons and spawn
+Discover supplies its probe, from one factory that `ShutdownPersistentPtyAsync` shares; Stop shares
+it across the handoff and terminator; Ensure shares it across the election collaborators and
+spawned contenders. Stop and the election share the same handoff step. Internal collaborators
+require that provider, including the handoff ticket's request pipeline. Request deadlines, election
+and termination polls, and contender exit backoff run on it. Election deadline comparisons and spawn
 stamps read UTC, and handoff expiry reads UTC epoch milliseconds; neither is a monotonic
 elapsed-time policy. Each request deadline arms after probe headers, after ticket pipeline
 construction, or at entry to the separate shutdown fallback, respectively.
@@ -1103,5 +1121,15 @@ reason (ADR-0031):
   starts a contender that loses the race to register and exits 0; upstream's runtime gives the same
   answer there. Reversal: upstream states that a refusal its bound overtakes counts as a timeout by
   design.
+
+- **A set `ExpectedVersion` narrows the persistent-terminal shutdown.** Upstream's
+  `shutdownPersistentPty` removes the version requirement before it discovers
+  (`server-connection.ts:83`), so it reaches any ready compatible service.
+  `ShutdownPersistentPtyAsync` takes discovery's own options, whose `ExpectedVersion` is null by
+  default, which is the same any-version discovery; a caller who sets it reaches only a service
+  at that version, and otherwise the call does nothing. Reason: a superset of upstream's
+  behaviour that reuses discovery's options type instead of a near-copy without the member
+  (maintainer's decision, 2026-11-15, #848). Reversal: upstream gives `shutdownPersistentPty` a
+  version requirement of its own, or the maintainer asks for exact parity.
 
 Everything else follows the chain at the pin.

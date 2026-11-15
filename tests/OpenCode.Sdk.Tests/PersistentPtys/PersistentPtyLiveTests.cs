@@ -60,7 +60,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     private const string SubmitMarker = "sdk-submitted";
 
     /// <summary>The service the daemon-absent 503 names; the one value that tells it from any other 503.</summary>
-    private const string DaemonService = "opencode-pty";
+    internal const string DaemonService = "opencode-pty";
 
     /// <summary>The daemon reply timeout accepted only when the removed terminal is already gone.</summary>
     private const string DaemonRequestTimedOut = "opencode-pty request timed out";
@@ -221,7 +221,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// The create body the live arms share: no command, so the server resolves its own default
     /// shell, and no size, so the create defaults (80x24) are what the later resize changes.
     /// </summary>
-    private static PersistentPtyCreateRequest CreateRequest() => new()
+    internal static PersistentPtyCreateRequest CreateRequest() => new()
     {
         Args = [],
         Title = TerminalTitle,

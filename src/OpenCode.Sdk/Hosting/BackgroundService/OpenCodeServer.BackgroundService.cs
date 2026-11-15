@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
@@ -20,12 +21,7 @@ public partial class OpenCodeServer
     public static Task<OpenCodeServer?> DiscoverAsync(
         OpenCodeServerDiscoverOptions? options = null,
         CancellationToken cancellationToken = default)
-    {
-#pragma warning disable RS0030 // The discovery composition root chooses the system clock and passes it to its info probe.
-        var time = TimeProvider.System;
-#pragma warning restore RS0030
-        return DiscoverWithSeamsAsync(options, PlatformProbe(ServiceTiming.Default, time), cancellationToken);
-    }
+        => DiscoverWithSeamsAsync(options, SystemDiscoveryProbe(), cancellationToken);
 
     /// <summary>
     /// <see cref="DiscoverAsync"/> over an injected probe, the seam the isolated test executable uses
@@ -48,6 +44,15 @@ public partial class OpenCodeServer
         return registration is null ? null : SharedService(registration);
     }
 
+    /// <summary>The shared discovery composition root's system-clock probe.</summary>
+    private static ServiceInfoProbe SystemDiscoveryProbe()
+    {
+#pragma warning disable RS0030 // The discovery composition root chooses the system clock and passes it to its info probe.
+        var time = TimeProvider.System;
+#pragma warning restore RS0030
+        return PlatformProbe(ServiceTiming.Default, time);
+    }
+
     /// <summary>The info probe over the platform's loopback transport and socket connect.</summary>
     private static ServiceInfoProbe PlatformProbe(ServiceTiming timing, TimeProvider time) =>
         new(timing, new LoopbackTransport(new LoopbackSocketConnector()), time);
@@ -58,6 +63,53 @@ public partial class OpenCodeServer
             registration.Endpoint,
             registration.Password,
             registration.ProcessId);
+
+    /// <summary>
+    /// The CLI's <c>shutdownPersistentPty</c>: discovers the background service and shuts down its
+    /// persistent-terminal daemon and every terminal it owns, without stopping the service.
+    /// </summary>
+    /// <param name="options">The same options as <see cref="DiscoverAsync"/>; a null <see cref="OpenCodeServerDiscoverOptions.ExpectedVersion"/> accepts any version.</param>
+    /// <param name="cancellationToken">The caller's token; its cancellation propagates.</param>
+    /// <returns>A task that completes when the service answered the shutdown, or without sending a shutdown request when discovery finds no usable service.</returns>
+    /// <exception cref="ArgumentException">An option is blank, the registration path is relative, or the options contradict one another.</exception>
+    /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback.</exception>
+    /// <exception cref="OpenCodeApiException">The service refused the shutdown.</exception>
+    /// <exception cref="OpenCodeTransportException">The service could not be reached or answered a malformed body.</exception>
+    /// <remarks>
+    /// Discovers exactly as <see cref="DiscoverAsync"/> does. With no usable service it sends nothing
+    /// and completes; otherwise it sends one persistent-terminal shutdown to the registered endpoint
+    /// with the registration's credential, no location and no request bound of its own.
+    /// </remarks>
+    [Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
+    public static Task ShutdownPersistentPtyAsync(
+        OpenCodeServerDiscoverOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        ShutdownPersistentPtyWithSeamsAsync(
+            options,
+            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), SystemDiscoveryProbe()),
+            new ServicePtyShutdown(),
+            cancellationToken);
+
+    /// <summary>The discovery-and-shutdown composition over injected seams.</summary>
+    /// <param name="options">The discovery options.</param>
+    /// <param name="discovery">The registration discovery.</param>
+    /// <param name="shutdown">The persistent-terminal shutdown.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>A task completing after shutdown, or without a request when no usable service exists.</returns>
+    internal static async Task ShutdownPersistentPtyWithSeamsAsync(
+        OpenCodeServerDiscoverOptions? options,
+        ServiceDiscovery discovery,
+        IServicePtyShutdown shutdown,
+        CancellationToken cancellationToken)
+    {
+        var registration = await discovery.DiscoverAsync(options, cancellationToken).ConfigureAwait(false);
+        if (registration is null)
+        {
+            return;
+        }
+
+        await shutdown.ShutdownAsync(registration, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Stops the registered background service the way <c>opencode service stop</c> does: resolves

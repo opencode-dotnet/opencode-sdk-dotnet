@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -89,9 +89,8 @@ for ambient and per-call header behavior.
 > **🔑 The client reads no environment variables of its own.** `OPENCODE_PASSWORD` above is
 > *your* code reading *your* environment — exactly how opencode's own CLI layers it. Options are
 > snapshotted at construction, so changing the environment later never reaches a live client. The
-> one door that does read the environment is `OpenCodeServer.DiscoverAsync`, which locates the
-> CLI's background-service registration through the same four path variables the CLI uses — see
-> [discovering the background service](connection-modes.md#️-discovering-the-background-service).
+> background-service doors that read the environment are listed in the canonical
+> [construction contract](../architecture/client-runtime.md#construction-and-transport-ownership).
 
 Options are validated when the client is built: a missing endpoint or a blank or colon-bearing
 username throws straight away rather than on the first call.

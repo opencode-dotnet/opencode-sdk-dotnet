@@ -11,6 +11,7 @@ register any of them with a container.
 - [🔗 A server you already run](#-a-server-you-already-run)
 - [🛰️ Discovering the background service](#️-discovering-the-background-service)
   - [🛑 Stopping the background service](#-stopping-the-background-service)
+  - [🧹 Shutting down the service's persistent terminals](#-shutting-down-the-services-persistent-terminals)
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
 - [🧩 Registering with dependency injection](#-registering-with-dependency-injection)
 
@@ -298,9 +299,9 @@ OPENCODE_PASSWORD=your-password opencode serve --hostname 127.0.0.1 --port 4096
 the CLI's legacy name for the same value, still honored as a fallback, so an older setup keeps
 working. The client never reads either one, or any other environment variable, for you. Reading it
 in the snippet above is your application's choice; a configuration section or a secret store works
-exactly as well. The one door that does read the environment is
-[background-service discovery](#️-discovering-the-background-service), and it reads exactly the four
-variables that section names — never a credential.
+exactly as well. The canonical
+[construction contract](../architecture/client-runtime.md#construction-and-transport-ownership)
+names the background-service doors that read the environment and the path variables they use.
 
 ### An app-owned server on a fixed endpoint
 
@@ -406,8 +407,8 @@ null means for your application; discovery does not start a daemon on your behal
 
 ### What discovery reads
 
-Discovery follows the CLI's own rules for locating the registration, which makes it the one door
-in the SDK that reads the environment. It reads exactly four variables, all of them paths:
+Discovery follows the CLI's own rules for locating the registration. It reads exactly four
+variables, all of them paths:
 
 | Variable | Role |
 |---|---|
@@ -615,6 +616,22 @@ waits for, but Windows releases the daemon's database files (`opencode.db-shm` a
 later; runs measured the gap between 12 and 38 ms. Deleting an isolated data directory right after
 the stop can therefore fail with an `IOException` naming one of those files. Code that removes the
 directory should be ready to retry the deletion for a short bound of its own.
+
+### 🧹 Shutting down the service's persistent terminals
+
+`OpenCodeServer.ShutdownPersistentPtyAsync` finds the service as discovery does and, when one is
+running, ends its persistent-terminal daemon and every terminal it owns, in every session.
+
+```csharp
+await OpenCodeServer.ShutdownPersistentPtyAsync();
+await OpenCodeServer.StopAsync();
+```
+
+This is the order the CLI's uninstall uses before it removes the installation. The shutdown takes
+`OpenCodeServerDiscoverOptions` (see [Shaping the lookup](#shaping-the-lookup)); a set
+`ExpectedVersion` limits it to a service at that version. With no service it does nothing.
+A refused or unreachable shutdown throws `OpenCodeApiException` or `OpenCodeTransportException`.
+It needs the [opt-in](experimental.md#opencode002) (`OPENCODE002`), as the persistent-PTY family does.
 
 ### 🟢 Ensuring the background service
 
