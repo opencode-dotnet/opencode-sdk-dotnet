@@ -142,6 +142,10 @@ A method surface a server-side plugin registers under an RPC id, called at a Loc
 JSON input and output; the plugin's notifications arrive on the Live event stream as `rpc.*` Events.
 _Avoid_: RPC alone (the SDK's own HTTP calls are not RPC)
 
+**RPC definition**:
+A plugin's typed declaration, under its RPC id, of the methods its Plugin RPC answers and the
+events it publishes.
+
 #### Servers and addressing
 
 **Server process**:
@@ -248,6 +252,13 @@ Registration file.
 The on-disk record a Background service publishes, with its address, credential and instance
 identity, so clients can discover it. Its identity is its id, version, URL and pid, never the
 password.
+
+**Incumbent**:
+The running server that owns the service registered at a URL, recognized by its Registration file's
+credentials and a compatible version whatever its readiness, so a starting or failed owner still
+counts.
+_Avoid_: discovered server (discovery answers only a ready one); incumbent probe (the lookup, not
+the server)
 
 **Process identity**:
 A process's pid together with the start time the operating system recorded for it, so a pid reused
