@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Events.Support;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 
@@ -8,12 +9,15 @@ namespace OpenCode.Sdk.Tests.Events;
 
 public sealed class EventsClientTests
 {
+    private readonly FixtureLoader _fixtures = new();
+
     [Test]
     public async Task SubscribeAsync_Should_Delegate_The_Request_Options_And_Token()
     {
         var time = new ManualTimeProvider();
-        using var handler = new RecordingHttpHandler(static _ => ScriptedEventServer.StreamOf(
-            WireBodyData.Frames(ScriptedEventServer.Connected, WireBodyData.SessionCreatedEvent, WireBodyData.UnknownLogEvent)));
+        var frames = WireBodyData.Frames(ScriptedEventServer.Connected,
+            _fixtures.LoadJson("Events.session-created.json"), _fixtures.LoadJson("Events.unknown-log-event.json"));
+        using var handler = new RecordingHttpHandler(_ => ScriptedEventServer.StreamOf(frames));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" }, time: time);
         var door = new EventsClient(pipeline);
