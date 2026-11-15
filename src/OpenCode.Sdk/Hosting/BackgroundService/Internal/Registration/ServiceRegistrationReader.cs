@@ -31,6 +31,64 @@ internal static class ServiceRegistrationReader
     /// <returns>The registration, or null for any document the daemon could not have written.</returns>
     public static ServiceRegistration? TryRead(ReadOnlySpan<byte> utf8) => StrictJson.TryRead(utf8, Read);
 
+    /// <summary>Whether the pinned client's probe can use the URL as the base of its info-route address.</summary>
+    /// <param name="url">The caller's URL.</param>
+    /// <returns>False for a URL the probe could not resolve against.</returns>
+    public static bool CanBeBase(Uri url)
+    {
+        if (!url.IsAbsoluteUri)
+        {
+            return false;
+        }
+
+        var text = url.OriginalString;
+        var start = 0;
+        var end = text.Length;
+        while (start < end && text[start] <= ' ')
+        {
+            start++;
+        }
+
+        // Mirror WHATWG's trailing C0-control-and-space strip.
+        while (end > start && text[end - 1] <= ' ')
+        {
+            end--;
+        }
+
+        text = new string([.. text[start..end].Where(static value => value is not '\t' and not '\n' and not '\r')]);
+        var colon = text.IndexOf(':', StringComparison.Ordinal);
+        if (colon < 0)
+        {
+            return false;
+        }
+
+        var scheme = text[..colon];
+        if (!Uri.CheckSchemeName(scheme))
+        {
+            return false;
+        }
+
+        return string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scheme, "ws", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scheme, "wss", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scheme, "ftp", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(scheme, "file", StringComparison.OrdinalIgnoreCase)
+            || (colon + 1 < text.Length && text[colon + 1] == '/');
+    }
+
+    /// <summary>The registration at another address, preserving its credential and identity.</summary>
+    /// <param name="registration">The registration that supplies the identity and credential.</param>
+    /// <param name="url">An address accepted by <see cref="CanBeBase"/>; the reader's HTTP or HTTPS URL rules apply.</param>
+    /// <returns>
+    /// The registration with the URL string kept verbatim for identity and an unspecified address
+    /// connected as the same family's loopback; null for a URL the daemon could not have registered.
+    /// </returns>
+    public static ServiceRegistration? AtUrl(ServiceRegistration registration, Uri url) =>
+        IsHttp(url)
+            ? new ServiceRegistration(registration.Id, registration.Version, url.OriginalString, ConnectTarget(url), registration.ProcessId, registration.Password)
+            : null;
+
     private static ServiceRegistration? Read(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object

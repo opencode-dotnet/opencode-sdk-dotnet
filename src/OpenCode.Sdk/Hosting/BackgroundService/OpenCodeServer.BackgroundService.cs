@@ -44,6 +44,64 @@ public partial class OpenCodeServer
         return registration is null ? null : SharedService(registration);
     }
 
+    /// <summary>
+    /// Finds the incumbent: a compatible registered service that already owns the caller's address,
+    /// whether ready, waiting or failed, as the pinned client's <c>incumbent</c> does.
+    /// </summary>
+    /// <param name="url">The address the service is expected to answer at, such as its configured listen URL.</param>
+    /// <param name="options">The discovery options; null reads the shared release registration.</param>
+    /// <param name="cancellationToken">The caller's token; its cancellation propagates, the internal request bound does not.</param>
+    /// <returns>
+    /// The incumbent, whose handle is at <paramref name="url"/> with the registration's password and
+    /// process id; null when no registration reads (whatever the URL), the URL can serve as a base
+    /// but is not HTTP or HTTPS (such as <c>ws://127.0.0.1:4096</c>), the answer does not identify a
+    /// compatible registered service (an authenticated 404 is incompatible), the probe timed out,
+    /// or its version differs from a set <see cref="OpenCodeServerDiscoverOptions.ExpectedVersion"/>.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="url"/> is null.</exception>
+    /// <exception cref="ArgumentException">An option is blank, the registration path is relative, the options contradict one another, or a registration reads and the URL cannot serve as a base: it is relative or opaque, such as <c>mailto:owner@example.com</c>.</exception>
+    /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback.</exception>
+    /// <remarks>
+    /// The check <c>opencode serve --service</c> runs before binding. Locates and reads the
+    /// registration as <see cref="DiscoverAsync"/> does, with the same options, then probes
+    /// <c>GET /api/info</c> at <paramref name="url"/>, not the registered URL, with the registration's
+    /// password, process id and version under the same two-second bound. An unspecified address
+    /// in <paramref name="url"/> is probed as the same family's loopback.
+    /// </remarks>
+    public static Task<OpenCodeServerIncumbent?> FindIncumbentAsync(
+        Uri url,
+        OpenCodeServerDiscoverOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+        return FindIncumbentWithSeamsAsync(url, options,
+            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), SystemDiscoveryProbe()), cancellationToken);
+    }
+
+    /// <summary>The caller-addressed lookup over injected discovery.</summary>
+    /// <param name="url">The address the service is expected to answer at.</param>
+    /// <param name="options">The discovery options.</param>
+    /// <param name="discovery">The registration discovery.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The registered service and its state, or null when none answers.</returns>
+    internal static async Task<OpenCodeServerIncumbent?> FindIncumbentWithSeamsAsync(
+        Uri url,
+        OpenCodeServerDiscoverOptions? options,
+        ServiceDiscovery discovery,
+        CancellationToken cancellationToken)
+    {
+        var incumbent = await discovery.FindIncumbentAsync(url, options, cancellationToken).ConfigureAwait(false);
+        return incumbent is null ? null : new OpenCodeServerIncumbent(SharedService(incumbent.Registration), PublicState(incumbent.State));
+    }
+
+    private static OpenCodeServerState PublicState(ServiceState state) => state switch
+    {
+        ServiceState.Ready => OpenCodeServerState.Ready,
+        ServiceState.Waiting => OpenCodeServerState.Waiting,
+        ServiceState.Failed => OpenCodeServerState.Failed,
+        _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown service state."),
+    };
+
     /// <summary>The shared discovery composition root's system-clock probe.</summary>
     private static ServiceInfoProbe SystemDiscoveryProbe()
     {

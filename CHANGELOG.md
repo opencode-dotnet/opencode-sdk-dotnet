@@ -27,6 +27,7 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 - `OpenCodeServer.ShutdownPersistentPtyAsync` discovers the background service and, when one is running, shuts down its persistent terminals, as opencode's CLI does before an uninstall; with no service it does nothing. It is experimental (`OPENCODE002`).
 - Virtual `EventsClient.GetConnectionState()` and `WatchConnectionAsync(CancellationToken)` expose `EventConnectionState` and `EventConnectionStatus` (Idle, Connecting, Connected, Reconnecting). Watches coalesce to the latest unread state and do not start or retain a source.
 - `OpenCodeEventSubscriberOverflowException.Capacity` reports the SDK's fixed 4,096 bound, including for instances constructed through its standard public constructors.
+- `OpenCodeServer.FindIncumbentAsync` reports whether the registered background service that answers at a given URL is ready, starting or stopping, or failed (`OpenCodeServerIncumbent`, `OpenCodeServerState`), as opencode's `serve --service` checks, before it binds, whether a compatible service already owns its address; it answers null when no compatible registered service answers there.
 
 ### 🔧 Changes
 

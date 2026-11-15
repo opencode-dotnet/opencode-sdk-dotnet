@@ -309,14 +309,20 @@ Terminal sessions own their connections separately. See the canonical
 ## 🚀 When a local-server door fails
 
 The local-server doors — `OpenCodeServer.StartAsync`, `OpenCodeServer.DiscoverAsync`,
-`OpenCodeServer.ShutdownPersistentPtyAsync`, `OpenCodeServer.StopAsync`, and
-`OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for their local lifecycle failures.
+`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
+`OpenCodeServer.StopAsync`, and `OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for
+their local lifecycle failures.
 Discovery uses it for exactly one cause: an XDG variable was unset and no user home directory
 resolved either (`USERPROFILE` on Windows, `HOME` elsewhere, and the profile folder all empty),
 so the registration roots cannot be located. Every ordinary way a background service can be absent
 or unusable — no registration, an undecodable one, a daemon still starting or failed, a probe that
 timed out, a version other than the one you expected — is **not** an exception: `DiscoverAsync`
 answers null, and blank or contradictory options throw `ArgumentException` before anything is read.
+`FindIncumbentAsync` shares discovery's roots cause and refusals, refuses a null URL, and, once a
+registration is found, refuses a URL that cannot be a base address (a relative one, or one such as
+`mailto:owner@example.com`). An identified, compatible service that satisfies `ExpectedVersion` is
+returned even while it is starting or has failed, with that state in `State`; a mismatching version,
+a probe timeout, or no service at the URL answers null.
 Stop shares the roots cause and adds one of its own: the registered process is still running after
 the hard kill — the registration is then left in place, and the message names the pid and the file.
 A persistent-terminal handoff sidecar that cannot be removed is not an exception, and neither is a
@@ -328,7 +334,7 @@ start, the registered service speaks an incompatible health protocol at a versio
 nothing and completes, and a failed shutdown request throws `OpenCodeApiException` or
 `OpenCodeTransportException`, not `OpenCodeServerException`. The
 [connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery,
-stop, the persistent-terminal shutdown, and ensure.
+the registered owner's state, stop, the persistent-terminal shutdown, and ensure.
 
 The launcher has more to say, because a child process ran:
 

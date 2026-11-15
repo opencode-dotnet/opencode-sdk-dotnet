@@ -32,8 +32,8 @@ public sealed class OpenCodeServerDiscoverOptions
     public string? InstalledVersion { get; set; }
 
     /// <summary>
-    /// Gets or sets the exact version the discovered service must report; null accepts any ready
-    /// service. A different version is filtered out, not judged incompatible.
+    /// Gets or sets the exact version the service must report; null accepts a service at any
+    /// version. A different version is filtered out, not judged incompatible.
     /// </summary>
     public string? ExpectedVersion { get; set; }
 }
