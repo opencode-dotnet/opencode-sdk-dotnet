@@ -44,9 +44,9 @@ public sealed class OpenCodeClientOptions
     /// Gets or sets how long an ordinary call may go without progress: waiting for the response
     /// headers, and then between reads of the body. The default, <see langword="null"/>, is
     /// 100 seconds. The operations that answer only when work ends — waiting for a session to go
-    /// idle, running a shell command or a command, generating text — ignore this value and run with
-    /// no window,
-    /// so the call's cancellation token is their deadline; a value set on
+    /// idle, running a shell command or a command, generating text, images or decisions, calling a
+    /// plugin's method — ignore this value and run with no window, so the call's cancellation token
+    /// is their deadline; a value set on
     /// <see cref="OpenCodeRequestOptions.NetworkTimeout"/> bounds them for that call. Accepts a
     /// value above zero and at most <see cref="int.MaxValue"/> milliseconds, or
     /// <see cref="Timeout.InfiniteTimeSpan"/> for no window.

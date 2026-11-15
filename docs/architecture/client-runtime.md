@@ -373,7 +373,7 @@ resolves the message's network window from those carried traits.
   the .NET convention. The operations that answer only when work ends —
   `experimental.session.wait`, `session.shell`, `session.command`, `session.generate`,
   `experimental.generate.text`, `experimental.generate.image`,
-  `experimental.generate.decisions` — run with no window
+  `experimental.generate.decisions`, `rpc.call` — run with no window
   unless the call sets one, so the caller's token is their deadline, as upstream's client bounds
   them; a client-wide value does not reach them. A hand-written table keyed by operation id names
   them; a Tools test holds its ids to the pinned document, and the source watch pins the upstream

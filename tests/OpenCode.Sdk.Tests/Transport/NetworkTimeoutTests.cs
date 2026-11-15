@@ -1,3 +1,4 @@
+using System.Net;
 using System.Threading.Channels;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
@@ -9,15 +10,19 @@ namespace OpenCode.Sdk.Tests.Transport;
 /// <summary>
 /// The network timeout as a caller sets it: the client's value bounds an ordinary call, a
 /// per-call value wins either way, and a long-poll operation runs with no window unless the call
-/// sets one, because its server answers only when the work ends. The server here never answers,
-/// so the window alone decides when the exchange is cut; the clock is the test's, and each check
-/// reads the token the exchange was sent under, which the window cancels the moment it passes.
+/// sets one, because its server answers only when the work ends. The server here holds its
+/// answer, so the window alone decides when the exchange is cut; the clock is the test's, and each
+/// check reads the token the exchange was sent under, which the window cancels the moment it passes.
 /// </summary>
 public sealed class NetworkTimeoutTests
 {
     private const string OrdinaryOperation = "test.operation";
 
     private const string LongPollOperation = "session.shell";
+
+    private const string RpcOperation = "rpc.call";
+
+    private const string PluginAnswer = "plugin answer";
 
     private static readonly TimeSpan DefaultWindow = TimeSpan.FromSeconds(100);
 
@@ -95,6 +100,29 @@ public sealed class NetworkTimeoutTests
     }
 
     [Test]
+    public async Task An_Rpc_Call_Should_Complete_With_Its_Answer_After_The_Client_Window_Passes()
+    {
+        var time = new ManualTimeProvider();
+        using var handler = new HoldingHandler();
+        using var httpClient = new HttpClient(handler, disposeHandler: false);
+        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: ClientWindow, time: time);
+        var adapter = new RecordingResponseAdapter();
+        var call = pipeline.ExecuteAsync(RpcOperation, HttpMethod.Post, "/api/rpc/test/method", adapter, null, CancellationToken.None);
+        var sentUnder = await handler.WaitForSendAsync(HangGuard.Bound);
+
+        time.Advance(ClientWindow + OneTick);
+        await Assert.That(sentUnder.IsCancellationRequested).IsFalse();
+
+        using var answer = new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(PluginAnswer),
+        };
+        handler.Answer(answer);
+        _ = await call.WaitAsync(HangGuard.Bound, CancellationToken.None);
+        await Assert.That(adapter.AdaptedRawBody).IsEqualTo(PluginAnswer);
+    }
+
+    [Test]
     public async Task The_Long_Polls_Should_Be_The_Operations_That_Hold_Their_Headers_Until_The_Work_Ends()
     {
         // Every listed operation's traits, in any order; HandWrittenTransportTableTests catches an added id.
@@ -105,6 +133,7 @@ public sealed class NetworkTimeoutTests
             ["experimental.generate.image"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["experimental.generate.text"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["experimental.session.wait"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["rpc.call"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.command"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.generate"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.shell"] = new(Reconnects: false, HasNoNetworkWindow: true),
@@ -148,13 +177,13 @@ public sealed class NetworkTimeoutTests
     }
 
     /// <summary>
-    /// A server that never answers, a pipeline on a manual clock, and one call already waiting
+    /// A server that holds its answer, a pipeline on a manual clock, and one call already waiting
     /// under its window. The handler hands back the token the exchange was sent under; the window
     /// cancels it synchronously when it passes, so it is the exact witness of a cut.
     /// </summary>
     private sealed class HangingScenario : IDisposable
     {
-        private readonly NeverAnsweringHandler _handler;
+        private readonly HoldingHandler _handler;
         private readonly HttpClient _httpClient;
         private readonly Pipeline _pipeline;
         private readonly ManualTimeProvider _time;
@@ -162,7 +191,7 @@ public sealed class NetworkTimeoutTests
         private readonly Task _call;
         private readonly CancellationToken _sentUnder;
 
-        private HangingScenario(NeverAnsweringHandler handler, HttpClient httpClient, Pipeline pipeline, ManualTimeProvider time,
+        private HangingScenario(HoldingHandler handler, HttpClient httpClient, Pipeline pipeline, ManualTimeProvider time,
             CancellationTokenSource caller, Task call, CancellationToken sentUnder)
         {
             _handler = handler;
@@ -177,7 +206,7 @@ public sealed class NetworkTimeoutTests
         public static async Task<HangingScenario> StartAsync(string operationId, TimeSpan? clientWindow, TimeSpan? callWindow)
         {
             var time = new ManualTimeProvider();
-            var handler = new NeverAnsweringHandler();
+            var handler = new HoldingHandler();
             var httpClient = new HttpClient(handler, disposeHandler: false);
             var pipeline = PipelineFactory.Create(httpClient, networkTimeout: clientWindow, time: time);
             var caller = new CancellationTokenSource();
@@ -218,21 +247,25 @@ public sealed class NetworkTimeoutTests
         }
     }
 
-    /// <summary>Answers nothing until the exchange is cancelled, as a server busy with long work does, and reports the token it was sent under.</summary>
-    private sealed class NeverAnsweringHandler : HttpMessageHandler
+    /// <summary>
+    /// Holds its answer until the test releases one or the exchange is cancelled, as a server busy
+    /// with long work does, and reports the token the exchange was sent under.
+    /// </summary>
+    private sealed class HoldingHandler : HttpMessageHandler
     {
         private readonly Channel<CancellationToken> _received = Channel.CreateUnbounded<CancellationToken>();
+        private readonly Channel<HttpResponseMessage> _answer = Channel.CreateUnbounded<HttpResponseMessage>();
 
         /// <summary>Completes with the token of the first exchange the handler receives.</summary>
         public Task<CancellationToken> WaitForSendAsync(TimeSpan hangGuard) => _received.Reader.ReadAsync().AsTask().WaitAsync(hangGuard);
 
+        /// <summary>Releases the held answer to the waiting exchange.</summary>
+        public void Answer(HttpResponseMessage answer) => _ = _answer.Writer.TryWrite(answer);
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             _ = _received.Writer.TryWrite(cancellationToken);
-
-            // The answer is never given, so only the exchange's token ends the wait.
-            var answer = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
-            return await answer.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return await _answer.Reader.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 }

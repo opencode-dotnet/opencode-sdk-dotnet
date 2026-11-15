@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-11-10
+Date: 2026-11-15
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -228,7 +228,7 @@ var sessions = await client.Sessions.ListSessionsAsync(requestOptions: new OpenC
 });
 ```
 
-Seven calls answer only when work ends, so they wait with no window at all and your
+Eight calls answer only when work ends, so they wait with no window at all and your
 cancellation token is their deadline:
 
 - `client.Experimental.WaitForSessionAsync`, which waits for a session to go idle;
@@ -237,7 +237,8 @@ cancellation token is their deadline:
 - `session.GenerateTextAsync` and `client.Experimental.GenerateTextAsync`, which wait for the whole
   text generation;
 - `client.Experimental.GenerateImagesAsync` and `client.Experimental.GenerateDecisionsAsync`, which
-  wait for image and decision generation.
+  wait for image and decision generation;
+- `client.Rpc.CallAsync`, which waits for the plugin's method to return.
 
 The client-wide value does not reach them; a per-call value does:
 
