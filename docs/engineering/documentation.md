@@ -90,9 +90,10 @@ live Git and GitHub, then deleted when the follow-up ships or a newer handoff su
 - Every install instruction (`npm install -g @opencode/cli@<version>`) and every
   "at the pin (`v<version>`)" mention in `README.md`, `docs/guide/` and `.github/ISSUE_TEMPLATE/`,
   and every issue form's `server-version` placeholder, name `spec/SNAPSHOT.md`'s upstream release
-  tag. A Tools test fails on a stale one (`ConsumerPinGuard`); it runs with every change CI treats as
-  code, or that touches Markdown (Markdown-only on Linux), a pin refresh among them. A version recorded as an
-  observation (`Observed on`, `Verified on`, `Measured on`) is history and stays as written.
+  tag. A Tools test fails on a stale one (`ConsumerPinGuard`); it runs with every change that
+  touches code or Markdown, a pin refresh among them, and a Markdown-only change runs it on the
+  Linux leg. A version recorded as an observation (`Observed on`, `Verified on`, `Measured on`) is
+  history and stays as written.
 - `CHANGELOG.md` gets an entry under `[Unreleased]` for every user-facing change, in the same pull
   request. A released section is the delta from the previous published package: it states the
   status quo a consumer upgrading from that package meets, never the order of intermediate commits

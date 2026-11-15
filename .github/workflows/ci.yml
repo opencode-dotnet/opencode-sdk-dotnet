@@ -55,7 +55,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
-          before: ${{ github.event.before }}
+          BEFORE: ${{ github.event.before }}
         run: |
           # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner.
           matrix='[{"os":"windows-2025","name":"Windows","test-modules":4},{"os":"ubuntu-24.04","name":"Linux","test-modules":4},{"os":"macos-15","name":"macOS","test-modules":3}]'
@@ -68,10 +68,10 @@ jobs:
             exit 0
           }
           if [ "$EVENT" = push ]; then
-            if [ -z "$before" ] || [[ "$before" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$before"; then
+            if [ -z "$BEFORE" ] || [[ "$BEFORE" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$BEFORE"; then
               push_fallback
             fi
-            base="$before"
+            base="$BEFORE"
           elif [ "$EVENT" = merge_group ]; then
             git fetch --no-tags --depth=1 origin "$QUEUE_BASE"
             base="$QUEUE_BASE"

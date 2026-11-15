@@ -18,7 +18,7 @@ public sealed class CiDocumentationRunTests
         var changes = CiWorkflow.Job(workflow, "changes");
         await Assert.That(changes).Contains("      docs: ${{ steps.diff.outputs.docs }}\n");
         await Assert.That(changes).Contains("      matrix: ${{ steps.diff.outputs.matrix }}\n");
-        await Assert.That(changes).Contains("          before: ${{ github.event.before }}\n");
+        await Assert.That(changes).Contains("          BEFORE: ${{ github.event.before }}\n");
         await Assert.That(changes).Contains("              *.md) docs=true ;;\n");
         await Assert.That(changes).Contains("          docs=false\n");
         await Assert.That(changes).Contains("          echo \"docs=$docs\" >> \"$GITHUB_OUTPUT\"\n");
@@ -35,10 +35,10 @@ public sealed class CiDocumentationRunTests
         await Assert.That(changes).Contains("      - name: Checkout\n        uses: actions/checkout@v7\n        with:\n          fetch-depth: 2\n");
         await Assert.That(changes).Contains("""
                       if [ "$EVENT" = push ]; then
-                        if [ -z "$before" ] || [[ "$before" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$before"; then
+                        if [ -z "$BEFORE" ] || [[ "$BEFORE" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$BEFORE"; then
                           push_fallback
                         fi
-                        base="$before"
+                        base="$BEFORE"
                       elif [ "$EVENT" = merge_group ]; then
             """);
         await Assert.That(changes).Contains("""

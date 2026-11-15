@@ -93,9 +93,11 @@ single-owner rules.
   permit reuse of its green PR result. Otherwise the repository guards count exactly over every
   test file, so a green result from an older base is not enough. After the merge, the work is done
   when the CI the merge commit triggers on
-  `master` is green; only `LICENSE` merges trigger none, and their queue result stands.
-  Merges that touch Markdown run CI on `master` like any other.
-- CI runs on every pull request and queue entry. A change of only Markdown or `LICENSE` that touches
-  Markdown runs only Linux `Build & Test` (Lint skipped; benchmarks keep their path selection). Only
-  `LICENSE` skips build/test jobs. Unreadable push diffs run in full. Never put `[skip ci]` in a pull request's commits: the
-  required check would not report, and the pull request could not join the queue.
+  `master` is green; a merge of only `LICENSE` triggers none, and its queue result stands. A merge
+  that touches Markdown runs CI on `master` like any other.
+- CI runs on every pull request and queue entry. A change whose paths are all Markdown or `LICENSE`
+  and include Markdown runs only the Linux `Build & Test` leg: Lint is skipped, and the benchmark
+  jobs keep their own path selection. A change of only `LICENSE` passes without the build and test
+  jobs, and a `master` push whose diff cannot be read runs in full. Never put `[skip ci]` in a pull
+  request's commits: the required check would not report, and the pull request could not join the
+  queue.
