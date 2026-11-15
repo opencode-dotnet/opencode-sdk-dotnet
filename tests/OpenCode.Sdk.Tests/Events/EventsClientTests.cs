@@ -25,7 +25,7 @@ public sealed class EventsClientTests
         var received = new List<IEvent>();
         for (var index = 0; index < 3; index++)
         {
-            await Assert.That(await events.MoveNextAsync()).IsTrue();
+            await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
             received.Add(events.Current);
         }
 
@@ -44,7 +44,7 @@ public sealed class EventsClientTests
         using var readyPipeline = PipelineFactory.Create(readyHttpClient, time: time);
         await caller.CancelOnWorkerAsync();
         await using var cancelled = new EventsClient(readyPipeline).SubscribeAsync(request, options, caller.Token).GetAsyncEnumerator();
-        var exception = await EventStreamSteps.PendingCancellationAsync(cancelled);
+        var exception = await EventStreamSteps.PendingCancellationAsync(cancelled).WaitAsync(HangGuard.Bound);
         await Assert.That(exception).IsNotNull();
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
     }
@@ -55,7 +55,7 @@ public sealed class EventsClientTests
         var door = new MockEventsClient();
         await using var events = door.SubscribeAsync().GetAsyncEnumerator();
         var received = new List<IEvent>();
-        while (await events.MoveNextAsync())
+        while (await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))
         {
             received.Add(events.Current);
         }

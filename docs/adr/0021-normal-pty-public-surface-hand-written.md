@@ -1,4 +1,4 @@
-# Normal PTY's public surface is hand-written over generated internals
+# The PTY families' and the Events family's public doors are hand-written over generated internals
 
 Date: 2026-11-14
 
@@ -24,9 +24,9 @@ input, a cursor domain without a live-only mode, no pre-upgrade existence check)
 families' public doors are hand-written over generated internal raw clients and share one
 family-neutral socket core behind named decode, close, and upgrade seams.
 
-The Events family's public door follows the same ownership pattern because the shared event feed
-needs knowledge generation may not import. Its raw endpoint, routes, adapters, wire models and
-serializer metadata stay generated; ownership of the public door does not change SSE behaviour.
+The Events family's public door is hand-written over its raw client, so behaviour above the
+generated stream belongs to hand-written code. Its raw endpoint, routes, adapters, wire models and
+serializer metadata stay generated; its signature and SSE behaviour are the generated stream method's.
 
 ## Considered options
 

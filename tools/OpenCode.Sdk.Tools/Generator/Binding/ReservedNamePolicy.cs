@@ -69,9 +69,9 @@ internal static class ReservedNamePolicy
 
     /// <summary>
     /// Hand-written public spine types in the generated namespaces; a generated twin would not
-    /// compile. Both PTY families' public doors are here because ADR-0021 gives their public
-    /// surface to hand-written code while the generator keeps its raw twins — including each
-    /// family's WebSocket session, its options, and its frame hierarchy, which the pinned
+    /// compile. The PTY families' and the Events family's public doors are here because ADR-0021
+    /// gives their public surface to hand-written code while the generator keeps its raw twins —
+    /// including the PTY families' WebSocket sessions, options, and frame hierarchies, which the pinned
     /// document cannot describe at all because the connect operations are transport-owned.
     /// </summary>
     public static readonly FrozenSet<string> SpineTypeNames = FrozenSet.ToFrozenSet(

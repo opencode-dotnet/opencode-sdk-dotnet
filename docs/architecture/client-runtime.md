@@ -115,10 +115,6 @@ resolves the message's network window from those carried traits.
 - The hand-written doors keep the generated family's shape: the protected mocking constructor,
   `virtual` members, and the `MockSeam` guard. Each door delegates once into its raw twin and
   adds nothing but the knowledge generation may not import.
-- The Events family is the third: `EventsClient` is hand-written over the generated internal
-  `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its public signature and
-  SSE behaviour are unchanged; the raw endpoint, routes, adapters, wire models and serializer
-  metadata remain generated.
 - `CreateConnectTokenAsync` is that knowledge. The server's connect-token handler requires a
   fixed `x-opencode-ticket` value that exists only in upstream implementation source, which
   ADR-0013 forbids importing into generation; the constant therefore lives in the hand-written
@@ -133,6 +129,10 @@ resolves the message's network window from those carried traits.
   knowledge leaks into it. This is not a general header facility: the channel is assembly-internal,
   only generated internal-raw methods feed it, and only a parameter the pinned document declares
   ever becomes an entry.
+- The Events family is the third: `EventsClient` is hand-written over the generated internal
+  `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its signature and SSE
+  behaviour are the generated stream method's; the raw endpoint, routes, adapters, wire models
+  and serializer metadata remain generated.
 
 ### PTY WebSocket session
 

@@ -28,8 +28,8 @@ internal static class GeneratedSourceCompiler
     private static readonly AnalyzerFileReference[] SourceGenerators = CreateSourceGeneratorReferences();
 
     /// <summary>
-    /// Hand-written sources sitting <em>above</em> generated output instead of under it: both
-    /// PTY families' and Events family's public doors delegate to generated raw clients (ADR-0021), and the
+    /// Hand-written sources sitting <em>above</em> generated output instead of under it: the PTY
+    /// families' and the Events family's public doors delegate to generated raw clients (ADR-0021), and the
     /// persistent family's session carries the generated <c>PersistentPtyInfo</c> the server's
     /// attach frame hands it, so unlike the behavior core they cannot compile against a plan that
     /// never emitted those twins. Each rides along only when the plan under test emitted what it
