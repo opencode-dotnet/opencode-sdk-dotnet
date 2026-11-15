@@ -88,7 +88,8 @@ public sealed class OpenCodeServerReadinessTests
             ReadinessWait = (pending, token) =>
             {
                 _ = entered.TrySetResult(token);
-                return pending.WaitAsync(token).WaitAsync(HangGuard, cancellationToken);
+                Task[] pendingTasks = [pending];
+                return Task.WhenAll(pendingTasks).WaitAsync(token).WaitAsync(HangGuard, cancellationToken);
             },
         };
         var starting = OpenCodeServer.StartWithSeamsAsync(
