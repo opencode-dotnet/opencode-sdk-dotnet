@@ -310,7 +310,7 @@ public sealed class ServicePtyHandoffTests
         fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((byte[]?)null);
         Exception failure = failureKind == "io"
             ? new IOException("The sidecar directory vanished.")
-            : new ArgumentException("The sidecar write was refused.", "path");
+            : new ArgumentException("The sidecar write was refused.", nameof(failureKind));
         fileSystem.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(failure);
 
