@@ -1230,4 +1230,9 @@ reason (ADR-0031):
   (maintainer's decision, 2026-11-15, #848). Reversal: upstream gives `shutdownPersistentPty` a
   version requirement of its own, or the maintainer asks for exact parity.
 
+- **`FindIncumbentAsync` parses the host as .NET does.** It takes a `Uri`, so a host that WHATWG
+  rejects but .NET accepts, such as `example.42`, is probed and answers null where upstream's
+  `new URL` throws. Reason: parity would reimplement WHATWG's host, IPv4 and IDNA rules for hosts
+  no loopback service uses (maintainer's decision, 2026-11-15, #847). Reversal: a consumer needs the throw.
+
 Everything else follows the chain at the pin.
