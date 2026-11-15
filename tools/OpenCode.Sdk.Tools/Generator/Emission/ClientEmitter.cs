@@ -16,6 +16,13 @@ internal static class ClientEmitter
         return Array.AsReadOnly([.. clients.Select(client => EmitClient(client, namespaces))]);
     }
 
+    /// <summary>
+    /// A public client carries the mocking seam: a protected constructor, nullable fields, guarded
+    /// reads and <c>PipelineOrNull</c>. A sealed internal raw client is only ever built with a
+    /// pipeline, so it carries none of it.
+    /// </summary>
+    private static bool HasMockSeam(ClientPlan client) => client.Emission is not EmissionMode.InternalRaw;
+
     private static GeneratedSource EmitClient(ClientPlan client, GeneratedNamespacePlan namespaces)
     {
         var members = new List<MemberDeclarationSyntax>();
@@ -23,13 +30,12 @@ internal static class ClientEmitter
         members.AddRange(client.Role switch
         {
             ClientRole.Root => EmitRootConstructors(client),
-            ClientRole.Collection => EmitPipelineConstructor(client, EmitPipelineAssignments(client)),
+            ClientRole.Collection => EmitPipelineConstructor(client, EmitPipelineAssignments()),
             ClientRole.Handle => EmitHandleConstructor(client),
             _ => throw new InvalidOperationException($"Unknown client role '{client.Role}'."),
         });
 
-        // A sealed internal client has no derivable seam, so it takes no mocking constructor.
-        if (client.Emission is not EmissionMode.InternalRaw)
+        if (HasMockSeam(client))
         {
             members.Add(EmitMockConstructor(client));
         }
@@ -45,11 +51,15 @@ internal static class ClientEmitter
             members.Add(EmitHandleFactory(client, client.HandleFactory));
         }
 
-        members.Add(EmitGuardedAccessor(client, ReservedNamePolicy.PipelineProperty, "Pipeline", ReservedNamePolicy.PipelineField));
-        members.Add(EmitPipelineOrNullAccessor());
+        members.Add(EmitFieldAccessor(client, ReservedNamePolicy.PipelineProperty, "Pipeline", ReservedNamePolicy.PipelineField));
+        if (HasMockSeam(client))
+        {
+            members.Add(EmitPipelineOrNullAccessor());
+        }
+
         if (client.HandleParameter is not null)
         {
-            members.Add(EmitGuardedAccessor(
+            members.Add(EmitFieldAccessor(
                 client,
                 CSharpNamePolicy.ToPascalCase(client.HandleParameter.Name),
                 client.HandleParameter.TypeName,
@@ -138,15 +148,15 @@ internal static class ClientEmitter
             yield return EmitEmptyBodyField(typeName);
         }
 
-        yield return EmitField(ReservedNamePolicy.PipelineField, TypeSyntaxEmitter.EmitNamed("Pipeline"));
+        yield return EmitField(client, ReservedNamePolicy.PipelineField, TypeSyntaxEmitter.EmitNamed("Pipeline"));
         if (client.HandleParameter is not null)
         {
-            yield return EmitField(ReservedNamePolicy.HandleFieldName(client.HandleParameter), TypeSyntaxEmitter.EmitNamed(client.HandleParameter.TypeName));
+            yield return EmitField(client, ReservedNamePolicy.HandleFieldName(client.HandleParameter), TypeSyntaxEmitter.EmitNamed(client.HandleParameter.TypeName));
         }
 
         foreach (var reference in client.SubClients)
         {
-            yield return EmitField(ReservedNamePolicy.SubClientFieldName(reference), TypeSyntaxEmitter.EmitNamed(reference.TypeName));
+            yield return EmitField(client, ReservedNamePolicy.SubClientFieldName(reference), TypeSyntaxEmitter.EmitNamed(reference.TypeName));
         }
     }
 
@@ -161,9 +171,9 @@ internal static class ClientEmitter
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),
                 SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)));
 
-    private static FieldDeclarationSyntax EmitField(string name, TypeSyntax type) =>
+    private static FieldDeclarationSyntax EmitField(ClientPlan client, string name, TypeSyntax type) =>
         SyntaxFactory.FieldDeclaration(SyntaxFactory.VariableDeclaration(
-                SyntaxFactory.NullableType(type),
+                HasMockSeam(client) ? SyntaxFactory.NullableType(type) : type,
                 SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(name))))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
@@ -238,9 +248,8 @@ internal static class ClientEmitter
             .WithBody(SyntaxFactory.Block(statements));
     }
 
-    private static IReadOnlyList<StatementSyntax> EmitPipelineAssignments(ClientPlan client)
+    private static IReadOnlyList<StatementSyntax> EmitPipelineAssignments()
     {
-        _ = client;
         return
         [
             SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
@@ -324,7 +333,7 @@ internal static class ClientEmitter
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.VirtualKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
-                GuardedRead(client, ReservedNamePolicy.SubClientFieldName(reference), reference.PropertyName)))
+                FieldRead(client, ReservedNamePolicy.SubClientFieldName(reference), reference.PropertyName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
             .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the '{reference.PropertyName}' collection client."));
 
@@ -352,12 +361,12 @@ internal static class ClientEmitter
                 $"The bound '{factory.HandleTypeName}'."));
     }
 
-    private static PropertyDeclarationSyntax EmitGuardedAccessor(ClientPlan client, string propertyName, string typeName,
+    private static PropertyDeclarationSyntax EmitFieldAccessor(ClientPlan client, string propertyName, string typeName,
         string fieldName)
     {
         var declaration = SyntaxFactory.PropertyDeclaration(TypeSyntaxEmitter.EmitNamed(typeName), propertyName)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword)))
-            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(GuardedRead(client, fieldName, propertyName)))
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(FieldRead(client, fieldName, propertyName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
         return declaration;
     }
@@ -371,16 +380,18 @@ internal static class ClientEmitter
             .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Gets the pipeline of a client the SDK built, or null on a mocking instance."));
 
-    private static BinaryExpressionSyntax GuardedRead(ClientPlan client, string fieldName, string memberName) =>
-        SyntaxFactory.BinaryExpression(
-            SyntaxKind.CoalesceExpression,
-            SyntaxFactory.IdentifierName(fieldName),
-            SyntaxFactory.ThrowExpression(EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("MockSeam"), "CreateError"),
-                SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                    SyntaxKind.StringLiteralExpression,
-                    SyntaxFactory.Literal(client.Name))),
-                SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                    SyntaxKind.StringLiteralExpression,
-                    SyntaxFactory.Literal(memberName))))));
+    private static ExpressionSyntax FieldRead(ClientPlan client, string fieldName, string memberName) =>
+        !HasMockSeam(client)
+            ? SyntaxFactory.IdentifierName(fieldName)
+            : SyntaxFactory.BinaryExpression(
+                SyntaxKind.CoalesceExpression,
+                SyntaxFactory.IdentifierName(fieldName),
+                SyntaxFactory.ThrowExpression(EmissionSyntax.Invocation(
+                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("MockSeam"), "CreateError"),
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal(client.Name))),
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal(memberName))))));
 }

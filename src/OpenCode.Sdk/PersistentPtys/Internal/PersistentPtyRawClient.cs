@@ -9,8 +9,8 @@ namespace OpenCode.Sdk.Internal;
 internal sealed class PersistentPtyRawClient
 {
     private static readonly PersistentPtyUpdateRequest EmptyPersistentPtyUpdateRequest = new();
-    private readonly Pipeline? _pipeline;
-    private readonly string? _ptyId;
+    private readonly Pipeline _pipeline;
+    private readonly string _ptyId;
     internal PersistentPtyRawClient(Pipeline pipeline, string ptyId)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -24,12 +24,8 @@ internal sealed class PersistentPtyRawClient
         _ptyId = ptyId;
     }
 
-    private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PersistentPtyRawClient", "Pipeline");
-    /// <summary>
-    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
-    /// </summary>
-    internal Pipeline? PipelineOrNull => _pipeline;
-    private string PtyId => _ptyId ?? throw MockSeam.CreateError("PersistentPtyRawClient", "PtyId");
+    private Pipeline Pipeline => _pipeline;
+    private string PtyId => _ptyId;
 
     /// <summary>
     /// Calls the &apos;/api/experimental/persistent-pty/{ptyID}/connect-token&apos; operation.

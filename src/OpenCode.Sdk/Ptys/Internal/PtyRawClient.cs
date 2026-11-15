@@ -9,8 +9,8 @@ namespace OpenCode.Sdk.Internal;
 internal sealed class PtyRawClient
 {
     private static readonly PtyUpdateRequest EmptyPtyUpdateRequest = new();
-    private readonly Pipeline? _pipeline;
-    private readonly string? _ptyId;
+    private readonly Pipeline _pipeline;
+    private readonly string _ptyId;
     internal PtyRawClient(Pipeline pipeline, string ptyId)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -24,12 +24,8 @@ internal sealed class PtyRawClient
         _ptyId = ptyId;
     }
 
-    private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PtyRawClient", "Pipeline");
-    /// <summary>
-    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
-    /// </summary>
-    internal Pipeline? PipelineOrNull => _pipeline;
-    private string PtyId => _ptyId ?? throw MockSeam.CreateError("PtyRawClient", "PtyId");
+    private Pipeline Pipeline => _pipeline;
+    private string PtyId => _ptyId;
 
     /// <summary>
     /// Create PTY WebSocket token. Create a short-lived single-use ticket for opening a PTY WebSocket connection.
