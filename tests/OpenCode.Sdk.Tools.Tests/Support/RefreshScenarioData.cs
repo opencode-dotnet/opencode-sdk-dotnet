@@ -65,7 +65,8 @@ internal static class RefreshScenarioData
         };
 
     /// <summary>Builds one watched upstream source pinned to the given content's hash.</summary>
-    public static WatchedSource Watched(string path, string content, string anchor, string anchorType = SourceAnchor.Contains)
+    public static WatchedSource Watched(string path, string content, string anchor, string anchorType = SourceAnchor.Contains,
+        string owner = WatchOwners.Sdk)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -73,17 +74,36 @@ internal static class RefreshScenarioData
         {
             Path = path,
             Sha256 = DocumentInspector.Sha256Hex(Encoding.UTF8.GetBytes(content)),
-            Behavior = $"the door's dependency on {anchor}",
-            Anchor = new SourceAnchor { Type = anchorType, Text = anchor },
+            Behaviors = [Behavior(anchor, owner, anchorType)],
         };
     }
+
+    public static WatchedBehavior Behavior(string anchor, string owner = WatchOwners.Sdk, string anchorType = SourceAnchor.Contains) =>
+        new() { Owner = owner, Behavior = $"the door's dependency on {anchor}", Anchor = new SourceAnchor { Type = anchorType, Text = anchor } };
 
     /// <summary>Builds a source watch over the given entries.</summary>
     public static SourceWatch Watch(int schemaVersion, params WatchedSource[] sources) =>
         new() { SchemaVersion = schemaVersion, Sources = sources };
 
-    public static ReceiptWatchedSource Observation(WatchedSource source, string sha256, bool anchorMatched) =>
-        new() { Path = source.Path, Sha256 = sha256, AnchorMatched = anchorMatched };
+    public static ReceiptWatchedSource Observation(WatchedSource source, string sha256, bool anchorMatched,
+        IReadOnlyList<bool>? anchorMatches = null) =>
+        new()
+        {
+            Path = source.Path,
+            Sha256 = sha256,
+            Anchors = [.. source.Behaviors.Select((behavior, index) => new ReceiptWatchedAnchor
+            {
+                Text = behavior.Anchor.Text,
+                Matched = anchorMatches?[index] ?? anchorMatched,
+            })],
+        };
+
+    /// <summary>A two-behaviour copy of <paramref name="template"/> whose first anchor still matches and whose second is lost.</summary>
+    public static (WatchedSource Source, ReceiptWatchedSource Observation) OneLostAnchor(WatchedSource template)
+    {
+        var source = template with { Behaviors = [Behavior("zeta", WatchOwners.AgentsAi), Behavior("alpha")] };
+        return (source, Observation(source, source.Sha256, anchorMatched: true, anchorMatches: [true, false]));
+    }
 
     public static IReadOnlyList<ReceiptWatchedSource> OtherSources(WatchedSource source, string variation)
     {
@@ -102,7 +122,7 @@ internal static class RefreshScenarioData
         var stats = DocumentInspector.Inspect(document);
         return new SnapshotReceipt
         {
-            SchemaVersion = 2,
+            SchemaVersion = 3,
             ReleaseTag = "v2.0.30",
             UpstreamCommit = Commit,
             RawDocumentSha256 = DocumentInspector.Sha256Hex(document),

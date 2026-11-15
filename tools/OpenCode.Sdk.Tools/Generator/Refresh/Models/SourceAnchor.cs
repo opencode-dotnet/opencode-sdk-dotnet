@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 /// <summary>
 /// A machine-checkable content anchor over one watched upstream source file. The single
 /// supported kind, <c>contains</c>, holds while the file still carries the literal that names
-/// the upstream behavior a hand-written door depends on; once it stops holding, the door needs
+/// the upstream behavior this SDK or opencode-agents-ai depends on; once it stops holding, its owner needs
 /// a human reading before the pin moves.
 /// </summary>
 internal sealed record SourceAnchor

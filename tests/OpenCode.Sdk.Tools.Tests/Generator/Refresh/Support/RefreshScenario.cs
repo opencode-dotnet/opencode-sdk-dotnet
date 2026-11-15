@@ -102,7 +102,7 @@ internal sealed class RefreshScenario : IDisposable
     public async Task SeedWatchedReceiptAsync(SnapshotReceipt receipt, WatchedSource pinned, bool anchorMatched, byte[] document)
     {
         await SeedAcceptedReceiptAsync(receipt with { WatchedSources = [RefreshScenarioData.Observation(pinned, pinned.Sha256, anchorMatched)] }, document);
-        await FileSystem.File.WriteAllTextAsync(SnapshotPaths.SourceWatch, RefreshScenarioData.Serialize(RefreshScenarioData.Watch(1, pinned)));
+        await FileSystem.File.WriteAllTextAsync(SnapshotPaths.SourceWatch, RefreshScenarioData.Serialize(RefreshScenarioData.Watch(2, pinned)));
     }
 
     public ScriptedProcessRunner ExpectObservedSource(WatchedSource pinned, string content)
@@ -154,10 +154,10 @@ internal sealed class RefreshScenario : IDisposable
 
     public void WithWatch(string observedHash)
     {
-        var pinned = RefreshScenarioData.Watched("watched.ts", "anchor", "anchor") with { Behavior = "the door's behavior" };
-        var text = RefreshScenarioData.Serialize(RefreshScenarioData.Watch(1, pinned)).Replace("\\u0027", "'", StringComparison.Ordinal);
+        var pinned = RefreshScenarioData.Watched("watched.ts", "anchor", "anchor");
+        var text = RefreshScenarioData.Serialize(RefreshScenarioData.Watch(2, pinned)).Replace("\\u0027", "'", StringComparison.Ordinal);
         State = State with { SourceWatch = System.Text.Encoding.UTF8.GetBytes(text) };
-        Receipt = Receipt with { WatchedSources = [new ReceiptWatchedSource { Path = pinned.Path, Sha256 = observedHash, AnchorMatched = true }] };
+        Receipt = Receipt with { WatchedSources = [RefreshScenarioData.Observation(pinned, observedHash, anchorMatched: true)] };
     }
 
     public async Task<ReceiptPatch> AddPatchAsync(string name, int order)

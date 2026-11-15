@@ -254,10 +254,11 @@ A temporary, hash-verified snapshot-production patch recovering contract content
 projection lost; carries an upstream report and a retirement predicate.
 
 **Source watch**:
-The pinned set of upstream files a hand-written door reads as inputs — each a watched source
-recorded by path, SHA-256 blob hash, and one content anchor in `spec/source-watch.json` and the
-receipt's `watchedSources`. A refresh-time review trigger only; it never reaches ingestion,
-curation, or emission.
+The pinned set of upstream files that hand-written code in this family depends on, each a watched
+source recorded by path and SHA-256 blob hash in `spec/source-watch.json` and the receipt's
+`watchedSources`, with one or more behaviours, each naming its owning product and carrying a content
+anchor. A refresh-time review trigger; it never reaches ingestion or emission, and generation reads
+it only to refuse a query parameter type row whose evidence it does not watch.
 
 **Contract inventory**:
 The complete operation set of the accepted document, each operation carrying its admission state

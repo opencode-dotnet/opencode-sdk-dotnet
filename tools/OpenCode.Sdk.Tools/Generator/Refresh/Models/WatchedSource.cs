@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 
 /// <summary>
-/// One pinned upstream source file a hand-written door reads as its input: the path inside the
-/// submodule, the SHA-256 of its blob at the accepted commit, the behavior the door depends on,
-/// and the anchor that names that behavior in the file's text.
+/// One pinned upstream file and the behaviors this SDK or opencode-agents-ai depends on in it:
+/// its submodule-relative path, blob hash, and each behavior's owner and content anchor.
 /// </summary>
 internal sealed record WatchedSource
 {
@@ -15,9 +14,15 @@ internal sealed record WatchedSource
     /// <summary>Gets the SHA-256 of the file's blob at the accepted upstream commit.</summary>
     [JsonPropertyName("sha256")] public required string Sha256 { get; init; }
 
-    /// <summary>Gets the upstream behavior the hand-written door depends on.</summary>
-    [JsonPropertyName("behavior")] public required string Behavior { get; init; }
-
-    /// <summary>Gets the content anchor that names that behavior inside the file.</summary>
-    [JsonPropertyName("anchor")] public required SourceAnchor Anchor { get; init; }
+    /// <summary>Gets the owned behaviors and their content anchors, in watch order.</summary>
+    [JsonPropertyName("behaviors")]
+    public required IReadOnlyList<WatchedBehavior> Behaviors
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    }
 }

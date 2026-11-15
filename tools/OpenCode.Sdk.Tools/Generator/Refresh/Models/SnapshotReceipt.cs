@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 /// </summary>
 internal sealed record SnapshotReceipt
 {
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     [JsonPropertyName("schemaVersion")] public required int SchemaVersion { get; init; }
 
@@ -79,7 +79,7 @@ internal sealed record SnapshotReceipt
 
     /// <summary>
     /// Gets the watched upstream sources as prepare observed them at the candidate commit: the
-    /// hand-written doors' inputs, hashed, with each anchor's verdict. A review trigger the
+    /// files this SDK or opencode-agents-ai depends on, hashed, with each anchor's verdict. A review trigger the
     /// human reads beside the pins in <c>spec/source-watch.json</c>, never a generation input.
     /// </summary>
     [JsonPropertyName("watchedSources")]

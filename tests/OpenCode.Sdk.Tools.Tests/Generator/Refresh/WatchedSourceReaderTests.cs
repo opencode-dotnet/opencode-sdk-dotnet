@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Generator.Refresh;
+using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 
@@ -18,7 +19,7 @@ public sealed class WatchedSourceReaderTests
         var observed = await reader.ObserveAsync("HEAD", [pinned], CancellationToken.None);
 
         await Assert.That(observed.Single().Sha256).IsEqualTo(pinned.Sha256);
-        await Assert.That(observed.Single().AnchorMatched).IsTrue();
+        await Assert.That(observed.Single().Anchors.Single().Matched).IsTrue();
     }
 
     [Test]
@@ -31,8 +32,26 @@ public sealed class WatchedSourceReaderTests
 
         var observed = await reader.ObserveAsync("HEAD", [pinned], CancellationToken.None);
 
-        await Assert.That(observed.Single().AnchorMatched).IsFalse();
+        await Assert.That(observed.Single().Anchors.Single().Matched).IsFalse();
         await Assert.That(observed.Single().Sha256).IsEqualTo(pinned.Sha256);
+    }
+
+    [Test]
+    public async Task ObserveAsync_Should_Record_Each_Behavior_From_One_Blob_In_Watch_Order()
+    {
+        var pinned = RefreshScenarioData.PtyBufferSource with
+        {
+            Behaviors = [RefreshScenarioData.Behavior("zebra"), RefreshScenarioData.Behavior("absent", WatchOwners.AgentsAi),
+                RefreshScenarioData.Behavior("alpha")],
+        };
+        var runner = new ScriptedProcessRunner().Expect("git", ["show", $"HEAD:{pinned.Path}"],
+            new MockFileSystem().Path.GetFullPath(SnapshotPaths.Submodule), ScriptedProcessRunner.Ok("alpha zebra"));
+
+        var observed = await new WatchedSourceReader(new MockFileSystem(), runner).ObserveAsync("HEAD", [pinned], CancellationToken.None);
+
+        await Assert.That(observed.Single().Anchors.Select(static anchor => $"{anchor.Text}:{anchor.Matched}"))
+            .IsEquivalentTo(["zebra:True", "absent:False", "alpha:True"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(runner.Invocations).IsEquivalentTo([$"git show HEAD:{pinned.Path}"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
     }
 
     [Test]

@@ -395,7 +395,7 @@ public sealed class SnapshotSynchronizerTests
         var watched = outcome.Receipt.WatchedSources.Single();
         await Assert.That(watched.Path).IsEqualTo(pinned.Path);
         await Assert.That(watched.Sha256).IsEqualTo(pinned.Sha256);
-        await Assert.That(watched.AnchorMatched).IsTrue();
+        await Assert.That(watched.Anchors.Single().Matched).IsTrue();
     }
 
     [Test]
@@ -438,7 +438,7 @@ public sealed class SnapshotSynchronizerTests
     /// <summary>
     /// Verify reproduces the receipt's watchedSources section rather than trusting it: here the
     /// checkout matches the committed pin exactly, and the only disagreement is the receipt's own
-    /// anchorMatched record (ADR-0020).
+    /// recorded anchor verdict (ADR-0020).
     /// </summary>
     [Test]
     public async Task Verify_Should_Report_A_Receipt_Whose_Watched_Sources_It_Cannot_Reproduce()
@@ -451,7 +451,7 @@ public sealed class SnapshotSynchronizerTests
 
         var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
-        await Assert.That(outcome.Problems.Single()).Contains("anchorMatched=false, but this checkout observes true");
+        await Assert.That(outcome.Problems.Single()).Contains("with different anchors than this checkout observes");
     }
 
     [Test]
@@ -464,7 +464,7 @@ public sealed class SnapshotSynchronizerTests
         var moved = RefreshScenarioData.Watched(pinned.Path, "const BUFFER_LIMIT = 1024 * 1024 * 4", "BUFFER_LIMIT");
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with
         {
-            WatchedSources = [Observation(moved.Path, moved.Sha256, anchorMatched: true)],
+            WatchedSources = [RefreshScenarioData.Observation(pinned, moved.Sha256, anchorMatched: true)],
         };
         await scenario.StageCandidateAsync(receipt, CandidateDocument);
         _ = scenario.ExpectApply();
@@ -473,7 +473,7 @@ public sealed class SnapshotSynchronizerTests
 
         var repinned = await new SourceWatchLoader(fileSystem).LoadAsync(CancellationToken.None);
         await Assert.That(repinned.Sources.Single().Sha256).IsEqualTo(moved.Sha256);
-        await Assert.That(repinned.Sources.Single().Behavior).IsEqualTo(pinned.Behavior);
+        await Assert.That(repinned.Sources.Single().Behaviors.Single()).IsEqualTo(pinned.Behaviors.Single());
     }
 
     [Test]
@@ -485,7 +485,7 @@ public sealed class SnapshotSynchronizerTests
         await WriteSourceWatchAsync(fileSystem, pinned);
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with
         {
-            WatchedSources = [Observation(pinned.Path, new string('d', 64), anchorMatched: false)],
+            WatchedSources = [RefreshScenarioData.Observation(pinned, new string('d', 64), anchorMatched: false)],
         };
         await scenario.StageCandidateAsync(receipt, CandidateDocument);
         var exception = await scenario.ApplyRefusalAsync();
@@ -502,7 +502,7 @@ public sealed class SnapshotSynchronizerTests
         await WriteSourceWatchAsync(fileSystem, pinned);
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with
         {
-            WatchedSources = [Observation(pinned.Path, pinned.Sha256, anchorMatched: true)],
+            WatchedSources = [RefreshScenarioData.Observation(pinned, pinned.Sha256, anchorMatched: true)],
         };
         await scenario.StageCandidateAsync(receipt, CandidateDocument);
         await fileSystem.File.WriteAllTextAsync(SnapshotPaths.CommittedReceipt, RefreshScenarioData.Serialize(CreateReceipt(AcceptedDocument, null)));
@@ -616,14 +616,6 @@ public sealed class SnapshotSynchronizerTests
         }
         await Assert.That(fs.Directory.EnumerateFiles("spec", "source-watch.json")).IsEmpty();
     }
-
-    private static ReceiptWatchedSource Observation(string path, string sha256, bool anchorMatched) =>
-        new()
-        {
-            Path = path,
-            Sha256 = sha256,
-            AnchorMatched = anchorMatched,
-        };
 
     private static async Task<MockFileSystem> CreateRepositoryAsync()
     {
@@ -774,7 +766,7 @@ public sealed class SnapshotSynchronizerTests
 
     private static async Task WriteSourceWatchAsync(MockFileSystem fileSystem, params WatchedSource[] sources) =>
         await fileSystem.File.WriteAllTextAsync(
-            SnapshotPaths.SourceWatch, RefreshScenarioData.Serialize(RefreshScenarioData.Watch(1, sources)));
+            SnapshotPaths.SourceWatch, RefreshScenarioData.Serialize(RefreshScenarioData.Watch(2, sources)));
 
     private static SnapshotReceipt CreateReceipt(byte[] normalizedBytes, string? normalizedDocumentPath)
         => RefreshScenarioData.Receipt(normalizedBytes, normalizedDocumentPath);

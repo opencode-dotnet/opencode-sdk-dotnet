@@ -80,11 +80,13 @@ evidence and may contain superseded positions.
   release tag used to render its identity. Apply renders the date from the injected
   `TimeProvider`'s UTC date at apply time; the receipt carries no date.
   `refresh-spec --verify` is the standing observational check.
-- The source watch (`spec/source-watch.json`) pins, by path, SHA-256 and one content anchor, the
+- The source watch (`spec/source-watch.json`) pins, by path, SHA-256 and one or more content anchors, the
   upstream files the hand-written doors read as inputs, the two upstream lists the generator's
-  secret masking follows (ADR-0028), and the upstream rules the generator mirrors — Effect's union
+  secret masking follows (ADR-0028), the upstream rules the generator mirrors — Effect's union
   decode (ADR-0016), the trailing-wildcard codegen rule (ADR-0029), and the decode schemas that
-  query parameter type rows quote (ADR-0037). It is a refresh-time review trigger that never reaches
+  query parameter type rows quote (ADR-0037) — and the upstream files that hand-written family code mirrors;
+  each watched behaviour names the product that mirrors it (`opencode-sdk-dotnet` or `opencode-agents-ai`),
+  so a refresh routes a changed file to its owner. It is a refresh-time review trigger that never reaches
   ingestion or emission; generation reads it only to refuse a type row whose evidence it does not
   watch (ADR-0013, ADR-0037).
 

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "releaseTag": "v2.3.0",
   "upstreamCommit": "a6b15d33daf6ab7d35569f6d711fdb630b9f04e7",
   "rawDocumentSha256": "cbb2182b56063bf6b37f0273602546a13be62e86fe0f46b36d834a99d4f5c474",
@@ -28,447 +28,948 @@
     {
       "path": "packages/server/src/handlers/pty.ts",
       "sha256": "16329166f240a5227b4fd36b5809228ef1ac4327d93f16690d152d88c7d42773",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "new Socket.CloseEvent(4404",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/pty-socket.ts",
       "sha256": "c56d86e1d739c3c8d4768a27dc6fbfc2d0868770a6de586c4e4fb3e70aff32ef",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "Effect.raceFirst(drain, read)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/middleware/authorization.ts",
       "sha256": "4bc548ca3d011a78cc0c921d5965403b55c3dbefc0fd7f80dac99a103ce209a0",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "route.route.path === PTY_CONNECT_PATH ||",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/cors.ts",
       "sha256": "80fd8c8962c7fe641e4aa24f7d6522d1d7cd8db5a46f43f2244e6aac0377c333",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "if (!input) return true",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/pty.ts",
       "sha256": "c51fe7c3704b938ddac0da48252368843a7b1004262974ccb4b67b98808bffde",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "x-opencode-ticket",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/pty/protocol.ts",
       "sha256": "f5e822d5bff1ccfe3bb94c753b448a94e0bdab5b0115177f61225ff40bfb474c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export function metaFrame(cursor: number)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/pty/ticket.ts",
       "sha256": "9d943cc755f39845c523729d817b0f89a6c4c5194d5e2d873d8cb3ddd473ee9c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const DEFAULT_TTL = Duration.seconds(60)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/pty.ts",
       "sha256": "f5faecd54c907c73812a5d3cab1a0045a1c70ad56229190f47bdf2b4f5a44205",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const BUFFER_LIMIT = 1024 * 1024 * 2",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/routes.ts",
       "sha256": "8964bbc10be6aa4b24b742edeb779bdd94269a2a4d47595d765d098158338610",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "PtyTicket.node,",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
       "sha256": "3d6b0005f1f9abf2e484c3337076934205e14f8db2eda64ae1e2be6183d1b786",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "success: Schema.Struct({ handoff: Schema.NullOr(PersistentPty.Handoff) })",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
       "sha256": "d6ea42302fa89f44c49b3895fe3765b3f105a5702b5287c4014cc1ad033bc68f",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "new Socket.CloseEvent(4404",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/index.ts",
       "sha256": "c56b06f9b772976d9145c060521cf630884ba1071d5fd2c4fde8da956dea20dc",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "PersistentPty.handoff",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/daemon.ts",
       "sha256": "3b6c822463340edbd5c04598a376ea9c009f85a943c0a7d3294d448bb71c4548",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const ProtocolVersion = 8",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/schema/src/persistent-pty.ts",
       "sha256": "ee12fe7b8fc4c2a3b2010ae1f3de258f27310cff25e735835a5bebb16b48faa1",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "PersistentPty.Handoff",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/binary.bun.ts",
       "sha256": "701b81e5bccbe154805674c8de3725171fb5c9846260fe5129a88ef5c888277e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "if (process.env.OPENCODE_PTY_BIN) return process.env.OPENCODE_PTY_BIN",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/binary.node.ts",
       "sha256": "bdac35d9250bb727f67650cf989608f84376df1fdfd1b888557a6a5fb40147b6",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "process.env.OPENCODE_PTY_BIN ||",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/pty-binding.ts",
       "sha256": "67251e7f514176b930b1fb7c5bc978552c0b41237facc036005146bb326e29ed",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "import { binaryPath } from \u0022@opencode/pty\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/package.json",
       "sha256": "02ee0bec865e7320e143cd1d1feb7140d9eaf51276ff89646b47bc52c696121b",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "\u0022opencode\u0022: \u0022./bin/opencode.cjs\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/package.json",
       "sha256": "a63ec9d96a37fca377eba26f01edf66f8a0c88acf561ecb67078d267b966d7c5",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "\u0022@opencode/pty\u0022: \u00220.5.2\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/process.ts",
       "sha256": "cc3f8652c87b529d2593c574196b261febadef0c62ba1d78890e5ffe9db33bde",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "!hasPtyConnectTicketURL(url)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/request-site.ts",
       "sha256": "744157fa1ec1bcf33bccc2fa2aca3b38f16f521bdfa95ea24c208f926f631179",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "if (site !== \u0022cross-site\u0022 \u0026\u0026 site !== \u0022same-site\u0022) return false",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/test/persistent-pty.test.ts",
       "sha256": "8fd93439ae3f968e76099b80553aa84d2af5252b9859af9b1283d0de06d2a52a",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "expect(closed.code).toBe(4404)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/solid/pty.ts",
       "sha256": "68ac510aa19c2dd76b1e8c3a4bcd73ef52aae74850e80f2cdc044abee1c817ee",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "String(input.cursor)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/ripgrep/binary.ts",
       "sha256": "cb0866ec835b78eb18eb783198b1959a82469fbd7bfd1f21793d743310831755",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const VERSION = \u002215.1.0\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/tui/src/component/terminal-pane.tsx",
       "sha256": "be09359b6af772c032830b33bbde06eebcae69abe7e4eea2d3e03f007b86ec2e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "cursor: snapshot.info.output.tail",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/standalone.ts",
       "sha256": "dc8197da471d3d213acf51ef809bb1c05a7cf697bce1f0795e49fdd4c0165cf9",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const Ready = Schema.Struct({ url: Schema.String })",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/util/src/cross-spawn-spawner.ts",
       "sha256": "0c0108b4597e1706d2e0770e7c472802e3628182e9f07bfb8ff87e4aabb0566e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "taskkill /pid ${proc.pid} /T /F",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/bin/opencode.cjs",
       "sha256": "db1934c5cd09ecb643a88687b5965a85446dfa85ae757a1629aecdf59a42825d",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const child = childProcess.spawn(target, process.argv.slice(2), { stdio: \u0022inherit\u0022 })",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/server-process.ts",
       "sha256": "37e89b2eed32bc9324f4cdf0a639387dfe6fc0ef8e6f37fc33c43987869b4bc2",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "JSON.stringify({ url })",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/auth.ts",
       "sha256": "d2184b996991631490d7e82c19a7bd3310576c16fa2da2678819cac0a50f55c2",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "username: \u0022opencode\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/location.ts",
       "sha256": "1819a54459964f5ea719c2dec24bc43779a6e854be621cd2a43ed8796e7696ae",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "request.headers[\u0022x-opencode-directory\u0022]",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/model.ts",
       "sha256": "5eefbe521882d44a66f405c1418ca3a7329fc9620f5d8b5d80bafdb4fca6c400",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "yield* awaitPlugins",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/plugin-startup.ts",
       "sha256": "aea746a551c82a42cf72973fb5da3638a16e6f46104f3e184f4e046351556767",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "until: (plugins) =\u003E plugins.data.length \u003E 0,",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/middleware/session-location.ts",
       "sha256": "b8aef884bbe46d3e5d24967d570dd5473a424b66e05d870f1d4669353121d887",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const session = yield* sessionInfo(sessions, route.params.sessionID)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/middleware/form-location.ts",
       "sha256": "b1c7b0a6fec64f100f16be9f3f691d145f870ebab105426dda9f1e701710849b",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "if (route.params.sessionID === \u0022global\u0022) {",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/event.ts",
       "sha256": "07d163a142fba915b3b34028f8b3de74679d476f108a0a734b0ac6b863ad1698",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "Stream.tick(\u002215 seconds\u0022)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/session/session.ts",
       "sha256": "877bc355b90ca2672b8639e96a76df7255d984f186f9b01dabfca513ffa173a4",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "yield* execution.awaitIdle(sessionID)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/generate.ts",
       "sha256": "8949cd7f964cf258bca6b8b655c91997df65ea95db5df9c4417948566bb0975e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": ".text(request.payload)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/session/generate.ts",
       "sha256": "b102dc1dff0321fc9ca65dab2e553ee93f7c19fa26c22d6907d99c97025cb84e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const response = yield* llm.generate(prepared.request, prepared.options)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/session/command.ts",
       "sha256": "9fb3dee14007b324c4b4f8c8968b503da8b2caecc40881808715d210ae6aa41c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "yield* commands.execute({",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/event-feed.ts",
       "sha256": "084572f0669f8484a1c8aca2e27fd8e0ceb8d9b54719f29fdb7428b6417e8987",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const SubscriberCapacity = 4_096",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/solid/connection.ts",
       "sha256": "3b93c8ba83bd7b77bfb6901fa27d062f90e65007a8db0694731c0eab21c19d32",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const reconnectDelay = 1_000",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/core/src/bus.ts",
       "sha256": "8c68afdcfb7f75456cc6d6d7c4869b0bdd366a065b8fd98a363bd749faacecef",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const persist = options?.persist ?? false",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/session.ts",
       "sha256": "cd1b7063c80b7c5085c275f4f1f264ac9f04b31d3d58325690d47f68833388fa",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const SessionsQuery = Schema.Struct({",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/schema/src/session.ts",
       "sha256": "ababb9964a090e1d70a0cc7b88d66da048c6c201b2e22aea49075f247dd20fde",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "Session order for the first page",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/errors.ts",
       "sha256": "a83801eee4f838e431b4ac84c5b1f27f4e49f327d861055aaa51cffb56a6133e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "FileNotFoundError",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/bin/opencode2.cjs",
       "sha256": "50d5d50c514a1455be7f0d002f950b541085b905c966763203e5074cc5cb308b",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "require(\u0022./opencode.cjs\u0022)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/message.ts",
       "sha256": "7c61ce6321ab54ff216061445204374d2f9f7d4c72c5f066e924c014f1e8843c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "Message order for the first page",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/service.ts",
       "sha256": "d8818849fcb4e25cb83043b227329c7529ab36a7ddfb2bee844b310d833b3b7b",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export type Info = {",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/promise/service.ts",
       "sha256": "1ef755d6f42257b8bea855c1fd359b68e2736d9a2f3fb015066d155a37191868",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export async function ensure(options: EnsureOptions = {})",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/pty-handoff.ts",
       "sha256": "9f4b830dc6de2b2969fddbebcd1f16a51c3833af561f9cfd7304bc9c6c261f94",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export async function clear(file: string)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/effect/service.ts",
       "sha256": "0f0d244102d26719048dc87a0c219f812dc72613934fbd4dad5966f69e563548",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const discover = Effect.fn(\u0022service.discover\u0022)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-timing.ts",
       "sha256": "138404ab009baece27551fdbf5586266d43f7979bff4959adb094dc890a329b3",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "requestTimeout: 2_000,",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-version.ts",
       "sha256": "517b341ccd4460a1adf7122b26ff07d641150c4ed5ce8697cd65f8ae0bc045a5",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "return version === options.version",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/service-config.ts",
       "sha256": "34f57de314b714473e3378c5b431f69783dd14745eaa4af26695cd952a7f0b4e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export function filename(channel = OPENCODE_CHANNEL)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/service-registration.ts",
       "sha256": "e0ecb1e51322224217985932622bcd427bcbcfe09d9a29c6b21827aa6c022936",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const register = Effect.fnUntraced",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/version.ts",
       "sha256": "035ff5714f07e40ffc9011d5929bb3cd41fd892e471cfb64c3aa9b590efffc19",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const channel = typeof OPENCODE_CHANNEL",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/util/src/global.ts",
       "sha256": "56929986af9096e499e028d4f9090341ddbfb3e3b28e4d6039787f5f685fab15",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "process.env.OPENCODE_CONFIG_DIR ?? Path.config",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/util/src/global-roots.ts",
       "sha256": "6cdc234ac155e308dadeb62682c687468ba656fd463482d00fce025c9dc819b6",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const state = process.env.XDG_STATE_HOME",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/util/src/hash.ts",
       "sha256": "0d0816d1eb3cabcbea8394fe30c4e28206a32ff3cd07bb09b7999a86b14dd100",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "createHash(\u0022sha1\u0022)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/service-status.ts",
       "sha256": "8af6c5d8bbb5eb6d5f1db371c50b6d3cbf211cec637828cdcaa8ffb441e203da",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export type State =",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/server.ts",
       "sha256": "f6842b51b8cefba55c4247b729e025470c1dadece2a11cb42abb255c281061f8",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "HttpApiEndpoint.get(\u0022server.info\u0022, \u0022/api/info\u0022, {",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/test/service.test.ts",
       "sha256": "0a9d55eaae24739200d8b9c6c4cd088d378f36d181fbde429adf4f6f833f4183",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "reuses a compatible registered service",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/test/service.test.ts",
       "sha256": "6fab9f51bddaaa54ece3a2e861dbe53a695a83bd25930ae6677b97c38ef1f6d5",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "service filenames share release channels",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/test/server-connection.test.ts",
       "sha256": "3ca3e5293d250a2ccd6850540cefe4e64d3e6f34e40ecf3cbfa318d75afb0b91",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "service options only require a matching version when requested",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/script/service-smoke.ts",
       "sha256": "d5a4adf10eb35f6dfdc59f7a2da3b339634b12aaa774f13e428a481505646495",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "Registration is missing service identity",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/server-connection.ts",
       "sha256": "00ef29453ac8d8b024554c4a5e63e282772e7f1224f7eeba727f579b58f1d6f3",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/env.ts",
       "sha256": "5775e3e3e77687d596f15db4fdc98638564d075c3098eb8af3d7a919c5e295d8",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "Config.orElse(() =\u003E Config.Redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/commands/handlers/service/stop.ts",
       "sha256": "2c2c9339422e9748f6e42de68032f463057390513ad750aec389a9774d2adc62",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "yield* Service.stop(options)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "package.json",
       "sha256": "0b257c5382b162df7e3016d874e0ee7578ba5428416b62dbf936cbb21a9e9054",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "\u0022effect\u0022: \u00224.1.0\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-contender.ts",
       "sha256": "32ee93cca6bdccfde5704700dc8db8754ab7adc1e714e29b06e014a9450bda63",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "detached: true,",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/http-recorder/src/redaction/redactor.ts",
       "sha256": "e621cdbab8e2ab676656a91f6235be3807a447e485cc398e9279b4199388b621",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const DEFAULT_REDACT_JSON_FIELDS = [",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/http-recorder/src/redaction/secrets.ts",
       "sha256": "b5e49487e415347ebc5d6e290bc8c2c7a88825b56d549e0b063a94bf3074efef",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const ENV_SECRET_NAMES = /(?:API|AUTH|BEARER|CREDENTIAL|KEY|PASSWORD|SECRET|TOKEN)/i",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/index.ts",
       "sha256": "6235a73b3f927750ef362f1bfc6a1d12418d730a512906644cdb3798b1ede59e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "remember a SIGTERM so the exit code is 143",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/cli/src/commands/handlers/serve.ts",
       "sha256": "b136a083952d0b281f068183e2886652e3fe6271473a1b50b0ddf3fdbd86dc55",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "mode: input.service ? \u0022service\u0022 : input.stdio ? \u0022stdio\u0022 : \u0022default\u0022,",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/test/fixture/service.ts",
       "sha256": "ba4ace2ef20309002024111e224b265ae44cb208bcb10126d029f8ab334ba62e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const [registration, mode, delay] = process.argv.slice(2)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/httpapi-codegen/src/index.ts",
       "sha256": "0bd6805c71fea78c61361addb9721841947af656eab68cf1ca1e548922eeb82c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "function promiseWildcardInput(endpoint: Endpoint)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/fs.ts",
       "sha256": "9bbfd9ae5a9e92e3e40b4ac19ebaf3b5b0c6de6a02273bd64a75a29f220f84c7",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "pathname.slice(13)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/server/src/content-headers.ts",
       "sha256": "5355de065a4c231e22668ce6f5006c6cef0efd1cff709a1930e60528fd1678d9",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "const TEXT_TYPE = \u0022text/plain; charset=utf-8\u0022",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/api.ts",
       "sha256": "da2a8a109e83b8afefe308992fc3036f7c06c5a40ba36276679bec7d0397cc40",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": ".add(makePtyGroup(locationMiddleware))",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/test/service-reconnect.test.ts",
       "sha256": "cb114111ac9c0d68dd5fab8237ed050e55062afe6b6815cb06258562500a7af7",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "incompatible health protocol",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-probe.ts",
       "sha256": "f06a0caf95b4a25b56dbf7ee354aecf36c8e93fe299f54080d3d6e3edf641b5b",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export function decide(service: LocalService, options: DiscoverOptions)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/test/service-contender-pool.test.ts",
       "sha256": "f0c7e1db16cbb3b95f86f4c9bfa6faf51a165c319cfaf6fb737b62a75c8e650e",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "an unanswered registration gets one spawn delay before an attempt competes",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/client/test/service-decision.test.ts",
       "sha256": "db36f92835c8fd9651e4446da6b637a6d4a64175a38ec56fd9255acbddbdbc6c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "a version mismatch replaces the service, handing off terminals only when it is ready",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/fs.ts",
       "sha256": "2f2b0d89f7544f6e371980462e9f9ed7861c189a06463a25e1a0216ba9efb405",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/vcs.ts",
       "sha256": "a428fbd933b0bd2a5f18211e53065bee315864e33b3733a35494d224a7f7a15c",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/schema/src/shell.ts",
       "sha256": "1ed56036245671a9abbac8dd38359c4f4527f72f3ae9fbe2d1c080fee8c24946",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const OutputInput = Schema.Struct({",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/schema/src/schema.ts",
       "sha256": "fc76a9937980e518343e1ae49661316fbbfbd8a34bd44701874bedaa2319b8f2",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const PositiveInt = Schema.Int.check(Schema.isGreaterThan(0))",
+          "matched": true
+        }
+      ]
     },
     {
       "path": "packages/schema/src/event.ts",
       "sha256": "f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9",
-      "anchorMatched": true
+      "anchors": [
+        {
+          "text": "export const Seq = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/cli/src/run/noninteractive.ts",
+      "sha256": "771876a072ddbbe878c98c8470e25b030c2b5356123f79e668a2e38c3342bdb8",
+      "anchors": [
+        {
+          "text": "(session) =\u003E (session.parentID ? ownsSession(session.parentID) : false)",
+          "matched": true
+        },
+        {
+          "text": "if (event.type === \u0022permission.asked\u0022)",
+          "matched": true
+        },
+        {
+          "text": ".list({ sessionID: input.sessionID, descendants: true })",
+          "matched": true
+        },
+        {
+          "text": "input.client.permission.list({ sessionID: input.sessionID })",
+          "matched": true
+        },
+        {
+          "text": "name: event.type === \u0022session.tool.input.started\u0022 ? event.data.name : (current?.name ?? \u0022tool\u0022),",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/tool/plugin/subagent.ts",
+      "sha256": "56b02b373dc25963e1df700d8786879b4114542e1dbd192d6fe8a790c30812e8",
+      "anchors": [
+        {
+          "text": "Subagents always run in the background",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/permission.ts",
+      "sha256": "fb3c9eb5226761074e9f4f293b215e99a345a232d7fe88a6584667f6a9e48e40",
+      "anchors": [
+        {
+          "text": "// Feedback applies to the whole batch, so parallel asks don\u0027t end the step.",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/session/runner/llm.ts",
+      "sha256": "04be4f888e90189a3e54ef0b85f7e80cd166842bf7c2f1018b971dc2b3bd44fe",
+      "anchors": [
+        {
+          "text": "Tool execution interrupted: ${tool.name}",
+          "matched": true
+        }
+      ]
     }
   ]
 }

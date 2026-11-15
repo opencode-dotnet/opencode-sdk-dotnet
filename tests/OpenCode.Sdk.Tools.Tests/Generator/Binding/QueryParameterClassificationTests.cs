@@ -364,15 +364,19 @@ public sealed class QueryParameterClassificationTests
     private static SourceWatch Watch(string path) =>
         new()
         {
-            SchemaVersion = 1,
+            SchemaVersion = 2,
             Sources =
             [
                 new WatchedSource
                 {
                     Path = path,
                     Sha256 = new string('0', 64),
-                    Behavior = "Scenario behavior.",
-                    Anchor = new SourceAnchor { Type = SourceAnchor.Contains, Text = "limit" },
+                    Behaviors = [new WatchedBehavior
+                    {
+                        Owner = WatchOwners.Sdk,
+                        Behavior = "Scenario behavior.",
+                        Anchor = new SourceAnchor { Type = SourceAnchor.Contains, Text = "limit" },
+                    }],
                 },
             ],
         };
