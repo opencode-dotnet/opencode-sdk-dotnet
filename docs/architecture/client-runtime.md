@@ -28,7 +28,7 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   this policy also governs other process traffic to the same endpoint-and-proxy pair (ADR-0010).
   - Recorded divergence: upstream's client leaves fetch's default `redirect: "follow"`
     (`packages/client/src/promise/generated/client.ts:370-382` at the pin), and the SDK follows no
-    redirect. Reason: .NET's redirect handling removes `Authorization` on every redirect, a
+    redirect (`src/OpenCode.Sdk/Internal/Transport/TransportPolicy.cs:109`, `:119`). Reason: .NET's redirect handling removes `Authorization` on every redirect, a
     same-origin one included (observed on .NET 11 with `SocketsHttpHandler`), while upstream's
     reference runtime keeps it on a same-origin redirect and removes it only across origins
     (observed on Bun 1.4.4). A redirect the SDK followed would reach its target without the
@@ -814,7 +814,7 @@ The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, 
 | Signal end | Fails `exited` with `KilledBySignal`, carrying the signal's name | Completes `Exited` with the signal as a value: its name and its number | A task that never faults is the idiomatic form, and the number is a superset. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
-| Children at exit | A synchronous exit hook sends `SIGKILL` to the group of every detached child still running | Installs no process-exit hook | The hook covers a process's own detached children, and the SDK's only child is the server. When its stdin lease ends, the server exits normally, and its own exit hook ends its detached tool groups (`packages/util/src/cross-spawn-spawner.ts:415-419` at the pin), so nothing the hook exists for is left to the SDK. |
+| Children at exit | A synchronous exit hook sends `SIGKILL` to the group of every detached child still running | Installs no process-exit hook | The hook covers a process's own detached children, and the SDK's only child is the server. When its stdin lease (`src/OpenCode.Sdk/Hosting/Launcher/Internal/OwnedServerProcess.cs:13`) ends, the server exits normally, and its own exit hook sends `SIGKILL` to the detached tool groups it still tracks (`packages/util/src/cross-spawn-spawner.ts:415-419` at the pin), so nothing the hook exists for is left to the SDK. |
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close beyond a collector's one-second drain, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
 
 The launcher's recorded divergences from upstream on Windows (ADR-0031, ADR-0032):
@@ -832,7 +832,7 @@ The launcher's recorded divergences from upstream on Windows (ADR-0031, ADR-0032
 | Tree kill | Runs `taskkill` through `cmd.exe` and `PATH`, and leaves a run that hangs | Runs it from System32 with no handle of the host's, and ends a run its bound overtakes | No substituted executable, and nothing outlives disposal. |
 | Forced-exit wait | Waits on the root's exit alone after the second rung | Bounds it at 10 seconds | Disposal never hangs on a process the kernel cannot end. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
-| Batch-shim arguments | Spawns through cross-spawn 7.0.6, the version its lockfile pins (`bun.lock:2813`, used at `packages/util/src/cross-spawn-spawner.ts:30`), which runs a `.cmd` or `.bat` target as `cmd.exe /d /s /c` and escapes every metacharacter with `^`, doubled only for npm's shims under `node_modules/.bin` (cross-spawn `lib/util/escape.js:4-44`, `lib/parse.js:40-59`) | Refuses a leading argument that carries `&`, `\|`, `<`, `>`, `^`, `%`, `!`, `"`, CR or LF (`src/OpenCode.Sdk/Hosting/Internal/BatchCommandLine.cs:23-25`, `:77-79`) | `%VAR%` and `!VAR!` expansion cannot be escaped reliably on a `cmd.exe` command line: whether an escape survives depends on how many times the target re-parses its arguments, which the launcher cannot know for a batch file other than npm's shims (BatBadBut: CVE-2024-24576, CVE-2024-27980). |
+| Batch-shim arguments | Spawns through cross-spawn 7.0.6, the version its lockfile pins (`bun.lock:2813`, used at `packages/util/src/cross-spawn-spawner.ts:30`), which runs a `.cmd` or `.bat` target as `cmd.exe /d /s /c`, quotes each argument and caret-escapes its own metacharacter set (CR and LF are not in it), and escapes a second time only when the resolved path matches `node_modules/.bin/*.cmd` (cross-spawn `lib/util/escape.js:4-44`, `lib/parse.js:40-59`) | Refuses a leading argument that carries `&`, `\|`, `<`, `>`, `^`, `%`, `!`, `"`, CR or LF (`src/OpenCode.Sdk/Hosting/Internal/BatchCommandLine.cs:23-25`, `:77-79`) | `%VAR%` and `!VAR!` expansion cannot be escaped reliably on a `cmd.exe` command line: whether an escape survives depends on percent and delayed expansion and on how many times the target re-parses its arguments, which the launcher cannot know for an arbitrary batch file (BatBadBut: CVE-2024-24576, CVE-2024-27980). |
 
 The forced-exit wait observes the directly owned process. A whole-tree kill is asynchronous: the
 direct process exiting does not guarantee that every descendant has finished exiting at that
@@ -1064,8 +1064,9 @@ reason (ADR-0031):
   Reason: the repository's fail-closed boundary, which treats malformed state as missing rather
   than acting on it. For the pid the mechanism is hard: upstream's promise client reads the
   registration with an unchecked `JSON.parse` (`packages/client/src/promise/service.ts:118` at the
-  pin) and signals its pid (`:156`), and `kill(0, sig)` signals the caller's own process group
-  while `kill(-1, sig)` signals every process the user owns. Upstream's Effect client, which the
+  pin) and signals its pid (`:156`), and on POSIX a pid of 0 signals the caller's own process group
+  and a pid of -1 every process the caller may signal. The SDK's reader refuses a pid that is not
+  a positive 32-bit integer (`src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceRegistrationReader.cs:42-44`). Upstream's Effect client, which the
   CLI uses, already refuses a pid that is not a positive integer
   (`packages/client/src/effect/service.ts:146`).
 - **No registration without a password.** Discover and Ensure never hand out such a registration,
