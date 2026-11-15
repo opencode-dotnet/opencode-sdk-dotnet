@@ -89,11 +89,11 @@ await using var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptio
 | `Command` | `["opencode", "serve"]` | The executable plus its leading arguments. The launcher resolves `Command[0]` the way a shell would — see [How the command is resolved](#how-the-command-is-resolved) — and appends `--stdio --port 0` itself. |
 | `WorkingDirectory` | `null` | The child's working directory; `null` inherits yours. |
 | `Environment` | `null` | Extra environment entries for the child. |
-| `ReadinessTimeout` | `Timeout.InfiniteTimeSpan` | The start waits for the readiness line until your cancellation token fires unless you set a bound above zero and at most `int.MaxValue` milliseconds (about 24.8 days). |
+| `ReadinessTimeout` | `Timeout.InfiniteTimeSpan` | The start waits for the readiness line until your cancellation token fires, unless you set a bound above zero and at most `int.MaxValue` milliseconds (about 24.8 days); when that bound passes, the start fails and ends the child. |
 | `GracefulShutdownTimeout` | 3 s | The grace before disposal forces the end again. On Windows it starts with the first `taskkill /T /F` of the server's tree and bounds it; a server still running when it runs out is killed again. On Linux and macOS it runs from `SIGTERM` to the server's process group to `SIGKILL` to whatever is left of the group. Zero to at most `int.MaxValue` milliseconds. |
 | `Output` | `null` | An `OpenCodeServerOutput` collector that keeps a bounded tail of the child's stdout and stderr; read its snapshot whenever you like, even after a failed start. |
 
-A start without a token can wait indefinitely if the server never becomes ready; pass a token to bound it:
+A start without a token or a bound can wait indefinitely if the server keeps running without reporting readiness; pass a token to bound it:
 
 ```csharp
 using var readinessDeadline = new CancellationTokenSource(TimeSpan.FromSeconds(90));

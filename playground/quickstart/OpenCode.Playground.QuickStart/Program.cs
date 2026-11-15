@@ -6,7 +6,7 @@ using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 try
 {
     // A private server on your normal opencode data. It stops when this block ends.
-    await using var server = await OpenCodeServer.StartAsync();
+    await using var server = await OpenCodeServer.StartAsync(cancellationToken: deadline.Token);
     using var client = server.CreateClient();
     Console.WriteLine($"server: {server.Endpoint}");
 

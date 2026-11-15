@@ -96,7 +96,8 @@ public sealed class OpenCodeServerReadinessTests
         try
         {
             var readinessToken = await entered.Task.WaitAsync(HangGuard, cancellationToken);
-            time.Advance(TimeSpan.FromMinutes(2));
+            // Past every finite value the option accepts, so no hidden finite default can pass.
+            time.Advance(TimeSpan.FromMilliseconds(int.MaxValue));
             await Assert.That(readinessToken.IsCancellationRequested).IsFalse();
             await Assert.That(starting.IsCompleted).IsFalse();
 
@@ -106,8 +107,14 @@ public sealed class OpenCodeServerReadinessTests
         finally
         {
             // Cleanup must join the start even when the test's token has fired.
-            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard, CancellationToken.None);
-            await ReleaseStartAsync(starting, originalOutput: null, processId);
+            try
+            {
+                await caller.CancelOnWorkerAsync().WaitAsync(HangGuard, CancellationToken.None);
+            }
+            finally
+            {
+                await ReleaseStartAsync(starting, originalOutput: null, processId);
+            }
         }
     }
 
