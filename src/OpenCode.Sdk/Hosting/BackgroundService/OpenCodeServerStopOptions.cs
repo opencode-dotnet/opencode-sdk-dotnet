@@ -31,15 +31,16 @@ public sealed class OpenCodeServerStopOptions
     public string? InstalledVersion { get; set; }
 
     /// <summary>
-    /// Gets or sets how persistent terminals are handled before the stop, matching the pinned
-    /// client's <c>pty: "clear" | "handoff"</c>. Null or <see cref="OpenCodeServerStopPersistentPtyMode.Clear"/>
-    /// removes any handoff ticket, and the terminals end with the service.
+    /// Gets or sets what happens to the service's persistent terminals (<see cref="OpenCodeClient.PersistentPtys"/>)
+    /// when it stops; ordinary terminals (<see cref="OpenCodeClient.Ptys"/>) end with the service either way.
     /// </summary>
     /// <remarks>
-    /// <see cref="OpenCodeServerStopPersistentPtyMode.Handoff"/> attempts a best-effort handoff:
+    /// Matches the pinned client's <c>pty: "clear" | "handoff"</c>. Null or <see cref="OpenCodeServerStopPtyMode.Clear"/>
+    /// removes any handoff ticket, and the persistent terminals end with the service.
+    /// <see cref="OpenCodeServerStopPtyMode.Handoff"/> attempts a best-effort handoff:
     /// it asks the old service for a ticket and publishes it for the next <see cref="OpenCodeServer.EnsureAsync"/>
     /// that starts a service to adopt. Preservation depends on preparation and adoption before the
     /// ticket expires; a failed preparation still stops the service.
     /// </remarks>
-    public OpenCodeServerStopPersistentPtyMode? PersistentPtys { get; set; }
+    public OpenCodeServerStopPtyMode? Pty { get; set; }
 }

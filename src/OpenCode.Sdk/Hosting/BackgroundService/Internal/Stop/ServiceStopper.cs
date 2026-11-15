@@ -25,11 +25,11 @@ internal sealed class ServiceStopper(
     public async Task StopAsync(OpenCodeServerStopOptions? options, CancellationToken cancellationToken)
     {
         var selection = ServiceSelection.Snapshot(options);
-        var mode = options?.PersistentPtys;
+        var mode = options?.Pty;
         // The pinned pty type admits only "clear" or "handoff"; the guard keeps arbitrary C# enum integers out of that contract.
-        if (mode is not (null or OpenCodeServerStopPersistentPtyMode.Clear or OpenCodeServerStopPersistentPtyMode.Handoff))
+        if (mode is not (null or OpenCodeServerStopPtyMode.Clear or OpenCodeServerStopPtyMode.Handoff))
         {
-            throw new ArgumentOutOfRangeException(nameof(options), mode, "OpenCodeServerStopOptions.PersistentPtys is not a defined mode.");
+            throw new ArgumentOutOfRangeException(nameof(options), mode, "OpenCodeServerStopOptions.Pty is not a defined mode.");
         }
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -40,7 +40,7 @@ internal sealed class ServiceStopper(
             .TryReadAsync(fileSystem, paths.RegistrationFile, cancellationToken)
             .ConfigureAwait(false);
         await new ServicePtyHandoffStep(ptyHandoff, timing.RequestTimeout)
-            .RunAsync(paths.RegistrationFile, registration, mode == OpenCodeServerStopPersistentPtyMode.Handoff, cancellationToken).ConfigureAwait(false);
+            .RunAsync(paths.RegistrationFile, registration, mode == OpenCodeServerStopPtyMode.Handoff, cancellationToken).ConfigureAwait(false);
         if (registration is not null)
         {
             await new ServiceTerminator(fileSystem, processControl, timing, time)

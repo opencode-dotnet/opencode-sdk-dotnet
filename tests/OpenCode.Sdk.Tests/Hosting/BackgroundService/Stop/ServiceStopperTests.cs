@@ -487,7 +487,7 @@ public sealed class ServiceStopperTests
             Arg.Any<CancellationToken>()).Returns(prepared.Task).AndDoes(_ => entered.TrySetResult());
 
         var pending = Stopper(handoff, timing).StopAsync(
-            new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff },
+            new OpenCodeServerStopOptions { Pty = OpenCodeServerStopPtyMode.Handoff },
             CancellationToken.None);
         try
         {
@@ -514,7 +514,7 @@ public sealed class ServiceStopperTests
     {
         var handoff = Substitute.For<IServicePtyHandoff>();
 
-        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff }, CancellationToken.None);
+        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { Pty = OpenCodeServerStopPtyMode.Handoff }, CancellationToken.None);
 
         _ = handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
         _ = handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
@@ -545,7 +545,7 @@ public sealed class ServiceStopperTests
                 return Task.FromException(new OpenCodeServerException("The handoff failed."));
             });
 
-        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff }, CancellationToken.None);
+        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { Pty = OpenCodeServerStopPtyMode.Handoff }, CancellationToken.None);
 
         _ = handoff.Received(1).PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, Arg.Any<CancellationToken>());
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
@@ -553,13 +553,13 @@ public sealed class ServiceStopperTests
 
     [Test]
     [Arguments(null)]
-    [Arguments(OpenCodeServerStopPersistentPtyMode.Clear)]
-    public async Task StopAsync_Should_Clear_Without_Preparing_By_Default_Or_When_Explicit(OpenCodeServerStopPersistentPtyMode? mode)
+    [Arguments(OpenCodeServerStopPtyMode.Clear)]
+    public async Task StopAsync_Should_Clear_Without_Preparing_By_Default_Or_When_Explicit(OpenCodeServerStopPtyMode? mode)
     {
         SeedModern();
         var handoff = Substitute.For<IServicePtyHandoff>();
 
-        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { PersistentPtys = mode }, CancellationToken.None);
+        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { Pty = mode }, CancellationToken.None);
 
         _ = handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
         _ = handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
@@ -582,7 +582,7 @@ public sealed class ServiceStopperTests
             });
 
         var failure = await Assert.That(async () => await Stopper(handoff).StopAsync(
-            new OpenCodeServerStopOptions { PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff }, caller.Token)).Throws<OperationCanceledException>();
+            new OpenCodeServerStopOptions { Pty = OpenCodeServerStopPtyMode.Handoff }, caller.Token)).Throws<OperationCanceledException>();
 
         await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
         _ = handoff.Received(1).PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, caller.Token);
@@ -590,14 +590,14 @@ public sealed class ServiceStopperTests
     }
 
     [Test]
-    public async Task StopAsync_Should_Refuse_An_Undefined_Persistent_Pty_Mode_Before_Reading()
+    public async Task StopAsync_Should_Refuse_An_Undefined_Pty_Mode_Before_Reading()
     {
         var fileSystem = Substitute.For<IServiceFileSystem>();
         var handoff = Substitute.For<IServicePtyHandoff>();
         var stopper = new ServiceStopper(_environment, fileSystem, handoff, _processControl, Timing, _clock);
 
         var failure = await Assert.That(async () => await stopper.StopAsync(
-            new OpenCodeServerStopOptions { PersistentPtys = (OpenCodeServerStopPersistentPtyMode)99 }, CancellationToken.None)).Throws<ArgumentOutOfRangeException>();
+            new OpenCodeServerStopOptions { Pty = (OpenCodeServerStopPtyMode)99 }, CancellationToken.None)).Throws<ArgumentOutOfRangeException>();
 
         await Assert.That(failure!.ParamName).IsEqualTo("options");
         await Assert.That(_environment.ReceivedCalls()).IsEmpty();

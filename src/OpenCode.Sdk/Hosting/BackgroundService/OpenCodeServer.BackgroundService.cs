@@ -62,7 +62,7 @@ public partial class OpenCodeServer
     /// <summary>
     /// Stops the registered background service the way <c>opencode service stop</c> does: resolves
     /// the registration the options name (channel rules and legacy migration included), clears the
-    /// handoff sidecar by default or attempts a best-effort handoff with <see cref="OpenCodeServerStopOptions.PersistentPtys"/>, then ends the registered process — a request to stop first, a
+    /// handoff sidecar by default or attempts a best-effort handoff with <see cref="OpenCodeServerStopOptions.Pty"/>, then ends the registered process — a request to stop first, a
     /// hard kill when it survives — and removes the registration once the process is gone. The
     /// registration is re-read before the first signal and before the removal, so a service that
     /// re-registered after the stop read the registration is never signalled and a successor's

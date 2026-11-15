@@ -987,7 +987,7 @@ ignored, as the pinned client's `stop` ignores it, so the process is still ended
 running after the kill rung throws `OpenCodeServerException`, the registration then left in place;
 cancellation before a signal prevents it and after one ends the wait. Stop targets exactly one pid,
 never a tree, is never implied by disposal or host shutdown, and may end a service other clients
-share. `OpenCodeServerStopOptions.PersistentPtys` matches the pinned client's
+share. `OpenCodeServerStopOptions.Pty` matches the pinned client's
 `pty: "clear" | "handoff"`: null and `Clear` remove the ticket and the terminals end with the
 service; `Handoff` asks the old service for a ticket and publishes it before termination. This
 preservation is best-effort: preparation must succeed and the next `EnsureAsync` that starts a
@@ -1060,7 +1060,7 @@ exit-0 loser on a port another daemon holds, the `chdir` into the user home, and
 write all run inside `opencode serve --service` (`server-process.ts`), and the election reads a
 loser's exit 0 the way upstream's does. The CLI's `reconnect` is `EnsureAsync`. `StopAsync` then
 `EnsureAsync` is the CLI's `service restart`, where persistent terminals end. With
-`PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff`, the same pair is the managed
+`Pty = OpenCodeServerStopPtyMode.Handoff`, the same pair is the managed
 connection's restart: `EnsureAsync` adopts the published ticket to keep the terminals, best-effort
 and only when preparation and adoption precede its expiry.
 

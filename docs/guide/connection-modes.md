@@ -557,7 +557,7 @@ What it does, in order:
 1. Resolves the registration exactly as discovery does — the shared release registration by
    default, a named `Channel`, or a `RegistrationFilePath` — including the CLI's legacy migration.
 2. Removes the handoff sidecar by default, or attempts to publish a handoff ticket when
-   `PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff`.
+   `Pty = OpenCodeServerStopPtyMode.Handoff`.
 3. Ends the registered process: a request to stop first (`SIGTERM`), a hard kill (`SIGKILL`) if it
    is still there about five seconds later, then the same wait again. On Windows both rungs are a
    hard kill, because another process cannot be signalled there.
@@ -583,7 +583,7 @@ shared release registration.
 | `Channel` | The CLI's service channel, as for discovery. |
 | `RegistrationFilePath` | An absolute path to stop directly, as for discovery. Cannot be combined with `Channel` or `InstalledVersion`. |
 | `InstalledVersion` | The migration comparand, as for discovery. A stop never filters by version. |
-| `PersistentPtys` | Null or `OpenCodeServerStopPersistentPtyMode.Clear` removes any handoff ticket; terminals end with the service. `Handoff` attempts a best-effort handoff for the next service. |
+| `Pty` | Governs persistent terminals (`OpenCodeClient.PersistentPtys`) only; ordinary terminals (`OpenCodeClient.Ptys`) end with the service either way. Null or `OpenCodeServerStopPtyMode.Clear` removes any handoff ticket; persistent terminals end with the service. `Handoff` attempts a best-effort handoff for the next service. |
 
 To restart as the managed connection does and attempt to keep persistent terminals, stop with
 `Handoff`, then ensure with the same registration selection (the same channel or direct path).
@@ -594,7 +594,7 @@ it expires.
 await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions
 {
     Channel = "dev",
-    PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff,
+    Pty = OpenCodeServerStopPtyMode.Handoff,
 });
 await using var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
 {

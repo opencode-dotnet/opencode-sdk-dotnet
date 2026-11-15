@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk;
 
 /// <summary>Chooses how a stop handles persistent terminals, matching the pinned client's <c>pty: "clear" | "handoff"</c>.</summary>
-public enum OpenCodeServerStopPersistentPtyMode
+public enum OpenCodeServerStopPtyMode
 {
     /// <summary>Removes any handoff ticket, so the persistent terminals end with the service.</summary>
     Clear,

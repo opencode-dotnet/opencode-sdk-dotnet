@@ -103,7 +103,7 @@ internal static class ReservedNamePolicy
             "OpenCodeServerOutput",
             "OpenCodeServerOutputSnapshot",
             "OpenCodeServerStopOptions",
-            "OpenCodeServerStopPersistentPtyMode",
+            "OpenCodeServerStopPtyMode",
             "OpenCodeServerVersionPolicy",
             "OpenCodeStreamFailureException",
             "OpenCodeTransportException",
