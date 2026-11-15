@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class PersistentPtysRawClient
 {
-    private readonly Pipeline? _pipeline;
+    private readonly Pipeline _pipeline;
     internal PersistentPtysRawClient(Pipeline pipeline)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -31,11 +31,7 @@ internal sealed class PersistentPtysRawClient
         return new PersistentPtyRawClient(Pipeline, ptyId);
     }
 
-    private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PersistentPtysRawClient", "Pipeline");
-    /// <summary>
-    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
-    /// </summary>
-    internal Pipeline? PipelineOrNull => _pipeline;
+    private Pipeline Pipeline => _pipeline;
 
     /// <summary>
     /// Calls the &apos;/api/experimental/session/{sessionID}/terminal&apos; operation.

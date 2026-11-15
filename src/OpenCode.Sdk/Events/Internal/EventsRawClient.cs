@@ -8,18 +8,14 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class EventsRawClient
 {
-    private readonly Pipeline? _pipeline;
+    private readonly Pipeline _pipeline;
     internal EventsRawClient(Pipeline pipeline)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
         _pipeline = pipeline;
     }
 
-    private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("EventsRawClient", "Pipeline");
-    /// <summary>
-    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
-    /// </summary>
-    internal Pipeline? PipelineOrNull => _pipeline;
+    private Pipeline Pipeline => _pipeline;
 
     /// <summary>
     /// Subscribe to events. Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.

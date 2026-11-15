@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Internal;
 internal sealed class PtysRawClient
 {
     private static readonly PtyCreateRequest EmptyPtyCreateRequest = new();
-    private readonly Pipeline? _pipeline;
+    private readonly Pipeline _pipeline;
     internal PtysRawClient(Pipeline pipeline)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
@@ -32,11 +32,7 @@ internal sealed class PtysRawClient
         return new PtyRawClient(Pipeline, ptyId);
     }
 
-    private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("PtysRawClient", "Pipeline");
-    /// <summary>
-    /// Gets the pipeline of a client the SDK built, or null on a mocking instance.
-    /// </summary>
-    internal Pipeline? PipelineOrNull => _pipeline;
+    private Pipeline Pipeline => _pipeline;
 
     /// <summary>
     /// Create PTY session. Create a pseudo-terminal session for a location.

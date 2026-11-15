@@ -442,11 +442,12 @@ materializable.
   contain the route remark, the page operation's curated remarks, a link to the page operation,
   and the effective summary, in that order; its documentation has no separate curation target.
 - An internal-raw family emits its clients sealed and internal — internal operation methods and
-  handle factory, no mocking constructor — under raw type names, while the root client keeps the
-  public family accessor its hand-written door answers. Only such a family may carry a
-  document-declared request header: an optional, non-deep-object, unformatted string, plain or
-  null-wrapped. It emits as an optional trailing method parameter and travels the declared-header
-  channel into the pipeline. The value stays a caller concern and never enters curation or
+  handle factory — under raw type names, while the root client keeps the public family accessor
+  its hand-written door answers. These clients carry no mocking seam: no mocking constructor,
+  non-nullable fields, plain accessors, and no `PipelineOrNull`, since nothing can construct them
+  without a pipeline. Only such a family may carry a document-declared request header: an
+  optional, non-deep-object, unformatted string, plain or null-wrapped. It emits as an optional
+  trailing method parameter and travels the declared-header channel into the pipeline. The value stays a caller concern and never enters curation or
   generated code; a header-bearing operation forgoes the cursor-enumeration companion (ADR-0013,
   ADR-0021).
 - A query binds the `ListRequest` base by inclusion: it must carry the admitted optional `limit`
