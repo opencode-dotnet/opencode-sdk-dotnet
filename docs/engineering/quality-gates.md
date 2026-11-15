@@ -445,10 +445,9 @@ the performance project or `spec/` (including `tools/curation.json`), plus
 `tests/Shared/BenchmarkExitPolicy.cs`, `tests/Shared/GeneratorPeakMemoryPolicy.cs`,
 `tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
 `Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself, not `src/` alone.
-A push run that reaches code, or whose diff cannot be read, selects both guards; any other push
-selects them by path, as a pull request does. `CI result` requires the SDK matrix and the stage job
-to succeed when selected and to be skipped otherwise; invalid classification, failure or
-cancellation fails the aggregate.
+Push runs always select both guards. `CI result` requires the SDK matrix and the stage job to succeed
+when selected and to be skipped otherwise; invalid classification, failure or cancellation fails
+the aggregate.
 
 The canonical comparable run, and the comparison it feeds:
 

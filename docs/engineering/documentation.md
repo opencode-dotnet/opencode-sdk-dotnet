@@ -91,7 +91,7 @@ live Git and GitHub, then deleted when the follow-up ships or a newer handoff su
   "at the pin (`v<version>`)" mention in `README.md`, `docs/guide/` and `.github/ISSUE_TEMPLATE/`,
   and every issue form's `server-version` placeholder, name `spec/SNAPSHOT.md`'s upstream release
   tag. A Tools test fails on a stale one (`ConsumerPinGuard`); it runs with every change that
-  touches code or Markdown, a pin refresh among them, and a Markdown-only change runs it on the
+  touches code or Markdown, a pin refresh among them; a Markdown-only pull request runs it on the
   Linux leg. A version recorded as an observation (`Observed on`, `Verified on`, `Measured on`) is
   history and stays as written.
 - `CHANGELOG.md` gets an entry under `[Unreleased]` for every user-facing change, in the same pull

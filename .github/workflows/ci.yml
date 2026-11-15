@@ -6,8 +6,9 @@ on:
     paths-ignore:
       - LICENSE
   # Pull requests and the merge queue always start the workflow, so the required "CI result" check
-  # reports on every change; Markdown selects the Linux Build & Test leg, while LICENSE alone
-  # skips the build and test jobs inside the workflow instead of leaving that check missing.
+  # reports on every change; a change of only Markdown and LICENSE runs the Linux Build & Test leg
+  # and not the other two, and LICENSE alone skips the build and test jobs, inside the run instead
+  # of skipping the run, which would leave that check missing.
   pull_request:
     branches:
       - master
@@ -17,8 +18,9 @@ on:
 permissions:
   contents: read
 
-# A superseded run of the same ref is wasted matrix time; a master run is never cancelled,
-# because its badges and its nightly publish are the point.
+# A superseded run of the same ref is wasted matrix time; a master run is never cancelled once it
+# runs, because its badges and its nightly publish are the point. A newer push still replaces a
+# pending one, which is why every push run is a full run (the changes job).
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -29,7 +31,9 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-  # Classifies code and Markdown for every event; an unreadable push diff runs in full.
+  # Decides whether the change reaches anything but Markdown and LICENSE, and whether it touches
+  # Markdown, which alone selects the Linux Build & Test leg. A push run is always a full run: a
+  # queued push replaces a pending one, and only a full run covers the code the replaced run held.
   # A pull request's merge ref has the base as its first parent; a merge-queue entry names
   # its base, and the entries ahead of it are part of what it tests.
   changes:
@@ -46,6 +50,7 @@ jobs:
 
     steps:
       - name: Checkout
+        if: github.event_name != 'push'
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
@@ -55,24 +60,18 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
-          BEFORE: ${{ github.event.before }}
         run: |
           # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner.
           matrix='[{"os":"windows-2025","name":"Windows","test-modules":4},{"os":"ubuntu-24.04","name":"Linux","test-modules":4},{"os":"macos-15","name":"macOS","test-modules":3}]'
-          push_fallback() {
+          if [ "$EVENT" = push ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
-            echo "benchmarks=true" >> "$GITHUB_OUTPUT"
-            echo "benchmarks-generator=true" >> "$GITHUB_OUTPUT"
             echo "docs=false" >> "$GITHUB_OUTPUT"
             echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+            echo "benchmarks=true" >> "$GITHUB_OUTPUT"
+            echo "benchmarks-generator=true" >> "$GITHUB_OUTPUT"
             exit 0
-          }
-          if [ "$EVENT" = push ]; then
-            if [ -z "$BEFORE" ] || [[ "$BEFORE" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$BEFORE"; then
-              push_fallback
-            fi
-            base="$BEFORE"
-          elif [ "$EVENT" = merge_group ]; then
+          fi
+          if [ "$EVENT" = merge_group ]; then
             git fetch --no-tags --depth=1 origin "$QUEUE_BASE"
             base="$QUEUE_BASE"
           else
@@ -80,10 +79,7 @@ jobs:
           fi
           # Raw NUL-separated paths, not Git's quoted display form, and no rename detection: a
           # source file renamed to Markdown is a deleted source file, and its old path must count.
-          if ! git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"; then
-            [ "$EVENT" = push ] && push_fallback
-            exit 1
-          fi
+          git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"
           code=false
           docs=false
           benchmarks=false
@@ -102,10 +98,6 @@ jobs:
               tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;
             esac
           done < "$RUNNER_TEMP/changed-paths"
-          if [ "$EVENT" = push ] && [ "$code" = true ]; then
-            benchmarks=true
-            benchmarks_generator=true
-          fi
           if [ "$code" = false ]; then
             matrix='[{"os":"ubuntu-24.04","name":"Linux","test-modules":4}]'
           fi
@@ -711,8 +703,9 @@ jobs:
 
   # The one required check. A skipped matrix job reports under its unexpanded name, so the matrix
   # legs cannot be required one by one; this job stands for all of them. It fails closed: a change
-  # that reaches code needs every selected job green or proven same-tree reuse; Markdown needs
-  # the Linux Build & Test leg, and benchmark jobs keep their own path selection.
+  # that reaches code needs every selected job green or proven same-tree reuse; one that touches
+  # Markdown and no code needs the Linux Build & Test leg green or that reuse; one of only LICENSE
+  # needs the changes job. The benchmark jobs keep their own path selection in every case.
   ci-result:
     name: "CI result"
     needs: [changes, reuse, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]
@@ -764,8 +757,8 @@ jobs:
 
   # Runs once green (needs lint, build-and-test and benchmark-sdk; GitHub Actions waits for every
   # leg of both matrix jobs) and only on a real push to master, never on a PR.
-  # Publishes a -nightly package to GitHub Packages for code or unclassifiable master pushes;
-  # a classified push without code skips Lint and publishes nothing. The stable lane lives in
+  # Publishes a -nightly package to GitHub Packages for every master push that runs this workflow,
+  # so the code of the last such push is installable; the stable, human-triggered lane lives in
   # publish-nuget.yml.
   publish-nightly:
     name: "Publish nightly (GitHub Packages)"
