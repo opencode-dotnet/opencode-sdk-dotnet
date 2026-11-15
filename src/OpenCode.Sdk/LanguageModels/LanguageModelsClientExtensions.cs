@@ -31,8 +31,8 @@ public static class LanguageModelsClientExtensions
         ArgumentNullException.ThrowIfNull(client);
         ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Default-model waits");
 
-#pragma warning disable RS0030 // The default-model wait's composition root chooses the system clock; the plugin poll's waits receive it.
-        return new DefaultModelWait(client, TimeProvider.System).WaitAsync(request, requestOptions, cancellationToken);
-#pragma warning restore RS0030
+        return client.PipelineOrNull?.Connection.Time is { } time
+            ? new DefaultModelWait(client, time).WaitAsync(request, requestOptions, cancellationToken)
+            : client.GetDefaultAsync(request, requestOptions, cancellationToken);
     }
 }

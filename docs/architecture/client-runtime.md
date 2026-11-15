@@ -70,8 +70,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   existing call behaves as before until the consumer opts in; retry in particular never starts
   retrying a call that did not ask for it. `OpenCodeClient(OpenCodeClientOptions)` stays the only
   public construction path, with today's transport and server ownership, so a capability arrives
-  as a new option or a new type and never as a changed constructor. The one door that waits before it reads,
-  `LanguageModels.WaitForDefaultAsync`, is described under [Error channels](#error-channels).
+   as a new option or a new type and never as a changed constructor. The two waits,
+   `Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync`, are described under
+   [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
   environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`
   and `OpenCodeServer.StopAsync` are the doors that read the environment, and they read exactly
@@ -332,17 +333,18 @@ resolves the message's network window from those carried traits.
 - API failures throw through `OpenCodeException` -> `OpenCodeApiException` by default. Tagged
   protocol error payloads remain generated, typed data on the exception (ADR-0007).
 - A one-shot call may select per-call `NoThrow`, returning the same typed error data on its response
-  spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals and
-  `LanguageModels.WaitForDefaultAsync` refuse it at the call.
-- `LanguageModels.WaitForDefaultAsync` follows the CLI's one-shot wait (`plugin-startup.ts:6-13`): it
+  spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals and the two plugin
+  waits refuse it at the call.
+- `Plugins.WaitForPluginsAsync` follows the CLI's one-shot wait (`plugin-startup.ts:6-13`): it
   lists the location's plugins until non-empty, waiting 25 ms after each empty answer for about five
-  seconds, then reads the default model once. The schedule limit is checked after each answer, not
+  seconds. The schedule limit is checked after each answer, not
   a deadline that interrupts requests. A failed plugin list is ignored and ends the wait early;
-  every failure of the default read propagates, including `ServiceUnavailableError`, with no further
-  attempt. A non-empty plugin list is not a completion barrier: a catalog can still grow after the
-  method returns. On a mocking instance (the protected constructor), it skips the poll and reads
-  once. It is the one one-shot door that waits before it reads. It is a method the consumer calls,
-  not a pipeline policy.
+  a non-empty plugin list is not a completion barrier: a catalog can still grow after the method
+  returns. `LanguageModels.WaitForDefaultAsync` runs the same wait and then reads the default model
+  once. Every failure of the default read propagates, including `ServiceUnavailableError`, with no
+  further attempt. Both skip the poll on a mocking instance (the protected constructor); the
+  default-model wait still reads once. They are the two one-shot doors that wait; the plugin wait
+  reads nothing after it. They are methods the consumer calls, not a pipeline policy.
 - Throwing API errors retain the raw response body. `NoThrow` responses retain it on the shared
   response spine, including when typed error parsing fails (ADR-0007). A response's printed form
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,

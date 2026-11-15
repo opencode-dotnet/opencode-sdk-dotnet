@@ -224,13 +224,21 @@ if (model is not null)
   The agent list, usage limits and artifacts do not wait for plugin activation, so the agent list
   can be incomplete while plugins load. Artifact routes take their session's or artifact's location
   when the request names none.
+  Call `client.Plugins.WaitForPluginsAsync()` before listing agents or integrations to give plugins
+  a moment to load.
+
+  ```csharp
+  await client.Plugins.WaitForPluginsAsync();
+  ```
+
   Experimental generation and voice use the global config's location, not the request's;
   a default-model wait on one location does not establish their activation.
   On the first request to a location, after a config or plugin change, or on the
   server's periodic plugin refresh, they can answer `503` with a `ServiceUnavailableError` whose
   `Service` is `plugin`, meaning "plugins still loading"; usage limits and web search queries also
   return `ServiceUnavailableError` for upstream failures. Before anything model-related, call
-  `WaitForDefaultAsync`: like opencode's CLI one-shot commands, it lists the location's plugins until
+  `WaitForDefaultAsync`: it runs the same plugin wait first, like opencode's CLI one-shot commands,
+  listing the location's plugins until
   non-empty, waiting 25 ms after each empty answer for about five seconds, then reads the default
   model once. A failed plugin list is ignored and ends the wait early. Every failure of the default
   read propagates, including `ServiceUnavailableError`, with no further attempt. A non-empty plugin

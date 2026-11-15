@@ -5,7 +5,7 @@ build-switch: 12
 editorconfig: 152
 globalconfig: 1
 no-warn: 12
-pragma: 27
+pragma: 26
 slopwatch-ignore: 7
 slopwatch-suppress: 30
 suppress-message: 1
@@ -199,7 +199,6 @@ pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs VSTHRD003
 pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/WindowsServerChild.cs MA0045
 pragma src/OpenCode.Sdk/Internal/Terminal/TerminalReceivePump.cs VSTHRD003
 pragma src/OpenCode.Sdk/Internal/Transport/Pipeline.cs RS0030
-pragma src/OpenCode.Sdk/LanguageModels/LanguageModelsClientExtensions.cs RS0030
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffScenario.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045
@@ -230,7 +229,7 @@ slopwatch-suppress src/OpenCode.Sdk/Hosting/Launcher/Internal/PosixServerChild.c
 slopwatch-suppress src/OpenCode.Sdk/Internal/Terminal/TerminalSendQueue.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/LoopbackConnect.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs SW003
-slopwatch-suppress src/OpenCode.Sdk/LanguageModels/Internal/DefaultModelWait.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Plugins/Internal/PluginWait.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.Performance.Tests/Macro/RetainedMemory.cs SW002
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW004

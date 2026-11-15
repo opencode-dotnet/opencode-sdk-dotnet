@@ -1433,6 +1433,10 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PluginListResponse> ListPluginsAsync(OpenCode.Sdk.PluginListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PluginUpdateResponse> UpdatePluginsAsync(OpenCode.Sdk.Models.PluginUpdateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    public static class PluginsClientExtensions
+    {
+        public static System.Threading.Tasks.Task WaitForPluginsAsync(this OpenCode.Sdk.PluginsClient client, OpenCode.Sdk.PluginListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
     public sealed class ProjectListRequest : System.IEquatable<OpenCode.Sdk.ProjectListRequest>
     {
         public ProjectListRequest() { }

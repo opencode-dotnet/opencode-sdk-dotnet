@@ -36,6 +36,8 @@ public sealed class CancellationIdentityTests
         yield return new("http", "raw-upload", caller => AtBodyAsync(upload: true, caller));
         yield return new("default-wait", "headers", caller => AtHeadersAsync(
             static (client, token) => client.LanguageModels.WaitForDefaultAsync(cancellationToken: token), caller));
+        yield return new("plugin-wait", "headers", caller => AtHeadersAsync(
+            static (client, token) => client.Plugins.WaitForPluginsAsync(cancellationToken: token), caller));
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Ptys.GetPtyClient(PtyId).UpdateAsync(
                 new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
@@ -669,7 +671,8 @@ public sealed class CancellationIdentityTests
 
         public bool Is(Type owner, string name, Type result, params Type[] parameters) =>
             DeclaringType == owner && Name == name && ReturnType == result &&
-            IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(LanguageModelsClientExtensions)) && Parameters.SequenceEqual(parameters);
+            IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(LanguageModelsClientExtensions) || owner == typeof(PluginsClientExtensions)) &&
+            Parameters.SequenceEqual(parameters);
 
         public override string ToString() =>
             $"{ReturnType} {DeclaringType}.{Name}({string.Join(", ", Parameters.Select(static type => type.ToString()))})";
@@ -735,6 +738,8 @@ public sealed class CancellationIdentityTests
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>)) => "other-sse",
             _ when member.Is(typeof(LanguageModelsClientExtensions), nameof(LanguageModelsClientExtensions.WaitForDefaultAsync), typeof(Task<ModelDefaultResponse>),
                 typeof(LanguageModelsClient), typeof(ModelDefaultRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "default-wait",
+            _ when member.Is(typeof(PluginsClientExtensions), nameof(PluginsClientExtensions.WaitForPluginsAsync), typeof(Task),
+                typeof(PluginsClient), typeof(PluginListRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "plugin-wait",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.UpdateAsync), typeof(Task<PtyUpdateResponse>),
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(Task<>)) &&

@@ -92,8 +92,8 @@ Three limits worth internalising:
 - **Streams and automatic cursor traversals refuse `NoThrow` at the call, before enumeration.**
   They take `requestOptions`, but their API errors always throw. A stream has no response envelope
   to carry an error. See [streaming](streaming.md#-streams-always-throw) and [pagination](pagination.md).
-- **`LanguageModels.WaitForDefaultAsync` refuses `NoThrow` at the call,** because it decides on each
-  plugin-list answer whether to keep waiting.
+- **`Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync` refuse `NoThrow` at the call,**
+  because they decide on each plugin-list answer whether to keep waiting.
 
 `OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.
