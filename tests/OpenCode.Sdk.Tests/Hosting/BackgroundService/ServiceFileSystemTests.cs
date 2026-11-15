@@ -4,6 +4,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
+#if NET
+using OpenCode.Sdk.Tests.Support;
+#endif
 using Testably.Abstractions;
 using TUnit.Assertions.Enums;
 
@@ -32,6 +35,33 @@ public sealed class ServiceFileSystemTests
         await Assert.That(directory.File("absent.json")).Satisfies(path => path is not null && !fileSystem.Exists(path));
         await Assert.That(directory.File("missing", "absent.json")).Satisfies(path => path is not null && !fileSystem.Exists(path));
     }
+
+#if NET
+    [Test]
+    public async Task Exists_Should_Report_A_File_Inside_A_Directory_That_Cannot_Be_Searched()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("Windows — Unix directory modes do not apply");
+            return;
+        }
+
+        using var directory = new OwnedTemporaryDirectory();
+        var file = directory.File("inaccessible.json");
+        directory.FileSystem.File.WriteAllBytes(file, Content);
+        var mode = directory.FileSystem.File.GetUnixFileMode(directory.Path);
+        try
+        {
+            directory.FileSystem.File.SetUnixFileMode(directory.Path, UnixFileMode.None);
+
+            await Assert.That(file).Satisfies(path => path is not null && new ServiceFileSystem().Exists(path));
+        }
+        finally
+        {
+            directory.FileSystem.File.SetUnixFileMode(directory.Path, mode);
+        }
+    }
+#endif
 
     private static class ServiceFileSystemData
     {

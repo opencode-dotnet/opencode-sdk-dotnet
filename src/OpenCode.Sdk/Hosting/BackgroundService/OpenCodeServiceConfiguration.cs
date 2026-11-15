@@ -2,7 +2,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 
-/// <summary>Reads and administers the background service's configuration managed by the CLI.</summary>
+/// <summary>Reads the background service's configuration managed by the CLI.</summary>
 public static class OpenCodeServiceConfiguration
 {
     /// <summary>

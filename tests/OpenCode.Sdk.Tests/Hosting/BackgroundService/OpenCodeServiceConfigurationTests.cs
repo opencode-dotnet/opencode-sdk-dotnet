@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using NSubstitute;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using TUnit.Assertions.Enums;
@@ -9,6 +10,81 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 
 public sealed class OpenCodeServiceConfigurationTests
 {
+    [Test]
+    public async Task ReadAsync_Should_Validate_Options_At_The_Public_Door()
+    {
+        var failure = await Assert.That(async () =>
+        {
+            _ = await OpenCodeServiceConfiguration.ReadAsync(new OpenCodeServiceConfigOptions { Channel = " " });
+        }).Throws<ArgumentException>();
+
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure).IsTypeOf<ArgumentException>();
+        await Assert.That(failure.ParamName).IsEqualTo("options");
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Forward_The_Caller_Token_To_Each_Read()
+    {
+        var scenario = new ServiceConfigScenario("beta");
+        await scenario.SeedAsync(scenario.Paths.LegacyConfigFile!, scenario.Initial("all-members")!);
+        using var caller = new CancellationTokenSource();
+
+        var config = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, caller.Token);
+
+        await Assert.That(config.Port).IsEqualTo(5123);
+        var calls = scenario.FileSystem.ReceivedCalls().Where(static call => call.GetMethodInfo().Name == "TryReadAllBytesAsync").ToArray();
+        await Assert.That(calls.Select(static call => (string)call.GetArguments()[0]!)).IsEquivalentTo(
+            [scenario.Paths.ConfigFile, scenario.Paths.LegacyConfigFile], CollectionOrdering.Matching);
+        foreach (var call in calls)
+        {
+            await Assert.That(call.GetArguments()[1]).IsEqualTo(caller.Token);
+        }
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ReadAsync_Should_Propagate_The_Read_Cancellation_Instance(bool donor)
+    {
+        var scenario = new ServiceConfigScenario("beta");
+        using var caller = new CancellationTokenSource();
+        var failure = new OperationCanceledException(caller.Token);
+        var path = donor ? scenario.Paths.LegacyConfigFile! : scenario.Paths.ConfigFile!;
+        scenario.FileSystem.TryReadAllBytesAsync(path, Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromException<byte[]?>(failure));
+        scenario.ClearCalls();
+
+        var observed = await Assert.That(async () =>
+        {
+            _ = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, caller.Token);
+        }).Throws<OperationCanceledException>();
+
+        await Assert.That(observed).IsSameReferenceAs(failure);
+        string[] calls = donor
+            ? ["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile, "Exists:" + scenario.Paths.ConfigFile, "TryReadAllBytesAsync:" + path]
+            : ["TryReadAllBytesAsync:" + path];
+        await Assert.That(scenario.Calls).IsEquivalentTo(calls, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Observe_Pre_Cancellation_Before_Using_Any_Seam()
+    {
+        var scenario = new ServiceConfigScenario();
+        using var caller = new CancellationTokenSource();
+        await caller.CancelOnWorkerAsync();
+
+        var failure = await Assert.That(async () =>
+        {
+            _ = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, caller.Token);
+        }).Throws<OperationCanceledException>();
+
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure.CancellationToken).IsEqualTo(caller.Token);
+        await Assert.That(scenario.Environment.ReceivedCalls()).IsEmpty();
+        await Assert.That(scenario.FileSystem.ReceivedCalls()).IsEmpty();
+    }
+
     [Test]
     public async Task ReadAsync_Should_Match_The_Upstream_Get_View()
     {

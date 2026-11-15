@@ -39,6 +39,11 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
         {
             return false;
         }
+        catch (UnauthorizedAccessException)
+        {
+            // An entry may exist that cannot be inspected; an exclusive create there fails too.
+            return true;
+        }
     }
 
     public async Task<byte[]?> TryReadAllBytesAsync(string path, CancellationToken cancellationToken)

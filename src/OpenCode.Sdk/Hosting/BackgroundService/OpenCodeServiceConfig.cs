@@ -24,7 +24,7 @@ public sealed class OpenCodeServiceConfig
     /// </remarks>
     public bool Disabled { get; }
 
-    /// <summary>Gets whether remote access is on. Its private route is never exposed.</summary>
+    /// <summary>Gets whether remote access is on. This view never exposes its private route.</summary>
     public bool RemoteEnabled { get; }
 
     /// <summary>Gets whether remote access was accepted or was on before.</summary>
