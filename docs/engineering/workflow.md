@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -93,8 +93,12 @@ single-owner rules.
   permit reuse of its green PR result. Otherwise the repository guards count exactly over every
   test file, so a green result from an older base is not enough. After the merge, the work is done
   when the CI the merge commit triggers on
-  `master` is green; a merge of only Markdown or `LICENSE` triggers none, and its queue result
-  stands.
-- CI runs on every pull request and queue entry. A change that touches only Markdown or `LICENSE`
-  passes without the build and test jobs. Never put `[skip ci]` in a pull request's commits: the
-  required check would not report, and the pull request could not join the queue.
+  `master` is green; a merge of only `LICENSE` triggers none, and its queue result stands. Every
+  other merge, one of only Markdown included, triggers the full run on `master`.
+- CI runs on every pull request and queue entry. In a pull request or queue entry, a change whose
+  paths are all Markdown or `LICENSE` and include Markdown runs the Linux `Build & Test` leg and not
+  the other two: Lint is skipped, and the benchmark jobs keep their own path selection. A change of
+  only `LICENSE` passes without the build and test jobs. A `master` push is never classified: a newer
+  push replaces a pending run, and only a full run covers the code that run held. Never put
+  `[skip ci]` in a pull request's commits: the required check would not report, and the pull request
+  could not join the queue.

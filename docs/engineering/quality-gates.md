@@ -86,9 +86,9 @@ touch `.github/`, matched case-insensitively, because the workflow that gathers 
 the judge always comes from the group's tree; review covers a workflow change, as for any required
 check.
 In practice, a PR whose base has not moved since its green run and which does not touch `.github/`
-avoids the second full run. Any missing, malformed or uncertain fact, or a failed reuse job,
-means the normal full CI runs. `Changes` must still succeed; the reuse branch of `CI result`
-accepts only a merge group with all four heavy jobs skipped.
+avoids the second run of its selected jobs. Any missing, malformed or uncertain fact, or a failed
+reuse job, means the normal path-selected CI runs. `Changes` must still succeed; the reuse branch of
+`CI result` accepts only a merge group with all four heavy jobs skipped.
 
 Before a pull request opens, run the local check from the repository root. It catches failures
 before they cost a CI run. A current handoff may add scope-specific checks but cannot weaken it.
@@ -122,7 +122,8 @@ wall-clock bounds, and a concurrent build, package install or second gate on the
 turn them red without any change to the code. A red result is recorded before any rerun.
 
 A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
-(workflows, issue and pull request templates) needs no local check.
+(workflows, issue and pull request templates) needs no local check; CI still runs the gates that
+read Markdown on a change that touches Markdown (`workflow.md`).
 
 A fresh clone or worktree is prepared once before its first local check or gate, with the Bun the
 pin's `packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and

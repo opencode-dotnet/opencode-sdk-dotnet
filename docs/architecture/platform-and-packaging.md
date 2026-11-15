@@ -118,8 +118,8 @@ packages, every release ships both, and Extensions depends on the SDK release it
 an ordinary NuGet dependency (ADR-0006). Package versions do not align with upstream opencode. The
 MCP server versions on its own in its repository.
 
-The release policy is publication to GitHub Packages on every merge that changes more than Markdown
-or `LICENSE`, and a manual pipeline for NuGet.org.
+The release policy is publication to GitHub Packages on every merge that changes more than
+`LICENSE`, and a manual pipeline for NuGet.org.
 
 From `1.0.0`, the SDK follows the bump type of the upstream release it pins (ADR-0034): an upstream
 patch is an SDK patch, an upstream minor an SDK minor, and an upstream major an SDK major. The SDK's
