@@ -42,12 +42,11 @@ internal sealed class PipelineMessage : IDisposable
     public bool BufferBody { get; init; } = true;
 
     /// <summary>
-    /// Gets the caller's per-call location override, or <see langword="null"/> for none;
-    /// written by <see cref="Pipeline"/> from <see cref="OpenCodeRequestOptions.Location"/>,
-    /// read by <see cref="RequestDecorationPolicy"/> to merge over the ambient snapshot member
-    /// by member.
+    /// Gets the call's options snapshot, or <see langword="null"/> for none; the decoration
+    /// policy applies its location and headers over the construction-time snapshot. Carrying
+    /// both in one reference keeps a header-free message the same size as the location-only one.
     /// </summary>
-    public LocationSelector? PerCallLocation { get; init; }
+    public OpenCodeRequestOptions? Options { get; init; }
 
     /// <summary>
     /// Gets the headers this operation declares in the pinned document, or <see langword="null"/>

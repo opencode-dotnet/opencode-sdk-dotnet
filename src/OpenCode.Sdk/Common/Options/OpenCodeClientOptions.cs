@@ -7,6 +7,20 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeClientOptions
 {
+    /// <summary>
+    /// Gets the case-insensitive headers copied and validated once at client construction.
+    /// Later values replace earlier ones: SDK User-Agent, these headers, SDK authentication,
+    /// merged location and operation-declared headers, then <see cref="OpenCodeRequestOptions.Headers"/>.
+    /// Authorization with a non-null <see cref="Password"/>, or x-opencode-directory with a
+    /// non-null <see cref="Location"/>, is refused. Content headers replace the content's headers
+    /// when content exists and are dropped otherwise. Headers reach HTTP operations, stream opens
+    /// (each shared event feed attempt included) and cursor pages, not terminal upgrades or
+    /// background-service info probes.
+    /// Invalid HTTP token names, null values, and values containing NUL (U+0000), CR, LF or any
+    /// character above U+007F are refused with <see cref="ArgumentException"/>.
+    /// </summary>
+    public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Gets or sets the absolute HTTP or HTTPS server endpoint; required to build a client.</summary>
     public Uri? Endpoint { get; set; }
 
@@ -19,10 +33,12 @@ public sealed class OpenCodeClientOptions
     /// <summary>
     /// Gets or sets the HTTP basic-authentication password. Every server the <c>opencode</c>
     /// CLI starts requires one — the value set through <c>OPENCODE_PASSWORD</c>, or the one the
-    /// CLI generates and prints as <c>server password &lt;pw&gt;</c> when none is configured — so
-    /// <see langword="null"/>, which sends no credential at all, is right only for a host that runs
-    /// without authentication, such as a server embedded through the opencode server library. Any
-    /// other value is sent exactly as written, as the pinned client sends it: a server configured
+    /// CLI generates and prints as <c>server password &lt;pw&gt;</c> when none is configured.
+    /// A <see langword="null"/> value sends no credential of the SDK's own. Use it for a host without
+    /// authentication, such as an embedded server, or supply Authorization through <see cref="Headers"/>
+    /// or <see cref="OpenCodeRequestOptions.Headers"/>, which reach HTTP calls but not terminal
+    /// upgrades: those send only this password's credential. Any other value is sent exactly as written,
+    /// as the pinned client sends it: a server configured
     /// with a whitespace password runs with that password. The SDK never reads credentials from
     /// the environment.
     /// </summary>

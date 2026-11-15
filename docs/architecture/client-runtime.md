@@ -102,6 +102,43 @@ failure is recorded and dropped. Synchronous root disposal fences mutation, not 
 `OperationTraits` supplies per-operation rules once through `OperationRequest.Describe`; the exchange
 resolves the message's network window from those carried traits.
 
+### Request headers
+
+- `OpenCodeClientOptions.Headers` is a pre-created, empty, ordinal case-insensitive dictionary,
+  copied and validated once at construction. `OpenCodeRequestOptions.Headers` is an optional
+  read-only dictionary, validated and copied at the call's start before sending; each cursor page
+  is a separate call with its own snapshot. The event subscription refuses a per-call set (Event
+  feed, below).
+  Case-equivalent names within a per-call set join in insertion order with `", "`.
+- Later steps replace a name: (1) SDK `User-Agent`; (2) client-wide headers; (3) SDK `Authorization`
+  from credentials, `x-opencode-directory` from merged location, and operation-declared headers;
+  (4) per-call headers. This follows upstream's `prepare` merge
+  (`packages/client/src/promise/generated/client.ts:363-369` at the pin).
+- Construction refuses `Authorization` with a non-null `Password` (not `Username` alone), and
+  `x-opencode-directory` with a non-null `Location`, with an `ArgumentException` naming both
+  members. Names compare ordinally, case-insensitively. Without those conflicting members both
+  headers are accepted; a per-call `Location` can replace the client-wide directory header.
+- Invalid HTTP token names, null values, and values containing NUL (U+0000), CR, LF or any character
+  above U+007F are refused with `ArgumentException`. Each entry's name is validated before its
+  value; a value refusal names
+  the header and the zero-based position of its first refused character, never the value. A null
+  value refusal names the header without a position.
+  Upstream builds a fetch `Headers` object from every header set
+  (`packages/client/src/promise/generated/client.ts`, `prepare`, at the pin); fetch `Headers` refuses
+  NUL, CR and LF in values, so refusing those matches upstream.
+  - Recorded divergence: upstream admits U+0080-U+00FF as Latin-1, but on `net10.0` and `net11.0`
+    `SocketsHttpHandler` sends ASCII-only header values by default and fails such a request
+    mid-send. The SDK refuses them at the option, on every target. Reversal trigger: if the SDK gains a header-encoding option, values above 0x7F are admitted per that option.
+- Content headers from either caller set replace the content's values when content exists.
+  - Recorded divergence of form: on a request without content they are dropped, because
+    `HttpRequestMessage` cannot carry content headers. Upstream's fetch headers can carry them.
+    Reversal trigger: if `HttpRequestMessage` can carry a content header without content.
+- The client-wide set reaches every HTTP operation, stream open (each attempt of the shared event
+  feed included) and cursor page; the per-call set reaches the same except the event subscription.
+  Neither reaches terminal WebSocket upgrades (as upstream's terminal sockets carry no caller
+  headers), which send only the `Password` credential, nor the background-service info probe,
+  which is not a client.
+
 ### Location
 
 - `LocationSelector` addresses a directory only. `OpenCodeClientOptions.Location` is the ambient
@@ -142,9 +179,10 @@ resolves the message's network window from those carried traits.
 - **Declared headers are the runtime channel that carries it.** An operation's document-declared
   header parameters ride `PipelineMessage.DeclaredHeaders` (`IReadOnlyList<DeclaredHeader>?`),
   written by `Pipeline` from the value the generated raw method collected and read by
-  `RequestDecorationPolicy`, which adds each entry with `TryAddWithoutValidation` exactly as it
-  adds the directory header. The policy never learns a family or a header name, so no operation's
-  knowledge leaks into it. This is not a general header facility: the channel is assembly-internal,
+  `RequestDecorationPolicy`, which adds absent request headers with `TryAddWithoutValidation` and
+  removes an existing name before adding its replacement, as for the directory header. The policy
+  never learns a family or a header name, so no operation's knowledge leaks into it. This is not a
+  general header facility: the channel is assembly-internal,
   only generated internal-raw methods feed it, and only a parameter the pinned document declares
   ever becomes an entry.
 - The Events family is the third: `EventsClient` is hand-written over the generated internal
@@ -518,7 +556,10 @@ resolves the message's network window from those carried traits.
   Response disposal interrupts downlevel reads that do not observe an async read token. Root disposal
   fences the feed before beginning pipeline lifetime cancellation and transport cleanup.
 - OpenCodeClientOptions.NetworkTimeout does not reach event.subscribe. Any non-null per-call
-  NetworkTimeout is refused, including Timeout.InfiniteTimeSpan. NoThrow and undefined ErrorBehavior
+  NetworkTimeout is refused, including Timeout.InfiniteTimeSpan. A non-null per-call `Headers` is
+  refused too, an empty set included: upstream's shared feed takes no per-call headers
+  (`packages/client/src/shared-events.ts:10-15`, `SubscribeOptions`, wired at
+  `packages/client/src/promise/client.ts:12`), and client-wide headers reach every attempt. NoThrow and undefined ErrorBehavior
   values are refused at the call. Ordinary API, transport and failure-frame errors are connection-state
   errors, not enumeration endings; a consumer that needs a deadline owns its token and reads state.
 - Overflow recovery is resubscribe, await admission, then refresh authoritative state while the new

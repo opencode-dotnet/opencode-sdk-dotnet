@@ -3,6 +3,21 @@ namespace OpenCode.Sdk;
 /// <summary>Configures one opencode API call.</summary>
 public sealed class OpenCodeRequestOptions
 {
+    /// <summary>
+    /// Gets the headers validated and copied when this call starts; each cursor page is a separate
+    /// call. The event subscription refuses them. Later values replace
+    /// earlier ones: SDK User-Agent, <see cref="OpenCodeClientOptions.Headers"/>, SDK authentication,
+    /// merged location and operation-declared headers, then these headers. Case-equivalent names
+    /// in this set join in insertion order with ", ". Client construction refuses Authorization
+    /// with a non-null <see cref="OpenCodeClientOptions.Password"/>, or x-opencode-directory with a
+    /// non-null <see cref="OpenCodeClientOptions.Location"/>; these per-call headers allow both names.
+    /// Content headers replace the content's headers when content exists and are dropped otherwise.
+    /// Headers reach HTTP operations, stream opens and cursor pages, not terminal
+    /// upgrades or background-service info probes. Invalid HTTP token names, null values, and values
+    /// containing NUL (U+0000), CR, LF or any character above U+007F are refused with <see cref="ArgumentException"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, string>? Headers { get; init; }
+
     /// <summary>Gets the error channel for this call.</summary>
     public ErrorBehavior ErrorBehavior { get; init; }
 

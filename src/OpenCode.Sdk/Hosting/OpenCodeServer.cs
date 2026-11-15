@@ -145,7 +145,7 @@ public partial class OpenCodeServer : IAsyncDisposable
         // A distinct instance carries the door's identity into the client: the object the
         // delegate received stays identity-unset for as long as the caller keeps a reference to
         // it, rather than being mutated out from under them after the delegate returns.
-        return new OpenCodeClient(new OpenCodeClientOptions
+        var clientOptions = new OpenCodeClientOptions
         {
             Endpoint = endpoint,
             Username = options.Username,
@@ -153,7 +153,13 @@ public partial class OpenCodeServer : IAsyncDisposable
             Location = options.Location,
             NetworkTimeout = options.NetworkTimeout,
             EventStreamIdleTimeout = options.EventStreamIdleTimeout,
-        });
+        };
+        foreach (var header in options.Headers)
+        {
+            clientOptions.Headers.Add(header);
+        }
+
+        return new OpenCodeClient(clientOptions);
     }
 
     /// <summary>

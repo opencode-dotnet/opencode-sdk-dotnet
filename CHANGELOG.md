@@ -22,6 +22,7 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 
 ### ✨ Added
 
+- `OpenCodeClientOptions.Headers` and `OpenCodeRequestOptions.Headers` set client-wide and per-call HTTP headers, with per-call values winning.
 - `OpenCodeServerStopOptions.Pty` accepts `OpenCodeServerStopPtyMode.Handoff` so that `StopAsync` attempts a best-effort persistent-terminal handoff after it reads the registration and before it signals the process. Follow it with `EnsureAsync` using the same registration selection to restart as the managed connection does; preservation depends on preparing and adopting the ticket before it expires. Null and `Clear` keep the default: terminals end with the service, as with the CLI's `service restart`.
 - `Plugins.WaitForPluginsAsync` waits for a location's plugins to load, as the CLI does before listing agents, models and integrations; `LanguageModels.WaitForDefaultAsync` now runs it.
 - `OpenCodeServer.ShutdownPersistentPtyAsync` discovers the background service and, when one is running, shuts down its persistent terminals, as opencode's CLI does before an uninstall; with no service it does nothing. It is experimental (`OPENCODE002`).

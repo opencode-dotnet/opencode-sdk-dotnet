@@ -9,7 +9,23 @@ internal sealed record OperationRequest(string OperationId, OperationTraits Trai
     public static OperationRequest Describe<TBody>(string operationId, HttpMethod method, string route, TBody? body,
         JsonTypeInfo<TBody>? bodyTypeInfo, Stream? content, OpenCodeRequestOptions? options, IReadOnlyList<DeclaredHeader>? declaredHeaders)
         where TBody : class =>
-        new(operationId, OperationTraits.Lookup(operationId), method, route, body, bodyTypeInfo, content, options, declaredHeaders);
+        new(operationId, OperationTraits.Lookup(operationId), method, route, body, bodyTypeInfo, content, SnapshotOptions(options), declaredHeaders);
+
+    private static OpenCodeRequestOptions? SnapshotOptions(OpenCodeRequestOptions? options)
+    {
+        if (options?.Headers is not { } headers)
+        {
+            return options;
+        }
+
+        return new OpenCodeRequestOptions
+        {
+            Headers = RequestDecorationPolicy.SnapshotHeaders(headers, "OpenCodeRequestOptions.Headers", "requestOptions"),
+            Location = options.Location,
+            NetworkTimeout = options.NetworkTimeout,
+            ErrorBehavior = options.ErrorBehavior,
+        };
+    }
 
     public void Validate()
     {

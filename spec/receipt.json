@@ -980,6 +980,16 @@
           "matched": true
         }
       ]
+    },
+    {
+      "path": "packages/client/src/promise/generated/client.ts",
+      "sha256": "fa243ee8f2a5a34e5c3fcebee2c563ca0f1fd58f704838c4b114856d4f7b8aee",
+      "anchors": [
+        {
+          "text": "for (const [key, value] of new Headers(requestOptions?.headers)) headers.set(key, value)",
+          "matched": true
+        }
+      ]
     }
   ]
 }

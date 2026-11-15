@@ -11,6 +11,7 @@ some members can say *"leave this alone"* and *"clear this"* as two different th
 - [🔎 Reading a member back](#-reading-a-member-back)
 - [🔗 Query members](#-query-members)
 - [📍 Per-call location](#-per-call-location)
+- [📨 Request headers](#-request-headers)
 - [🧾 Members the schema does not explain](#-members-the-schema-does-not-explain)
 
 ## 🧱 The request record
@@ -203,6 +204,32 @@ Calls on that session afterwards address the session's own directory.
 
 The options object also carries [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead),
 so one per-call argument selects both it and the header override.
+
+## 📨 Request headers
+
+Set a client-wide header on `OpenCodeClientOptions.Headers`, or replace it for one call with
+`OpenCodeRequestOptions.Headers`. Client headers are copied at construction; call headers are
+copied at the call's start (each cursor page starts its own call). `client.Events.SubscribeAsync`
+refuses per-call headers: its one shared connection carries only the client-wide ones.
+
+```csharp
+var options = new OpenCodeClientOptions { Endpoint = new Uri("http://localhost:4096") };
+options.Headers.Add("X-Trace", "client");
+using var client = new OpenCodeClient(options);
+var info = await client.Server.GetInfoAsync(new OpenCodeRequestOptions
+{
+    Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Trace"] = "call" },
+});
+```
+
+Per-call headers win over SDK authentication, location and operation-declared headers, which win
+over client-wide headers, which win over the SDK's `User-Agent`. Construction refuses client-wide
+`Authorization` with a non-null `Password`, or `x-opencode-directory` with a non-null `Location`.
+Content headers replace the body's headers and are dropped without a body. These headers reach
+HTTP calls and streams, not terminal WebSocket upgrades or background-service info probes, so an
+`Authorization` header does not authenticate terminals: use `Password` for a client that opens them.
+Header values containing NUL (U+0000), CR, LF or any character above U+007F are refused with
+`ArgumentException`.
 
 ## ⏱️ How long a call may wait
 

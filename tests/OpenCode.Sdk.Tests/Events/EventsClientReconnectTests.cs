@@ -123,6 +123,49 @@ public sealed class EventsClientReconnectTests
     }
 
     [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    public async Task SubscribeAsync_Should_Refuse_Per_Call_Headers_Before_Enumeration(int count)
+    {
+        using var scenario = ContractScenario.Responding();
+        var headers = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (count == 1)
+        {
+            headers.Add("X-Probe", "call");
+        }
+
+        var exception = await Assert.That(() => scenario.Client.Events.SubscribeAsync(
+            requestOptions: new OpenCodeRequestOptions { Headers = headers })).Throws<ArgumentException>();
+
+        await Assert.That(exception!.GetType()).IsEqualTo(typeof(ArgumentException));
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
+        await Assert.That(exception.Message).StartsWith(
+            "The shared event connection sends only the client-wide headers; per-call Headers are not supported.");
+        await Assert.That(scenario.Requests).IsEmpty();
+    }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Send_The_Client_Wide_Headers_On_Every_Attempt()
+    {
+        var time = new ManualTimeProvider();
+        using var handler = CreateReconnectHandler();
+        using var httpClient = new HttpClient(handler);
+        var clientOptions = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint };
+        clientOptions.Headers.Add("X-Client", "client");
+        using var pipeline = new Pipeline(httpClient, ownsHttpClient: false, clientOptions, time: time);
+        await using var events = new EventsClient(pipeline).SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+
+        var next = PendingNext(events);
+        await time.WaitForArmedAsync(Delay, HangGuard.Bound);
+        time.Advance(Delay);
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
+
+        await Assert.That(handler.Requests.Select(static request => request.Headers["X-Client"]))
+            .IsEquivalentTo(["client", "client"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task A_Dropped_Stream_Should_Reconnect_After_One_Second_And_Announce_It_With_Server_Connected()
     {
         using var first = new LiveEventBody(

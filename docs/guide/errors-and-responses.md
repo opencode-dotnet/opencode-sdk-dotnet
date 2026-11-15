@@ -175,8 +175,8 @@ uncredentialed request before the API layer runs. The CLI's server answers with 
 challenge. The same answer comes back for a missing or a wrong credential, so the body cannot tell
 you which mistake you made.
 
-The SDK can. When a call answers 401 *and* the client was built
-with `Password` left `null`, the exception message appends one extra sentence after the status
+The SDK can. When a call answers 401 *and* the request carried no `Authorization` header,
+the exception message appends one extra sentence after the status
 sentence, which includes the server's own message when present:
 
 ```text
@@ -188,11 +188,11 @@ OpenCodeClientOptions.Password.
 
 If a server answers with no body, the status sentence has no tag or server text, and the hint is still added.
 
-It is scoped as tightly as it reads: 401 only, and only when no password was configured. A
+It is scoped as tightly as it reads: 401 only, and only when the request carried no `Authorization` header. A
 credential the server *rejected* is a different mistake and keeps only the status sentence,
 including the server's own message when present. And it is a
-message, not a new member — the `NoThrow` envelope is unchanged, where `Status == 401` on a client
-you built without a password is the same signal.
+message, not a new member — the `NoThrow` envelope is unchanged, where `Status == 401` on a request
+sent without an `Authorization` header is the same signal.
 
 ### When a worktree remove is refused
 

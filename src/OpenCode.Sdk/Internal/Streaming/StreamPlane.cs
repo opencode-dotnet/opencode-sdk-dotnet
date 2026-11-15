@@ -2,8 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace OpenCode.Sdk.Internal;
 
-internal sealed class StreamPlane(PipelineExchange exchange, IEventStreamFramer framer,
-    ClientLifetime lifetime, ConnectionSnapshot connection)
+internal sealed class StreamPlane(PipelineExchange exchange, IEventStreamFramer framer, ClientLifetime lifetime)
 {
     private const string EventStreamMediaType = "text/event-stream";
 
@@ -29,7 +28,7 @@ internal sealed class StreamPlane(PipelineExchange exchange, IEventStreamFramer 
             case StatusVerdict.UndeclaredError:
                 var rawBody = ResponseMaterializer.ReadErrorBody(message);
                 throw OpenCodeErrorReader.CreateApiException(
-                    status, adapter.ReadError(status, rawBody), rawBody, connection.Authorization is not null);
+                    status, adapter.ReadError(status, rawBody), rawBody, message.Request.Headers.Contains("Authorization"));
             default:
                 // A stream contract has no no-content success; any other verdict is a
                 // generator defect, refused rather than guessed around.
