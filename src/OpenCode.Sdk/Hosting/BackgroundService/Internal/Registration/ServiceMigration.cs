@@ -45,6 +45,15 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
             await CopyAsync(paths.RegistrationFile, bytes, cancellationToken).ConfigureAwait(false);
         }
 
+        await ApplyConfigAsync(paths, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Considers only the legacy config donor, independently of registration migration.</summary>
+    /// <param name="paths">The resolved config paths.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>A task that completes after the config donor has been considered.</returns>
+    public async Task ApplyConfigAsync(ServicePaths paths, CancellationToken cancellationToken)
+    {
         if (paths.LegacyConfigFile is { } legacyConfig && paths.ConfigFile is { } configFile)
         {
             cancellationToken.ThrowIfCancellationRequested();

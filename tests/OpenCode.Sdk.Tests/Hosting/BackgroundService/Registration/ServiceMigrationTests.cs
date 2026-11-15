@@ -322,6 +322,22 @@ public sealed class ServiceMigrationTests
             .Throws<OperationCanceledException>();
     }
 
+    [Test]
+    public async Task ApplyConfigAsync_Should_Copy_Only_The_Config_Donor()
+    {
+        var paths = ChannelPaths(Channel);
+        Seed(paths.LegacyConfigFile!, ServiceConfigData.DisabledTrue);
+        Seed(paths.LegacyRegistrationFiles[0], ServiceRegistrationData.DevPrereleaseDotted);
+
+        await Migration().ApplyConfigAsync(paths, CancellationToken.None);
+
+        await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.GetDirectoryName(paths.ConfigFile!)!))
+            .IsEquivalentTo([paths.LegacyConfigFile!, paths.ConfigFile!]);
+        await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.GetDirectoryName(paths.RegistrationFile)!))
+            .IsEquivalentTo([paths.LegacyRegistrationFiles[0]]);
+        await Assert.That(_fileSystem.File.ReadAllText(paths.ConfigFile!)).IsEqualTo(ServiceConfigData.DisabledTrue);
+    }
+
     private ServiceMigration Migration() =>
         new(new TestablyServiceFileSystem(_fileSystem));
 
