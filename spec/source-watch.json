@@ -1348,6 +1348,20 @@
           }
         }
       ]
+    },
+    {
+      "path": "packages/client/src/promise/generated/client.ts",
+      "sha256": "fa243ee8f2a5a34e5c3fcebee2c563ca0f1fd58f704838c4b114856d4f7b8aee",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "prepare merges client-wide headers, then the operation\u0027s declared headers, then per-call headers, each later one replacing a name, and adds content-type only when a body has none; the SDK\u0027s request headers follow this order.",
+          "anchor": {
+            "type": "contains",
+            "text": "for (const [key, value] of new Headers(requestOptions?.headers)) headers.set(key, value)"
+          }
+        }
+      ]
     }
   ]
 }
