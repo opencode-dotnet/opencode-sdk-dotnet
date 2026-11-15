@@ -5,8 +5,9 @@ namespace OpenCode.Sdk;
 
 /// <summary>A plugin RPC call's failure, unwrapped as opencode's own client unwraps it.</summary>
 /// <remarks>
-/// The type is an RPC system type such as rpc.unavailable or rpc.invalid_input, or the plugin's declared
-/// error type. The exception message and data are the failure's; Status, Error and RawBody retain the HTTP failure.
+/// ErrorType is an RPC system type such as rpc.unavailable or rpc.invalid_input, or the plugin's declared
+/// error type. The exception message is the failure's message, and ErrorData is the failure's data;
+/// Status, Error and RawBody retain the HTTP failure.
 /// </remarks>
 public sealed class OpenCodeRpcException : OpenCodeApiException
 {

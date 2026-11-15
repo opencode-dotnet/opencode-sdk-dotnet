@@ -206,7 +206,7 @@ internal sealed partial class SnippetCompileGuard(IFileSystem fileSystem, Snippe
                 _ = driver.RunGeneratorsAndUpdateCompilation(compilation, out var output, out var generatorDiagnostics);
                 foreach (var error in generatorDiagnostics.Concat(output.GetDiagnostics()).Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
                 {
-                    violations.Add(Format(error.Location.SourceTree is { } source ? origins[source] : block, error));
+                    violations.Add(Format(error.Location.SourceTree is { } source && origins.TryGetValue(source, out var origin) ? origin : block, error));
                 }
             }
 

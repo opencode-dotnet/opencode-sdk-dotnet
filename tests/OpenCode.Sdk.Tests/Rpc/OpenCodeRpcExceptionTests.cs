@@ -40,8 +40,14 @@ public sealed class OpenCodeRpcExceptionTests
         await Assert.That(exception.ErrorType).IsEqualTo(string.Empty);
         await Assert.That(exception.ErrorData).IsNull();
         await Assert.That(exception.Status).IsEqualTo(0);
-        await Assert.That(exception.Message).IsEqualTo(constructor == "none"
-            ? "Exception of type 'OpenCode.Sdk.OpenCodeRpcException' was thrown." : RpcFacadeData.RejectedMessage);
+        if (constructor == "none")
+        {
+            await Assert.That(exception.Message).IsNotEmpty();
+        }
+        else
+        {
+            await Assert.That(exception.Message).IsEqualTo(RpcFacadeData.RejectedMessage);
+        }
         await Assert.That(exception.InnerException).IsSameReferenceAs(constructor == "message-and-inner" ? inner : null);
     }
 

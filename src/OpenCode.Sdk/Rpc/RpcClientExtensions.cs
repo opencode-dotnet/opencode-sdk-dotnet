@@ -21,7 +21,10 @@ public static class RpcClientExtensions
     /// a value type refuses it unless a custom converter accepts null.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="method"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="requestOptions"/> selects NoThrow.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="requestOptions"/> selects NoThrow, or the RPC id or method name is <c>.</c> or <c>..</c>
+    /// (with ParamName <c>rpcId</c> or <c>method</c>, respectively).
+    /// </exception>
     /// <exception cref="OpenCodeRpcException">The RPC registry or the plugin reported a failure.</exception>
     /// <exception cref="OpenCodeApiException">The API returned another error.</exception>
     /// <exception cref="OpenCodeTransportException">Transport failed, or the output does not match its type.</exception>

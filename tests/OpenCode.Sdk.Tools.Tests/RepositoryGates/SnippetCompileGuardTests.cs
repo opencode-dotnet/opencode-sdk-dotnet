@@ -48,6 +48,9 @@ public sealed class SnippetCompileGuardTests
     [Arguments("README.md", "using System.Text.Json.Serialization;\ninternal sealed record Named(int Value);\n"
         + "[JsonSerializable(typeof(Named))] internal sealed partial class NamedJson : JsonSerializerContext;\n"
         + "internal static class NamedUse { public static object Info => NamedJson.Default.Named; }", "")]
+    [Arguments("README.md", "using System.Text.Json.Serialization;\ninternal sealed record Named(int Value);\n"
+        + "[JsonSerializable(typeof(Named))] internal sealed partial class NamedJson : JsonSerializerContext\n"
+        + "{ public object Named => null!; }", "CS0102: The type 'NamedJson' already contains a definition for 'Named'", 1)]
     [Arguments("README.md", "internal sealed class Named : MissingType { }", "CS0246: The type or namespace name 'MissingType' could not be found (are you missing a using directive or an assembly reference?)")]
     [Arguments("README.md", "Console.Write(1);\ninternal sealed class Named { }", "mixed statements and type declarations must use separate fences.", 1)]
     [Arguments("README.md", "Console.Write(1);\n```\n```csharp\ninternal sealed class Named { }", "")]
