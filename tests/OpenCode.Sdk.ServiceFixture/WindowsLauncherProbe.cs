@@ -56,8 +56,10 @@ internal static class WindowsLauncherProbe
     private static readonly TimeSpan ReleaseBound = TimeSpan.FromSeconds(10);
 
     /// <summary>
-    /// How long a probe's start waits for readiness: below the 120-second test timeout that ends the
-    /// probe process, so a server that stays silent fails here, naming the bound and its stderr tail.
+    /// How long a probe's start waits for readiness. With a failed start's cleanup (up to 29 seconds on
+    /// Windows) it stays below the timeouts of the tests that end the probe process, 120 seconds for the
+    /// handle-isolation probe and 240 seconds for the handle cycles, so a server that stays silent fails
+    /// here, naming the bound and its stderr tail.
     /// </summary>
     private static readonly TimeSpan ReadinessBound = TimeSpan.FromSeconds(45);
 
