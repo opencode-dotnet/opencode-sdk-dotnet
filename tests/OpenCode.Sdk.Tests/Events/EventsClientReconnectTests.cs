@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -19,18 +21,58 @@ namespace OpenCode.Sdk.Tests.Events;
 /// </summary>
 public sealed class EventsClientReconnectTests
 {
+    [Test]
+    public async Task SubscribeAsync_Should_Decode_Unselected_Frames_And_Reconnect_All_Subscribers_On_Invalid_Json()
+    {
+        using var initial = new LiveEventBody(EventStreamSteps.ConnectedFrame);
+        using var replacement = new LiveEventBody(EventStreamSteps.ConnectedFrame);
+        using var server = new ScriptedEventServer(index => ScriptedEventServer.Stream(index == 1 ? initial : replacement));
+        var request = new EventSubscribeRequest { Types = [new("rpc.sdk-test")] };
+        await using var first = server.Events.SubscribeAsync(request).GetAsyncEnumerator();
+        await using var second = server.Events.SubscribeAsync(request).GetAsyncEnumerator();
+        var oldMarker = await EventStreamSteps.NextAsync(first);
+        await Assert.That(await EventStreamSteps.NextAsync(second)).IsSameReferenceAs(oldMarker);
+        await Assert.That(server.RequestCount).IsEqualTo(1);
+        Drop(initial, "malformed-frame");
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+        server.Time.Advance(Delay);
+        var newMarker = await EventStreamSteps.NextAsync(first);
+        await Assert.That(newMarker).IsNotSameReferenceAs(oldMarker);
+        await Assert.That(await EventStreamSteps.NextAsync(second)).IsSameReferenceAs(newMarker);
+        var drifted = System.Text.Json.Nodes.JsonNode.Parse(ScriptedEventServer.Connected)!.AsObject();
+        drifted["data"] = false;
+        replacement.Append(WireBodyData.Frames(drifted.ToJsonString()));
+        var left = await EventStreamSteps.NextAsync(first);
+        var right = await EventStreamSteps.NextAsync(second);
+
+        await Assert.That(left).IsTypeOf<UnknownEvent>();
+        await Assert.That(left.Type).IsEqualTo("server.connected");
+        await Assert.That(right).IsSameReferenceAs(left);
+        await Assert.That(server.RequestCount).IsEqualTo(2);
+        await Assert.That(server.EarlierResponsesReleased).IsEquivalentTo([true, true], CollectionOrdering.Matching);
+    }
+
     private readonly FixtureLoader _fixtures = new();
 
     [Test]
     [Arguments("door")]
     [Arguments("spine")]
-    public async Task Per_Call_Location_Should_Be_Sent_On_Every_Reconnect_Attempt(string entry)
+    public async Task SubscribeAsync_Should_Send_Only_The_Ambient_Location_Or_Refuse_The_Raw_Spine(string entry)
     {
         var time = new ManualTimeProvider();
         using var handler = CreateReconnectHandler();
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" }, time: time);
-        var stream = Subscribe(entry, pipeline, new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/override/ç" } });
+        var options = new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/override/ç" } };
+        if (string.Equals(entry, "spine", StringComparison.Ordinal))
+        {
+            var refusal = await Assert.That(() => Subscribe(entry, pipeline, options)).Throws<InvalidOperationException>();
+            await Assert.That(refusal!.Message).IsEqualTo("Operation 'event.subscribe' must be opened through its shared event feed.");
+            await Assert.That(handler.Requests).IsEmpty();
+            return;
+        }
+
+        var stream = Subscribe(entry, pipeline, options);
         await Assert.That(handler.Requests).IsEmpty().Because(entry);
         await using var events = stream.GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
@@ -46,7 +88,8 @@ public sealed class EventsClientReconnectTests
         }
 
         await Assert.That(handler.Requests.Select(static request => request.Headers["x-opencode-directory"]))
-            .IsEquivalentTo(["%2Foverride%2F%C3%A7", "%2Foverride%2F%C3%A7", "%2Foverride%2F%C3%A7"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["%2Fambient", "%2Fambient", "%2Fambient"], CollectionOrdering.Matching);
+        await Assert.That(options.Location.Directory).IsEqualTo("/override/ç");
     }
 
     [Test]
@@ -608,11 +651,21 @@ public sealed class EventsClientReconnectTests
     public async Task SubscribeAsync_Should_Release_The_Response_While_The_Consumer_Holds_An_Event(bool disposeClient)
     {
         using var body = new LiveEventBody(ConnectedFrame);
+        var initiallyReading = body.NextEmptyRead;
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
         using var caller = new CancellationTokenSource();
         await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-        server.Time.Advance(TimeSpan.FromMinutes(10));
+        await initiallyReading.WaitAsync(HangGuard.Bound);
+        var interval = TimeSpan.FromTicks(IdleWindow.Ticks / 2);
+        for (var elapsed = TimeSpan.Zero; elapsed < TimeSpan.FromMinutes(10); elapsed += interval)
+        {
+            server.Time.Advance(interval);
+            var reading = body.NextEmptyRead;
+            body.Append(ScriptedEventServer.Heartbeat);
+            await reading.WaitAsync(HangGuard.Bound);
+        }
+
         await Assert.That(body.IsDisposed).IsFalse();
 
         if (disposeClient)
@@ -625,6 +678,7 @@ public sealed class EventsClientReconnectTests
         }
 
         // Assert release while still suspended at the yield, before requesting another event.
+        await ObserveFeedStopAsync(server.Events);
         await Assert.That(server.AllResponsesReleased).IsTrue();
         await Assert.That(body.IsDisposed).IsTrue();
         if (disposeClient)
@@ -641,6 +695,12 @@ public sealed class EventsClientReconnectTests
 
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
+    }
+
+    private static async Task ObserveFeedStopAsync(EventsClient events)
+    {
+        var feed = (SharedEventFeed)typeof(EventsClient).GetField("_feed", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(events)!;
+        await feed.JoinAsync().WaitAsync(HangGuard.Bound);
     }
 
     /// <summary>Asserts the pull ends in the caller's own cancellation with the stream's canceled text.</summary>
@@ -742,7 +802,7 @@ public sealed class EventsClientReconnectTests
         }
     }
 
-    /// <summary>Opens the event bus through the generated door or straight through the stream spine it forwards to.</summary>
+    /// <summary>Exercises the public door or the raw stream spine's explicit refusal.</summary>
     private static IAsyncEnumerable<IEvent> Subscribe(string entry, Pipeline pipeline, OpenCodeRequestOptions options) => entry == "door"
         ? new EventsClient(pipeline).SubscribeAsync(requestOptions: options)
         : pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event", EventSubscribeResponseStreamAdapter.Instance, options, CancellationToken.None);

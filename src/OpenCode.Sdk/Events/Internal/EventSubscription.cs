@@ -126,7 +126,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
         }
         else if (TryObserveCancellation(out var token))
         {
-            EndLocked(new SubscriptionEnd(new OperationCanceledException(token), false, true), work);
+            EndLocked(new SubscriptionEnd(Canceled(token), false, true), work);
         }
         else if (_queue is null)
         {
@@ -214,7 +214,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
         if (TryObserveCancellation(out var token))
         {
             DrainLocked();
-            EndLocked(new SubscriptionEnd(new OperationCanceledException(token), false, true), work);
+            EndLocked(new SubscriptionEnd(Canceled(token), false, true), work);
         }
     });
 
@@ -236,8 +236,8 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
             // Detach before ending: ending resolves a pending move through this same routine.
             _pending = null;
             DrainLocked();
-            EndLocked(new SubscriptionEnd(new OperationCanceledException(token), false, true), work);
-            SettleLocked(move, new Delivery<T>(null, new OperationCanceledException(token)));
+            EndLocked(new SubscriptionEnd(Canceled(token), false, true), work);
+            SettleLocked(move, new Delivery<T>(null, Canceled(token)));
         }
         else if (offered is null && TryTakeLocked(out var item))
         {
@@ -266,6 +266,10 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
 
         _ = move.Settle(delivery);
     }
+
+    private OperationCanceledException Canceled(CancellationToken token) => selection is null
+        ? new OperationCanceledException(token)
+        : new OperationCanceledException(FailureClassification.CanceledMessage(FailurePhase.EventStreamRead), token);
 
     private bool TryTakeLocked(out T? item)
     {

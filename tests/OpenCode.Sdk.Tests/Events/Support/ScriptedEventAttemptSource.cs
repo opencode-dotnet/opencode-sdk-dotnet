@@ -58,6 +58,7 @@ internal sealed class ScriptedEventAttemptSource : IEventAttemptSource
         internal TaskCompletionSource CleanupReleased { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public CancellationToken Token { get; } = token;
         public Exception? CleanupFailure { get; set; }
+        public Func<IEvent, Task>? BeforeReturn { get; set; }
         public IEvent Current { get; private set; } = null!;
 
         public IAsyncEnumerator<IEvent> GetAsyncEnumerator(CancellationToken cancellationToken = default) => this;
@@ -73,6 +74,11 @@ internal sealed class ScriptedEventAttemptSource : IEventAttemptSource
                     attempt.OnFrame(new ServerSentEvent(ServerSentEvent.DefaultName, Encoding.UTF8.GetBytes(ScriptedEventServer.Connected)));
                     Current = publication.Event;
                     _previous = publication;
+                    if (BeforeReturn is { } beforeReturn)
+                    {
+                        await beforeReturn(Current);
+                    }
+
                     return true;
                 }
             }

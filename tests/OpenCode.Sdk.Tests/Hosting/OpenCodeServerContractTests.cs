@@ -183,11 +183,13 @@ public sealed class OpenCodeServerContractTests
                 .GetField("_exchange", BindingFlags.NonPublic | BindingFlags.Instance)!
                 .GetValue(pipeline));
         await Assert.That(carriedWindow).IsEqualTo(sentinelWindow);
-        var carriedIdleWindow = (TimeSpan)typeof(ReconnectingEventStream)
+        var carriedIdleWindow = (TimeSpan)typeof(EventSourceRunner)
             .GetField("_idleWindow", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(typeof(Pipeline)
-                .GetField("_reconnectingEventStream", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .GetValue(pipeline))!;
+            .GetValue(typeof(SharedEventFeed)
+                .GetField("_runner", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(typeof(EventsClient)
+                    .GetField("_feed", BindingFlags.NonPublic | BindingFlags.Instance)!
+                    .GetValue(client.Events)))!;
         await Assert.That(carriedIdleWindow).IsEqualTo(sentinelIdleWindow);
     }
 

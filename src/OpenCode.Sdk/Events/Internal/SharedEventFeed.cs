@@ -12,8 +12,24 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     private EventSource? _current;
     private IEvent? _marker;
 
+    internal SharedEventFeed(Pipeline pipeline)
+        : this(new EventAttemptSource(pipeline), pipeline.Connection.Time, pipeline.IdleWindow, new NoOpEventFeedGateProbe())
+    {
+    }
+
     internal Lock Gate { get; } = new();
     internal bool IsDisposed { get; private set; }
+
+    public void ThrowIfDisposed()
+    {
+        lock (Gate)
+        {
+            if (IsDisposed)
+            {
+                throw FailureClassification.DisposedClient();
+            }
+        }
+    }
 
     public async Task JoinAsync()
     {

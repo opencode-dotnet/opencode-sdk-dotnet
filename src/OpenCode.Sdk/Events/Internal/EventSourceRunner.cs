@@ -3,6 +3,7 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>Owns physical attempts independently of consumer pulls; cleanup failures escape the attempt boundary.</summary>
 internal sealed class EventSourceRunner(IEventAttemptSource attempts, TimeProvider time, TimeSpan idleWindow)
 {
+    private readonly TimeSpan _idleWindow = idleWindow;
     public async Task RunAsync(SharedEventFeed feed, EventSource source)
     {
         while (feed.IsCurrent(source))
@@ -20,7 +21,7 @@ internal sealed class EventSourceRunner(IEventAttemptSource attempts, TimeProvid
 
     private async Task ReadAttemptAsync(SharedEventFeed feed, EventSource source)
     {
-        using var attempt = new StreamAttempt(time, idleWindow, source.Token);
+        using var attempt = new StreamAttempt(time, _idleWindow, source.Token);
         var events = attempts.OpenAsync(attempt, attempt.Token).GetAsyncEnumerator(attempt.Token);
         await using var enumeration = events.ConfigureAwait(false);
         while (true)
