@@ -692,7 +692,7 @@ public sealed class ServiceEnsurerTests
         DeadlineAfter(clockReads: 40);
 
         var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
-            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            ReplacementOptions(),
             CancellationToken.None)).Throws<OpenCodeServerException>();
 
         await Assert.That(exception!.Message).IsEqualTo(ServiceEnsurer.TimeoutMessage);
@@ -713,7 +713,7 @@ public sealed class ServiceEnsurerTests
             });
 
         var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
-            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            ReplacementOptions(),
             caller.Token)).Throws<OperationCanceledException>();
 
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
@@ -846,7 +846,7 @@ public sealed class ServiceEnsurerTests
         try
         {
             var registration = await Ensurer().EnsureAsync(
-                new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+                ReplacementOptions(),
                 CancellationToken.None);
 
             await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
@@ -1027,6 +1027,9 @@ public sealed class ServiceEnsurerTests
             .That(async () => _ = await Ensurer().EnsureAsync(options: null, new CancellationToken(canceled: true)))
             .Throws<OperationCanceledException>();
     }
+
+    private static OpenCodeServerEnsureOptions ReplacementOptions() =>
+        new() { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace };
 
     private async Task<IReadOnlyDictionary<string, string?>> EnsureEnvironmentFromConfigAsync(
         string fixtureName, IReadOnlyDictionary<string, string>? callerEnvironment = null)
