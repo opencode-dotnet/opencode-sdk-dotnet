@@ -9,6 +9,10 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 💥 Breaking changes
+
+- `OpenCodeServerOptions.ReadinessTimeout` now defaults to `Timeout.InfiniteTimeSpan`: a standalone start waits for readiness until its cancellation token fires, as opencode's CLI does. Before: `StartAsync()` failed after 60 seconds without a readiness line. After: pass a token, or set `ReadinessTimeout`, to bound it.
+
 ### 🔧 Changes
 
 - Background-service discovery (`OpenCodeServer.DiscoverAsync` and the probe `EnsureAsync` runs) now takes the client's proxy decision for a loopback service. Behind an environment proxy (`HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`), set `NO_PROXY` to reach a loopback service directly, as with opencode's CLI; behind a system proxy, that proxy's own bypass list applies, as it does for the client. .NET Framework is unchanged.

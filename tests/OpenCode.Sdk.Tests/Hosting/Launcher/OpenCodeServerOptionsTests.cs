@@ -9,6 +9,14 @@ public sealed class OpenCodeServerOptionsTests
     private static readonly TimeSpan TimerCeiling = TimeSpan.FromMilliseconds(int.MaxValue);
 
     [Test]
+    public async Task ReadinessTimeout_Should_Default_To_Infinite()
+    {
+        var options = new OpenCodeServerOptions();
+
+        await Assert.That(options.ReadinessTimeout).IsEqualTo(Timeout.InfiniteTimeSpan);
+    }
+
+    [Test]
     public async Task ReadinessTimeout_Should_Accept_Its_Range_And_Infinite()
     {
         foreach (var value in new[] { TimeSpan.FromTicks(1), TimeSpan.FromSeconds(60), TimerCeiling, Timeout.InfiniteTimeSpan })
@@ -27,7 +35,7 @@ public sealed class OpenCodeServerOptionsTests
             var options = new OpenCodeServerOptions();
 
             _ = await Assert.That(() => options.ReadinessTimeout = value).Throws<ArgumentOutOfRangeException>();
-            await Assert.That(options.ReadinessTimeout).IsEqualTo(TimeSpan.FromSeconds(60));
+            await Assert.That(options.ReadinessTimeout).IsEqualTo(Timeout.InfiniteTimeSpan);
         }
     }
 

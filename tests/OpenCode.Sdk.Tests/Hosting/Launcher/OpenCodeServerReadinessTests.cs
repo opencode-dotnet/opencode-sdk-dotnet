@@ -76,6 +76,43 @@ public sealed class OpenCodeServerReadinessTests
 
     [Test]
     [Timeout(120_000)]
+    public async Task StartAsync_Should_Wait_Without_A_Default_Readiness_Timeout(CancellationToken cancellationToken)
+    {
+        using var caller = new CancellationTokenSource();
+        var time = new ManualTimeProvider();
+        var entered = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var processId = 0;
+        var seams = ObserveSpawn(LauncherSeams.ForCurrentProcess(), (pid, _) => processId = pid, static stdout => stdout) with
+        {
+            Time = time,
+            ReadinessWait = (pending, token) =>
+            {
+                _ = entered.TrySetResult(token);
+                return pending.WaitAsync(token).WaitAsync(HangGuard, cancellationToken);
+            },
+        };
+        var starting = OpenCodeServer.StartWithSeamsAsync(
+            new OpenCodeServerOptions { Command = ["bun", "-e", "setInterval(() => {}, 1000);"] }, seams, caller.Token);
+        try
+        {
+            var readinessToken = await entered.Task.WaitAsync(HangGuard, cancellationToken);
+            time.Advance(TimeSpan.FromMinutes(2));
+            await Assert.That(readinessToken.IsCancellationRequested).IsFalse();
+            await Assert.That(starting.IsCompleted).IsFalse();
+
+            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard, cancellationToken);
+            await AssertCallerCancellationAsync(starting, caller, processId, cancellationToken);
+        }
+        finally
+        {
+            // Cleanup must join the start even when the test's token has fired.
+            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard, CancellationToken.None);
+            await ReleaseStartAsync(starting, originalOutput: null, processId);
+        }
+    }
+
+    [Test]
+    [Timeout(120_000)]
     public async Task StartAsync_Should_Keep_A_Readiness_Timeout_When_The_Caller_Cancels_During_Teardown(CancellationToken cancellationToken)
     {
         using var caller = new CancellationTokenSource();

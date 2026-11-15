@@ -7,7 +7,7 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeServerOptions
 {
-    private TimeSpan _readinessTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _readinessTimeout = Timeout.InfiniteTimeSpan;
     private TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(3);
 
     /// <summary>
@@ -56,10 +56,9 @@ public sealed class OpenCodeServerOptions
 
     /// <summary>
     /// Gets or sets how long the start waits for the JSON readiness line before failing and
-    /// ending the child: above zero and at most <see cref="int.MaxValue"/> milliseconds, the
-    /// longest every supported timer can represent, or <see cref="Timeout.InfiniteTimeSpan"/> to
-    /// wait until the start's cancellation token fires. The default is 60 seconds — source-run
-    /// servers boot slowly on cold CI runners.
+    /// ending the child. The default is <see cref="Timeout.InfiniteTimeSpan"/>, which waits until
+    /// the start's cancellation token fires, as upstream's standalone start does. A value above zero
+    /// and at most <see cref="int.MaxValue"/> milliseconds bounds the wait.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is zero, negative other than <see cref="Timeout.InfiniteTimeSpan"/>, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
     public TimeSpan ReadinessTimeout
