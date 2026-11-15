@@ -569,7 +569,9 @@ jobs:
         continue-on-error: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         with:
           name: "Test Results (${{ matrix.name }})"
-          path: "test-results/**/*.trx"
+          # Read only direct TRX files: merged/ reports repeat module results and inflate
+          # the reporter totals posted to the badges.
+          path: "test-results/*/*.trx"
           reporter: dotnet-trx
           path-replace-backslashes: true
           fail-on-error: true
