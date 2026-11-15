@@ -13,7 +13,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class SystemConfigurationIsolationLiveTests
 {
-    private readonly RealFileSystem FileSystem = new();
+    private readonly RealFileSystem _fileSystem = new();
 
     /// <summary>
     /// A configuration document seeded under the run root's own <c>ProgramData</c> reaches the
@@ -30,10 +30,10 @@ public sealed class SystemConfigurationIsolationLiveTests
             return;
         }
 
-        using var runRoot = new TestRunRoot(FileSystem);
+        using var runRoot = new TestRunRoot(_fileSystem);
         var seeded = await SeedSystemDocumentAsync(runRoot, cancellationToken);
-        await using var server = await new PinnedServerLaunch(FileSystem).StartAsync(runRoot, cancellationToken: cancellationToken);
-        using var workspace = new TestWorkspace(FileSystem, runRoot.Path);
+        await using var server = await new PinnedServerLaunch(_fileSystem).StartAsync(runRoot, cancellationToken: cancellationToken);
+        using var workspace = new TestWorkspace(_fileSystem, runRoot.Path);
         using var client = server.CreateClient(options => options.Location = new LocationSelector { Directory = workspace.Path });
 
         var response = await client.Config.GetConfigAsync(cancellationToken: cancellationToken);
@@ -47,14 +47,14 @@ public sealed class SystemConfigurationIsolationLiveTests
     /// <summary>Writes an empty configuration document where the server's system directory resolves.</summary>
     private async Task<string> SeedSystemDocumentAsync(TestRunRoot runRoot, CancellationToken cancellationToken)
     {
-        var system = FileSystem.Path.Combine(SystemConfigurationSources.ProgramDataFor(FileSystem, runRoot.Path), "opencode");
-        _ = FileSystem.Directory.CreateDirectory(system);
-        var document = FileSystem.Path.Combine(system, "opencode.json");
+        var system = _fileSystem.Path.Combine(SystemConfigurationSources.ProgramDataFor(_fileSystem, runRoot.Path), "opencode");
+        _ = _fileSystem.Directory.CreateDirectory(system);
+        var document = _fileSystem.Path.Combine(system, "opencode.json");
 #if NET
-        await FileSystem.File.WriteAllTextAsync(document, "{}", cancellationToken);
+        await _fileSystem.File.WriteAllTextAsync(document, "{}", cancellationToken);
 #else
         cancellationToken.ThrowIfCancellationRequested();
-        FileSystem.File.WriteAllText(document, "{}");
+        _fileSystem.File.WriteAllText(document, "{}");
         await Task.CompletedTask;
 #endif
         return document;

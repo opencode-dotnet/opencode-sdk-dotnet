@@ -21,7 +21,7 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
     private const string SidecarSuffix = ".pty-handoff";
     private const string SidecarContent = "{\"source\":{},\"handoff\":null,\"expiresAt\":0}";
     private const string OtherPassword = "not-the-daemon-s-p455";
-    private readonly RealFileSystem FileSystem = new();
+    private readonly RealFileSystem _fileSystem = new();
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(30);
 
     [Test]
@@ -34,8 +34,8 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
         await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions { RegistrationFilePath = service.RegistrationFile }, cancellationToken);
 
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(service.ProcessId, ExitBound, cancellationToken)).IsTrue();
-        await Assert.That(service.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
-        await Assert.That(sidecar).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(service.RegistrationFile).Satisfies(path => !_fileSystem.File.Exists(path));
+        await Assert.That(sidecar).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -45,13 +45,13 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
         var environment = service.Environment.ToDictionary(
             static pair => pair.Key, static pair => (string?)pair.Value, StringComparer.Ordinal);
 
-        var result = await new ServiceFixtureCommand(FileSystem)
+        var result = await new ServiceFixtureCommand(_fileSystem)
             .RunAsync(["stop-channel", PinnedManagedServiceFixture.Channel], environment, cancellationToken);
 
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
         await Assert.That(result.StandardOutput.Trim()).IsEqualTo("stopped").Because(result.StandardError);
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(service.ProcessId, ExitBound, cancellationToken)).IsTrue();
-        await Assert.That(service.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(service.RegistrationFile).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -61,13 +61,13 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
         // A registration carrying the daemon's endpoint but a pid no process runs under: the info
         // answer's pid does not match, so nothing is asked of the daemon, and no process is
         // signalled; the dead record goes, the daemon's own stays.
-        var other = FileSystem.Path.Combine(service.RunRoot, "other-registration.json");
+        var other = _fileSystem.Path.Combine(service.RunRoot, "other-registration.json");
         Seed(other, ServiceRegistrationDocument.Compose("other", service.Version, service.Endpoint, int.MaxValue, OtherPassword));
 
         await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions { RegistrationFilePath = other }, cancellationToken);
 
-        await Assert.That(other).Satisfies(path => !FileSystem.File.Exists(path));
-        await Assert.That(service.RegistrationFile).Satisfies(FileSystem.File.Exists);
+        await Assert.That(other).Satisfies(path => !_fileSystem.File.Exists(path));
+        await Assert.That(service.RegistrationFile).Satisfies(_fileSystem.File.Exists);
         await Assert.That(ProcessObservation.IsRunning(service.ProcessId)).IsTrue();
         // "Still answering" is a claim about another process: one discover call answers null
         // whenever its two-second probe bound expires, which a loaded host can make it do while
@@ -83,5 +83,5 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
     }
 
     /// <summary>Writes one file beside the daemon's own; synchronous, the shape every test leg's Testably asset has.</summary>
-    private void Seed(string path, string content) => FileSystem.File.WriteAllText(path, content);
+    private void Seed(string path, string content) => _fileSystem.File.WriteAllText(path, content);
 }

@@ -104,7 +104,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(error.Message).IsEqualTo("Unknown RPC method: " + TestRpcPlugin.Id + "." + MissingMethod);
         await Assert.That(error.Data).IsNull();
 
-        Console.WriteLine(WriteError("method-not-found", response, error.Type));
+        Console.WriteLine(ErrorLine("method-not-found", response, error.Type));
     }
 
     [Test]
@@ -133,7 +133,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(error.Message).Contains("string");
         await Assert.That(error.Data).IsNull();
 
-        Console.WriteLine(WriteError("invalid-input", response, error.Type));
+        Console.WriteLine(ErrorLine("invalid-input", response, error.Type));
     }
 
     [Test]
@@ -162,7 +162,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(data.GetProperty("code").GetString()).IsEqualTo(DeclaredErrorCode);
         await Assert.That(data.GetProperty("nonce").GetString()).IsEqualTo(Nonce);
 
-        Console.WriteLine(WriteError("declared-error", response, error.Type));
+        Console.WriteLine(ErrorLine("declared-error", response, error.Type));
     }
 
     [Test]
@@ -189,7 +189,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(string.IsNullOrWhiteSpace(error.Message)).IsFalse();
         await Assert.That(error.Data).IsNull();
 
-        Console.WriteLine(WriteError("invalid-output", response, "rpc.invalid_output"));
+        Console.WriteLine(ErrorLine("invalid-output", response, "rpc.invalid_output"));
     }
 
     [Test]
@@ -216,7 +216,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(error.Message).IsEqualTo(InternalErrorMessage);
         await Assert.That(error.Data).IsNull();
 
-        Console.WriteLine(WriteError("internal-error", response, "rpc.internal"));
+        Console.WriteLine(ErrorLine("internal-error", response, "rpc.internal"));
     }
 
     [Test]
@@ -365,7 +365,7 @@ public sealed class RpcClientLiveTests(PinnedOpenCodeServerFixture server)
         return error;
     }
 
-    private static string WriteError(string arm, RpcCallResponse response, string type) =>
+    private static string ErrorLine(string arm, RpcCallResponse response, string type) =>
         "rpc-live: mode=owned arm=" + arm +
         " status=" + Number(response.Status) +
         " type=" + type +

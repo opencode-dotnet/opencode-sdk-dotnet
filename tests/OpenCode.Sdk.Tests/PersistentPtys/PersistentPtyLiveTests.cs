@@ -156,7 +156,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// asserts that answer rather than skipping the test.
     /// </summary>
     /// <param name="created">The create answer this platform produced.</param>
-    /// <returns>The assertion.</returns>
+    /// <returns>The evidence line the calling test prints.</returns>
     private static async Task<string> AssertSubmitHasNoTerminalAsync(PersistentPtyCreateResponse created)
     {
         await Assert.That(created.Status).IsEqualTo(503);
@@ -177,7 +177,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// <param name="sessionId">The session whose terminal list proves removal.</param>
     /// <param name="created">The terminal the daemon created.</param>
     /// <param name="cancellationToken">The test's own deadline.</param>
-    /// <returns>The assertion.</returns>
+    /// <returns>The evidence line the calling test prints.</returns>
     private static async Task<string> AssertSubmittedLineRunsAsync(
         OpenCodeClient client,
         string sessionId,
