@@ -11,6 +11,15 @@ namespace OpenCode.Sdk.Tests.Events;
 
 public sealed class EventsClientTests
 {
+    [Test]
+    public async Task SubscribeAsync_Should_Refuse_A_Pull_On_The_Unenumerated_Recipe()
+    {
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(EventStreamSteps.ConnectedFrame));
+        await using var recipe = (IAsyncEnumerator<IEvent>)server.Events.SubscribeAsync();
+        await EventStreamSteps.AssertRecipePullRefusedAsync(recipe);
+        await Assert.That(server.RequestCount).IsEqualTo(0);
+    }
+
     private readonly FixtureLoader _fixtures = new();
 
     [Test]

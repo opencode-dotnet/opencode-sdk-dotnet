@@ -14,7 +14,15 @@ internal sealed class EventStateWatcher(SharedEventFeed feed, CancellationToken 
     public IAsyncEnumerator<EventConnectionState> GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
         new EventStateWatcher(feed, callToken, cancellationToken);
 
-    public ValueTask<bool> MoveNextAsync() => _subscription!.MoveNextAsync();
+    public ValueTask<bool> MoveNextAsync()
+    {
+        if (enumerableOnly)
+        {
+            throw new InvalidOperationException(EventSubscription<EventConnectionState>.EnumerateRecipeMessage);
+        }
+
+        return _subscription!.MoveNextAsync();
+    }
 
     public ValueTask DisposeAsync() => _subscription?.DisposeAsync() ?? default;
 }

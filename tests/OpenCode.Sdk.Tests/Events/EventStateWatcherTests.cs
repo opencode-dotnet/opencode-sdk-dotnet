@@ -7,6 +7,15 @@ namespace OpenCode.Sdk.Tests.Events;
 public sealed class EventStateWatcherTests
 {
     [Test]
+    public async Task WatchConnectionAsync_Should_Refuse_A_Pull_On_The_Unenumerated_Recipe()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var recipe = (IAsyncEnumerator<EventConnectionState>)scenario.Feed.Watch(default);
+        await EventStreamSteps.AssertRecipePullRefusedAsync(recipe);
+        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task WatchConnectionAsync_Should_Remain_Alive_And_Report_Idle_After_A_Source_Fault()
     {
         await using var scenario = new SharedEventFeedScenario();

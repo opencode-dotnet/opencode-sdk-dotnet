@@ -8,6 +8,9 @@ namespace OpenCode.Sdk.Internal;
 internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection? selection,
     CancellationToken callToken, CancellationToken enumeratorToken, bool enumerableOnly = false) : IAsyncEnumerable<T>, IAsyncEnumerator<T> where T : class
 {
+    internal const string EnumerateRecipeMessage =
+        "Enumerate the returned sequence with GetAsyncEnumerator before calling MoveNextAsync.";
+
     private readonly Channel<T>? _queue = selection is null || enumerableOnly ? null : Channel.CreateBounded<T>(
         new BoundedChannelOptions(EventFeedBounds.SubscriberCapacity)
         {
@@ -16,7 +19,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
             SingleWriter = false,
             AllowSynchronousContinuations = false,
         });
-    private List<CancellationTokenRegistration>? _leases = enumerableOnly ? null : [];
+    private readonly List<CancellationTokenRegistration>? _leases = enumerableOnly ? null : [];
     private T? _latest;
     private EventPendingMove<T>? _pending;
     private SubscriptionEnd? _end;
@@ -54,6 +57,11 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
 
     public ValueTask<bool> MoveNextAsync()
     {
+        if (enumerableOnly)
+        {
+            throw new InvalidOperationException(EnumerateRecipeMessage);
+        }
+
         if (Interlocked.CompareExchange(ref _moving, 1, 0) != 0)
         {
             throw new InvalidOperationException("An event enumeration cannot have concurrent moves.");
@@ -87,7 +95,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
     {
         if (_end is null && !_disposed)
         {
-            (_leases ??= []).Add(lease);
+            _leases!.Add(lease);
         }
         else
         {

@@ -113,6 +113,13 @@ internal sealed class EventStreamSteps
         await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
     }
 
+    internal static async Task AssertRecipePullRefusedAsync<T>(IAsyncEnumerator<T> recipe)
+    {
+        var failure = await Assert.That(async () => await recipe.MoveNextAsync()).Throws<InvalidOperationException>();
+        await Assert.That(failure!.Message)
+            .IsEqualTo("Enumerate the returned sequence with GetAsyncEnumerator before calling MoveNextAsync.");
+    }
+
     internal static async Task<T> NextAsync<T>(IAsyncEnumerator<T> events)
     {
         if (!await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))

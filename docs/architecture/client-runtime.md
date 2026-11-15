@@ -448,8 +448,8 @@ resolves the message's network window from those carried traits.
   From admission on, every selected event fanned out by the feed is offered in source read order until
   the subscription ends. An event read before admission but published through the gate afterwards is
   included. A cached marker is handed over before later publications and may share its Id with other
-   subscriptions; it is the latest marker published by the source. A join during a drop waits for
-   the next validated marker. No business history is replayed.
+  subscriptions; it is the latest marker published by the source. A join during a drop waits for
+  the next validated marker. No business history is replayed.
 - A later marker announces a possible gap: refresh authoritative state. Event objects are shared references; treat them as read-only.
   Payload graphs and metadata dictionaries are not deep-frozen. Sharing also shifts wire and decode
   cost to the whole bus, once per client. Invalid JSON in unselected traffic fails the shared attempt
@@ -526,9 +526,9 @@ resolves the message's network window from those carried traits.
 - Recorded divergences and omissions (ADR-0041):
   - Upstream's shared layer ends subscribers on a source failure and Solid retries above it; the SDK
     composes retry inside its one shared source. Revisit if upstream changes those layer boundaries.
-   - Upstream abort ends with done and, after source completion or subscriber overflow, no longer
-     overrides the stored ending. The SDK's public cancellation contract requires OCE and live
-     cancellation over a fault-preserved prefix or a stored overflow ending.
+  - Upstream abort ends with done and, after source completion or subscriber overflow, no longer
+    overrides the stored ending. The SDK's public cancellation contract requires OCE and live
+    cancellation over a fault-preserved prefix or a stored overflow ending.
     Revisit only with a change to that SDK-wide contract. Prefix preservation on source fault itself
     follows upstream and is not a divergence.
   - Error is an Exception rather than a message, Idle explicitly represents no source, and overflow

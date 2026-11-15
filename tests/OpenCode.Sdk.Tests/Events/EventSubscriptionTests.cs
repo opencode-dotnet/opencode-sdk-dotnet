@@ -344,6 +344,23 @@ public sealed class EventSubscriptionTests
     }
 
     [Test]
+    public async Task Cancellation_Should_Discard_The_Queued_Backlog_Before_The_Next_Pull()
+    {
+        using var caller = new CancellationTokenSource();
+        await using var scenario = new SharedEventFeedScenario();
+        await using var events = await scenario.AdmitAsync("live-cancel-marker", caller.Token);
+        await scenario.PublishPrefixAsync("cancel-one", "cancel-two");
+        await Assert.That(events.RetainedCount).IsEqualTo(2);
+        await Assert.That(scenario.Feed.GetConnectionState().Status).IsEqualTo(EventConnectionStatus.Connected);
+
+        await caller.CancelOnWorkerAsync();
+        await Assert.That(events.RetainedCount).IsEqualTo(0);
+        var canceled = await EventStreamSteps.PendingCancellationAsync(events).WaitAsync(HangGuard.Bound);
+        await Assert.That(canceled).IsNotNull();
+        await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
+    }
+
+    [Test]
     public async Task MoveNextAsync_Should_Discard_A_Preserved_Backlog_When_The_Token_Is_Cancelled()
     {
         using var caller = new CancellationTokenSource();

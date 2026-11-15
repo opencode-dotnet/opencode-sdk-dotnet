@@ -108,6 +108,12 @@ public sealed class EventsClientReconnectTests
 
         await Assert.That(exception!.GetType()).IsEqualTo(kind == 1 ? typeof(ArgumentOutOfRangeException) : typeof(ArgumentException));
         await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
+        if (kind == 0)
+        {
+            await Assert.That(exception.Message).StartsWith(
+                "Event subscriptions report ordinary attempt failures through connection state; NoThrow is not supported.");
+        }
+
         if (exception is ArgumentOutOfRangeException range)
         {
             await Assert.That(range.ActualValue).IsEqualTo(options.ErrorBehavior);

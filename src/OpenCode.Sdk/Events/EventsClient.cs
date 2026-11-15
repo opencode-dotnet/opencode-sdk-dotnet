@@ -51,7 +51,7 @@ public class EventsClient
     {
         var feed = Feed;
         feed.ThrowIfDisposed();
-        ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Streams");
+        ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Streams", ErrorBehaviorPolicy.EventSubscriptionNoThrowMessage);
         if (requestOptions?.NetworkTimeout is not null)
         {
             throw new ArgumentException(FailureClassification.EventStreamNetworkTimeoutMessage, nameof(requestOptions));
