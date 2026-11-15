@@ -51,7 +51,7 @@ internal sealed class SnapshotSynchronizer(
             NormalizedBytes = generated.NormalizedBytes,
             Patches = generated.Patches,
             WatchedSources = watchedSources,
-        }, state, cancellationToken).ConfigureAwait(false);
+        }, state, watch.Sources, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<VerifyOutcome> VerifyAsync(CancellationToken cancellationToken)
@@ -80,7 +80,7 @@ internal sealed class SnapshotSynchronizer(
         return await committer.CommitAsync(plan, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<PrepareOutcome> WriteScratchArtifactsAsync(PreparedCandidate candidate, SnapshotState state,
+    private async Task<PrepareOutcome> WriteScratchArtifactsAsync(PreparedCandidate candidate, SnapshotState state, IReadOnlyList<WatchedSource> pinnedSources,
         CancellationToken cancellationToken)
     {
         var stats = DocumentInspector.Inspect(candidate.NormalizedBytes);
@@ -110,7 +110,13 @@ internal sealed class SnapshotSynchronizer(
         var receiptPath = fileSystem.Path.Combine(candidate.ScratchDirectory, "receipt.json");
         await fileSystem.File.WriteAllTextAsync(receiptPath,
             SnapshotStateReader.SerializeReceipt(receipt), cancellationToken).ConfigureAwait(false);
-        return new PrepareOutcome { Receipt = receipt, ReceiptPath = receiptPath, NormalizedDocumentPath = normalizedPath };
+        return new PrepareOutcome
+        {
+            Receipt = receipt,
+            ReceiptPath = receiptPath,
+            NormalizedDocumentPath = normalizedPath,
+            PinnedSources = pinnedSources,
+        };
     }
 
 }

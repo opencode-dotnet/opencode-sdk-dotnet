@@ -53,6 +53,7 @@ internal sealed partial class RefreshSpecCommand : AsyncCommand<RefreshSpecComma
         var receipt = outcome.Receipt;
         _console.MarkupLine($"[grey]Upstream commit:[/] {Markup.Escape(receipt.UpstreamCommit)}");
         WriteReceiptSummary(receipt);
+        WriteOwnerSummary(outcome);
         _console.MarkupLine($"[grey]Normalized document:[/] {Markup.Escape(outcome.NormalizedDocumentPath)}");
         _console.MarkupLine($"[green]Receipt prepared:[/] {Markup.Escape(outcome.ReceiptPath)}");
         _console.MarkupLine("[grey]Review the receipt, then apply it with[/] refresh-spec --apply <receipt>.");
@@ -110,11 +111,34 @@ internal sealed partial class RefreshSpecCommand : AsyncCommand<RefreshSpecComma
             return;
         }
 
-        var lost = receipt.WatchedSources.Count(static source => !source.AnchorMatched);
+        var lost = receipt.WatchedSources.Sum(static source => source.Anchors.Count(static anchor => !anchor.Matched));
         var count = receipt.WatchedSources.Count.ToString(CultureInfo.InvariantCulture);
         _console.MarkupLine(lost is 0
             ? $"[grey]Watched sources:[/] {count}, every anchor still matches"
             : $"[yellow]Watched sources:[/] {count}, {lost.ToString(CultureInfo.InvariantCulture)} lost anchor(s) — read the doors");
+    }
+
+    private void WriteOwnerSummary(PrepareOutcome outcome)
+    {
+        var observed = outcome.Receipt.WatchedSources.ToDictionary(static source => source.Path, StringComparer.Ordinal);
+        foreach (var owner in new[] { WatchOwners.Sdk, WatchOwners.AgentsAi })
+        {
+            var moved = outcome.PinnedSources.Where(source => !string.Equals(source.Sha256, observed[source.Path].Sha256, StringComparison.Ordinal)
+                    && source.Behaviors.Any(behavior => string.Equals(behavior.Owner, owner, StringComparison.Ordinal)))
+                .Select(static source => source.Path).ToArray();
+            if (moved.Length > 0)
+            {
+                _console.WriteLine($"Moved for {owner}: {string.Join(", ", moved)}");
+            }
+        }
+
+        foreach (var source in outcome.PinnedSources)
+        {
+            foreach (var behavior in source.Behaviors.Where((_, index) => !observed[source.Path].Anchors[index].Matched))
+            {
+                _console.WriteLine($"Lost anchor for {behavior.Owner}: {source.Path} ('{behavior.Anchor.Text}')");
+            }
+        }
     }
 
     internal sealed class Settings : GlobalSettings

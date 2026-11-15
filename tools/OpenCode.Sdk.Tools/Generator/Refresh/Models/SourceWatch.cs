@@ -3,10 +3,9 @@ using System.Text.Json.Serialization;
 namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 
 /// <summary>
-/// The committed source watch (<c>spec/source-watch.json</c>): the upstream files the
-/// hand-written doors depend on, pinned by hash and anchor. It is a review trigger over a
-/// refresh, never a generation input — generation reads the accepted OpenAPI document alone
-/// (ADR-0013).
+/// The committed source watch (<c>spec/source-watch.json</c>): upstream files this SDK or
+/// opencode-agents-ai depends on, pinned by hash and owned behavior anchors. A refresh-time
+/// review trigger; generation reads it only to check query parameter type evidence paths.
 /// </summary>
 internal sealed record SourceWatch
 {

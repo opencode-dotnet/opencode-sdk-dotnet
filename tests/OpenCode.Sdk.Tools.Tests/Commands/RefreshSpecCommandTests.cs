@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
+using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Tests.Generator.Refresh.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Spectre.Console;
@@ -12,6 +13,66 @@ namespace OpenCode.Sdk.Tools.Tests.Commands;
 
 public sealed class RefreshSpecCommandTests
 {
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(true, false)]
+    [Arguments(false, true)]
+    [Arguments(true, true)]
+    public async Task Execute_Should_Route_Prepare_Changes_To_Owners_In_Order(bool moved, bool lost)
+    {
+        using var scenario = await RefreshScenario.CreateAsync();
+        var firstContent = lost ? "neither" : "zeta beta";
+        var secondContent = lost ? "neither" : "alpha delta";
+        var first = RefreshScenarioData.Watched("z[1].ts", firstContent, "zeta", owner: WatchOwners.AgentsAi) with
+        {
+            Behaviors = [RefreshScenarioData.Behavior("zeta", WatchOwners.AgentsAi), RefreshScenarioData.Behavior("beta", WatchOwners.AgentsAi)],
+        };
+        var second = RefreshScenarioData.Watched("a.ts", secondContent, "alpha") with
+        {
+            Behaviors = [RefreshScenarioData.Behavior("alpha"), RefreshScenarioData.Behavior("delta", WatchOwners.AgentsAi)],
+        };
+        var stable = RefreshScenarioData.Watched("stable.ts", "stable", "stable");
+        WatchedSource[] sources = [first, second, stable];
+        if (moved)
+        {
+            sources = [first with { Sha256 = new string('0', 64) }, second with { Sha256 = new string('0', 64) }, stable];
+        }
+        await scenario.FileSystem.File.WriteAllTextAsync(SnapshotPaths.SourceWatch, RefreshScenarioData.Serialize(RefreshScenarioData.Watch(2, sources)));
+        var runner = scenario.ExpectReference(RefreshScenario.Document, "v2.0.30", "refs/tags/v2.0.30");
+        foreach (var (source, content) in new[] { (first, firstContent), (second, secondContent), (stable, "stable") })
+        {
+            runner.Expect("git", ["show", $"{RefreshScenarioData.Commit}:{source.Path}"],
+                scenario.FileSystem.Path.GetFullPath(SnapshotPaths.Submodule), ScriptedProcessRunner.Ok(content));
+        }
+        scenario.ExpectUnpatchedGeneration();
+
+        var result = await scenario.RunCommandAsync("refresh-spec", "--ref", "v2.0.30");
+
+        var expected = new List<string>();
+        if (moved)
+        {
+            expected.AddRange(["Moved for opencode-sdk-dotnet: a.ts", "Moved for opencode-agents-ai: z[1].ts, a.ts"]);
+        }
+        if (lost)
+        {
+            expected.AddRange(["Lost anchor for opencode-agents-ai: z[1].ts ('zeta')",
+                "Lost anchor for opencode-agents-ai: z[1].ts ('beta')", "Lost anchor for opencode-sdk-dotnet: a.ts ('alpha')",
+                "Lost anchor for opencode-agents-ai: a.ts ('delta')"]);
+        }
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.Output.Split('\n').Select(static line => line.TrimEnd('\r')).Where(static line =>
+            line.StartsWith("Moved for ", StringComparison.Ordinal) || line.StartsWith("Lost anchor for ", StringComparison.Ordinal)))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(result.Output.IndexOf("Watched sources:", StringComparison.Ordinal))
+            .IsLessThan(result.Output.IndexOf("Normalized document:", StringComparison.Ordinal));
+        foreach (var line in expected)
+        {
+            await Assert.That(result.Output.IndexOf(line, StringComparison.Ordinal))
+                .IsGreaterThan(result.Output.IndexOf("Watched sources:", StringComparison.Ordinal))
+                .And.IsLessThan(result.Output.IndexOf("Normalized document:", StringComparison.Ordinal));
+        }
+    }
+
     [Test]
     public async Task Execute_Should_Cancel_Prepare_During_Install_And_Remove_Its_Worktree()
     {

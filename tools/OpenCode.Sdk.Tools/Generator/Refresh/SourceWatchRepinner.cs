@@ -5,8 +5,8 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 /// <summary>
 /// The apply-time source-watch rule: a reviewed receipt re-pins the committed watch to the
 /// hashes it observed. The watch and the receipt must describe the same source set, and an
-/// anchor the receipt saw fail is never re-pinned silently — the door's behavior moved, so a
-/// human reads the door and rewrites the anchor before the pin advances.
+/// anchor the receipt saw fail is never re-pinned silently — its owner's behavior moved, so a
+/// human reads that product's code and rewrites the anchor before the pin advances.
 /// </summary>
 internal static class SourceWatchRepinner
 {
@@ -22,8 +22,16 @@ internal static class SourceWatchRepinner
                 "the source watch names different files than the receipt observed; re-run prepare");
         }
 
-        var unmatched = pinned.Sources.Where(source => !byPath[source.Path].AnchorMatched)
-            .Select(static source => source.Path)
+        var drift = pinned.Sources.FirstOrDefault(source => !byPath[source.Path].Anchors.Select(static anchor => anchor.Text)
+            .SequenceEqual(source.Behaviors.Select(static behavior => behavior.Anchor.Text), StringComparer.Ordinal));
+        if (drift is not null)
+        {
+            throw new SnapshotRefreshException($"the receipt's anchor texts for '{drift.Path}' differ from the source watch; re-run prepare");
+        }
+
+        var unmatched = pinned.Sources.SelectMany(source => source.Behaviors
+                .Where((_, index) => !byPath[source.Path].Anchors[index].Matched)
+                .Select(behavior => $"{source.Path} ('{behavior.Anchor.Text}', {behavior.Owner})"))
             .ToArray();
         if (unmatched.Length > 0)
         {

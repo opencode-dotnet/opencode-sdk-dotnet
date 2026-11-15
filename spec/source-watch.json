@@ -1,806 +1,1251 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sources": [
     {
       "path": "packages/server/src/handlers/pty.ts",
       "sha256": "16329166f240a5227b4fd36b5809228ef1ac4327d93f16690d152d88c7d42773",
-      "behavior": "Before the WebSocket upgrade the PTY connect handler rejects a disallowed origin (403; a request without an Origin passes), then consumes the single-use ticket, rejecting an invalid one (403), then resolves the location (404 LocationNotFoundError for a missing directory), then answers an empty 404 for a missing session, which PtyUpgradeFailurePolicy reports, and accepts a cursor at or above -1. After the upgrade it closes 4404 when the session is not found or has exited, 1000 on a normal end, and 1012 when its location shuts down, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
-      "anchor": {
-        "type": "contains",
-        "text": "new Socket.CloseEvent(4404"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Before the WebSocket upgrade the PTY connect handler rejects a disallowed origin (403; a request without an Origin passes), then consumes the single-use ticket, rejecting an invalid one (403), then resolves the location (404 LocationNotFoundError for a missing directory), then answers an empty 404 for a missing session, which PtyUpgradeFailurePolicy reports, and accepts a cursor at or above -1. After the upgrade it closes 4404 when the session is not found or has exited, 1000 on a normal end, and 1012 when its location shuts down, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
+          "anchor": {
+            "type": "contains",
+            "text": "new Socket.CloseEvent(4404"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/pty-socket.ts",
       "sha256": "c56d86e1d739c3c8d4768a27dc6fbfc2d0868770a6de586c4e4fb3e70aff32ef",
-      "behavior": "runPtySocket is the connection loop both PTY doors share: one writer drains a single outbound queue, so the replay, live output, and the close frame reach the client in queue order and nothing follows the close frame; it races that drain against the WebSocket input loop with Effect.raceFirst, so whichever side closes first ends the connection; a close from either side, whatever its code, ends the run normally while a read or write failure dies; and it runs detach on every exit path.",
-      "anchor": {
-        "type": "contains",
-        "text": "Effect.raceFirst(drain, read)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "runPtySocket is the connection loop both PTY doors share: one writer drains a single outbound queue, so the replay, live output, and the close frame reach the client in queue order and nothing follows the close frame; it races that drain against the WebSocket input loop with Effect.raceFirst, so whichever side closes first ends the connection; a close from either side, whatever its code, ends the run normally while a read or write failure dies; and it runs detach on every exit path.",
+          "anchor": {
+            "type": "contains",
+            "text": "Effect.raceFirst(drain, read)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/middleware/authorization.ts",
       "sha256": "4bc548ca3d011a78cc0c921d5965403b55c3dbefc0fd7f80dac99a103ce209a0",
-      "behavior": "A non-empty ticket query on a request routed to the PTY or persistent-PTY connect endpoint and the client MCP attach, and a request routed to the pairing link /auth/connect/:code, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
-      "anchor": {
-        "type": "contains",
-        "text": "route.route.path === PTY_CONNECT_PATH ||"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A non-empty ticket query on a request routed to the PTY or persistent-PTY connect endpoint and the client MCP attach, and a request routed to the pairing link /auth/connect/:code, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
+          "anchor": {
+            "type": "contains",
+            "text": "route.route.path === PTY_CONNECT_PATH ||"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/cors.ts",
       "sha256": "80fd8c8962c7fe641e4aa24f7d6522d1d7cd8db5a46f43f2244e6aac0377c333",
-      "behavior": "A request with no Origin header is allowed before any other origin rule (then a same-host origin, the localhost, 127.0.0.1, oc://renderer, Tauri, and opencode.ai origins, and the configured cors list); the SDK sends no Origin on its PTY WebSocket upgrades and relies on that first rule.",
-      "anchor": {
-        "type": "contains",
-        "text": "if (!input) return true"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A request with no Origin header is allowed before any other origin rule (then a same-host origin, the localhost, 127.0.0.1, oc://renderer, Tauri, and opencode.ai origins, and the configured cors list); the SDK sends no Origin on its PTY WebSocket upgrades and relies on that first rule.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (!input) return true"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/pty.ts",
       "sha256": "c51fe7c3704b938ddac0da48252368843a7b1004262974ccb4b67b98808bffde",
-      "behavior": "The ticket-issuing request carries the x-opencode-ticket header and the connect URL carries the ticket query.",
-      "anchor": {
-        "type": "contains",
-        "text": "x-opencode-ticket"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The ticket-issuing request carries the x-opencode-ticket header and the connect URL carries the ticket query.",
+          "anchor": {
+            "type": "contains",
+            "text": "x-opencode-ticket"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/pty/protocol.ts",
       "sha256": "f5e822d5bff1ccfe3bb94c753b448a94e0bdab5b0115177f61225ff40bfb474c",
-      "behavior": "The control frame is one 0x00 byte followed by UTF-8 JSON carrying the absolute cursor after replay, and replay arrives in REPLAY_CHUNK-sized frames.",
-      "anchor": {
-        "type": "contains",
-        "text": "export function metaFrame(cursor: number)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The control frame is one 0x00 byte followed by UTF-8 JSON carrying the absolute cursor after replay, and replay arrives in REPLAY_CHUNK-sized frames.",
+          "anchor": {
+            "type": "contains",
+            "text": "export function metaFrame(cursor: number)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/pty/ticket.ts",
       "sha256": "9d943cc755f39845c523729d817b0f89a6c4c5194d5e2d873d8cb3ddd473ee9c",
-      "behavior": "PTY connect tickets are single-use and live 60 seconds.",
-      "anchor": {
-        "type": "contains",
-        "text": "const DEFAULT_TTL = Duration.seconds(60)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "PTY connect tickets are single-use and live 60 seconds.",
+          "anchor": {
+            "type": "contains",
+            "text": "const DEFAULT_TTL = Duration.seconds(60)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/pty.ts",
       "sha256": "f5faecd54c907c73812a5d3cab1a0045a1c70ad56229190f47bdf2b4f5a44205",
-      "behavior": "The retained replay buffer is capped, exited sessions stay observable until they are removed, and attach replays from the requested cursor.",
-      "anchor": {
-        "type": "contains",
-        "text": "const BUFFER_LIMIT = 1024 * 1024 * 2"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The retained replay buffer is capped, exited sessions stay observable until they are removed, and attach replays from the requested cursor.",
+          "anchor": {
+            "type": "contains",
+            "text": "const BUFFER_LIMIT = 1024 * 1024 * 2"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/routes.ts",
       "sha256": "8964bbc10be6aa4b24b742edeb779bdd94269a2a4d47595d765d098158338610",
-      "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
-      "anchor": {
-        "type": "contains",
-        "text": "PtyTicket.node,"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
+          "anchor": {
+            "type": "contains",
+            "text": "PtyTicket.node,"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
       "sha256": "3d6b0005f1f9abf2e484c3337076934205e14f8db2eda64ae1e2be6183d1b786",
-      "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header. The terminal read decodes lines from the query text as an integer from 1 to 65535, which its int query type mirrors (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "success: Schema.Struct({ handoff: Schema.NullOr(PersistentPty.Handoff) })"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header. The terminal read decodes lines from the query text as an integer from 1 to 65535, which its int query type mirrors (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "success: Schema.Struct({ handoff: Schema.NullOr(PersistentPty.Handoff) })"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
       "sha256": "d6ea42302fa89f44c49b3895fe3765b3f105a5702b5287c4014cc1ad033bc68f",
-      "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0. create answers 400 InvalidRequestError (kind invalid_cwd, field cwd) when the working directory is missing or not a directory, before the daemon starts.",
-      "anchor": {
-        "type": "contains",
-        "text": "new Socket.CloseEvent(4404"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0. create answers 400 InvalidRequestError (kind invalid_cwd, field cwd) when the working directory is missing or not a directory, before the daemon starts.",
+          "anchor": {
+            "type": "contains",
+            "text": "new Socket.CloseEvent(4404"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/index.ts",
       "sha256": "c56b06f9b772976d9145c060521cf630884ba1071d5fd2c4fde8da956dea20dc",
-      "behavior": "The handoff call yields null when no daemon is running, and the service reports NotFoundError and UnavailableError, and create also reports InvalidCwdError when the working directory is missing or not a directory. Each server\u0027s daemon owns a fresh runtime directory under \u003Cstate\u003E/pty (or the root the options name); the former XDG_RUNTIME_DIR and temporary-directory roots and OPENCODE_PTY_RUNTIME_DIR are gone, and the available flag is re-exported for the server\u0027s info capabilities.",
-      "anchor": {
-        "type": "contains",
-        "text": "PersistentPty.handoff"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The handoff call yields null when no daemon is running, and the service reports NotFoundError and UnavailableError, and create also reports InvalidCwdError when the working directory is missing or not a directory. Each server\u0027s daemon owns a fresh runtime directory under \u003Cstate\u003E/pty (or the root the options name); the former XDG_RUNTIME_DIR and temporary-directory roots and OPENCODE_PTY_RUNTIME_DIR are gone, and the available flag is re-exported for the server\u0027s info capabilities.",
+          "anchor": {
+            "type": "contains",
+            "text": "PersistentPty.handoff"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/daemon.ts",
       "sha256": "3b6c822463340edbd5c04598a376ea9c009f85a943c0a7d3294d448bb71c4548",
-      "behavior": "The opencode-pty daemon wire protocol is version 8; the client refuses a daemon that registers another version. The daemon starts as opencode-pty daemon --runtime-dir \u003Croot\u003E --name \u003Cid\u003E, detached, hidden, and with stdio ignored, and a start that cannot connect retries once in a fresh directory unless spawning fails or the freshly spawned binary registers another protocol version. Inheriting a handoff is best-effort: an expired ticket, a changed daemon, or any other non-interruption failure abandons the old daemon instead of failing the replacement\u0027s startup, and the client reads the inherited directory without migrating it.",
-      "anchor": {
-        "type": "contains",
-        "text": "const ProtocolVersion = 8"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The opencode-pty daemon wire protocol is version 8; the client refuses a daemon that registers another version. The daemon starts as opencode-pty daemon --runtime-dir \u003Croot\u003E --name \u003Cid\u003E, detached, hidden, and with stdio ignored, and a start that cannot connect retries once in a fresh directory unless spawning fails or the freshly spawned binary registers another protocol version. Inheriting a handoff is best-effort: an expired ticket, a changed daemon, or any other non-interruption failure abandons the old daemon instead of failing the replacement\u0027s startup, and the client reads the inherited directory without migrating it.",
+          "anchor": {
+            "type": "contains",
+            "text": "const ProtocolVersion = 8"
+          }
+        }
+      ]
     },
     {
       "path": "packages/schema/src/persistent-pty.ts",
       "sha256": "ee12fe7b8fc4c2a3b2010ae1f3de258f27310cff25e735835a5bebb16b48faa1",
-      "behavior": "The handoff record is the component PersistentPty.Handoff carrying the running daemon directory.",
-      "anchor": {
-        "type": "contains",
-        "text": "PersistentPty.Handoff"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The handoff record is the component PersistentPty.Handoff carrying the running daemon directory.",
+          "anchor": {
+            "type": "contains",
+            "text": "PersistentPty.Handoff"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/binary.bun.ts",
       "sha256": "701b81e5bccbe154805674c8de3725171fb5c9846260fe5129a88ef5c888277e",
-      "behavior": "OPENCODE_PTY_BIN overrides the daemon executable; otherwise the embedded asset is installed under an opencode-pty directory keyed by version and checksum. available is true on every platform; it feeds only the info capability, not the PTY routes.",
-      "anchor": {
-        "type": "contains",
-        "text": "if (process.env.OPENCODE_PTY_BIN) return process.env.OPENCODE_PTY_BIN"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "OPENCODE_PTY_BIN overrides the daemon executable; otherwise the embedded asset is installed under an opencode-pty directory keyed by version and checksum. available is true on every platform; it feeds only the info capability, not the PTY routes.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (process.env.OPENCODE_PTY_BIN) return process.env.OPENCODE_PTY_BIN"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/binary.node.ts",
       "sha256": "bdac35d9250bb727f67650cf989608f84376df1fdfd1b888557a6a5fb40147b6",
-      "behavior": "Under Node the daemon executable is OPENCODE_PTY_BIN or opencode-pty resolved on PATH, and available is true on every platform.",
-      "anchor": {
-        "type": "contains",
-        "text": "process.env.OPENCODE_PTY_BIN ||"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Under Node the daemon executable is OPENCODE_PTY_BIN or opencode-pty resolved on PATH, and available is true on every platform.",
+          "anchor": {
+            "type": "contains",
+            "text": "process.env.OPENCODE_PTY_BIN ||"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/persistent-pty/pty-binding.ts",
       "sha256": "67251e7f514176b930b1fb7c5bc978552c0b41237facc036005146bb326e29ed",
-      "behavior": "The embedded daemon asset comes from the binaryPath export of the pty package.",
-      "anchor": {
-        "type": "contains",
-        "text": "import { binaryPath } from \u0022@opencode/pty\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The embedded daemon asset comes from the binaryPath export of the pty package.",
+          "anchor": {
+            "type": "contains",
+            "text": "import { binaryPath } from \u0022@opencode/pty\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/package.json",
       "sha256": "02ee0bec865e7320e143cd1d1feb7140d9eaf51276ff89646b47bc52c696121b",
-      "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (\u0060@opencode/pty\u0060) at 0.5.2.",
-      "anchor": {
-        "type": "contains",
-        "text": "\u0022opencode\u0022: \u0022./bin/opencode.cjs\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (\u0060@opencode/pty\u0060) at 0.5.2.",
+          "anchor": {
+            "type": "contains",
+            "text": "\u0022opencode\u0022: \u0022./bin/opencode.cjs\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/package.json",
       "sha256": "a63ec9d96a37fca377eba26f01edf66f8a0c88acf561ecb67078d267b966d7c5",
-      "behavior": "The opencode-pty daemon dependency is pinned at 0.5.2, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks is version 8.",
-      "anchor": {
-        "type": "contains",
-        "text": "\u0022@opencode/pty\u0022: \u00220.5.2\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The opencode-pty daemon dependency is pinned at 0.5.2, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks is version 8.",
+          "anchor": {
+            "type": "contains",
+            "text": "\u0022@opencode/pty\u0022: \u00220.5.2\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/process.ts",
       "sha256": "cc3f8652c87b529d2593c574196b261febadef0c62ba1d78890e5ffe9db33bde",
-      "behavior": "Once the server reports ready, a ticketed PTY, persistent-PTY or client-MCP connect is admitted without credentials. A cross-site or same-site browser request to /api that is a navigation or carries a disallowed Origin, artifact views excepted, receives a 403 ForbiddenError before any credential check. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers at 200 with the same members plus an optional hostname (os.hostname()) and capabilities.persistentPty.",
-      "anchor": {
-        "type": "contains",
-        "text": "!hasPtyConnectTicketURL(url)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Once the server reports ready, a ticketed PTY, persistent-PTY or client-MCP connect is admitted without credentials. A cross-site or same-site browser request to /api that is a navigation or carries a disallowed Origin, artifact views excepted, receives a 403 ForbiddenError before any credential check. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers at 200 with the same members plus an optional hostname (os.hostname()) and capabilities.persistentPty.",
+          "anchor": {
+            "type": "contains",
+            "text": "!hasPtyConnectTicketURL(url)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/request-site.ts",
       "sha256": "744157fa1ec1bcf33bccc2fa2aca3b38f16f521bdfa95ea24c208f926f631179",
-      "behavior": "The request-site middleware answers 403 with a ForbiddenError body, before any credential check, for a request whose Sec-Fetch-Site is cross-site or same-site, whose path is /api or below and not an artifact view page, and that is a navigation or carries an Origin the CORS options do not allow; a request without Sec-Fetch-Site, as the SDK sends, passes.",
-      "anchor": {
-        "type": "contains",
-        "text": "if (site !== \u0022cross-site\u0022 \u0026\u0026 site !== \u0022same-site\u0022) return false"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The request-site middleware answers 403 with a ForbiddenError body, before any credential check, for a request whose Sec-Fetch-Site is cross-site or same-site, whose path is /api or below and not an artifact view page, and that is a navigation or carries an Origin the CORS options do not allow; a request without Sec-Fetch-Site, as the SDK sends, passes.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (site !== \u0022cross-site\u0022 \u0026\u0026 site !== \u0022same-site\u0022) return false"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/test/persistent-pty.test.ts",
       "sha256": "8fd93439ae3f968e76099b80553aa84d2af5252b9859af9b1283d0de06d2a52a",
-      "behavior": "Behavioral oracle: the upstream suite asserts the 4404 close code, the null handoff body, terminal survival across an explicit restart handoff, and a fresh startup when the handed-off registration is gone.",
-      "anchor": {
-        "type": "contains",
-        "text": "expect(closed.code).toBe(4404)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Behavioral oracle: the upstream suite asserts the 4404 close code, the null handoff body, terminal survival across an explicit restart handoff, and a fresh startup when the handed-off registration is gone.",
+          "anchor": {
+            "type": "contains",
+            "text": "expect(closed.code).toBe(4404)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/solid/pty.ts",
       "sha256": "68ac510aa19c2dd76b1e8c3a4bcd73ef52aae74850e80f2cdc044abee1c817ee",
-      "behavior": "Behavioral oracle: the reference client sends the ticket and cursor query parameters when it opens a PTY socket.",
-      "anchor": {
-        "type": "contains",
-        "text": "String(input.cursor)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Behavioral oracle: the reference client sends the ticket and cursor query parameters when it opens a PTY socket.",
+          "anchor": {
+            "type": "contains",
+            "text": "String(input.cursor)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/ripgrep/binary.ts",
       "sha256": "cb0866ec835b78eb18eb783198b1959a82469fbd7bfd1f21793d743310831755",
-      "behavior": "The ripgrep version upstream downloads on demand. CI provisions that exact version with pinned digests so an offline simulated server never has to reach the network for it, so a moved constant must be reviewed with the refresh rather than discovered as a failing filesystem live test.",
-      "anchor": {
-        "type": "contains",
-        "text": "const VERSION = \u002215.1.0\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The ripgrep version upstream downloads on demand. CI provisions that exact version with pinned digests so an offline simulated server never has to reach the network for it, so a moved constant must be reviewed with the refresh rather than discovered as a failing filesystem live test.",
+          "anchor": {
+            "type": "contains",
+            "text": "const VERSION = \u002215.1.0\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/tui/src/component/terminal-pane.tsx",
       "sha256": "be09359b6af772c032830b33bbde06eebcae69abe7e4eea2d3e03f007b86ec2e",
-      "behavior": "Behavioral oracle: the TUI resumes a terminal from the snapshot tail cursor.",
-      "anchor": {
-        "type": "contains",
-        "text": "cursor: snapshot.info.output.tail"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Behavioral oracle: the TUI resumes a terminal from the snapshot tail cursor.",
+          "anchor": {
+            "type": "contains",
+            "text": "cursor: snapshot.info.output.tail"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/standalone.ts",
       "sha256": "dc8197da471d3d213acf51ef809bb1c05a7cf697bce1f0795e49fdd4c0165cf9",
-      "behavior": "The standalone service decodes one JSON readiness object from the child\u0027s stdout, requiring only a string url member, and ends the server by closing its stdin, which is the contract the SDK\u0027s launcher is a parity port of. The endpoint it returns carries the child\u0027s pid and an exited effect (proc.exitCode) that yields the exit code, or fails with the terminating signal when a signal ended the child.",
-      "anchor": {
-        "type": "contains",
-        "text": "const Ready = Schema.Struct({ url: Schema.String })"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The standalone service decodes one JSON readiness object from the child\u0027s stdout, requiring only a string url member, and ends the server by closing its stdin, which is the contract the SDK\u0027s launcher is a parity port of. The endpoint it returns carries the child\u0027s pid and an exited effect (proc.exitCode) that yields the exit code, or fails with the terminating signal when a signal ended the child.",
+          "anchor": {
+            "type": "contains",
+            "text": "const Ready = Schema.Struct({ url: Schema.String })"
+          }
+        }
+      ]
     },
     {
       "path": "packages/util/src/cross-spawn-spawner.ts",
       "sha256": "0c0108b4597e1706d2e0770e7c472802e3628182e9f07bfb8ff87e4aabb0566e",
-      "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses, 3 seconds when the command sets none and its scope is released; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded. Off Windows, a synchronous process exit hook SIGKILLs the process group of every detached child still running.",
-      "anchor": {
-        "type": "contains",
-        "text": "taskkill /pid ${proc.pid} /T /F"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses, 3 seconds when the command sets none and its scope is released; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded. Off Windows, a synchronous process exit hook SIGKILLs the process group of every detached child still running.",
+          "anchor": {
+            "type": "contains",
+            "text": "taskkill /pid ${proc.pid} /T /F"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/bin/opencode.cjs",
       "sha256": "db1934c5cd09ecb643a88687b5965a85446dfa85ae757a1629aecdf59a42825d",
-      "behavior": "The npm launcher resolves the platform binary (OPENCODE_BIN_PATH, a cached copy, or the node_modules package walk), spawns it with stdio inherit, forwards SIGINT, SIGTERM, and SIGHUP (plus SIGUSR1 off Windows) to it, and mirrors its exit: it re-raises the child\u0027s terminating signal on itself or exits with the child\u0027s code (0 when there is none). An npm-installed opencode command is therefore a node process whose child is the real server.",
-      "anchor": {
-        "type": "contains",
-        "text": "const child = childProcess.spawn(target, process.argv.slice(2), { stdio: \u0022inherit\u0022 })"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The npm launcher resolves the platform binary (OPENCODE_BIN_PATH, a cached copy, or the node_modules package walk), spawns it with stdio inherit, forwards SIGINT, SIGTERM, and SIGHUP (plus SIGUSR1 off Windows) to it, and mirrors its exit: it re-raises the child\u0027s terminating signal on itself or exits with the child\u0027s code (0 when there is none). An npm-installed opencode command is therefore a node process whose child is the real server.",
+          "anchor": {
+            "type": "contains",
+            "text": "const child = childProcess.spawn(target, process.argv.slice(2), { stdio: \u0022inherit\u0022 })"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/server-process.ts",
       "sha256": "37e89b2eed32bc9324f4cdf0a639387dfe6fc0ef8e6f37fc33c43987869b4bc2",
-      "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status. In service mode it re-applies the saved service-config env over process.env, except XDG_STATE_HOME.",
-      "anchor": {
-        "type": "contains",
-        "text": "JSON.stringify({ url })"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status. In service mode it re-applies the saved service-config env over process.env, except XDG_STATE_HOME.",
+          "anchor": {
+            "type": "contains",
+            "text": "JSON.stringify({ url })"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/auth.ts",
       "sha256": "d2184b996991631490d7e82c19a7bd3310576c16fa2da2678819cac0a50f55c2",
-      "behavior": "HTTP Basic credentials are checked against the fixed username opencode and the configured password, or a session token a pairing link issued, which the server accepts anywhere the password is, and authentication is required whenever a non-empty password is configured, which fixes the SDK\u0027s default Username and the rule that a CLI-started server always needs a password.",
-      "anchor": {
-        "type": "contains",
-        "text": "username: \u0022opencode\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "HTTP Basic credentials are checked against the fixed username opencode and the configured password, or a session token a pairing link issued, which the server accepts anywhere the password is, and authentication is required whenever a non-empty password is configured, which fixes the SDK\u0027s default Username and the rule that a CLI-started server always needs a password.",
+          "anchor": {
+            "type": "contains",
+            "text": "username: \u0022opencode\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/location.ts",
       "sha256": "1819a54459964f5ea719c2dec24bc43779a6e854be621cd2a43ed8796e7696ae",
-      "behavior": "The request directory is resolved from location[directory] first, then the percent-decoded x-opencode-directory header, then the server working directory. The server no longer reads the workspace query or header, which defines the hand-written directory-only LocationSelector contract. A directory that does not exist answers 404 LocationNotFoundError (locationErrors) instead of failing the request as a defect. awaitPlugins waits up to 5 s for plugin activation, then fails with ServiceUnavailableError whose service is plugin.",
-      "anchor": {
-        "type": "contains",
-        "text": "request.headers[\u0022x-opencode-directory\u0022]"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The request directory is resolved from location[directory] first, then the percent-decoded x-opencode-directory header, then the server working directory. The server no longer reads the workspace query or header, which defines the hand-written directory-only LocationSelector contract. A directory that does not exist answers 404 LocationNotFoundError (locationErrors) instead of failing the request as a defect. awaitPlugins waits up to 5 s for plugin activation, then fails with ServiceUnavailableError whose service is plugin.",
+          "anchor": {
+            "type": "contains",
+            "text": "request.headers[\u0022x-opencode-directory\u0022]"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/model.ts",
       "sha256": "5eefbe521882d44a66f405c1418ca3a7329fc9620f5d8b5d80bafdb4fca6c400",
-      "behavior": "The model list and default-model handlers wait for the location\u0027s plugins (awaitPlugins) before they answer, which WaitForDefaultAsync relies on.",
-      "anchor": {
-        "type": "contains",
-        "text": "yield* awaitPlugins"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The model list and default-model handlers wait for the location\u0027s plugins (awaitPlugins) before they answer, which WaitForDefaultAsync relies on.",
+          "anchor": {
+            "type": "contains",
+            "text": "yield* awaitPlugins"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/plugin-startup.ts",
       "sha256": "aea746a551c82a42cf72973fb5da3638a16e6f46104f3e184f4e046351556767",
-      "behavior": "The CLI\u0027s models and debug agents commands and the auth commands\u0027 integration load wait for the location\u0027s plugins before their own catalog read: they list the location\u0027s plugins at once and again 25 ms after each answer, until the list is non-empty or a step after an answer finds that more than 5 s have passed since the first answer; a failed listing also ends the wait, without an error, and the read follows either way. LanguageModels.WaitForDefaultAsync follows this wait.",
-      "anchor": {
-        "type": "contains",
-        "text": "until: (plugins) =\u003E plugins.data.length \u003E 0,"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The CLI\u0027s models and debug agents commands and the auth commands\u0027 integration load wait for the location\u0027s plugins before their own catalog read: they list the location\u0027s plugins at once and again 25 ms after each answer, until the list is non-empty or a step after an answer finds that more than 5 s have passed since the first answer; a failed listing also ends the wait, without an error, and the read follows either way. LanguageModels.WaitForDefaultAsync follows this wait.",
+          "anchor": {
+            "type": "contains",
+            "text": "until: (plugins) =\u003E plugins.data.length \u003E 0,"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/middleware/session-location.ts",
       "sha256": "b8aef884bbe46d3e5d24967d570dd5473a424b66e05d870f1d4669353121d887",
-      "behavior": "Session-scoped routes take their location from the session row that the sessionID route parameter names, so the request\u0027s location[directory] query and x-opencode-directory header do not select the location there; an invalid session ID is InvalidRequestError, a missing session is SessionNotFoundError, and a session whose directory no longer exists is LocationNotFoundError (404).",
-      "anchor": {
-        "type": "contains",
-        "text": "const session = yield* sessionInfo(sessions, route.params.sessionID)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Session-scoped routes take their location from the session row that the sessionID route parameter names, so the request\u0027s location[directory] query and x-opencode-directory header do not select the location there; an invalid session ID is InvalidRequestError, a missing session is SessionNotFoundError, and a session whose directory no longer exists is LocationNotFoundError (404).",
+          "anchor": {
+            "type": "contains",
+            "text": "const session = yield* sessionInfo(sessions, route.params.sessionID)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/middleware/form-location.ts",
       "sha256": "b1c7b0a6fec64f100f16be9f3f691d145f870ebab105426dda9f1e701710849b",
-      "behavior": "Session form routes take their location from the session row like other session routes, except that the sessionID \u0022global\u0022 skips the session lookup and takes the location from the request (location[directory] query, then the x-opencode-directory header, then the server working directory). A location whose directory does not exist answers 404 LocationNotFoundError on both paths. session.form.list on a session whose location services are not live answers 200 with an empty list without resolving its location.",
-      "anchor": {
-        "type": "contains",
-        "text": "if (route.params.sessionID === \u0022global\u0022) {"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Session form routes take their location from the session row like other session routes, except that the sessionID \u0022global\u0022 skips the session lookup and takes the location from the request (location[directory] query, then the x-opencode-directory header, then the server working directory). A location whose directory does not exist answers 404 LocationNotFoundError on both paths. session.form.list on a session whose location services are not live answers 200 with an empty list without resolving its location.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (route.params.sessionID === \u0022global\u0022) {"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/event.ts",
       "sha256": "07d163a142fba915b3b34028f8b3de74679d476f108a0a734b0ac6b863ad1698",
-      "behavior": "The global event stream sends server.connected as its first frame and a heartbeat every 15 seconds, which the SSE door\u0027s first-frame handling and idle expectations depend on.",
-      "anchor": {
-        "type": "contains",
-        "text": "Stream.tick(\u002215 seconds\u0022)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The global event stream sends server.connected as its first frame and a heartbeat every 15 seconds, which the SSE door\u0027s first-frame handling and idle expectations depend on.",
+          "anchor": {
+            "type": "contains",
+            "text": "Stream.tick(\u002215 seconds\u0022)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/session/session.ts",
       "sha256": "877bc355b90ca2672b8639e96a76df7255d984f186f9b01dabfca513ffa173a4",
-      "behavior": "session.shell answers only after the shell command ends (it joins the running fiber) and experimental.session.wait only after the session\u0027s execution is idle, so neither sends response headers while it waits; the SDK\u0027s network timeout leaves both unbounded unless a call sets a window.",
-      "anchor": {
-        "type": "contains",
-        "text": "yield* execution.awaitIdle(sessionID)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "session.shell answers only after the shell command ends (it joins the running fiber) and experimental.session.wait only after the session\u0027s execution is idle, so neither sends response headers while it waits; the SDK\u0027s network timeout leaves both unbounded unless a call sets a window.",
+          "anchor": {
+            "type": "contains",
+            "text": "yield* execution.awaitIdle(sessionID)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/generate.ts",
       "sha256": "8949cd7f964cf258bca6b8b655c91997df65ea95db5df9c4417948566bb0975e",
-      "behavior": "experimental.generate.text, experimental.generate.image and experimental.generate.decisions each answer with the whole result in one body (image also downloads URL results first), so they send no response headers until the model finishes; the SDK\u0027s network timeout leaves them unbounded unless a call sets a window. experimental.generate.textLegacy is a deprecated alias of text at the old path.",
-      "anchor": {
-        "type": "contains",
-        "text": ".text(request.payload)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "experimental.generate.text, experimental.generate.image and experimental.generate.decisions each answer with the whole result in one body (image also downloads URL results first), so they send no response headers until the model finishes; the SDK\u0027s network timeout leaves them unbounded unless a call sets a window. experimental.generate.textLegacy is a deprecated alias of text at the old path.",
+          "anchor": {
+            "type": "contains",
+            "text": ".text(request.payload)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/session/generate.ts",
       "sha256": "b102dc1dff0321fc9ca65dab2e553ee93f7c19fa26c22d6907d99c97025cb84e",
-      "behavior": "session.generate returns the whole generation in one body, so it sends no response headers until the model finishes; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
-      "anchor": {
-        "type": "contains",
-        "text": "const response = yield* llm.generate(prepared.request, prepared.options)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "session.generate returns the whole generation in one body, so it sends no response headers until the model finishes; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
+          "anchor": {
+            "type": "contains",
+            "text": "const response = yield* llm.generate(prepared.request, prepared.options)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/session/command.ts",
       "sha256": "9fb3dee14007b324c4b4f8c8968b503da8b2caecc40881808715d210ae6aa41c",
-      "behavior": "session.command awaits the command\u0027s execution before it answers, so a command that does long work holds the response headers until it ends; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
-      "anchor": {
-        "type": "contains",
-        "text": "yield* commands.execute({"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "session.command awaits the command\u0027s execution before it answers, so a command that does long work holds the response headers until it ends; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
+          "anchor": {
+            "type": "contains",
+            "text": "yield* commands.execute({"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/event-feed.ts",
       "sha256": "084572f0669f8484a1c8aca2e27fd8e0ceb8d9b54719f29fdb7428b6417e8987",
-      "behavior": "Each event subscriber is buffered at 4,096 events and frames are written as data: lines only, which the SDK\u0027s SSE parser and its backpressure assumptions depend on.",
-      "anchor": {
-        "type": "contains",
-        "text": "export const SubscriberCapacity = 4_096"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Each event subscriber is buffered at 4,096 events and frames are written as data: lines only, which the SDK\u0027s SSE parser and its backpressure assumptions depend on.",
+          "anchor": {
+            "type": "contains",
+            "text": "export const SubscriberCapacity = 4_096"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/solid/connection.ts",
       "sha256": "3b93c8ba83bd7b77bfb6901fa27d062f90e65007a8db0694731c0eab21c19d32",
-      "behavior": "The first-party client\u0027s event connection fails an attempt whose first event is not server.connected or that has not delivered it within 2 seconds, aborts a connected stream that stays silent for the idle timeout (45 seconds by default), treats every other error as a drop too, waits 1 second before reconnecting unless a resync forced the reconnect or the first failed attempt\u0027s reconnect hook resolved a new server, retries forever, and resubscribes without a Last-Event-ID, so it never asks the server to replay missed events. The SDK\u0027s event.subscribe reconnect mirrors this loop\u0027s connect bound, idle window, delay and retry rules, not its status, resync, reconnect hook or page-lifecycle handling, and adds a one-minute give-up.",
-      "anchor": {
-        "type": "contains",
-        "text": "const reconnectDelay = 1_000"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The first-party client\u0027s event connection fails an attempt whose first event is not server.connected or that has not delivered it within 2 seconds, aborts a connected stream that stays silent for the idle timeout (45 seconds by default), treats every other error as a drop too, waits 1 second before reconnecting unless a resync forced the reconnect or the first failed attempt\u0027s reconnect hook resolved a new server, retries forever, and resubscribes without a Last-Event-ID, so it never asks the server to replay missed events. The SDK\u0027s event.subscribe reconnect mirrors this loop\u0027s connect bound, idle window, delay and retry rules, not its status, resync, reconnect hook or page-lifecycle handling, and adds a one-minute give-up.",
+          "anchor": {
+            "type": "contains",
+            "text": "const reconnectDelay = 1_000"
+          }
+        }
+      ]
     },
     {
       "path": "packages/core/src/bus.ts",
       "sha256": "8c68afdcfb7f75456cc6d6d7c4869b0bdd366a065b8fd98a363bd749faacecef",
-      "behavior": "Event persistence is off unless the host enables it, a durable replay yields events strictly after the requested sequence, and log.synced marks the replay boundary, which the session-log replay contract and the CLI-profile live test depend on.",
-      "anchor": {
-        "type": "contains",
-        "text": "const persist = options?.persist ?? false"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Event persistence is off unless the host enables it, a durable replay yields events strictly after the requested sequence, and log.synced marks the replay boundary, which the session-log replay contract and the CLI-profile live test depend on.",
+          "anchor": {
+            "type": "contains",
+            "text": "const persist = options?.persist ?? false"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/session.ts",
       "sha256": "cd1b7063c80b7c5085c275f4f1f264ac9f04b31d3d58325690d47f68833388fa",
-      "behavior": "SessionsQuery declares limit and cursor and includes Session.ListFilter.fields; the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on. The session list decodes limit, and the session log decodes after (an Event.Seq), from the query text as numbers, which their int and long query types mirror (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "export const SessionsQuery = Schema.Struct({"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "SessionsQuery declares limit and cursor and includes Session.ListFilter.fields; the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on. The session list decodes limit, and the session log decodes after (an Event.Seq), from the query text as numbers, which their int and long query types mirror (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "export const SessionsQuery = Schema.Struct({"
+          }
+        }
+      ]
     },
     {
       "path": "packages/schema/src/session.ts",
       "sha256": "ababb9964a090e1d70a0cc7b88d66da048c6c201b2e22aea49075f247dd20fde",
-      "behavior": "Session.ListFilter declares the session list order for the first page only (desc newest first, asc oldest first); a continuation takes its order and filters from the opaque cursor, which the cursor-list spine and CursorSequence depend on.",
-      "anchor": {
-        "type": "contains",
-        "text": "Session order for the first page"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Session.ListFilter declares the session list order for the first page only (desc newest first, asc oldest first); a continuation takes its order and filters from the opaque cursor, which the cursor-list spine and CursorSequence depend on.",
+          "anchor": {
+            "type": "contains",
+            "text": "Session order for the first page"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/errors.ts",
       "sha256": "a83801eee4f838e431b4ac84c5b1f27f4e49f327d861055aaa51cffb56a6133e",
-      "behavior": "The tagged error catalogue declares the wire discriminators the typed error family maps, so an added, removed or renamed tag changes the SDK\u0027s error union; LocationNotFoundError (404, location and message) is the location middlewares\u0027 error, and pty.connect declares it itself. Group files declare a few tagged errors of their own (WorktreeError, VcsInitNotSupportedError), which reach the SDK through the generated document rather than this file.",
-      "anchor": {
-        "type": "contains",
-        "text": "FileNotFoundError"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The tagged error catalogue declares the wire discriminators the typed error family maps, so an added, removed or renamed tag changes the SDK\u0027s error union; LocationNotFoundError (404, location and message) is the location middlewares\u0027 error, and pty.connect declares it itself. Group files declare a few tagged errors of their own (WorktreeError, VcsInitNotSupportedError), which reach the SDK through the generated document rather than this file.",
+          "anchor": {
+            "type": "contains",
+            "text": "FileNotFoundError"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/bin/opencode2.cjs",
       "sha256": "50d5d50c514a1455be7f0d002f950b541085b905c966763203e5074cc5cb308b",
-      "behavior": "The opencode2 alias that the CLI package\u0027s bin map declares only requires the opencode wrapper, so both commands start the same server binary, which is the contract behind the launcher\u0027s default command and its transitional alias.",
-      "anchor": {
-        "type": "contains",
-        "text": "require(\u0022./opencode.cjs\u0022)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The opencode2 alias that the CLI package\u0027s bin map declares only requires the opencode wrapper, so both commands start the same server binary, which is the contract behind the launcher\u0027s default command and its transitional alias.",
+          "anchor": {
+            "type": "contains",
+            "text": "require(\u0022./opencode.cjs\u0022)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/message.ts",
       "sha256": "7c61ce6321ab54ff216061445204374d2f9f7d4c72c5f066e924c014f1e8843c",
-      "behavior": "The message list declares limit, order, cursor and a type filter that must be passed again on every continuation, which the message-list spine, CursorSequence and EnumerateMessagesAsync depend on. The message list decodes limit from the query text as an integer from 1 to 200, which its int query type mirrors (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "Message order for the first page"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The message list declares limit, order, cursor and a type filter that must be passed again on every continuation, which the message-list spine, CursorSequence and EnumerateMessagesAsync depend on. The message list decodes limit from the query text as an integer from 1 to 200, which its int query type mirrors (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "Message order for the first page"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/service.ts",
       "sha256": "d8818849fcb4e25cb83043b227329c7529ab36a7ddfb2bee844b310d833b3b7b",
-      "behavior": "Info is the registration record a service publishes: an optional id and version, the raw url string, a positive integer pid, and an optional password; the SDK\u0027s strict registration reader admits exactly these members.",
-      "anchor": {
-        "type": "contains",
-        "text": "export type Info = {"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Info is the registration record a service publishes: an optional id and version, the raw url string, a positive integer pid, and an optional password; the SDK\u0027s strict registration reader admits exactly these members.",
+          "anchor": {
+            "type": "contains",
+            "text": "export type Info = {"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/promise/service.ts",
       "sha256": "1ef755d6f42257b8bea855c1fd359b68e2736d9a2f3fb015066d155a37191868",
-      "behavior": "The Promise-client ensure loop, the statement-level template ServiceElection follows (ADR-0025; the Effect Service.ensure is the behaviour source and states the same election): a wall-clock deadline loop that reuses a ready compatible service, reports a failed one without spawning, fails at once on a protocol-incompatible service (an authenticated 404 on /api/info) whose version still matches instead of replacing it, replaces only a service whose version requirement is unmet, and after three consecutive info-probe timeouts on the same registration announces missing, clears the handoff sidecar, terminates the unresponsive daemon, and spawns a replacement while keeping one contender plus one lock probe alive. The first contender failure is retained: no contender is recruited while it is held, and the deadline throws it before the timeout. After the recovery terminate and after a replacement stop, contenders whose pid is the stopped service\u0027s or that have finished are released and the retained failure is dropped. stop prepares or clears the handoff best-effort, so a failure there is logged and the terminate still runs.",
-      "anchor": {
-        "type": "contains",
-        "text": "export async function ensure(options: EnsureOptions = {})"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The Promise-client ensure loop, the statement-level template ServiceElection follows (ADR-0025; the Effect Service.ensure is the behaviour source and states the same election): a wall-clock deadline loop that reuses a ready compatible service, reports a failed one without spawning, fails at once on a protocol-incompatible service (an authenticated 404 on /api/info) whose version still matches instead of replacing it, replaces only a service whose version requirement is unmet, and after three consecutive info-probe timeouts on the same registration announces missing, clears the handoff sidecar, terminates the unresponsive daemon, and spawns a replacement while keeping one contender plus one lock probe alive. The first contender failure is retained: no contender is recruited while it is held, and the deadline throws it before the timeout. After the recovery terminate and after a replacement stop, contenders whose pid is the stopped service\u0027s or that have finished are released and the retained failure is dropped. stop prepares or clears the handoff best-effort, so a failure there is logged and the terminate still runs.",
+          "anchor": {
+            "type": "contains",
+            "text": "export async function ensure(options: EnsureOptions = {})"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/pty-handoff.ts",
       "sha256": "9f4b830dc6de2b2969fddbebcd1f16a51c3833af561f9cfd7304bc9c6c261f94",
-      "behavior": "The persistent-terminal handoff sidecar lives beside the registration file under the .pty-handoff suffix, written exclusively at mode 0600 through a temporary file and a rename; clear removes it and treats a missing file as already cleared, which is what a stop without a handoff does before it signals. prepare never throws: a failed request or an invalid or expired ticket re-checks for a sidecar a concurrent caller published, then shuts the daemon\u0027s persistent terminals down ignoring every error and publishes a null handoff, and a failed publish is only logged.",
-      "anchor": {
-        "type": "contains",
-        "text": "export async function clear(file: string)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The persistent-terminal handoff sidecar lives beside the registration file under the .pty-handoff suffix, written exclusively at mode 0600 through a temporary file and a rename; clear removes it and treats a missing file as already cleared, which is what a stop without a handoff does before it signals. prepare never throws: a failed request or an invalid or expired ticket re-checks for a sidecar a concurrent caller published, then shuts the daemon\u0027s persistent terminals down ignoring every error and publishes a null handoff, and a failed publish is only logged.",
+          "anchor": {
+            "type": "contains",
+            "text": "export async function clear(file: string)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/effect/service.ts",
       "sha256": "0f0d244102d26719048dc87a0c219f812dc72613934fbd4dad5966f69e563548",
-      "behavior": "discover reads the registration file and probes /api/info through the shared probeResult under the request timeout, and returns only a ready, compatible service whose version matches when requested. ensure repeats that probe every pollInterval and acts on decide until a compatible ready service answers, keeping one contender plus one lock probe alive while the registration is unresolved; a protocol-incompatible service whose version matches fails ensure, and only an unmet version requirement replaces the registered service. The contender rules are contenderPool\u0027s: the first contender failure is retained, stops recruitment, and is what the deadline fails with; the recovery terminate and the replacement stop release the contenders that are the stopped pid or have finished and drop the retained failure. ensure gives up after promiseTimeout of wall-clock time rather than after a fixed attempt count. stop reads the registration, prepares a persistent-terminal handoff only when asked for one and clears the sidecar otherwise, logging any failure of either without skipping the terminate; terminate compares id, version, url, and pid with the registration before SIGTERM, polls stopPollAttempts spaced stopPollInterval, sends SIGKILL to the same pid when the process is still there whatever the registration says by then, polls again, and removes the registration only when it is still the same record; a process still running after SIGKILL fails the stop and leaves the record in place.",
-      "anchor": {
-        "type": "contains",
-        "text": "export const discover = Effect.fn(\u0022service.discover\u0022)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "discover reads the registration file and probes /api/info through the shared probeResult under the request timeout, and returns only a ready, compatible service whose version matches when requested. ensure repeats that probe every pollInterval and acts on decide until a compatible ready service answers, keeping one contender plus one lock probe alive while the registration is unresolved; a protocol-incompatible service whose version matches fails ensure, and only an unmet version requirement replaces the registered service. The contender rules are contenderPool\u0027s: the first contender failure is retained, stops recruitment, and is what the deadline fails with; the recovery terminate and the replacement stop release the contenders that are the stopped pid or have finished and drop the retained failure. ensure gives up after promiseTimeout of wall-clock time rather than after a fixed attempt count. stop reads the registration, prepares a persistent-terminal handoff only when asked for one and clears the sidecar otherwise, logging any failure of either without skipping the terminate; terminate compares id, version, url, and pid with the registration before SIGTERM, polls stopPollAttempts spaced stopPollInterval, sends SIGKILL to the same pid when the process is still there whatever the registration says by then, polls again, and removes the registration only when it is still the same record; a process still running after SIGKILL fails the stop and leaves the record in place.",
+          "anchor": {
+            "type": "contains",
+            "text": "export const discover = Effect.fn(\u0022service.discover\u0022)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-timing.ts",
       "sha256": "138404ab009baece27551fdbf5586266d43f7979bff4959adb094dc890a329b3",
-      "behavior": "The client\u0027s timing constants: a 2-second info request timeout, the 25 ms poll spacing, the spawn delays, and the stop poll ServiceTiming.Default mirrors value for value, plus the 120-second promiseTimeout that bounds the ensure loop by wall clock, which Ensure reads at its own pin.",
-      "anchor": {
-        "type": "contains",
-        "text": "requestTimeout: 2_000,"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The client\u0027s timing constants: a 2-second info request timeout, the 25 ms poll spacing, the spawn delays, and the stop poll ServiceTiming.Default mirrors value for value, plus the 120-second promiseTimeout that bounds the ensure loop by wall clock, which Ensure reads at its own pin.",
+          "anchor": {
+            "type": "contains",
+            "text": "requestTimeout: 2_000,"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-version.ts",
       "sha256": "517b341ccd4460a1adf7122b26ff07d641150c4ed5ce8697cd65f8ae0bc045a5",
-      "behavior": "A discovered service matches only when its reported version equals the expected one ordinally, and any version matches when none is expected; ExpectedVersion applies the same rule.",
-      "anchor": {
-        "type": "contains",
-        "text": "return version === options.version"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A discovered service matches only when its reported version equals the expected one ordinally, and any version matches when none is expected; ExpectedVersion applies the same rule.",
+          "anchor": {
+            "type": "contains",
+            "text": "return version === options.version"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/service-config.ts",
       "sha256": "34f57de314b714473e3378c5b431f69783dd14745eaa4af26695cd952a7f0b4e",
-      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean), remote (an object holding a string route), and remoteAccepted (the literal true, which the CLI writes when remote access is accepted while pairing or turned off after it was on, and which the service get, set, and unset commands do not reach) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document, including one whose remoteAccepted is present but not true, is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key. options() and the service\u0027s own startup apply the saved env without XDG_STATE_HOME (processEnv), so a saved value cannot move the registration\u0027s state directory.",
-      "anchor": {
-        "type": "contains",
-        "text": "export function filename(channel = OPENCODE_CHANNEL)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean), remote (an object holding a string route), and remoteAccepted (the literal true, which the CLI writes when remote access is accepted while pairing or turned off after it was on, and which the service get, set, and unset commands do not reach) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document, including one whose remoteAccepted is present but not true, is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key. options() and the service\u0027s own startup apply the saved env without XDG_STATE_HOME (processEnv), so a saved value cannot move the registration\u0027s state directory.",
+          "anchor": {
+            "type": "contains",
+            "text": "export function filename(channel = OPENCODE_CHANNEL)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/service-registration.ts",
       "sha256": "e0ecb1e51322224217985932622bcd427bcbcfe09d9a29c6b21827aa6c022936",
-      "behavior": "The service writes its registration atomically through a temp file and rename with mode 0600, carrying id, the compiled version, the bound url, its own pid, and the password, then re-reads the file every five seconds and shuts down when another instance replaced it.",
-      "anchor": {
-        "type": "contains",
-        "text": "export const register = Effect.fnUntraced"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The service writes its registration atomically through a temp file and rename with mode 0600, carrying id, the compiled version, the bound url, its own pid, and the password, then re-reads the file every five seconds and shuts down when another instance replaced it.",
+          "anchor": {
+            "type": "contains",
+            "text": "export const register = Effect.fnUntraced"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/version.ts",
       "sha256": "035ff5714f07e40ffc9011d5929bb3cd41fd892e471cfb64c3aa9b590efffc19",
-      "behavior": "A source run compiles the version and channel as the literal local, which is the channel and version the managed-service fixture registers under.",
-      "anchor": {
-        "type": "contains",
-        "text": "const channel = typeof OPENCODE_CHANNEL"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A source run compiles the version and channel as the literal local, which is the channel and version the managed-service fixture registers under.",
+          "anchor": {
+            "type": "contains",
+            "text": "const channel = typeof OPENCODE_CHANNEL"
+          }
+        }
+      ]
     },
     {
       "path": "packages/util/src/global.ts",
       "sha256": "56929986af9096e499e028d4f9090341ddbfb3e3b28e4d6039787f5f685fab15",
-      "behavior": "OPENCODE_CONFIG_DIR replaces the whole config root with no opencode segment beneath it, and OPENCODE_TEST_HOME replaces the home directory service mode changes into.",
-      "anchor": {
-        "type": "contains",
-        "text": "process.env.OPENCODE_CONFIG_DIR ?? Path.config"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "OPENCODE_CONFIG_DIR replaces the whole config root with no opencode segment beneath it, and OPENCODE_TEST_HOME replaces the home directory service mode changes into.",
+          "anchor": {
+            "type": "contains",
+            "text": "process.env.OPENCODE_CONFIG_DIR ?? Path.config"
+          }
+        }
+      ]
     },
     {
       "path": "packages/util/src/global-roots.ts",
       "sha256": "6cdc234ac155e308dadeb62682c687468ba656fd463482d00fce025c9dc819b6",
-      "behavior": "Each global root is its XDG variable when set and non-empty, otherwise the home-relative default: .local/share, .cache, .config, and .local/state.",
-      "anchor": {
-        "type": "contains",
-        "text": "const state = process.env.XDG_STATE_HOME"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Each global root is its XDG variable when set and non-empty, otherwise the home-relative default: .local/share, .cache, .config, and .local/state.",
+          "anchor": {
+            "type": "contains",
+            "text": "const state = process.env.XDG_STATE_HOME"
+          }
+        }
+      ]
     },
     {
       "path": "packages/util/src/hash.ts",
       "sha256": "0d0816d1eb3cabcbea8394fe30c4e28206a32ff3cd07bb09b7999a86b14dd100",
-      "behavior": "Hash.fast is a hex SHA-1 digest of the UTF-8 input, the function the legacy registration filename is derived from.",
-      "anchor": {
-        "type": "contains",
-        "text": "createHash(\u0022sha1\u0022)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Hash.fast is a hex SHA-1 digest of the UTF-8 input, the function the legacy registration filename is derived from.",
+          "anchor": {
+            "type": "contains",
+            "text": "createHash(\u0022sha1\u0022)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/service-status.ts",
       "sha256": "8af6c5d8bbb5eb6d5f1db371c50b6d3cbf211cec637828cdcaa8ffb441e203da",
-      "behavior": "The service status states starting, ready, failed, and stopping are what the health handler maps to 503, 200, 500, and 503.",
-      "anchor": {
-        "type": "contains",
-        "text": "export type State ="
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The service status states starting, ready, failed, and stopping are what the health handler maps to 503, 200, 500, and 503.",
+          "anchor": {
+            "type": "contains",
+            "text": "export type State ="
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/server.ts",
       "sha256": "f6842b51b8cefba55c4247b729e025470c1dadece2a11cb42abb255c281061f8",
-      "behavior": "The info answer carries version, pid, urls, paths.tmp, and an optional capabilities object whose optional persistentPty flag says whether the server can run the persistent-terminal daemon; pid may be zero for a runtime without an OS process identity. The background-service probe revalidates the registered process identity and expected version.",
-      "anchor": {
-        "type": "contains",
-        "text": "HttpApiEndpoint.get(\u0022server.info\u0022, \u0022/api/info\u0022, {"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The info answer carries version, pid, urls, paths.tmp, and an optional capabilities object whose optional persistentPty flag says whether the server can run the persistent-terminal daemon; pid may be zero for a runtime without an OS process identity. The background-service probe revalidates the registered process identity and expected version.",
+          "anchor": {
+            "type": "contains",
+            "text": "HttpApiEndpoint.get(\u0022server.info\u0022, \u0022/api/info\u0022, {"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/test/service.test.ts",
       "sha256": "0a9d55eaae24739200d8b9c6c4cd088d378f36d181fbde429adf4f6f833f4183",
-      "behavior": "Upstream\u0027s own discovery expectations: a compatible registered service is reused, a waiting one is awaited, a failed one is reported without spawning, and a version-mismatched one is replaced; stop escalates by pid when the registration disappears and preserves a successor\u0027s registration; a contender failure is retained without recruiting replacements, survives until the deadline, and is dropped after an eviction. ServiceEnsurerTests, ServiceStopperTests, ServiceDiscoveryTests, and the Ensure live tests re-prove them.",
-      "anchor": {
-        "type": "contains",
-        "text": "reuses a compatible registered service"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream\u0027s own discovery expectations: a compatible registered service is reused, a waiting one is awaited, a failed one is reported without spawning, and a version-mismatched one is replaced; stop escalates by pid when the registration disappears and preserves a successor\u0027s registration; a contender failure is retained without recruiting replacements, survives until the deadline, and is dropped after an eviction. ServiceEnsurerTests, ServiceStopperTests, ServiceDiscoveryTests, and the Ensure live tests re-prove them.",
+          "anchor": {
+            "type": "contains",
+            "text": "reuses a compatible registered service"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/test/service.test.ts",
       "sha256": "6fab9f51bddaaa54ece3a2e861dbe53a695a83bd25930ae6677b97c38ef1f6d5",
-      "behavior": "Upstream\u0027s own filename and channel expectations: the release channels share service.json, custom channels are sanitized, and version-to-channel membership follows the pre-release spelling; ServicePathResolverTests and ServiceMigrationTests re-prove them. A managed-service contender that finds its port occupied binds once the port is released.",
-      "anchor": {
-        "type": "contains",
-        "text": "service filenames share release channels"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream\u0027s own filename and channel expectations: the release channels share service.json, custom channels are sanitized, and version-to-channel membership follows the pre-release spelling; ServicePathResolverTests and ServiceMigrationTests re-prove them. A managed-service contender that finds its port occupied binds once the port is released.",
+          "anchor": {
+            "type": "contains",
+            "text": "service filenames share release channels"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/test/server-connection.test.ts",
       "sha256": "3ca3e5293d250a2ccd6850540cefe4e64d3e6f34e40ecf3cbfa318d75afb0b91",
-      "behavior": "The version gate is opt-in: service options only require a matching version when the caller asks for the check, which is why ExpectedVersion is null by default; ServiceSelectionTests and ServiceVersionPolicyTests re-prove it.",
-      "anchor": {
-        "type": "contains",
-        "text": "service options only require a matching version when requested"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The version gate is opt-in: service options only require a matching version when the caller asks for the check, which is why ExpectedVersion is null by default; ServiceSelectionTests and ServiceVersionPolicyTests re-prove it.",
+          "anchor": {
+            "type": "contains",
+            "text": "service options only require a matching version when requested"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/script/service-smoke.ts",
       "sha256": "d5a4adf10eb35f6dfdc59f7a2da3b339634b12aaa774f13e428a481505646495",
-      "behavior": "Upstream\u0027s end-to-end service smoke asserts that the daemon it built writes a registration carrying the service identity (id, version, pid); it is a check on the daemon\u0027s output, not a client rule, and the SDK\u0027s reader still admits a registration without an id, as the client\u0027s own Info schema does.",
-      "anchor": {
-        "type": "contains",
-        "text": "Registration is missing service identity"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream\u0027s end-to-end service smoke asserts that the daemon it built writes a registration carrying the service identity (id, version, pid); it is a check on the daemon\u0027s output, not a client rule, and the SDK\u0027s reader still admits a registration without an id, as the client\u0027s own Info schema does.",
+          "anchor": {
+            "type": "contains",
+            "text": "Registration is missing service identity"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/services/server-connection.ts",
       "sha256": "00ef29453ac8d8b024554c4a5e63e282772e7f1224f7eeba727f579b58f1d6f3",
-      "behavior": "resolve routes the default CLI connection to Standalone.start when --standalone is given as the command\u0027s argument or the global flag (--server likewise) or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore; with autostart false it only discovers a running service, with no version filter, and falls back to Standalone.start when none answers. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
-      "anchor": {
-        "type": "contains",
-        "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "resolve routes the default CLI connection to Standalone.start when --standalone is given as the command\u0027s argument or the global flag (--server likewise) or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore; with autostart false it only discovers a running service, with no version filter, and falls back to Standalone.start when none answers. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
+          "anchor": {
+            "type": "contains",
+            "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/env.ts",
       "sha256": "5775e3e3e77687d596f15db4fdc98638564d075c3098eb8af3d7a919c5e295d8",
-      "behavior": "The CLI reads the server password from OPENCODE_PASSWORD and falls back to the legacy OPENCODE_SERVER_PASSWORD; the session environment it hands on omits both.",
-      "anchor": {
-        "type": "contains",
-        "text": "Config.orElse(() =\u003E Config.Redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The CLI reads the server password from OPENCODE_PASSWORD and falls back to the legacy OPENCODE_SERVER_PASSWORD; the session environment it hands on omits both.",
+          "anchor": {
+            "type": "contains",
+            "text": "Config.orElse(() =\u003E Config.Redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/commands/handlers/service/stop.ts",
       "sha256": "2c2c9339422e9748f6e42de68032f463057390513ad750aec389a9774d2adc62",
-      "behavior": "The CLI stop command resolves the channel options and runs Service.stop, which clears the sidecar and terminates the registered process without an explicit persistent-terminal shutdown request; stopping without a handoff drops the daemon\u0027s owner, which stops it with its processes.",
-      "anchor": {
-        "type": "contains",
-        "text": "yield* Service.stop(options)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The CLI stop command resolves the channel options and runs Service.stop, which clears the sidecar and terminates the registered process without an explicit persistent-terminal shutdown request; stopping without a handoff drops the daemon\u0027s owner, which stops it with its processes.",
+          "anchor": {
+            "type": "contains",
+            "text": "yield* Service.stop(options)"
+          }
+        }
+      ]
     },
     {
       "path": "package.json",
       "sha256": "0b257c5382b162df7e3016d874e0ee7578ba5428416b62dbf936cbb21a9e9054",
-      "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
-      "anchor": {
-        "type": "contains",
-        "text": "\u0022effect\u0022: \u00224.1.0\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
+          "anchor": {
+            "type": "contains",
+            "text": "\u0022effect\u0022: \u00224.1.0\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-contender.ts",
       "sha256": "32ee93cca6bdccfde5704700dc8db8754ab7adc1e714e29b06e014a9450bda63",
-      "behavior": "A contender is spawned detached and hidden (windowsHide) with stdin and stdout ignored, stderr piped, and the parent environment overlaid; stderr is retained as an 8 KiB tail, error and close are observed, the child is unref\u0027d, and release drops the listener without signalling. The Ensure door\u0027s spawn seam ports that contract, windowsHide included. contenderPool keeps at most two attempts alive and recruits none while a failure is held; it keeps the first startup failure and reports it once no attempt is alive; a clean exit doubles the spawn delay up to its maximum and an answering service resets it; eviction releases the stopped pid\u0027s and finished attempts, drops the failure, and restarts the spawn clock; an unanswered registration waits one spawn delay before an attempt competes.",
-      "anchor": {
-        "type": "contains",
-        "text": "detached: true,"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A contender is spawned detached and hidden (windowsHide) with stdin and stdout ignored, stderr piped, and the parent environment overlaid; stderr is retained as an 8 KiB tail, error and close are observed, the child is unref\u0027d, and release drops the listener without signalling. The Ensure door\u0027s spawn seam ports that contract, windowsHide included. contenderPool keeps at most two attempts alive and recruits none while a failure is held; it keeps the first startup failure and reports it once no attempt is alive; a clean exit doubles the spawn delay up to its maximum and an answering service resets it; eviction releases the stopped pid\u0027s and finished attempts, drops the failure, and restarts the spawn clock; an unanswered registration waits one spawn delay before an attempt competes.",
+          "anchor": {
+            "type": "contains",
+            "text": "detached: true,"
+          }
+        }
+      ]
     },
     {
       "path": "packages/http-recorder/src/redaction/redactor.ts",
       "sha256": "e621cdbab8e2ab676656a91f6235be3807a447e485cc398e9279b4199388b621",
-      "behavior": "DEFAULT_REDACT_JSON_FIELDS lists the JSON fields upstream\u0027s HTTP recorder masks in every recorded body (access_token, api_key, apikey, client_secret, password, refresh_token, secret, token), matched after normalizeField drops every character outside [a-z0-9] and lower-cases; the list and the rule are the generator\u0027s redaction floor for generated ToString (ADR-0028, SecretMemberPolicy), so a change to either moves the floor.",
-      "anchor": {
-        "type": "contains",
-        "text": "const DEFAULT_REDACT_JSON_FIELDS = ["
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "DEFAULT_REDACT_JSON_FIELDS lists the JSON fields upstream\u0027s HTTP recorder masks in every recorded body (access_token, api_key, apikey, client_secret, password, refresh_token, secret, token), matched after normalizeField drops every character outside [a-z0-9] and lower-cases; the list and the rule are the generator\u0027s redaction floor for generated ToString (ADR-0028, SecretMemberPolicy), so a change to either moves the floor.",
+          "anchor": {
+            "type": "contains",
+            "text": "const DEFAULT_REDACT_JSON_FIELDS = ["
+          }
+        }
+      ]
     },
     {
       "path": "packages/http-recorder/src/redaction/secrets.ts",
       "sha256": "b5e49487e415347ebc5d6e290bc8c2c7a88825b56d549e0b063a94bf3074efef",
-      "behavior": "ENV_SECRET_NAMES is the case-insensitive marker-word pattern upstream reads as a secret in an environment-variable name (API, AUTH, BEARER, CREDENTIAL, KEY, PASSWORD, SECRET, TOKEN, anywhere in the name); the generator\u0027s secret-name wall stops a model member whose wire name matches it until a curation row decides it (ADR-0028, SecretMemberPolicy).",
-      "anchor": {
-        "type": "contains",
-        "text": "const ENV_SECRET_NAMES = /(?:API|AUTH|BEARER|CREDENTIAL|KEY|PASSWORD|SECRET|TOKEN)/i"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "ENV_SECRET_NAMES is the case-insensitive marker-word pattern upstream reads as a secret in an environment-variable name (API, AUTH, BEARER, CREDENTIAL, KEY, PASSWORD, SECRET, TOKEN, anywhere in the name); the generator\u0027s secret-name wall stops a model member whose wire name matches it until a curation row decides it (ADR-0028, SecretMemberPolicy).",
+          "anchor": {
+            "type": "contains",
+            "text": "const ENV_SECRET_NAMES = /(?:API|AUTH|BEARER|CREDENTIAL|KEY|PASSWORD|SECRET|TOKEN)/i"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/index.ts",
       "sha256": "6235a73b3f927750ef362f1bfc6a1d12418d730a512906644cdb3798b1ede59e",
-      "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and on success exits with process.exitCode (0 when unset) once stdout and stderr have drained: the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down. A signal interruption exits 143 after SIGTERM and 130 after SIGINT. After SIGTERM or SIGINT, a teardown still unfinished after 10 seconds, or a second signal during teardown, writes the pending work to stderr and exits 1.",
-      "anchor": {
-        "type": "contains",
-        "text": "remember a SIGTERM so the exit code is 143"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and on success exits with process.exitCode (0 when unset) once stdout and stderr have drained: the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down. A signal interruption exits 143 after SIGTERM and 130 after SIGINT. After SIGTERM or SIGINT, a teardown still unfinished after 10 seconds, or a second signal during teardown, writes the pending work to stderr and exits 1.",
+          "anchor": {
+            "type": "contains",
+            "text": "remember a SIGTERM so the exit code is 143"
+          }
+        }
+      ]
     },
     {
       "path": "packages/cli/src/commands/handlers/serve.ts",
       "sha256": "b136a083952d0b281f068183e2886652e3fe6271473a1b50b0ddf3fdbd86dc55",
-      "behavior": "serve --service runs the server process in service mode, the flag behind Ensure\u0027s default command (opencode serve --service); --service and --stdio cannot be combined.",
-      "anchor": {
-        "type": "contains",
-        "text": "mode: input.service ? \u0022service\u0022 : input.stdio ? \u0022stdio\u0022 : \u0022default\u0022,"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "serve --service runs the server process in service mode, the flag behind Ensure\u0027s default command (opencode serve --service); --service and --stdio cannot be combined.",
+          "anchor": {
+            "type": "contains",
+            "text": "mode: input.service ? \u0022service\u0022 : input.stdio ? \u0022stdio\u0022 : \u0022default\u0022,"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/test/fixture/service.ts",
       "sha256": "ba4ace2ef20309002024111e224b265ae44cb208bcb10126d029f8ab334ba62e",
-      "behavior": "Upstream\u0027s service fixture modes (failed, delayed, coordinated losers, a stalled or stale registered service, a protocol-incompatible owner, and a controlled contender that fails, hangs, or wins on a release file) are what the SDK fixture\u0027s contender-probe stand-ins imitate, so the Ensure live tests exercise the same situations the upstream client tests do.",
-      "anchor": {
-        "type": "contains",
-        "text": "const [registration, mode, delay] = process.argv.slice(2)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream\u0027s service fixture modes (failed, delayed, coordinated losers, a stalled or stale registered service, a protocol-incompatible owner, and a controlled contender that fails, hangs, or wins on a release file) are what the SDK fixture\u0027s contender-probe stand-ins imitate, so the Ensure live tests exercise the same situations the upstream client tests do.",
+          "anchor": {
+            "type": "contains",
+            "text": "const [registration, mode, delay] = process.argv.slice(2)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/httpapi-codegen/src/index.ts",
       "sha256": "0bd6805c71fea78c61361addb9721841947af656eab68cf1ca1e548922eeb82c",
-      "behavior": "Upstream codegen turns a route whose path ends in a single trailing wildcard into a required string input named path, or wildcard when an input already takes path, and fills it with encodePath: each slash-separated segment through encodeURIComponent; the generator route-tail rule mirrors both (ADR-0029), and tools/oracles/wildcard-path.ts re-proves the encoding against the generated client.",
-      "anchor": {
-        "type": "contains",
-        "text": "function promiseWildcardInput(endpoint: Endpoint)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream codegen turns a route whose path ends in a single trailing wildcard into a required string input named path, or wildcard when an input already takes path, and fills it with encodePath: each slash-separated segment through encodeURIComponent; the generator route-tail rule mirrors both (ADR-0029), and tools/oracles/wildcard-path.ts re-proves the encoding against the generated client.",
+          "anchor": {
+            "type": "contains",
+            "text": "function promiseWildcardInput(endpoint: Endpoint)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/handlers/fs.ts",
       "sha256": "9bbfd9ae5a9e92e3e40b4ac19ebaf3b5b0c6de6a02273bd64a75a29f220f84c7",
-      "behavior": "The fs.read handler takes the wildcard tail from the request URL path and percent-decodes it (an undecodable tail answers FileNotFoundError), reads the file relative to the location, and, for a request without conditional or Range headers, answers 200 with its raw bytes as an attachment under the file MIME type, except that HTML, JavaScript and XML types (SVG included) are served as text/plain; charset=utf-8, which the route tail and the binary envelope (Content, ContentType) rely on. Its 304, 206 and 416 answers respond only to If-None-Match, If-Modified-Since and Range request headers, which the SDK never sends and the document does not declare.",
-      "anchor": {
-        "type": "contains",
-        "text": "pathname.slice(13)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The fs.read handler takes the wildcard tail from the request URL path and percent-decodes it (an undecodable tail answers FileNotFoundError), reads the file relative to the location, and, for a request without conditional or Range headers, answers 200 with its raw bytes as an attachment under the file MIME type, except that HTML, JavaScript and XML types (SVG included) are served as text/plain; charset=utf-8, which the route tail and the binary envelope (Content, ContentType) rely on. Its 304, 206 and 416 answers respond only to If-None-Match, If-Modified-Since and Range request headers, which the SDK never sends and the document does not declare.",
+          "anchor": {
+            "type": "contains",
+            "text": "pathname.slice(13)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/server/src/content-headers.ts",
       "sha256": "5355de065a4c231e22668ce6f5006c6cef0efd1cff709a1930e60528fd1678d9",
-      "behavior": "ContentHeaders.download, which the fs.read handler answers raw file bytes with, sets content-type to the file MIME type except text/html, text/javascript, application/javascript, application/x-javascript and any \u002Bxml or /xml type (SVG included), which become text/plain; charset=utf-8, and adds content-disposition attachment with an RFC 6266 filename, a sandboxing content-security-policy and x-content-type-options nosniff; the binary envelope\u0027s ContentType carries that header.",
-      "anchor": {
-        "type": "contains",
-        "text": "const TEXT_TYPE = \u0022text/plain; charset=utf-8\u0022"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "ContentHeaders.download, which the fs.read handler answers raw file bytes with, sets content-type to the file MIME type except text/html, text/javascript, application/javascript, application/x-javascript and any \u002Bxml or /xml type (SVG included), which become text/plain; charset=utf-8, and adds content-disposition attachment with an RFC 6266 filename, a sandboxing content-security-policy and x-content-type-options nosniff; the binary envelope\u0027s ContentType carries that header.",
+          "anchor": {
+            "type": "contains",
+            "text": "const TEXT_TYPE = \u0022text/plain; charset=utf-8\u0022"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/api.ts",
       "sha256": "da2a8a109e83b8afefe308992fc3036f7c06c5a40ba36276679bec7d0397cc40",
-      "behavior": "The API assembly decides which groups carry the location middleware. It passes the middleware into makePtyGroup, which applies it to every PTY endpoint except pty.connect, so pty.connect resolves its location in its own handler; the persistent-PTY group carries none.",
-      "anchor": {
-        "type": "contains",
-        "text": ".add(makePtyGroup(locationMiddleware))"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The API assembly decides which groups carry the location middleware. It passes the middleware into makePtyGroup, which applies it to every PTY endpoint except pty.connect, so pty.connect resolves its location in its own handler; the persistent-PTY group carries none.",
+          "anchor": {
+            "type": "contains",
+            "text": ".add(makePtyGroup(locationMiddleware))"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/test/service-reconnect.test.ts",
       "sha256": "cb114111ac9c0d68dd5fab8237ed050e55062afe6b6815cb06258562500a7af7",
-      "behavior": "Behavioral oracle for both clients: a registered owner whose health endpoint disappears fails ensure with the incompatible-health-protocol error and is neither signalled, handed off, nor replaced; a nonmatching version requirement replaces it, and an explicit stop ends it. ServiceEnsurerTests re-proves the election side.",
-      "anchor": {
-        "type": "contains",
-        "text": "incompatible health protocol"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Behavioral oracle for both clients: a registered owner whose health endpoint disappears fails ensure with the incompatible-health-protocol error and is neither signalled, handed off, nor replaced; a nonmatching version requirement replaces it, and an explicit stop ends it. ServiceEnsurerTests re-proves the election side.",
+          "anchor": {
+            "type": "contains",
+            "text": "incompatible health protocol"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/src/service-probe.ts",
       "sha256": "f06a0caf95b4a25b56dbf7ee354aecf36c8e93fe299f54080d3d6e3edf641b5b",
-      "behavior": "decide replaces the service on an unmet version requirement (handing off terminals only when it is ready, clearing them otherwise), else fails an incompatible protocol with the health-protocol error, reuses a ready service, fails a failed one, and waits otherwise. probeResult reads a failed exchange as timedOut: signal.aborted, an authenticated 404 as protocol-incompatible and ready without decoding a body, a pid or version mismatch as no service, and 200, 500 and anything else as ready, failed and waiting; same compares id, version, url, and pid. The Ensure election, the discovery probe, and the registration identity port these rules.",
-      "anchor": {
-        "type": "contains",
-        "text": "export function decide(service: LocalService, options: DiscoverOptions)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "decide replaces the service on an unmet version requirement (handing off terminals only when it is ready, clearing them otherwise), else fails an incompatible protocol with the health-protocol error, reuses a ready service, fails a failed one, and waits otherwise. probeResult reads a failed exchange as timedOut: signal.aborted, an authenticated 404 as protocol-incompatible and ready without decoding a body, a pid or version mismatch as no service, and 200, 500 and anything else as ready, failed and waiting; same compares id, version, url, and pid. The Ensure election, the discovery probe, and the registration identity port these rules.",
+          "anchor": {
+            "type": "contains",
+            "text": "export function decide(service: LocalService, options: DiscoverOptions)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/test/service-contender-pool.test.ts",
       "sha256": "f0c7e1db16cbb3b95f86f4c9bfa6faf51a165c319cfaf6fb737b62a75c8e650e",
-      "behavior": "Upstream\u0027s own checks of contenderPool: the first failure is reported once no attempt is alive, eviction forgets it and restarts the spawn clock, an unanswered registration gets one spawn delay, at most two attempts are alive, clean exits back off up to the maximum, and an answering service resets the back-off. The Ensure election\u0027s tests mirror them.",
-      "anchor": {
-        "type": "contains",
-        "text": "an unanswered registration gets one spawn delay before an attempt competes"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream\u0027s own checks of contenderPool: the first failure is reported once no attempt is alive, eviction forgets it and restarts the spawn clock, an unanswered registration gets one spawn delay, at most two attempts are alive, clean exits back off up to the maximum, and an answering service resets the back-off. The Ensure election\u0027s tests mirror them.",
+          "anchor": {
+            "type": "contains",
+            "text": "an unanswered registration gets one spawn delay before an attempt competes"
+          }
+        }
+      ]
     },
     {
       "path": "packages/client/test/service-decision.test.ts",
       "sha256": "db36f92835c8fd9651e4446da6b637a6d4a64175a38ec56fd9255acbddbdbc6c",
-      "behavior": "Upstream\u0027s own checks of decide: a missing health endpoint fails unless the caller requires a different version, a compatible service is reused, awaited or failed by its state, and a version mismatch replaces the service, handing off terminals only when it is ready. The Ensure election\u0027s tests mirror them.",
-      "anchor": {
-        "type": "contains",
-        "text": "a version mismatch replaces the service, handing off terminals only when it is ready"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Upstream\u0027s own checks of decide: a missing health endpoint fails unless the caller requires a different version, a compatible service is reused, awaited or failed by its state, and a version mismatch replaces the service, handing off terminals only when it is ready. The Ensure election\u0027s tests mirror them.",
+          "anchor": {
+            "type": "contains",
+            "text": "a version mismatch replaces the service, handing off terminals only when it is ready"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/fs.ts",
       "sha256": "2f2b0d89f7544f6e371980462e9f9ed7861c189a06463a25e1a0216ba9efb405",
-      "behavior": "The file search decodes limit from the query text as a positive integer, which the fs.find limit query type mirrors (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The file search decodes limit from the query text as a positive integer, which the fs.find limit query type mirrors (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/protocol/src/groups/vcs.ts",
       "sha256": "a428fbd933b0bd2a5f18211e53065bee315864e33b3733a35494d224a7f7a15c",
-      "behavior": "The branch list decodes limit from the query text as a positive integer, which the vcs.branch.list limit query type mirrors (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The branch list decodes limit from the query text as a positive integer, which the vcs.branch.list limit query type mirrors (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+          }
+        }
+      ]
     },
     {
       "path": "packages/schema/src/shell.ts",
       "sha256": "1ed56036245671a9abbac8dd38359c4f4527f72f3ae9fbe2d1c080fee8c24946",
-      "behavior": "The shell output query takes cursor and limit as non-negative integers, which the shell.output cursor and limit query types mirror (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "export const OutputInput = Schema.Struct({"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The shell output query takes cursor and limit as non-negative integers, which the shell.output cursor and limit query types mirror (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "export const OutputInput = Schema.Struct({"
+          }
+        }
+      ]
     },
     {
       "path": "packages/schema/src/schema.ts",
       "sha256": "fc76a9937980e518343e1ae49661316fbbfbd8a34bd44701874bedaa2319b8f2",
-      "behavior": "PositiveInt and NonNegativeInt are integer schemas, which the int and long query types of the query parameters that decode into them rest on (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "export const PositiveInt = Schema.Int.check(Schema.isGreaterThan(0))"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "PositiveInt and NonNegativeInt are integer schemas, which the int and long query types of the query parameters that decode into them rest on (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "export const PositiveInt = Schema.Int.check(Schema.isGreaterThan(0))"
+          }
+        }
+      ]
     },
     {
       "path": "packages/schema/src/event.ts",
       "sha256": "f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9",
-      "behavior": "Event.Seq is a non-negative integer schema, which the long type of the session.log after query parameter rests on (ADR-0037).",
-      "anchor": {
-        "type": "contains",
-        "text": "export const Seq = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))"
-      }
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Event.Seq is a non-negative integer schema, which the long type of the session.log after query parameter rests on (ADR-0037).",
+          "anchor": {
+            "type": "contains",
+            "text": "export const Seq = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))"
+          }
+        }
+      ]
     }
   ]
 }

@@ -37,11 +37,16 @@ internal sealed class WatchedSourceReader(IFileSystem fileSystem, IProcessRunner
                     + $"{(detail.Length > 0 ? $": {detail}" : string.Empty)}");
             }
 
+            var content = Encoding.UTF8.GetString(result.StandardOutput);
             observations.Add(new ReceiptWatchedSource
             {
                 Path = source.Path,
                 Sha256 = DocumentInspector.Sha256Hex(result.StandardOutput),
-                AnchorMatched = Matches(source, result.StandardOutput),
+                Anchors = [.. source.Behaviors.Select(behavior => new ReceiptWatchedAnchor
+                {
+                    Text = behavior.Anchor.Text,
+                    Matched = Matches(source.Path, behavior.Anchor, content),
+                })],
             });
         }
 
@@ -55,9 +60,9 @@ internal sealed class WatchedSourceReader(IFileSystem fileSystem, IProcessRunner
     /// <see langword="false"/> and report a lost anchor - a wrong fact, not a refusal - and a
     /// second anchor type added to the model without a case here would take exactly that path.
     /// </summary>
-    private static bool Matches(WatchedSource source, byte[] content) =>
-        string.Equals(source.Anchor.Type, SourceAnchor.Contains, StringComparison.Ordinal)
-            ? Encoding.UTF8.GetString(content).Contains(source.Anchor.Text, StringComparison.Ordinal)
+    private static bool Matches(string path, SourceAnchor anchor, string content) =>
+        string.Equals(anchor.Type, SourceAnchor.Contains, StringComparison.Ordinal)
+            ? content.Contains(anchor.Text, StringComparison.Ordinal)
             : throw new SnapshotRefreshException(
-                $"watched source '{source.Path}' declares unsupported anchor type '{source.Anchor.Type}'");
+                $"watched source '{path}' declares unsupported anchor type '{anchor.Type}'");
 }

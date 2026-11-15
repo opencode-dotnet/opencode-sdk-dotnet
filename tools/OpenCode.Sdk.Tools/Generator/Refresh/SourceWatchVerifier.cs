@@ -4,7 +4,7 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 
 /// <summary>
 /// Compares the committed source-watch pins against one observation of the same sources. Every
-/// disagreement is a review trigger naming the door behavior at stake — a changed blob, a lost
+/// disagreement is a review trigger naming the owned behavior at stake — a changed blob, a lost
 /// anchor, or a source the observation never saw.
 /// </summary>
 internal static class SourceWatchVerifier
@@ -28,14 +28,15 @@ internal static class SourceWatchVerifier
             {
                 problems.Add(
                     $"watched source '{source.Path}' changed: pinned {source.Sha256}, found {observation.Sha256}; "
-                    + $"review the hand-written door against {source.Behavior}");
+                    + $"review the hand-written door against {string.Join("; ", source.Behaviors.Select(static behavior => behavior.Behavior))}");
             }
 
-            if (!observation.AnchorMatched)
+            foreach (var text in observation.Anchors.Where(static anchor => !anchor.Matched).Select(static anchor => anchor.Text))
             {
+                var behavior = source.Behaviors.Single(behavior => string.Equals(behavior.Anchor.Text, text, StringComparison.Ordinal));
                 problems.Add(
-                    $"watched source '{source.Path}' no longer carries its anchor ({source.Anchor.Type} '{source.Anchor.Text}'): "
-                    + source.Behavior);
+                    $"watched source '{source.Path}' no longer carries its anchor ({behavior.Anchor.Type} '{text}') for {behavior.Owner}: "
+                    + behavior.Behavior);
             }
         }
 
@@ -75,12 +76,10 @@ internal static class SourceWatchVerifier
                     + $"but this checkout carries {observation.Sha256}");
             }
 
-            if (observation.AnchorMatched != source.AnchorMatched)
+            if (!observation.Anchors.SequenceEqual(source.Anchors))
             {
                 problems.Add(
-                    $"the receipt records watched source '{source.Path}' with anchorMatched="
-                    + $"{(source.AnchorMatched ? "true" : "false")}, but this checkout observes "
-                    + $"{(observation.AnchorMatched ? "true" : "false")}");
+                    $"the receipt records watched source '{source.Path}' with different anchors than this checkout observes");
             }
         }
 

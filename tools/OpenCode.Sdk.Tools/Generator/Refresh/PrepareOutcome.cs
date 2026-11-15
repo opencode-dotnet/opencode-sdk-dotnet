@@ -10,4 +10,6 @@ internal sealed record PrepareOutcome
     public required string ReceiptPath { get; init; }
 
     public required string NormalizedDocumentPath { get; init; }
+
+    public required IReadOnlyList<WatchedSource> PinnedSources { get; init; }
 }

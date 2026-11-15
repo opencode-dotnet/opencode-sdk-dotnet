@@ -165,13 +165,16 @@ internal static class GenerationTestData
         var watched = evidenceWatched ? QueryEvidencePath : "packages/protocol/src/groups/other.ts";
         fileSystem.Initialize().With(new FileDescription(SourceWatchPath, $$"""
             {
-              "schemaVersion": 1,
+              "schemaVersion": 2,
               "sources": [
                 {
                   "path": "{{watched}}",
                   "sha256": "{{new string('0', 64)}}",
-                  "behavior": "The health history decodes limit as a number.",
-                  "anchor": { "type": "contains", "text": "limit" }
+                  "behaviors": [{
+                    "owner": "opencode-sdk-dotnet",
+                    "behavior": "The health history decodes limit as a number.",
+                    "anchor": { "type": "contains", "text": "limit" }
+                  }]
                 }
               ]
             }

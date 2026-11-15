@@ -52,7 +52,7 @@ public sealed class SnapshotVerifierTests
 
         if (variation == "observation")
         {
-            var watch = RefreshScenarioData.Watch(1, RefreshScenarioData.Watched("lost.ts", "anchor", "anchor"));
+            var watch = RefreshScenarioData.Watch(2, RefreshScenarioData.Watched("lost.ts", "anchor", "anchor"));
             state = state with { SourceWatch = Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(watch)) };
             scenario.Runner.Expect("git", ["show", $"{state.Checkout}:lost.ts"], scenario.FileSystem.Path.GetFullPath(SnapshotPaths.Submodule), ScriptedProcessRunner.Fail("missing"));
         }

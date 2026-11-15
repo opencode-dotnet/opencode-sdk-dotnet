@@ -1,6 +1,6 @@
 # OpenAPI Snapshot
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 `openapi.json` is the accepted snapshot of the upstream opencode OpenAPI 3.1 document
 (ADR-0005). The SDK is built against this snapshot, never against a live branch; the pin is
@@ -58,7 +58,7 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
    `git submodule update --init --depth 1 external/opencode`.
 
 Prepare also observes every entry of `spec/source-watch.json` at the candidate commit and records
-its hash and anchor verdict in the receipt's `watchedSources`; verify checks those pins against the
+its hash and the verdict of each anchor in the receipt's `watchedSources`; verify checks those pins against the
 submodule checkout and apply re-pins them, so an upstream change under a hand-written door is
 reviewed before the snapshot moves.
 
