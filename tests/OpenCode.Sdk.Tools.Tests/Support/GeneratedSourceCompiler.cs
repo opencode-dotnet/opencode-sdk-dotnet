@@ -66,6 +66,8 @@ internal static class GeneratedSourceCompiler
         ("PersistentPtys/PersistentPtySession.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("Plugins/Internal/PluginWait.cs", "Plugins/PluginsClient.cs"),
+        ("Plugins/PluginsClientExtensions.cs", "Plugins/PluginsClient.cs"),
         ("Ptys/PtyClient.cs", "Ptys/Internal/PtyRawClient.cs"),
         ("Ptys/PtysClient.cs", "Ptys/Internal/PtysRawClient.cs"),
     ];

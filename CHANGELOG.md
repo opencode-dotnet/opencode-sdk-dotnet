@@ -17,6 +17,7 @@ Nightly builds of `master` are on
 ### ✨ Added
 
 - `OpenCodeServerStopOptions.PersistentPtys` accepts `OpenCodeServerStopPersistentPtyMode.Handoff` so that `StopAsync` attempts a best-effort persistent-terminal handoff after it reads the registration and before it signals the process. Follow it with `EnsureAsync` using the same registration selection to restart as the managed connection does; preservation depends on preparing and adopting the ticket before it expires. Null and `Clear` keep the default: terminals end with the service, as with the CLI's `service restart`.
+- `Plugins.WaitForPluginsAsync` waits for a location's plugins to load, as the CLI does before listing agents, models and integrations; `LanguageModels.WaitForDefaultAsync` now runs it.
 
 ### 🔧 Changes
 
