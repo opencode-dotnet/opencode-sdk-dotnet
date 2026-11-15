@@ -1,17 +1,15 @@
 using System.Net;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Transport.Support;
-using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
 /// Caller request headers through the pipeline: the refusals at construction and call start, the
-/// per-call copy an event stream keeps across its reconnect, and the terminal upgrades they never
-/// reach. The decoration order itself is the decoration policy's tests.
+/// per-call copy a stream call takes when it starts, and the terminal upgrades they never reach.
+/// The decoration order itself is the decoration policy's tests.
 /// </summary>
 public sealed class PipelineRequestHeadersTests
 {
@@ -28,6 +26,7 @@ public sealed class PipelineRequestHeadersTests
     private const string NulValue = "bad\0value\0";
     private const string Latin1Value = "ok\u0080value\u0081";
     private const string EuroValue = "bad€value€";
+    private const string DeleteValue = "ok\u007fvalue";
     private const string ClientValue = "client";
     private const string BeforeValue = "before";
 
@@ -218,9 +217,30 @@ public sealed class PipelineRequestHeadersTests
     }
 
     [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Headers_Should_Admit_The_Delete_Character(bool clientWide)
+    {
+        using var handler = new RecordingHttpHandler();
+        using var http = new HttpClient(handler);
+        var options = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint };
+        if (clientWide)
+        {
+            options.Headers.Add("X-Probe", DeleteValue);
+        }
+
+        using var pipeline = Pipeline.Create(http, options);
+        var call = new OpenCodeRequestOptions { Headers = new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Probe"] = DeleteValue } };
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(),
+            clientWide ? null : call, CancellationToken.None);
+
+        await Assert.That(handler.Requests.Single().Headers["X-Probe"]).IsEqualTo(DeleteValue);
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async Task Headers_Should_Snapshot_At_Stream_Start_For_The_Open_And_Reconnect(bool initiallyEmpty)
+    public async Task Headers_Should_Be_Copied_When_A_Stream_Call_Starts(bool initiallyEmpty)
     {
         var headers = new Dictionary<string, string>(StringComparer.Ordinal);
         if (!initiallyEmpty)
@@ -228,35 +248,21 @@ public sealed class PipelineRequestHeadersTests
             headers.Add("X-Probe", BeforeValue);
         }
 
-        var time = new ManualTimeProvider();
         using var handler = new RecordingHttpHandler(static _ => ScriptedEventServer.StreamOf(
-            WireBodyData.Frames(ScriptedEventServer.Connected), ends: true));
+            WireBodyData.Frames("""{"value":"first"}"""), ends: true));
         using var http = new HttpClient(handler);
         var clientOptions = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint };
         clientOptions.Headers.Add("X-Client", ClientValue);
-        using var pipeline = new Pipeline(http, ownsHttpClient: false, clientOptions, time: time);
-        var stream = pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event", EventSubscribeResponseStreamAdapter.Instance,
+        using var pipeline = new Pipeline(http, ownsHttpClient: false, clientOptions);
+        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(),
             new OpenCodeRequestOptions { Headers = headers }, CancellationToken.None);
         headers["X-Probe"] = "after-start";
-        await using var events = stream.GetAsyncEnumerator();
-        await Assert.That(await events.MoveNextAsync()).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
-        headers["X-Probe"] = "after-open";
-        var next = events.MoveNextAsync().AsTask();
-        await time.WaitForArmedAsync(TimeSpan.FromSeconds(1), HangGuard.Bound);
-        time.Advance(TimeSpan.FromSeconds(1));
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
+        await using var frames = stream.GetAsyncEnumerator();
+        await Assert.That(await frames.MoveNextAsync()).IsTrue();
 
-        foreach (var request in handler.Requests)
-        {
-            await Assert.That(request.Headers).ContainsKey("X-Client");
-        }
-
-        await Assert.That(handler.Requests.Select(static request => request.Headers["X-Client"]))
-            .IsEquivalentTo([ClientValue, ClientValue], CollectionOrdering.Matching);
-        string[] expected = initiallyEmpty ? ["absent", "absent"] : [BeforeValue, BeforeValue];
-        await Assert.That(handler.Requests.Select(static request => request.Headers.TryGetValue("X-Probe", out var value) ? value : "absent"))
-            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+        var sent = handler.Requests.Single();
+        await Assert.That(sent.Headers["X-Client"]).IsEqualTo(ClientValue);
+        await Assert.That(sent.Headers.TryGetValue("X-Probe", out var probe) ? probe : "absent")
+            .IsEqualTo(initiallyEmpty ? "absent" : BeforeValue);
     }
 }

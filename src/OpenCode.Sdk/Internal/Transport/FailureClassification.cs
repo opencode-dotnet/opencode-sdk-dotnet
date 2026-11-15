@@ -100,6 +100,9 @@ internal static class FailureClassification
     public const string EventStreamNetworkTimeoutMessage =
         "Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.";
 
+    public const string EventStreamHeadersMessage =
+        "The shared event connection sends only the client-wide headers; per-call Headers are not supported.";
+
     public static OpenCodeTransportException EventStreamFirstFrame() =>
         new($"The opencode event stream did not start with {StreamReconnect.ConnectedEventType}.");
 

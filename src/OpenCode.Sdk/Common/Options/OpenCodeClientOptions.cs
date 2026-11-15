@@ -13,8 +13,9 @@ public sealed class OpenCodeClientOptions
     /// merged location and operation-declared headers, then <see cref="OpenCodeRequestOptions.Headers"/>.
     /// Authorization with a non-null <see cref="Password"/>, or x-opencode-directory with a
     /// non-null <see cref="Location"/>, is refused. Content headers replace the content's headers
-    /// when content exists and are dropped otherwise. Headers reach HTTP operations, SSE opens
-    /// and reconnects, and cursor pages, not terminal upgrades or background-service info probes.
+    /// when content exists and are dropped otherwise. Headers reach HTTP operations, stream opens
+    /// (each shared event feed attempt included) and cursor pages, not terminal upgrades or
+    /// background-service info probes.
     /// Invalid HTTP token names, null values, and values containing NUL (U+0000), CR, LF or any
     /// character above U+007F are refused with <see cref="ArgumentException"/>.
     /// </summary>
@@ -35,7 +36,8 @@ public sealed class OpenCodeClientOptions
     /// CLI generates and prints as <c>server password &lt;pw&gt;</c> when none is configured.
     /// A <see langword="null"/> value sends no credential of the SDK's own. Use it for a host without
     /// authentication, such as an embedded server, or supply Authorization through <see cref="Headers"/>
-    /// or <see cref="OpenCodeRequestOptions.Headers"/>. Any other value is sent exactly as written,
+    /// or <see cref="OpenCodeRequestOptions.Headers"/>, which reach HTTP calls but not terminal
+    /// upgrades: those send only this password's credential. Any other value is sent exactly as written,
     /// as the pinned client sends it: a server configured
     /// with a whitespace password runs with that password. The SDK never reads credentials from
     /// the environment.

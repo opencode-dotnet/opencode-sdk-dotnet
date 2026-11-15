@@ -152,7 +152,9 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
 
     private static void AddOrReplaceRequestHeader(HttpRequestMessage request, string name, string value)
     {
-        if (request.Headers.Contains(name))
+        // TryGetValues, unlike Contains, answers false rather than throwing for a name the request
+        // headers cannot hold, so no declared name can fail decoration.
+        if (request.Headers.TryGetValues(name, out _))
         {
             _ = request.Headers.Remove(name);
         }

@@ -209,7 +209,8 @@ so one per-call argument selects both it and the header override.
 
 Set a client-wide header on `OpenCodeClientOptions.Headers`, or replace it for one call with
 `OpenCodeRequestOptions.Headers`. Client headers are copied at construction; call headers are
-copied at the call's start (reused on SSE reconnects; each cursor page starts its own call).
+copied at the call's start (each cursor page starts its own call). `client.Events.SubscribeAsync`
+refuses per-call headers: its one shared connection carries only the client-wide ones.
 
 ```csharp
 var options = new OpenCodeClientOptions { Endpoint = new Uri("http://localhost:4096") };
@@ -225,7 +226,8 @@ Per-call headers win over SDK authentication, location and operation-declared he
 over client-wide headers, which win over the SDK's `User-Agent`. Construction refuses client-wide
 `Authorization` with a non-null `Password`, or `x-opencode-directory` with a non-null `Location`.
 Content headers replace the body's headers and are dropped without a body. These headers reach
-HTTP calls and streams, not terminal WebSocket upgrades or background-service info probes.
+HTTP calls and streams, not terminal WebSocket upgrades or background-service info probes, so an
+`Authorization` header does not authenticate terminals: use `Password` for a client that opens them.
 Header values containing NUL (U+0000), CR, LF or any character above U+007F are refused with
 `ArgumentException`.
 

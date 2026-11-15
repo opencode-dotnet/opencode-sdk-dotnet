@@ -167,6 +167,19 @@ public sealed class RequestDecorationPolicyTests
         await AssertHeaderAsync(handler.Requests.Single().Headers, "User-Agent", expected);
     }
 
+    [Test]
+    public async Task A_Declared_Content_Header_Name_Should_Not_Fail_Decoration()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var http = new HttpClient(handler);
+        using var pipeline = Pipeline.Create(http, new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint });
+
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(),
+            null, [new DeclaredHeader("Content-Language", "declared")], CancellationToken.None);
+
+        await Assert.That(handler.Requests.Single().Headers).DoesNotContainKey("Content-Language");
+    }
+
     private static async Task AssertDecoratedLocationAsync(
         Pipeline pipeline, IReadOnlyList<RecordedRequest> requests, OpenCodeRequestOptions options, string expectedDirectory)
     {

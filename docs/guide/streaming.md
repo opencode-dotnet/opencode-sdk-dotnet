@@ -672,7 +672,8 @@ before. See the
   their individual connection.
 - On the event bus, a connection that receives nothing for its idle window (45 seconds unless you
   set `EventStreamIdleTimeout`) is replaced, as above. It refuses a per-call `NetworkTimeout`,
-  including `Timeout.InfiniteTimeSpan`; its connection and idle windows apply instead. On the
+  including `Timeout.InfiniteTimeSpan`; its connection and idle windows apply instead. It refuses
+  per-call `Headers` too: the one shared connection carries only the client-wide ones. On the
   durable session event stream, a per-call `NetworkTimeout` overrides the client value only while opening:
   once open, a silent log stays open until you cancel,
   the server ends it, or it fails.

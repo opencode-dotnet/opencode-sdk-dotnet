@@ -29,7 +29,7 @@ public class EventsClient
     /// Subscribe to events. Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.
     /// </summary>
     /// <param name="request">The local type selection, captured at the call; the connection reads the whole bus.</param>
-    /// <param name="requestOptions">NoThrow and NetworkTimeout are refused. Location is accepted but the shared connection sends only the client's ambient location.</param>
+    /// <param name="requestOptions">NoThrow, NetworkTimeout and Headers are refused. Location is accepted but the shared connection sends only the client's ambient location; client-wide headers reach it.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;IEvent&apos; stream.</returns>
     /// <exception cref="OpenCodeEventSubscriberOverflowException">The next selected offer exceeded the subscription's 4,096 queued events; its backlog was discarded.</exception>
@@ -55,6 +55,11 @@ public class EventsClient
         if (requestOptions?.NetworkTimeout is not null)
         {
             throw new ArgumentException(FailureClassification.EventStreamNetworkTimeoutMessage, nameof(requestOptions));
+        }
+
+        if (requestOptions?.Headers is not null)
+        {
+            throw new ArgumentException(FailureClassification.EventStreamHeadersMessage, nameof(requestOptions));
         }
 
         return feed.Subscribe(EventSelection.Capture(request?.Types, nameof(request)), cancellationToken);
