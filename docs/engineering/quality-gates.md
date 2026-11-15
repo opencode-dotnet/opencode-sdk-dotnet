@@ -122,7 +122,7 @@ wall-clock bounds, and a concurrent build, package install or second gate on the
 turn them red without any change to the code. A red result is recorded before any rerun.
 
 A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
-(workflows, issue and pull request templates) needs no local check.
+(workflows, issue and pull request templates) needs no local check. CI runs the gates that read Markdown on Markdown changes (see `workflow.md`).
 
 A fresh clone or worktree is prepared once before its first local check or gate, with the Bun the
 pin's `packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and
@@ -444,7 +444,7 @@ the performance project or `spec/` (including `tools/curation.json`), plus
 `tests/Shared/BenchmarkExitPolicy.cs`, `tests/Shared/GeneratorPeakMemoryPolicy.cs`,
 `tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
 `Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself, not `src/` alone.
-Push runs always select both guards. `CI result` requires the SDK matrix and the stage job to succeed
+Push runs that reach code or whose diff cannot be read select both guards; other pushes select by path, as pull requests do. `CI result` requires the SDK matrix and the stage job to succeed
 when selected and to be skipped otherwise; invalid classification, failure or cancellation fails
 the aggregate.
 

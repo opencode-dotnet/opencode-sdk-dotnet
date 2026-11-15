@@ -4,11 +4,10 @@ on:
   push:
     branches: [master]
     paths-ignore:
-      - "**.md"
       - LICENSE
   # Pull requests and the merge queue always start the workflow, so the required "CI result" check
-  # reports on every change; a documentation-only change skips the heavy jobs inside it (the
-  # changes job) instead of skipping the run, which would leave that check missing.
+  # reports on every change; Markdown selects the Linux Build & Test leg, while LICENSE alone
+  # skips the build and test jobs inside the workflow instead of leaving that check missing.
   pull_request:
     branches:
       - master
@@ -30,8 +29,8 @@ env:
   DOTNET_NOLOGO: true
 
 jobs:
-  # Decides whether the change reaches anything but Markdown and LICENSE, the files a push run
-  # ignores. A pull request's merge ref has the base as its first parent; a merge-queue entry names
+  # Classifies code and Markdown for every event; an unreadable push diff runs in full.
+  # A pull request's merge ref has the base as its first parent; a merge-queue entry names
   # its base, and the entries ahead of it are part of what it tests.
   changes:
     name: "Changes"
@@ -40,12 +39,13 @@ jobs:
       contents: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      docs: ${{ steps.diff.outputs.docs }}
+      matrix: ${{ steps.diff.outputs.matrix }}
       benchmarks: ${{ steps.diff.outputs.benchmarks }}
       benchmarks-generator: ${{ steps.diff.outputs.benchmarks-generator }}
 
     steps:
       - name: Checkout
-        if: github.event_name != 'push'
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
@@ -55,14 +55,24 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           QUEUE_BASE: ${{ github.event.merge_group.base_sha }}
+          before: ${{ github.event.before }}
         run: |
-          if [ "$EVENT" = push ]; then
+          # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner.
+          matrix='[{"os":"windows-2025","name":"Windows","test-modules":4},{"os":"ubuntu-24.04","name":"Linux","test-modules":4},{"os":"macos-15","name":"macOS","test-modules":3}]'
+          push_fallback() {
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "benchmarks=true" >> "$GITHUB_OUTPUT"
             echo "benchmarks-generator=true" >> "$GITHUB_OUTPUT"
+            echo "docs=false" >> "$GITHUB_OUTPUT"
+            echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
             exit 0
-          fi
-          if [ "$EVENT" = merge_group ]; then
+          }
+          if [ "$EVENT" = push ]; then
+            if [ -z "$before" ] || [[ "$before" =~ ^0+$ ]] || ! git fetch --no-tags --depth=1 origin "$before"; then
+              push_fallback
+            fi
+            base="$before"
+          elif [ "$EVENT" = merge_group ]; then
             git fetch --no-tags --depth=1 origin "$QUEUE_BASE"
             base="$QUEUE_BASE"
           else
@@ -70,14 +80,19 @@ jobs:
           fi
           # Raw NUL-separated paths, not Git's quoted display form, and no rename detection: a
           # source file renamed to Markdown is a deleted source file, and its old path must count.
-          git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"
+          if ! git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"; then
+            [ "$EVENT" = push ] && push_fallback
+            exit 1
+          fi
           code=false
+          docs=false
           benchmarks=false
           benchmarks_generator=false
           while IFS= read -r -d '' path; do
             printf '%s\n' "$path"
             case "$path" in
-              *.md | LICENSE) ;;
+              *.md) docs=true ;;
+              LICENSE) ;;
               *) code=true ;;
             esac
             case "$path" in
@@ -87,7 +102,16 @@ jobs:
               tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;
             esac
           done < "$RUNNER_TEMP/changed-paths"
+          if [ "$EVENT" = push ] && [ "$code" = true ]; then
+            benchmarks=true
+            benchmarks_generator=true
+          fi
+          if [ "$code" = false ]; then
+            matrix='[{"os":"ubuntu-24.04","name":"Linux","test-modules":4}]'
+          fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "docs=$docs" >> "$GITHUB_OUTPUT"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "benchmarks=$benchmarks" >> "$GITHUB_OUTPUT"
           echo "benchmarks-generator=$benchmarks_generator" >> "$GITHUB_OUTPUT"
 
@@ -298,7 +322,7 @@ jobs:
   build-and-test:
     name: "Build & Test (${{ matrix.name }})"
     needs: [changes, reuse]
-    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.code == 'true' && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}
+    if: ${{ !cancelled() && needs.changes.result == 'success' && (needs.changes.outputs.code == 'true' || needs.changes.outputs.docs == 'true') && !(needs.reuse.result == 'success' && needs.reuse.outputs.reuse == 'true') }}
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -306,19 +330,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner.
-        include:
-          - os: windows-2025
-            name: Windows
-            test-modules: 4
-
-          - os: ubuntu-24.04
-            name: Linux
-            test-modules: 4
-
-          - os: macos-15
-            name: macOS
-            test-modules: 3
+        include: ${{ fromJSON(needs.changes.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -699,8 +711,8 @@ jobs:
 
   # The one required check. A skipped matrix job reports under its unexpanded name, so the matrix
   # legs cannot be required one by one; this job stands for all of them. It fails closed: a change
-  # that reaches code needs every selected job green or proven same-tree reuse; a documentation-only
-  # change needs the changes job.
+  # that reaches code needs every selected job green or proven same-tree reuse; Markdown needs
+  # the Linux Build & Test leg, and benchmark jobs keep their own path selection.
   ci-result:
     name: "CI result"
     needs: [changes, reuse, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]
@@ -713,6 +725,7 @@ jobs:
         env:
           CHANGES: ${{ needs.changes.result }}
           CODE: ${{ needs.changes.outputs.code }}
+          DOCS: ${{ needs.changes.outputs.docs }}
           LINT: ${{ needs.lint.result }}
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}
           SDK_BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}
@@ -723,7 +736,7 @@ jobs:
           REUSE_RESULT: ${{ needs.reuse.result }}
           REUSE: ${{ needs.reuse.outputs.reuse }}
         run: |
-          echo "changes=$CHANGES code=$CODE lint=$LINT build-and-test=$BUILD_AND_TEST"
+          echo "changes=$CHANGES code=$CODE docs=$DOCS lint=$LINT build-and-test=$BUILD_AND_TEST"
           echo "sdk-benchmarks=$SDK_BENCHMARKS sdk=$SDK generator-benchmarks=$BENCHMARKS stage=$STAGE"
           [ "$CHANGES" = success ] || exit 1
           if [ "$REUSE_RESULT" = success ] && [ "$REUSE" = true ]; then
@@ -733,8 +746,10 @@ jobs:
           fi
           if [ "$CODE" = true ]; then
             [ "$LINT" = success ] && [ "$BUILD_AND_TEST" = success ] || exit 1
+          elif [ "$CODE" = false ] && [ "$DOCS" = true ]; then
+            [ "$LINT" = skipped ] && [ "$BUILD_AND_TEST" = success ] || exit 1
           else
-            [ "$CODE" = false ] || exit 1
+            [ "$CODE" = false ] && [ "$DOCS" = false ] || exit 1
           fi
           if [ "$SDK_BENCHMARKS" = true ]; then
             [ "$SDK" = success ] || exit 1
@@ -749,8 +764,8 @@ jobs:
 
   # Runs once green (needs lint, build-and-test and benchmark-sdk; GitHub Actions waits for every
   # leg of both matrix jobs) and only on a real push to master, never on a PR.
-  # Publishes a -nightly package to GitHub Packages for every master push that runs this workflow,
-  # so the code of the last such push is installable; the stable, human-triggered lane lives in
+  # Publishes a -nightly package to GitHub Packages for code or unclassifiable master pushes;
+  # a classified push without code skips Lint and publishes nothing. The stable lane lives in
   # publish-nuget.yml.
   publish-nightly:
     name: "Publish nightly (GitHub Packages)"
