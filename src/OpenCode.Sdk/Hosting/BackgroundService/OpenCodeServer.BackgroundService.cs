@@ -9,7 +9,7 @@ public partial class OpenCodeServer
     /// without starting, owning, or stopping it: resolves the registration file from the channel
     /// and the XDG roots (or reads the file the options name directly), runs the channel's legacy
     /// migration, decodes the registration, and asks the daemon for its info under a two-second
-    /// bound. A ready daemon that carries a password and, when <see cref="OpenCodeServerDiscoverOptions.ExpectedVersion"/>
+    /// bound. A ready daemon that, when <see cref="OpenCodeServerDiscoverOptions.ExpectedVersion"/>
     /// is set, reports exactly that version, comes back as a non-owning handle; anything else is null.
     /// </summary>
     /// <param name="options">The discovery options; null reads the shared release registration.</param>
@@ -52,15 +52,11 @@ public partial class OpenCodeServer
     private static ServiceInfoProbe PlatformProbe(ServiceTiming timing, TimeProvider time) =>
         new(timing, new LoopbackTransport(new LoopbackSocketConnector()), time);
 
-    /// <summary>
-    /// The non-owning handle over a registered service. Discover and the Ensure election return only
-    /// registrations that carry a password, the handle's non-null credential.
-    /// </summary>
+    /// <summary>The non-owning handle over a registered service.</summary>
     private static OpenCodeServer SharedService(ServiceRegistration registration) =>
         new(
             registration.Endpoint,
-            registration.Password ?? throw new InvalidOperationException(
-                "A registered service reached the handle without a password; Discover and Ensure never return one."),
+            registration.Password,
             registration.ProcessId);
 
     /// <summary>

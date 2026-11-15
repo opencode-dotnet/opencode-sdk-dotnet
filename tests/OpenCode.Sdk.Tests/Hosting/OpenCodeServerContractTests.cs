@@ -64,6 +64,22 @@ public sealed class OpenCodeServerContractTests
     }
 
     [Test]
+    public async Task CreateClient_Should_Send_No_Credential_For_A_Passwordless_Registered_Handle()
+    {
+        var server = new OpenCodeServer(DoorEndpoint, password: null, processId: 48213);
+
+        await Assert.That(server.Password).IsNull();
+        using var client = server.CreateClient();
+
+        // The real client always initializes this private pipeline field during construction.
+        var pipeline = (Pipeline)typeof(OpenCodeClient)
+            .GetField("_pipeline", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(client)!;
+        await Assert.That(pipeline.Connection.EndpointBase).IsEqualTo("http://127.0.0.1:4096");
+        await Assert.That(pipeline.Connection.Authorization).IsNull();
+    }
+
+    [Test]
     public async Task DiscoverAsync_Should_Refuse_Contradictory_Options_With_ArgumentException()
     {
         var options = new OpenCodeServerDiscoverOptions { Channel = "dev", InstalledVersion = "2.0.2", ExpectedVersion = "2.0.3" };
@@ -252,6 +268,18 @@ public sealed class OpenCodeServerContractTests
         var failure = await Assert.That(() => _ = mock.Endpoint).Throws<InvalidOperationException>();
 
         await Assert.That(failure!.Message).Contains("OpenCodeServer.Endpoint");
+    }
+
+    [Test]
+    public async Task Password_Should_Throw_The_Mock_Seam_Failure_On_A_Bare_Mock()
+    {
+        var mock = new MockableServer();
+
+        var failure = await Assert.That(() => _ = mock.Password).Throws<InvalidOperationException>();
+
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure.Message).IsEqualTo(
+            "'OpenCodeServer.Password' was invoked on an instance created through the protected mocking constructor; override the member under test.");
     }
 
     [Test]

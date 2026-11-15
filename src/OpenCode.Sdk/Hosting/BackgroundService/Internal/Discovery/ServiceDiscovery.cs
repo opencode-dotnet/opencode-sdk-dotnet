@@ -40,10 +40,8 @@ internal sealed class ServiceDiscovery(
         var registration = await ServiceRegistrationReader
             .TryReadAsync(fileSystem, paths.RegistrationFile, cancellationToken)
             .ConfigureAwait(false);
-        if (registration is null || registration.Password is null)
+        if (registration is null)
         {
-            // A registration without a password cannot materialize the handle's non-null
-            // credential contract; the pinned daemon always publishes one.
             return null;
         }
 

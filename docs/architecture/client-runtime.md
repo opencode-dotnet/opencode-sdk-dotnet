@@ -904,7 +904,7 @@ need a comparand the SDK does not have.
 **Background service** (`Service.discover/ensure/stop`, public export `@opencode/client/service`)
 → the registration-file mode. The first-party CLI's `opencode serve --service` publishes `url`,
 `pid`, `password`, `version`, and `id` in a registration file under the XDG state root, and
-`OpenCodeServer.DiscoverAsync` reads that file, checks the daemon's authenticated status, and
+`OpenCodeServer.DiscoverAsync` reads that file, checks the daemon's status, and
 returns a non-owning handle: `OwnsProcess` is false and disposal is a no-op (ADR-0024). The
 contract is not in the OpenAPI document; the SDK ports the accepted-pin first-party chain and
 pins every file it reads in `spec/source-watch.json` (ADR-0025). The null channel reads the shared
@@ -930,8 +930,9 @@ byte-order mark is skipped as the CLI's decoder skips it. A daemon bound to ever
 registers the unspecified address (`0.0.0.0` or `::`), which Bun connects to as loopback and .NET
 refuses as a target: the connect target becomes the same family's loopback, while the registered
 URL is kept verbatim for identity.
-The info probe is a raw authenticated `GET /api/info` through an owned non-redirecting handler with a
-two-second bound: it rides neither the pipeline's decoration policy nor its progress window, and
+The info probe is a raw `GET /api/info` through an owned non-redirecting handler with a
+two-second bound. It uses Basic authentication when the registration has a password and sends no
+credential otherwise, as upstream does. It rides neither the pipeline's decoration policy nor its progress window, and
 `ServiceInfoProbe` owns its transport and path, while `ServiceProbeResponseClassifier` decodes
 only the required first-party pid/version evidence. Every owned loopback connect on Windows
 (.NET 5 and later), in both the probe's transport (`LoopbackTransport`) and the pipeline's owned
@@ -960,6 +961,8 @@ the bound cut short is the bound's timeout. This
 private discovery decoder is independent of the generated public `ServerInfo` model, whose required `Urls` does not constrain discovery. Discovery returns null for a missing, unusable, or not-ready
 registration and throws only for refused input (`ArgumentException`), caller cancellation, and an
 unresolvable user home (`OpenCodeServerException`).
+Like upstream, discovery uses a ready compatible registration without a password; its handle's
+`Password` is null, and `CreateClient` sends no credential.
 
 `OpenCodeServer.StopAsync` is the CLI's `service stop`. It resolves the registration the way
 discovery does (channel rules, legacy migration, or a direct file) and reads it once;
@@ -997,8 +1000,9 @@ session the shared data marks as suspended and that has no parent, including one
 still running, so both drive it; `StartAsync`'s `serve --stdio --port 0` doesn't take that path
 (measured on 2.2.5). A daemon whose health protocol is
 incompatible (an authenticated 404 on `/api/info`) fails the call while its version satisfies the
-loop's requirement; only an unmet version requirement replaces it. A registration without a password
-never wins. The first contender failure is held: while it stands no further contender is recruited,
+loop's requirement; only an unmet version requirement replaces it. A ready compatible registration
+without a password is reused as upstream reuses it, and its handle's `Password` is null.
+The first contender failure is held: while it stands no further contender is recruited,
 the call throws it once no contender is left live, and the bound expires with it rather than with
 the timeout. Three consecutive probe timeouts on one registered daemon end it through the stop
 ladder — like Stop, Ensure may end a service other clients share — after which a contender starts at
@@ -1076,10 +1080,6 @@ reason (ADR-0031):
   a positive 32-bit integer (`src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceRegistrationReader.cs:42-44`). Upstream's Effect client, which the
   CLI uses, already refuses a pid that is not a positive integer
   (`packages/client/src/effect/service.ts:146`).
-- **No registration without a password.** Discover and Ensure never hand out such a registration,
-  where upstream would connect without credentials. Reason: the SDK never yields an
-  unauthenticated connection. The pinned daemon always writes a password, so the two only differ
-  for a hand-made file.
 - **A refusal is no service even when the probe's bound expires with it.** Upstream reads every
   rejected exchange as `timedOut: signal.aborted`; its runtime settles a refused loopback connect
   within microseconds, before its abort timer fires, so there too a refusal reads as no service.

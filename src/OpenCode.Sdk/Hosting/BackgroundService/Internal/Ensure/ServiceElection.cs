@@ -28,7 +28,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
 
     /// <summary>Runs the election until a ready compatible service is registered.</summary>
     /// <param name="cancellationToken">The caller's token; it propagates from every wait.</param>
-    /// <returns>The winning registration, which always carries a password.</returns>
+    /// <returns>The winning registration.</returns>
     /// <exception cref="OpenCodeServerException">The bound expired, the service failed, its health protocol is incompatible at a matching version, a contender failed with none live, or a spawn failed.</exception>
     public async Task<ServiceRegistration> RunAsync(CancellationToken cancellationToken)
     {
@@ -53,9 +53,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
                     : await seams.Probe.ProbeAsync(registration, cancellationToken).ConfigureAwait(false);
                 await RecoverUnresponsiveAsync(registration, answer, cancellationToken).ConfigureAwait(false);
 
-                // A registration without a password never wins: the handle's credential is
-                // non-null by contract, the same rule Discover applies.
-                if (registration is { Password: not null } && answer.IsService)
+                if (registration is not null && answer.IsService)
                 {
                     if (await SettleRegisteredAsync(registration, answer, cancellationToken).ConfigureAwait(false))
                     {

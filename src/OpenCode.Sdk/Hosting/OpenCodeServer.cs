@@ -57,7 +57,7 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// Initializes a handle over a server another process runs: the identity a registration
     /// published, no child, no ownership. Disposal is a no-op.
     /// </summary>
-    internal OpenCodeServer(Uri endpoint, string password, int processId)
+    internal OpenCodeServer(Uri endpoint, string? password, int processId)
     {
         _endpoint = endpoint;
         _password = password;
@@ -92,8 +92,13 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// <summary>Gets the basic-authentication username; the pinned server accepts only <c>opencode</c>.</summary>
     public virtual string Username => "opencode";
 
-    /// <summary>Gets the credential: the generated lease a start injected into its child, or the password a registration published.</summary>
-    public virtual string Password => _password ?? throw MockSeam.CreateError("OpenCodeServer", "Password");
+    /// <summary>
+    /// Gets the credential: the generated lease a start injected into its child, the password a
+    /// registration published, or null when the registration published none.
+    /// </summary>
+    public virtual string? Password => _endpoint is null
+        ? throw MockSeam.CreateError("OpenCodeServer", "Password")
+        : _password;
 
     /// <summary>
     /// Gets the server's process identifier, for diagnostics and process-truth assertions. It
