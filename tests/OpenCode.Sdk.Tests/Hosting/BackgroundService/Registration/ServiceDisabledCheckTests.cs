@@ -23,7 +23,8 @@ public sealed class ServiceDisabledCheckTests
 
         await Assert.That(disabled).IsTrue();
         await Assert.That(await ReadAsync(paths.ConfigFile!)).IsEqualTo(ServiceConfigData.DisabledTrue);
-        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsFalse();
+        await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.GetDirectoryName(paths.RegistrationFile)!))
+            .DoesNotContain(paths.RegistrationFile);
         await Assert.That(await ReadAsync(paths.LegacyRegistrationFiles[0]))
             .IsEqualTo(ServiceRegistrationData.DevPrereleaseDotted);
     }

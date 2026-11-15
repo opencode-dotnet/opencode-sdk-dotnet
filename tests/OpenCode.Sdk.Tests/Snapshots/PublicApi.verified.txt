@@ -1031,11 +1031,31 @@ namespace OpenCode.Sdk
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer?> DiscoverAsync(OpenCode.Sdk.OpenCodeServerDiscoverOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer> EnsureAsync(OpenCode.Sdk.OpenCodeServerEnsureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServerIncumbent?> FindIncumbentAsync(System.Uri url, OpenCode.Sdk.OpenCodeServerDiscoverOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServerConnection> ResolveAsync(OpenCode.Sdk.OpenCodeServerResolveOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
             "erimental.md#opencode002")]
         public static System.Threading.Tasks.Task ShutdownPersistentPtyAsync(OpenCode.Sdk.OpenCodeServerDiscoverOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer> StartAsync(OpenCode.Sdk.OpenCodeServerOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task StopAsync(OpenCode.Sdk.OpenCodeServerStopOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public class OpenCodeServerConnection : System.IAsyncDisposable
+    {
+        protected OpenCodeServerConnection() { }
+        public virtual System.Uri Endpoint { get; }
+        public virtual OpenCode.Sdk.OpenCodeServerConnectionMode Mode { get; }
+        public virtual string? Password { get; }
+        public virtual OpenCode.Sdk.OpenCodeServer? Server { get; }
+        public virtual string? ServerVersion { get; }
+        public virtual OpenCode.Sdk.OpenCodeServerServiceOperations? ServiceOperations { get; }
+        public virtual string Username { get; }
+        public virtual OpenCode.Sdk.OpenCodeClient CreateClient(System.Action<OpenCode.Sdk.OpenCodeClientOptions>? configure = null) { }
+        public virtual System.Threading.Tasks.ValueTask DisposeAsync() { }
+    }
+    public enum OpenCodeServerConnectionMode
+    {
+        Explicit = 0,
+        Standalone = 1,
+        Service = 2,
     }
     public sealed class OpenCodeServerDiscoverOptions
     {
@@ -1118,6 +1138,23 @@ namespace OpenCode.Sdk
         public required System.Collections.Generic.IReadOnlyList<string> StandardOutput { get; init; }
         public required bool StandardOutputTruncated { get; init; }
     }
+    public sealed class OpenCodeServerResolveOptions
+    {
+        public OpenCodeServerResolveOptions() { }
+        public bool Autostart { get; set; }
+        public System.Uri? Endpoint { get; set; }
+        public OpenCode.Sdk.OpenCodeServerOptions? Launch { get; set; }
+        public System.Action<OpenCode.Sdk.OpenCodeServerVersionMismatchContext>? OnServerVersionMismatch { get; set; }
+        public string? Password { get; set; }
+        public OpenCode.Sdk.OpenCodeServerEnsureOptions? Service { get; set; }
+        public bool Standalone { get; set; }
+    }
+    public class OpenCodeServerServiceOperations
+    {
+        protected OpenCodeServerServiceOperations() { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer> ReconnectAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer> RestartAsync(System.Threading.CancellationToken cancellationToken = default) { }
+    }
     public enum OpenCodeServerState
     {
         Ready = 0,
@@ -1136,6 +1173,12 @@ namespace OpenCode.Sdk
     {
         Clear = 0,
         Handoff = 1,
+    }
+    public sealed class OpenCodeServerVersionMismatchContext
+    {
+        public string ClientVersion { get; }
+        public System.Uri Endpoint { get; }
+        public string ServerVersion { get; }
     }
     public enum OpenCodeServerVersionPolicy
     {

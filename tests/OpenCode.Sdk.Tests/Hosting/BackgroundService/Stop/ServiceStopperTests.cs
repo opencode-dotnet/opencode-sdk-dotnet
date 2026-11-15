@@ -647,7 +647,8 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopLocatedAsync(paths, mode: null, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsFalse();
+        await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.GetDirectoryName(paths.RegistrationFile)!))
+            .DoesNotContain(paths.RegistrationFile);
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
         await Assert.That(ReadText(paths.LegacyRegistrationFiles[0])).IsEqualTo(ServiceRegistrationData.DevPrereleaseDotted);
     }

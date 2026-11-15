@@ -332,9 +332,9 @@ public sealed class ServiceMigrationTests
         await Migration().ApplyConfigAsync(paths, CancellationToken.None);
 
         await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.GetDirectoryName(paths.ConfigFile!)!))
-            .IsEquivalentTo([paths.LegacyConfigFile!, paths.ConfigFile!]);
+            .IsEquivalentTo([paths.LegacyConfigFile!, paths.ConfigFile!], CollectionOrdering.Matching);
         await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.GetDirectoryName(paths.RegistrationFile)!))
-            .IsEquivalentTo([paths.LegacyRegistrationFiles[0]]);
+            .IsEquivalentTo([paths.LegacyRegistrationFiles[0]], CollectionOrdering.Matching);
         await Assert.That(_fileSystem.File.ReadAllText(paths.ConfigFile!)).IsEqualTo(ServiceConfigData.DisabledTrue);
     }
 
