@@ -139,6 +139,13 @@ git submodule update --init --depth 1 external/opencode
 
 The last line installs the clone detector: `verify-clones` and the Tools clone tests run it.
 
+The pinned server's file search (`fs.find`) runs ripgrep, so a local check puts ripgrep 15.1.0
+first on `PATH`. Upstream's resolver takes the first `rg` on `PATH` and otherwise downloads that
+version (`external/opencode/packages/core/src/ripgrep/binary.ts`). CI places the exact version
+first on `PATH`, each archive checked against its SHA-256 digest, so the server never downloads it:
+`.github/actions/setup-pinned-server/action.yml` owns the version and the digests. Without an `rg`
+on `PATH`, `FileSystemClientLiveTests` fails with HTTP 500 from `fs.find`.
+
 `OpenCode.Sdk.Tests` checks all three before test discovery
 (`tests/OpenCode.Sdk.Tests/Harness/PinnedServerPrerequisites.cs`): a missing checkout, a missing
 install, or another
