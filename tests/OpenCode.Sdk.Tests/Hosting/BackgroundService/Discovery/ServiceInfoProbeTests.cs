@@ -12,7 +12,7 @@ using TUnit.Assertions.Enums;
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 
 /// <summary>
-/// The raw authenticated info exchange the pinned client performs (<c>probeResult</c>): the
+/// The raw info exchange the pinned client performs (<c>probeResult</c>): the
 /// root-relative path, the Basic credential, the status-to-state mapping for a modern body, the
 /// pid and version gates, the required identity fields, and the separation of the internal bound from the
 /// caller's token, all against the loopback server through the SDK's own owned handler.

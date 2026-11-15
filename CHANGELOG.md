@@ -12,6 +12,7 @@ Nightly builds of `master` are on
 ### 💥 Breaking changes
 
 - `OpenCodeServerOptions.ReadinessTimeout` now defaults to `Timeout.InfiniteTimeSpan`: a standalone start waits for readiness until its cancellation token fires, as opencode's CLI does. Before: `StartAsync()` failed after 60 seconds without a readiness line. After: set `ReadinessTimeout = TimeSpan.FromSeconds(60)` to keep that failure, an `OpenCodeServerException` naming the bound; a cancellation token bounds the wait too, but ends the start with `OperationCanceledException`.
+- **A background service registered without a password is used, as opencode's CLI uses it.** `OpenCodeServer.Password` is `string?`: such a service is now discovered and reused, and its handle's `Password` is null. Before: `string password = server.Password;`. After: `string? password = server.Password;`.
 
 ### ✨ Added
 

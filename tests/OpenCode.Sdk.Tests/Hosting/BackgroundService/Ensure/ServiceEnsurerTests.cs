@@ -555,17 +555,21 @@ public sealed class ServiceEnsurerTests
     }
 
     [Test]
-    public async Task EnsureAsync_Should_Never_Return_A_Registration_Without_A_Password()
+    public async Task EnsureAsync_Should_Reuse_A_Ready_Passwordless_Registration_Without_Spawning()
     {
-        // Discover refuses such a registration: the handle's credential is non-null by contract.
         Seed(SharedRegistrationPath(), ServiceRegistrationData.Passwordless);
         AnswerRegistered(Ready);
+        // A wrong election branch returns a different identity rather than timing out.
         ElectOnSpawn(Version);
 
         var registration = await Ensurer().EnsureAsync(options: null, CancellationToken.None);
 
-        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
-        await Assert.That(registration.Password).IsNotNull();
+        await Assert.That(ServiceRegistrationIdentity.Of(registration))
+            .IsEqualTo(new ServiceRegistrationIdentity("srv_1", Version, "http://127.0.0.1:49374", RegisteredPid));
+        await Assert.That(registration.Endpoint).IsEqualTo(new Uri("http://127.0.0.1:49374"));
+        await Assert.That(registration.Password).IsNull();
+        await Assert.That(_starts).IsEmpty();
+        _ = _handoff.Received(1).CompleteAsync(SharedRegistrationPath(), registration, Arg.Any<CancellationToken>());
     }
 
     [Test]

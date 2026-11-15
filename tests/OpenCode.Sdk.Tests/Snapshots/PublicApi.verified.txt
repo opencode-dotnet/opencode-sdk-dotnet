@@ -984,7 +984,7 @@ namespace OpenCode.Sdk
         public virtual System.Uri Endpoint { get; }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServerExit> Exited { get; }
         public virtual bool OwnsProcess { get; }
-        public virtual string Password { get; }
+        public virtual string? Password { get; }
         public virtual int ProcessId { get; }
         public virtual string Username { get; }
         public virtual OpenCode.Sdk.OpenCodeClient CreateClient(System.Action<OpenCode.Sdk.OpenCodeClientOptions>? configure = null) { }

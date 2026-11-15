@@ -399,7 +399,7 @@ Console.WriteLine($"discovered opencode {info.ServerInfo.Version} (pid {server.P
 
 The answer is the daemon's identity or **null** — never a half-usable handle. Null covers every
 ordinary way a service can be absent or unusable: no registration file, one that does not decode,
-one without a password, a daemon that is still starting or has failed, an info probe that did not
+a daemon that is still starting or has failed, an info probe that did not
 answer within its two-second bound, or a version other than the one you asked for. You decide what
 null means for your application; discovery does not start a daemon on your behalf —
 [`EnsureAsync`](#-ensuring-the-background-service) does, when you ask it to.
@@ -498,8 +498,9 @@ throws `ArgumentException` before anything is read.
 
 ### How the daemon is checked
 
-A decoded registration is probed with `GET /api/info` under Basic authentication using the
-registered password, bounded at two seconds. A 2xx answer whose pid matches the registration is a
+A decoded registration is probed with `GET /api/info`, bounded at two seconds. The probe uses
+Basic authentication with the registered password when there is one, and sends no credential when
+there is none, as opencode's probe does. A 2xx answer whose pid matches the registration is a
 ready service; a 404 identifies a registered daemon that speaks another protocol version, a 500
 is a daemon that failed to boot, and anything else is a daemon still starting — and only the
 first becomes a handle. The probe follows no redirects and sends the credential to the
@@ -511,11 +512,12 @@ Windows: its refused port answers at once, while a proxy in the way can take up 
 
 ### What the handle is
 
-A discovered `OpenCodeServer` carries the same `Endpoint`, `Username`, `Password`, and `ProcessId`
-a started one does, and `CreateClient()` binds a client to it the same way. The difference is
-ownership, and it is visible: **`OwnsProcess` is false**, `DisposeAsync` ends nothing, and the pid
-is the daemon's own rather than a child of yours. Do not kill that pid: it is shared with every
-other opencode client on the machine.
+A discovered `OpenCodeServer` carries the same `Endpoint`, `Username`, `Password`, and `ProcessId` a
+started one does, and `CreateClient()` binds a client to it the same way. When the registration
+published no password, the handle's `Password` is null and its client sends no credential. The
+difference is ownership, and it is visible: **`OwnsProcess` is false**, `DisposeAsync` ends nothing,
+and the pid is the daemon's own rather than a child of yours. Do not kill that pid: it is shared
+with every other opencode client on the machine.
 
 ### What can fail
 

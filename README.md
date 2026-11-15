@@ -252,7 +252,7 @@ from, as opencode's own CLI does.
 ### The background service the CLI runs
 
 `DiscoverAsync` reads the CLI's registration file with the CLI's own rules and checks the daemon's
-authenticated status. It returns a handle that owns nothing: disposing it never stops the service
+status. It returns a handle that owns nothing: disposing it never stops the service
 that other clients share. Null means no ready service. `EnsureAsync` starts one through the CLI's
 own election when none is running.
 

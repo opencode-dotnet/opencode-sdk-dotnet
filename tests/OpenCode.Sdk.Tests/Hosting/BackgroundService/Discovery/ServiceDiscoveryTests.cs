@@ -30,12 +30,10 @@ public sealed class ServiceDiscoveryTests
     {
         var registration = await Discovery().DiscoverAsync(options: null, CancellationToken.None);
 
-        await Assert.That(registration).IsNull();
-        _ = _probe.DidNotReceiveWithAnyArgs().ProbeAsync(default!, default);
+        await AssertNoServiceOrProbeAsync(registration);
     }
 
     [Test]
-    [Arguments(ServiceRegistrationData.Passwordless)]
     [Arguments(ServiceRegistrationData.Malformed)]
     public async Task DiscoverAsync_Should_Return_Null_Without_Probing_An_Unusable_Registration(string document)
     {
@@ -43,8 +41,7 @@ public sealed class ServiceDiscoveryTests
 
         var registration = await Discovery().DiscoverAsync(options: null, CancellationToken.None);
 
-        await Assert.That(registration).IsNull();
-        _ = _probe.DidNotReceiveWithAnyArgs().ProbeAsync(default!, default);
+        await AssertNoServiceOrProbeAsync(registration);
     }
 
     [Test]
@@ -96,10 +93,7 @@ public sealed class ServiceDiscoveryTests
     [Test]
     public async Task DiscoverAsync_Should_Return_The_Identity_Of_A_Ready_Service()
     {
-        Seed(SharedRegistrationPath(), new FixtureLoader().LoadJson("BackgroundService.registration-modern.json"));
-        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
-
-        var registration = await Discovery().DiscoverAsync(new OpenCodeServerDiscoverOptions { ExpectedVersion = Version }, CancellationToken.None);
+        var registration = await DiscoverReadyAsync(new FixtureLoader().LoadJson("BackgroundService.registration-modern.json"));
 
         await Assert.That(registration).IsNotNull();
         await Assert.That(registration.Endpoint).IsEqualTo(new Uri("http://127.0.0.1:49374"));
@@ -167,6 +161,32 @@ public sealed class ServiceDiscoveryTests
         _ = await Assert
             .That(async () => _ = await Discovery().DiscoverAsync(options: null, cancelled))
             .Throws<OperationCanceledException>();
+    }
+
+    [Test]
+    public async Task DiscoverAsync_Should_Return_A_Ready_Compatible_Passwordless_Registration()
+    {
+        var registration = await DiscoverReadyAsync(ServiceRegistrationData.Passwordless);
+
+        await Assert.That(registration).IsNotNull();
+        await Assert.That(ServiceRegistrationIdentity.Of(registration))
+            .IsEqualTo(new ServiceRegistrationIdentity("srv_1", Version, "http://127.0.0.1:49374", 48213));
+        await Assert.That(registration.Endpoint).IsEqualTo(new Uri("http://127.0.0.1:49374"));
+        await Assert.That(registration.Password).IsNull();
+        _ = _probe.Received(1).ProbeAsync(registration, Arg.Any<CancellationToken>());
+    }
+
+    private async Task<ServiceRegistration?> DiscoverReadyAsync(string document)
+    {
+        Seed(SharedRegistrationPath(), document);
+        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
+        return await Discovery().DiscoverAsync(new OpenCodeServerDiscoverOptions { ExpectedVersion = Version }, CancellationToken.None);
+    }
+
+    private async Task AssertNoServiceOrProbeAsync(ServiceRegistration? registration)
+    {
+        await Assert.That(registration).IsNull();
+        _ = _probe.DidNotReceiveWithAnyArgs().ProbeAsync(default!, default);
     }
 
     private ServiceDiscovery Discovery() =>

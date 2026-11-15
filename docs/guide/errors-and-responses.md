@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-14
+Date: 2026-11-15
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -312,7 +312,7 @@ The local-server doors — `OpenCodeServer.StartAsync`, `OpenCodeServer.Discover
 for exactly one cause: an XDG variable was unset and no user home directory resolved either
 (`USERPROFILE` on Windows, `HOME` elsewhere, and the profile folder all empty), so the registration
 roots cannot be located. Every ordinary way a background service can be absent or unusable — no
-registration, an undecodable or passwordless one, a daemon still starting or failed, a probe that
+registration, an undecodable one, a daemon still starting or failed, a probe that
 timed out, a version other than the one you expected — is **not** an exception: `DiscoverAsync`
 answers null, and blank or contradictory options throw `ArgumentException` before anything is read.
 Stop shares the roots cause and adds one of its own: the registered process is still running after

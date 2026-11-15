@@ -20,7 +20,8 @@ namespace OpenCode.Sdk;
 /// nothing here owns it, and disposing the handle is a no-op; <see cref="EnsureAsync"/> reuses or
 /// starts that shared service and returns the same non-owning handle; the static
 /// <see cref="StopAsync"/> is the one deliberate way to end it. Either way the handle carries the
-/// endpoint and credential a client needs, and <see cref="CreateClient"/> is the door to them.
+/// endpoint and the credential, if any, a client needs, and <see cref="CreateClient"/> is the door
+/// to them.
 /// </summary>
 public partial class OpenCodeServer : IAsyncDisposable
 {
@@ -57,7 +58,7 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// Initializes a handle over a server another process runs: the identity a registration
     /// published, no child, no ownership. Disposal is a no-op.
     /// </summary>
-    internal OpenCodeServer(Uri endpoint, string password, int processId)
+    internal OpenCodeServer(Uri endpoint, string? password, int processId)
     {
         _endpoint = endpoint;
         _password = password;
@@ -92,8 +93,13 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// <summary>Gets the basic-authentication username; the pinned server accepts only <c>opencode</c>.</summary>
     public virtual string Username => "opencode";
 
-    /// <summary>Gets the credential: the generated lease a start injected into its child, or the password a registration published.</summary>
-    public virtual string Password => _password ?? throw MockSeam.CreateError("OpenCodeServer", "Password");
+    /// <summary>
+    /// Gets the credential: the generated lease a start injected into its child, the password a
+    /// registration published, or null when the registration published none.
+    /// </summary>
+    public virtual string? Password => _endpoint is null
+        ? throw MockSeam.CreateError("OpenCodeServer", "Password")
+        : _password;
 
     /// <summary>
     /// Gets the server's process identifier, for diagnostics and process-truth assertions. It
@@ -114,7 +120,7 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// freely. Every call builds a new client owning its transport; the caller disposes it.
     /// </summary>
     /// <param name="configure">Optional behavior configuration; identity members must stay unset.</param>
-    /// <returns>A new client bound to this server's endpoint and lease credential.</returns>
+    /// <returns>A new client bound to this server's endpoint and credential: a started server's lease, a registration's password, or none.</returns>
     /// <exception cref="InvalidOperationException">The delegate set an identity member.</exception>
     public virtual OpenCodeClient CreateClient(Action<OpenCodeClientOptions>? configure = null)
     {
