@@ -104,9 +104,9 @@ resolves the message's network window from those carried traits.
   in the header/query serializers. A generated wire model may still contain a workspace ID
   when its own pinned component declares one; that is not a request-targeting channel.
 
-## PTY family ownership
+## Internal-raw family ownership
 
-- The normal PTY family is one of the two families whose **public** surface is hand-written:
+- The normal PTY family is one of the three families whose **public** surface is hand-written:
   `PtysClient` and `PtyClient` live in `src/OpenCode.Sdk/Ptys/` as ordinary hand-written code,
   and the generator emits `PtysRawClient`/`PtyRawClient` internally beside them under the
   `internalRaw` curation emission. Everything else the family needs — routes, query shapers,
@@ -129,6 +129,10 @@ resolves the message's network window from those carried traits.
   knowledge leaks into it. This is not a general header facility: the channel is assembly-internal,
   only generated internal-raw methods feed it, and only a parameter the pinned document declares
   ever becomes an entry.
+- The Events family is the third: `EventsClient` is hand-written over the generated internal
+  `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its signature and SSE
+  behaviour are the generated stream method's; the raw endpoint, routes, adapters, wire models
+  and serializer metadata remain generated.
 
 ### PTY WebSocket session
 

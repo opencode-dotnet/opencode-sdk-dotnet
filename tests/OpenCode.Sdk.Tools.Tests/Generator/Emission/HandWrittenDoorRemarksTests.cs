@@ -12,7 +12,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// <summary>
 /// Keeps the operation remark on the hand-written public doors in step with the pinned document.
 /// The generator writes the remark on every generated member from the ingested operation
-/// (<see cref="OperationRemarks"/>); the normal and persistent PTY doors are hand-written
+/// (<see cref="OperationRemarks"/>); the PTY families' and the Events family's doors are hand-written
 /// (ADR-0021) and carry the same remark by hand, so a spec refresh that renames an operation or
 /// moves its route would leave them stale if nothing compared them. The comparison runs against
 /// the ingested document, identity curation applied, exactly as the generator sees it.
@@ -23,7 +23,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
 {
     /// <summary>The hand-written public door types (ADR-0021): every public operation method on them names its operation.</summary>
-    private static readonly string[] DoorTypes = ["PtyClient", "PtysClient", "PersistentPtyClient", "PersistentPtysClient"];
+    private static readonly string[] DoorTypes = ["PtyClient", "PtysClient", "PersistentPtyClient", "PersistentPtysClient", "EventsClient"];
 
     [Test]
     public async Task HandWritten_Remarks_Should_Name_A_Pinned_Operation_By_Its_Method_And_Route()
@@ -119,7 +119,7 @@ public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
                     match.Groups["route"].Value))
                 .ToArray();
             var isPublicOperation = method.Modifiers.Any(SyntaxKind.PublicKeyword)
-                                    && method.ReturnType is GenericNameSyntax { Identifier.ValueText: "Task" };
+                                    && method.ReturnType is GenericNameSyntax { Identifier.ValueText: "Task" or "IAsyncEnumerable" };
             return new HandWrittenMethod(typeName, name, isPublicOperation, remarks);
         }
     }

@@ -1374,31 +1374,6 @@
       ]
     },
     {
-      "type": "EventsClient",
-      "member": null,
-      "summary": "Experimental event stream routes.",
-      "remarks": null,
-      "reason": "Describe the upstream route group exposed by this family.",
-      "sources": [
-        {
-          "location": "packages/protocol/src/groups/event.ts:73",
-          "excerpt": "      .annotateMerge(OpenApi.annotations({ title: \"event\", description: \"Experimental event stream routes.\" })),"
-        }
-      ]
-    },
-    {
-      "type": "EventsClient",
-      "member": "SubscribeAsync",
-      "remarks": "The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated `server.connected` event means events published in between were missed; refresh authoritative state.",
-      "reason": "The SDK owns the reconnect and termination contract; upstream's operation description stays.",
-      "sources": [
-        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Every failure is followed by a new attempt 1 s later, with no backoff." },
-        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Nothing else ends it except the give-up window." },
-        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "A stream that has failed every attempt for 1 minute gives up and throws the last failure." },
-        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Each connection yields its own `server.connected`, so a second one tells the consumer that events published in between are gone and authoritative state should be refreshed." }
-      ]
-    },
-    {
       "type": "OpenCodeClient",
       "member": "Forms",
       "summary": "Location form routes.",
@@ -2389,7 +2364,8 @@
     "event": {
       "placement": "client",
       "clientName": "Events",
-      "reason": "The global event bus is its own family surface; no per-id operations exist."
+      "emission": "internalRaw",
+      "reason": "The global event bus is its own family surface; no per-id operations exist. Every public door of the family is hand-written over the raw client, so behaviour above the generated stream belongs to hand-written code (ADR-0021, extended to this family)."
     },
     "session": {
       "placement": "client",

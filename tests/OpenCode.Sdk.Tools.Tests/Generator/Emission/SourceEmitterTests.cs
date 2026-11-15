@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Binding;
@@ -151,7 +152,7 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
         await Assert.That(streams["ExperimentalSessionLogResponseStreamAdapter"]).IsEqualTo("UnknownSessionLogItem");
         await Assert.That(plan.Unions.Where(static union => union.IsStreamFallbackCarrier).Select(static union => union.Name).Order(StringComparer.Ordinal))
             .IsEquivalentTo(["IEvent", "ISessionLogItem"], StringComparer.Ordinal, CollectionOrdering.Matching);
-        var client = plan.Clients.Single(static client => client.Name == "EventsClient");
+        var client = plan.Clients.Single(static client => client.Name == "EventsRawClient");
         var operation = client.Operations.Single();
         var swapped = ResolveStreamOperation(plan, client, operation with { Stream = operation.Stream! with { PayloadTypeName = "SessionCreated" } });
         await Assert.That(swapped.Clients.Single().Operations.Single().Stream!.UnknownPayloadTypeName).IsNull();
@@ -173,6 +174,35 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
 
     private static EmitPlan ResolveStreamOperation(EmitPlan plan, ClientPlan client, OperationPlan operation) =>
         SpecBinder.ResolveEmissionData(plan with { Clients = [client with { Operations = [operation] }] });
+
+    [Test]
+    public async Task Emit_Should_Produce_An_Internal_Raw_Event_Stream()
+    {
+        var sources = SourceEmitter.Emit(pinned.Plan);
+        await Assert.That(sources.Select(static source => source.RelativePath)).Contains("Events/Internal/EventsRawClient.cs");
+        var source = sources.Single(static source => source.RelativePath == "Events/Internal/EventsRawClient.cs");
+        var tree = CSharpSyntaxTree.ParseText(Encoding.UTF8.GetString(source.Utf8Source.Span));
+        var client = (await tree.GetRootAsync()).DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
+        await Assert.That(client.Identifier.ValueText).IsEqualTo("EventsRawClient");
+        await Assert.That(client.Modifiers.Select(static modifier => modifier.ValueText))
+            .IsEquivalentTo(["internal", "sealed"], CollectionOrdering.Matching);
+        var constructor = client.Members.OfType<ConstructorDeclarationSyntax>().Single();
+        await Assert.That(constructor.Modifiers.Select(static modifier => modifier.ValueText))
+            .IsEquivalentTo(["internal"], CollectionOrdering.Matching);
+        await Assert.That(constructor.ParameterList.Parameters.Select(static parameter => parameter.ToString()))
+            .IsEquivalentTo(["Pipeline pipeline"], CollectionOrdering.Matching);
+        var method = client.Members.OfType<MethodDeclarationSyntax>().Single();
+        await Assert.That(method.Modifiers.Select(static modifier => modifier.ValueText))
+            .IsEquivalentTo(["internal"], CollectionOrdering.Matching);
+        await Assert.That(method.ReturnType.ToString()).IsEqualTo("IAsyncEnumerable<IEvent>");
+        await Assert.That(method.Identifier.ValueText).IsEqualTo("SubscribeAsync");
+        await Assert.That(method.ParameterList.Parameters.Select(static parameter => parameter.NormalizeWhitespace().ToFullString()))
+            .IsEquivalentTo(["EventSubscribeRequest? request = null", "OpenCodeRequestOptions? requestOptions = null", "CancellationToken cancellationToken = default"], CollectionOrdering.Matching);
+        await Assert.That(method.Body!.Statements.Single().NormalizeWhitespace().ToFullString()).IsEqualTo(
+            "return Pipeline.ExecuteStreamAsync(\"event.subscribe\", HttpMethod.Get, OpenCodeRoutes.Events.Subscribe(request), EventSubscribeResponseStreamAdapter.Instance, requestOptions, cancellationToken);");
+        var root = sources.Single(static candidate => candidate.RelativePath == "OpenCodeClient.cs");
+        await Assert.That(Encoding.UTF8.GetString(root.Utf8Source.Span)).Contains("public virtual EventsClient Events");
+    }
 
     /// <summary>
     /// Guards <see cref="GeneratedSourceCompiler.GeneratedSurfaceConsumers"/>'s skip logic: the
