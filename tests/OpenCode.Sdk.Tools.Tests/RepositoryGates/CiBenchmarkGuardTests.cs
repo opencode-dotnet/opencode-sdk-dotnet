@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Tests.RepositoryGates;
 
 public sealed class CiBenchmarkGuardTests
 {
-    private const string Run = "dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 --";
+    private const string Run = "dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 --";
     private const string SdkFilter = "--filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry";
 
     [Test]

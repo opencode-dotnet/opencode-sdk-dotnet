@@ -1,6 +1,7 @@
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
+using BenchmarkDotNet.Jobs;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Performance.Tests.Support;
@@ -13,7 +14,7 @@ namespace OpenCode.Sdk.Performance.Tests.ColdStart;
 /// BenchmarkDotNet measures allocation in a later, warm invocation.
 /// </remarks>
 [MemoryDiagnoser]
-[SimpleJob(RunStrategy.ColdStart, launchCount: 5, warmupCount: 0, iterationCount: 1)]
+[SimpleJob(RunStrategy.ColdStart, runtimeMoniker: RuntimeMoniker.Net10_0, launchCount: 5, warmupCount: 0, iterationCount: 1)]
 public class ColdStartInfoBenchmarks
 {
     private static readonly OpenCodeClientOptions Options = new()

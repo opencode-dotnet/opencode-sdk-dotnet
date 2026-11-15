@@ -1,4 +1,3 @@
-#if NET
 using System.Diagnostics;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
@@ -251,4 +250,3 @@ public class GeneratorRunBenchmarks : IDisposable
     }
 
 }
-#endif

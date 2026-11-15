@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFramework>$(LatestTargetFramework)</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -39,8 +39,9 @@
     <AssemblyMetadata Include="PackedConsumerUnsupportedTargetFramework" Value="$(PackedConsumerUnsupportedTargetFramework)" />
   </ItemGroup>
 
-  <!-- The SDK already downloads this project's own reference pack under the same id, and NuGet
-       refuses a second item for it, so the consumer's version joins that item's version list. -->
+  <!-- The SDK may already download this project's own reference pack under the same id (when its
+       packs folder lacks it), and NuGet refuses a second item for it, so the consumer's version
+       joins that item's version list. -->
   <Target Name="DownloadPackedConsumerReferencePack" AfterTargets="ProcessFrameworkReferences" BeforeTargets="CollectPackageDownloads">
     <ItemGroup>
       <_PackedConsumerReferencePack Include="@(KnownFrameworkReference->WithMetadataValue('Identity', 'Microsoft.NETCore.App')->WithMetadataValue('TargetFramework', '$(PackedConsumerUnsupportedTargetFramework)'))" />

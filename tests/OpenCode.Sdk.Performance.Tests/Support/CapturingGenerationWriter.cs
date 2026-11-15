@@ -1,4 +1,3 @@
-#if NET
 using OpenCode.Sdk.Tools.Output;
 using OpenCode.Sdk.Tools.Output.Abstractions;
 
@@ -17,4 +16,3 @@ internal sealed class CapturingGenerationWriter(GenerationWriter writer) : IGene
         return _writer.WriteAsync(request, cancellationToken);
     }
 }
-#endif

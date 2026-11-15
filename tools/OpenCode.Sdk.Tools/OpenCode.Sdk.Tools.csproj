@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFramework>$(LatestTargetFramework)</TargetFramework>
     <IsPackable>false</IsPackable>
     <!-- Keep source-only polyfills hidden from friend test assemblies, which compile their own copy. -->
     <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>

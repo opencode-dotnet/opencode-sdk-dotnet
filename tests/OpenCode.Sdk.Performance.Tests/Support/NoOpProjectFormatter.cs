@@ -1,4 +1,3 @@
-#if NET
 using OpenCode.Sdk.Tools.Output.Abstractions;
 
 namespace OpenCode.Sdk.Performance.Tests.Support;
@@ -8,4 +7,3 @@ internal sealed class NoOpProjectFormatter : IProjectFormatter
 {
     public Task FormatAsync(string projectPath, IReadOnlyList<string> sourcePaths, CancellationToken cancellationToken) => Task.CompletedTask;
 }
-#endif

@@ -218,10 +218,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The pinned GA .NET 11 SDK carries only the .NET 11 runtime; the 10.0
-          # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
-          dotnet-version: 10.0.x
 
       # Reads the Linux leg's cache; that leg restores a superset of these packages and is the
       # one writer of the key.
@@ -344,8 +341,7 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           # The SDK comes from the repository pin, the GA .NET 11 SDK, which carries only
-          # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs and
-          # for the tools, which run on the LTS release.
+          # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs.
           global-json-file: global.json
           dotnet-version: 10.0.x
 
@@ -646,19 +642,18 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           # The SDK comes from the repository pin, the GA .NET 11 SDK, which carries only
-          # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs and
-          # for the tools, which run on the LTS release.
+          # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 benchmark leg.
           global-json-file: global.json
           dotnet-version: 10.0.x
 
       - name: SDK Dry (${{ matrix.leg }})
         timeout-minutes: 20
-        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes ${{ matrix.runtime }} --artifacts .benchmarks/ci-sdk-${{ matrix.leg }}
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes ${{ matrix.runtime }} --artifacts .benchmarks/ci-sdk-${{ matrix.leg }}
 
       - name: SDK cold start (net10)
         if: matrix.leg == 'net10'
         timeout-minutes: 20
-        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/ci-sdk-coldstart
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 -- --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/ci-sdk-coldstart
 
       - name: Upload SDK Dry artifacts
         if: always()
@@ -686,11 +681,10 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
-          dotnet-version: 10.0.x
 
       - name: Generator stages
         timeout-minutes: 20
-        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net11.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage
 
       - name: Upload generator stage artifacts
         if: always()
@@ -779,10 +773,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # The pinned GA .NET 11 SDK carries only the .NET 11 runtime; the 10.0
-          # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
-          dotnet-version: 10.0.x
 
       # The generator's formatter needs the restored SDK project to remove redundant usings, and it
       # refuses an unrestored one rather than format it wrongly; this job restores nothing else first.
