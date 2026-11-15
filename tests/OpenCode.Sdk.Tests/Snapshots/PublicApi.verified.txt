@@ -1014,6 +1014,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.ValueTask DisposeAsync() { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer?> DiscoverAsync(OpenCode.Sdk.OpenCodeServerDiscoverOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServer> EnsureAsync(OpenCode.Sdk.OpenCodeServerEnsureOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServerIncumbent?> FindIncumbentAsync(System.Uri url, OpenCode.Sdk.OpenCodeServerDiscoverOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
             "erimental.md#opencode002")]
         public static System.Threading.Tasks.Task ShutdownPersistentPtyAsync(OpenCode.Sdk.OpenCodeServerDiscoverOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -1073,6 +1074,11 @@ namespace OpenCode.Sdk
         Exited = 1,
         Signaled = 2,
     }
+    public sealed class OpenCodeServerIncumbent
+    {
+        public OpenCode.Sdk.OpenCodeServer Server { get; }
+        public OpenCode.Sdk.OpenCodeServerState State { get; }
+    }
     public sealed class OpenCodeServerOptions
     {
         public OpenCodeServerOptions() { }
@@ -1095,6 +1101,12 @@ namespace OpenCode.Sdk
         public required bool StandardErrorTruncated { get; init; }
         public required System.Collections.Generic.IReadOnlyList<string> StandardOutput { get; init; }
         public required bool StandardOutputTruncated { get; init; }
+    }
+    public enum OpenCodeServerState
+    {
+        Ready = 0,
+        Waiting = 1,
+        Failed = 2,
     }
     public sealed class OpenCodeServerStopOptions
     {

@@ -120,11 +120,7 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
 
         await Assert.That(matching).IsNotNull();
         await Assert.That(mismatching).IsNull();
-        var verdict = probe.Last;
-        await Assert.That(verdict).IsNotNull();
-        await Assert.That(verdict!.TimedOut).IsFalse();
-        await Assert.That(verdict.IsReadyAndCompatible).IsTrue();
-        await Assert.That(verdict.Version).IsEqualTo(service.Version);
+        await AssertReadyVerdictAsync(probe);
     }
 
     [Test]
@@ -184,6 +180,38 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
             $"before-ids={string.Join(',', before.PersistentPtys.Select(static pty => pty.Id))} " +
             $"after-status={after.Status.ToString(CultureInfo.InvariantCulture)} " +
             $"after-ids={string.Join(',', after.PersistentPtys.Select(static pty => pty.Id))}");
+    }
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task FindIncumbentAsync_Should_Report_The_Managed_Service_Ready_At_Its_Url(CancellationToken cancellationToken)
+    {
+        var probe = new RecordingProbe(PatientProbe());
+        var result = await OpenCodeServer.FindIncumbentWithSeamsAsync(service.Endpoint,
+            new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile },
+            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), probe), cancellationToken);
+
+        await AssertReadyVerdictAsync(probe);
+        await Assert.That(result).IsNotNull();
+        await using var handle = result.Server;
+        await Assert.That(result.State).IsEqualTo(OpenCodeServerState.Ready);
+        await Assert.That(handle.Endpoint).IsEqualTo(service.Endpoint);
+        await Assert.That(handle.ProcessId).IsEqualTo(service.ProcessId);
+        await Assert.That(handle.OwnsProcess).IsFalse();
+        using var client = handle.CreateClient();
+        var info = await client.Server.GetInfoAsync(cancellationToken: cancellationToken);
+        await Assert.That(info.Status).IsEqualTo(200);
+        await Assert.That(info.ServerInfo.Pid).IsEqualTo(service.ProcessId);
+        Console.WriteLine($"incumbent-live: {probe.Last}");
+    }
+
+    private async Task AssertReadyVerdictAsync(RecordingProbe probe)
+    {
+        var verdict = probe.Last;
+        await Assert.That(verdict).IsNotNull();
+        await Assert.That(verdict!.TimedOut).IsFalse();
+        await Assert.That(verdict.IsReadyAndCompatible).IsTrue();
+        await Assert.That(verdict.Version).IsEqualTo(service.Version);
     }
 
     private static ServiceInfoProbe PatientProbe() =>

@@ -1,10 +1,10 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The pinned client's <c>discover</c>: locate the registration (paths plus the channel's legacy
-/// migration), read it, probe the daemon, and hand back its identity only when it is ready and, if
-/// the caller asked, at the expected version. Everything unusable is "no service"; only refused
-/// input, the caller's cancellation, and an unresolvable home are failures.
+/// The pinned client's <c>discover</c> and <c>incumbent</c>: locate and read the registration, then
+/// probe its registered address for readiness or the caller's address for any compatible state.
+/// The latter finds a compatible service that already owns that address. Both filter the reported
+/// version when requested; refused input, caller cancellation and an unresolvable home propagate.
 /// </summary>
 internal sealed class ServiceDiscovery(
     IServiceEnvironment environment,
@@ -19,13 +19,8 @@ internal sealed class ServiceDiscovery(
     /// <exception cref="OpenCodeServerException">No user home resolves for an XDG fallback.</exception>
     public async Task<ServiceRegistration?> DiscoverAsync(OpenCodeServerDiscoverOptions? options, CancellationToken cancellationToken)
     {
-        var selection = ServiceSelection.Snapshot(options);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var paths = await new ServiceRegistrationLocator(environment, fileSystem)
-            .LocateAsync(selection, cancellationToken)
-            .ConfigureAwait(false);
-        return await DiscoverAtAsync(paths, selection.ExpectedVersion, cancellationToken).ConfigureAwait(false);
+        var (paths, expectedVersion) = await LocateAsync(options, cancellationToken).ConfigureAwait(false);
+        return await DiscoverAtAsync(paths, expectedVersion, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Discovers the daemon registered at already-located paths.</summary>
@@ -52,5 +47,65 @@ internal sealed class ServiceDiscovery(
         }
 
         return ServiceVersionPolicy.MatchesVersion(answer.Version, expectedVersion) ? registration : null;
+    }
+
+    /// <summary>Finds the registered owner at the caller's address, in any compatible state.</summary>
+    /// <param name="url">The address the service is expected to answer at.</param>
+    /// <param name="options">The discovery options; null means every default.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The service and its state, or null when no compatible service answers.</returns>
+    /// <exception cref="ArgumentException">The options are blank or contradictory, or a registration reads and the URL cannot serve as a base.</exception>
+    /// <exception cref="OpenCodeServerException">No user home resolves for an XDG fallback.</exception>
+    public async Task<ServiceIncumbent?> FindIncumbentAsync(Uri url, OpenCodeServerDiscoverOptions? options, CancellationToken cancellationToken)
+    {
+        var (paths, expectedVersion) = await LocateAsync(options, cancellationToken).ConfigureAwait(false);
+        return await FindIncumbentAtAsync(paths, url, expectedVersion, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Probes the registered owner at the caller's address using already-located paths.</summary>
+    /// <param name="paths">The located paths.</param>
+    /// <param name="url">The address the service is expected to answer at.</param>
+    /// <param name="expectedVersion">The version the service must report, or null for any.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The service and its state, or null when no compatible service answers.</returns>
+    /// <exception cref="ArgumentException">A registration reads and the URL cannot serve as a base.</exception>
+    public async Task<ServiceIncumbent?> FindIncumbentAtAsync(ServicePaths paths, Uri url, string? expectedVersion, CancellationToken cancellationToken)
+    {
+        var registration = await ServiceRegistrationReader.TryReadAsync(fileSystem, paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
+        if (registration is null)
+        {
+            return null;
+        }
+
+        if (!ServiceRegistrationReader.CanBeBase(url))
+        {
+            throw new ArgumentException("url must be an absolute URL that can serve as a base URL.", nameof(url));
+        }
+
+        var copy = ServiceRegistrationReader.AtUrl(registration, url);
+        if (copy is null)
+        {
+            return null;
+        }
+
+        var answer = await probe.ProbeAsync(copy, cancellationToken).ConfigureAwait(false);
+        if (answer.State is not { } state || !answer.Compatible)
+        {
+            return null;
+        }
+
+        return ServiceVersionPolicy.MatchesVersion(answer.Version, expectedVersion) ? new ServiceIncumbent(copy, state) : null;
+    }
+
+    private async Task<(ServicePaths Paths, string? ExpectedVersion)> LocateAsync(
+        OpenCodeServerDiscoverOptions? options, CancellationToken cancellationToken)
+    {
+        var selection = ServiceSelection.Snapshot(options);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var paths = await new ServiceRegistrationLocator(environment, fileSystem)
+            .LocateAsync(selection, cancellationToken)
+            .ConfigureAwait(false);
+        return (paths, selection.ExpectedVersion);
     }
 }

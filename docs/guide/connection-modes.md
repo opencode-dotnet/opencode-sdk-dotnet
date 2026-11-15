@@ -10,6 +10,7 @@ register any of them with a container.
 - [🚀 The SDK starts the server](#-the-sdk-starts-the-server)
 - [🔗 A server you already run](#-a-server-you-already-run)
 - [🛰️ Discovering the background service](#️-discovering-the-background-service)
+  - [🚦 Asking the registered owner's state](#-asking-the-registered-owners-state)
   - [🛑 Stopping the background service](#-stopping-the-background-service)
   - [🧹 Shutting down the service's persistent terminals](#-shutting-down-the-services-persistent-terminals)
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
@@ -540,6 +541,46 @@ Three things throw; everything else is null.
 > typed `UnauthorizedError`** (`Authentication required`), the same answer a wrong password gets.
 > The SDK adds a sentence to the exception message when no password was configured; see
 > [a 401 with no credential](errors-and-responses.md#a-401-with-no-credential).
+
+### 🚦 Asking the registered owner's state
+
+`DiscoverAsync` answers the same null for a service that is still starting or has failed as for no
+service; `OpenCodeServer.FindIncumbentAsync` tells them apart by asking the registered service, at
+the URL you give it, for its state, the way `opencode serve --service` checks for an incumbent (a
+compatible service that already owns the address) before it binds.
+
+```csharp
+// The address the background service was configured to listen on.
+var url = new Uri("http://127.0.0.1:4096");
+
+var incumbent = await OpenCodeServer.FindIncumbentAsync(url);
+if (incumbent is null)
+{
+    // No compatible registered service answers at that address.
+    return;
+}
+
+Console.WriteLine(incumbent.State switch
+{
+    OpenCodeServerState.Ready => $"ready (pid {incumbent.Server.ProcessId})",
+    OpenCodeServerState.Waiting => "starting or stopping",
+    _ => "failed to start",
+});
+```
+
+The URL is required. The probe goes to it, not to the registered URL, with the registration's
+password. `Ready` is a 2xx answer; `Waiting` is any other answer identifying the registered service,
+such as 503 while it starts or stops; `Failed` is a 500 answer, a service that failed to start.
+Null covers no registration (whatever the URL), one that does not decode, an answer that does not
+identify the registered service, a probe past its two-second bound, a service that speaks another
+protocol version, a URL such as `ws://127.0.0.1:4096` that is not HTTP or HTTPS, and a version other
+than `ExpectedVersion`.
+
+The call takes `OpenCodeServerDiscoverOptions` ([Shaping the lookup](#shaping-the-lookup)).
+`incumbent.Server` is a non-owning handle at your URL in every state, as described in
+[What the handle is](#what-the-handle-is). It throws [what discovery throws](#what-can-fail), plus
+`ArgumentNullException` for a null URL and, once a registration is found, `ArgumentException` for a
+URL that cannot be a base address: a relative one, or one such as `mailto:owner@example.com`.
 
 ### 🛑 Stopping the background service
 

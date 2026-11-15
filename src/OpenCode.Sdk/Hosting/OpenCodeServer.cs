@@ -87,7 +87,13 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// </summary>
     internal Task OutputReadersEnded => _child?.ReadersEnded ?? Task.CompletedTask;
 
-    /// <summary>Gets the endpoint: the port-zero binding of a started server, or the URL a registration published.</summary>
+    /// <summary>
+    /// Gets the endpoint: the port-zero binding of a started server; the URL its registration
+    /// published, for a background service <see cref="DiscoverAsync"/> or <see cref="EnsureAsync"/>
+    /// found; the URL the caller passed, for the handle <see cref="FindIncumbentAsync"/> returns.
+    /// An unspecified address (<c>0.0.0.0</c> or <c>::</c>) in either URL reads as the same
+    /// family's loopback here.
+    /// </summary>
     public virtual Uri Endpoint => _endpoint ?? throw MockSeam.CreateError("OpenCodeServer", "Endpoint");
 
     /// <summary>Gets the basic-authentication username; the pinned server accepts only <c>opencode</c>.</summary>

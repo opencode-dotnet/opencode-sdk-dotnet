@@ -43,7 +43,8 @@ internal static class GeneratedSourceCompiler
     /// fallback shutdown rides the generated <c>persistentPty.shutdown</c> door, so its
     /// shipped implementation and <c>OpenCodeServer</c>, which composes it, ride along with the
     /// persistent family's raw twin: all three of its partial files, because a class compiles only
-    /// whole. The handoff sidecar requests its ticket raw through the
+    /// whole, and the incumbent result, which carries an <c>OpenCodeServer</c>, rides with them.
+    /// The handoff sidecar requests its ticket raw through the
     /// pipeline on the persistent family's route, which the route table carries only when that
     /// family is emitted, so it rides the same raw twin. The default-model wait sits above the
     /// generated <c>LanguageModelsClient</c>, so it rides that client's emission.
@@ -63,6 +64,7 @@ internal static class GeneratedSourceCompiler
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/BackgroundService/OpenCodeServerIncumbent.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/Launcher/OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("LanguageModels/Internal/DefaultModelWait.cs", "LanguageModels/LanguageModelsClient.cs"),

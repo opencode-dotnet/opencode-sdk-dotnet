@@ -46,6 +46,7 @@ public sealed class CancellationIdentityTests
         yield return new("persistent-connect", "awaiting-attached", AtAttachAsync);
         yield return new("start", "child-before-readiness", AtStartAsync);
         yield return new("discover", "authenticated-probe", caller => AtServiceRequestAsync("discover", "probe", caller));
+        yield return new("incumbent", "authenticated-probe", caller => AtServiceRequestAsync("incumbent", "probe", caller));
         yield return new("ensure", "handoff-ticket", caller => AtServiceRequestAsync("ensure", "ticket", caller));
         yield return new("ensure", "shutdown-fallback", caller => AtServiceRequestAsync("ensure", "fallback", caller));
         yield return new("shutdown-persistent-pty", "shutdown-request", caller => AtServiceRequestAsync("shutdown-persistent-pty", "shutdown", caller));
@@ -513,7 +514,7 @@ public sealed class CancellationIdentityTests
         var document = await WriteServiceRegistrationAsync(registrationFiles, registrationPath, daemon.Endpoint);
 
         await caller.CancelOnWorkerAsync();
-        var failure = await CancellationAsync(() => InvokeServiceAsync("stop", registrationPath, caller.Token));
+        var failure = await CancellationAsync(() => InvokeServiceAsync("stop", registrationPath, daemon.Endpoint, caller.Token));
 
         await Assert.That(daemon.RequestPaths).IsEmpty();
         var retained = await registrationFiles.TryReadAllBytesAsync(registrationPath, CancellationToken.None);
@@ -528,7 +529,7 @@ public sealed class CancellationIdentityTests
         var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var heldPath = (row, stage) switch
         {
-            ("discover", _) => "/api/info",
+            ("discover" or "incumbent", _) => "/api/info",
             (_, "ticket") => HandoffPath,
             _ => ShutdownPath,
         };
@@ -556,7 +557,7 @@ public sealed class CancellationIdentityTests
         var registrationPath = fileSystem.Path.Combine(root.Path, "service.json");
         var registrationFiles = new TestablyServiceFileSystem(fileSystem);
         var document = await WriteServiceRegistrationAsync(registrationFiles, registrationPath, daemon.Endpoint);
-        var observed = CancellationAsync(() => InvokeServiceAsync(row, registrationPath, caller.Token));
+        var observed = CancellationAsync(() => InvokeServiceAsync(row, registrationPath, daemon.Endpoint, caller.Token));
         try
         {
             Task[] signals = [entered.Task];
@@ -573,7 +574,7 @@ public sealed class CancellationIdentityTests
 
             string[] expectedPaths = (row, stage) switch
             {
-                ("discover", _) => ["/api/info"],
+                ("discover" or "incumbent", _) => ["/api/info"],
                 (_, "fallback") => ["/api/info", HandoffPath, ShutdownPath],
                 _ => ["/api/info", heldPath],
             };
@@ -609,7 +610,7 @@ public sealed class CancellationIdentityTests
         return document;
     }
 
-    private static async Task InvokeServiceAsync(string row, string registrationPath, CancellationToken caller)
+    private static async Task InvokeServiceAsync(string row, string registrationPath, Uri endpoint, CancellationToken caller)
     {
         if (row == "stop")
         {
@@ -618,6 +619,11 @@ public sealed class CancellationIdentityTests
         else if (row == "discover")
         {
             await using var server = await OpenCodeServer.DiscoverAsync(
+                new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
+        }
+        else if (row == "incumbent")
+        {
+            _ = await OpenCodeServer.FindIncumbentAsync(endpoint,
                 new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
         }
         else if (row == "shutdown-persistent-pty")
@@ -736,6 +742,8 @@ public sealed class CancellationIdentityTests
                 typeof(OpenCodeServerOptions), typeof(CancellationToken)) => "start",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.DiscoverAsync), typeof(Task<OpenCodeServer>),
                 typeof(OpenCodeServerDiscoverOptions), typeof(CancellationToken)) => "discover",
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.FindIncumbentAsync), typeof(Task<OpenCodeServerIncumbent>),
+                typeof(Uri), typeof(OpenCodeServerDiscoverOptions), typeof(CancellationToken)) => "incumbent",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.EnsureAsync), typeof(Task<OpenCodeServer>),
                 typeof(OpenCodeServerEnsureOptions), typeof(CancellationToken)) => "ensure",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StopAsync), typeof(Task),

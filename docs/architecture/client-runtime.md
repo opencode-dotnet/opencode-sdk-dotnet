@@ -74,12 +74,14 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   `Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync`, are described under
   [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
-  environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`,
-  `OpenCodeServer.ShutdownPersistentPtyAsync` and `OpenCodeServer.StopAsync` are the doors that read
-  the environment, and they read exactly `XDG_STATE_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR`,
-  and the user profile (`USERPROFILE` on Windows, `HOME` elsewhere), because the registration file
-  those roots locate is that mode's complete endpoint-and-credential contract; they read no
-  `OPENCODE_*` credential variable.
+  environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`, `OpenCodeServer.FindIncumbentAsync`,
+  `OpenCodeServer.ShutdownPersistentPtyAsync` and `OpenCodeServer.StopAsync` are the doors that
+  read the environment, and they read exactly `XDG_STATE_HOME`, `XDG_CONFIG_HOME`,
+  `OPENCODE_CONFIG_DIR`, and the user profile (`USERPROFILE` on Windows, `HOME` elsewhere),
+  because those roots locate the registration file. For discovery that file is the mode's
+  complete endpoint-and-credential contract; `FindIncumbentAsync` takes its endpoint from the
+  caller's `url` and only the id, credential, pid and version from the file. None of them reads
+  an `OPENCODE_*` credential variable.
 
 `Pipeline` owns construction, the policy roster, the one-shot plane and disposal orchestration.
 Its Events-neutral `RegisterOwned(IDisposable)` hook lets a hand-written family door register a
@@ -373,7 +375,7 @@ resolves the message's network window from those carried traits.
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
-  `DiscoverAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, and `StopAsync`. This identity
+  `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, and `StopAsync`. This identity
   guarantee applies when one caller token is supplied, including the same token supplied at both
   enumeration entry points; two distinct cancellable entry tokens are both observed but have no
   token-identity guarantee.
@@ -995,7 +997,7 @@ tunnel is attached. The config's `disabled` key is read only by CLI commands: th
 selector (`resolve` starts a standalone server instead of reaching the service when it is true) and
 the pairing command's guard (`opencode pair` needs the service); the pinned client's
 `Service.discover`, `ensure`, and `stop` do not read it, and neither do `DiscoverAsync`,
-`EnsureAsync`, and `StopAsync` — a caller that honors a disabled service chooses `StartAsync`, as
+`FindIncumbentAsync`, `EnsureAsync`, and `StopAsync` — a caller that honors a disabled service chooses `StartAsync`, as
 `resolve` does.
 The registration and service-config files are read the way libuv opens files, sharing read, write,
 and delete, so a poll never makes the daemon's remove-on-exit fail on Windows, and a UTF-8
@@ -1037,6 +1039,30 @@ registration and throws only for refused input (`ArgumentException`), caller can
 unresolvable user home (`OpenCodeServerException`).
 Like upstream, discovery uses a ready compatible registration without a password; its handle's
 `Password` is null, and `CreateClient` sends no credential.
+
+`OpenCodeServer.FindIncumbentAsync` is the pinned client's `incumbent`
+(`packages/client/src/effect/service.ts:33-43`), which `opencode serve --service` runs before
+it binds, to learn whether a compatible service already owns the address it would bind
+(`packages/cli/src/server-process.ts:72-78`). It takes a required `url` and discovery's own
+options. It locates and reads the registration as discovery does, then probes the registered
+service at `url`, not at the registered URL, with the registration's credential, pid and
+version, through the same info probe and its two-second bound; the unspecified address in
+`url` is connected as loopback, as a registered one is. A compatible answer whose version
+matches a set `ExpectedVersion` returns an `OpenCodeServerIncumbent`: a non-owning handle at
+`url` with the registration's password and pid, and the service's `OpenCodeServerState`,
+which is `Ready` for a 2xx answer, `Failed` for 500 and `Waiting` for any other answer that
+identifies the registered service. Null covers what upstream answers as none: a missing or
+undecodable registration, whatever `url` is, because upstream reads the registration before
+it looks at `url`; an absolute `url` that can serve as a base but is not HTTP or HTTPS, such
+as `ws://127.0.0.1:4096`, which upstream's `fetch` rejects and the SDK answers without a
+request; an answer that does not identify the
+registered service; a timed-out probe; an authenticated 404 (an incompatible service); and
+another version. A null `url` throws `ArgumentNullException`. Once a registration reads, a
+`url` that cannot serve as the base of the info route's address, a relative one or an opaque
+one such as `mailto:owner@example.com`, throws `ArgumentException`, where upstream's
+`new URL("/api/info", url)` throws (`packages/client/src/service-probe.ts:55`). Otherwise the
+call fails only as discovery does. The handle builds a client in every state, as upstream
+returns the endpoint in every state.
 
 `OpenCodeServer.StopAsync` is the CLI's `service stop`. It resolves the registration the way
 discovery does (channel rules, legacy migration, or a direct file) and reads it once;
@@ -1153,7 +1179,7 @@ connection's restart: `EnsureAsync` adopts the published ticket to keep the term
 and only when preparation and adoption precede its expiry.
 
 Each background-service door chooses `TimeProvider.System` once at its composition root:
-Discover supplies its probe, from one factory that `ShutdownPersistentPtyAsync` shares; Stop shares
+Discover supplies its probe, from one factory that `ShutdownPersistentPtyAsync` and `FindIncumbentAsync` share; Stop shares
 it across the handoff and terminator; Ensure shares it across the election collaborators and
 spawned contenders. Stop and the election share the same handoff step. Internal collaborators
 require that provider, including the handoff ticket's request pipeline. Request deadlines, election
