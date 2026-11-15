@@ -12,9 +12,11 @@ internal sealed class ScriptedEventAttemptSource : IEventAttemptSource
     private readonly Channel<Attempt> _opened = Channel.CreateUnbounded<Attempt>();
     private readonly List<Attempt> _attempts = [];
     private readonly Lock _gate = new();
+    public Action? OnOpen { get; set; }
 
     public IAsyncEnumerable<IEvent> OpenAsync(StreamAttempt attempt, CancellationToken cancellationToken)
     {
+        OnOpen?.Invoke();
         var opened = new Attempt(attempt, cancellationToken);
         lock (_gate)
         {

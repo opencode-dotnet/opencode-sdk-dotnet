@@ -7,10 +7,12 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     IEventFeedGateProbe probe) : IDisposable
 {
     private readonly HashSet<EventSubscription<IEvent>> _subscriptions = [];
+    private readonly HashSet<EventSubscription<EventConnectionState>> _watchers = [];
     private readonly Dictionary<EventSource, Task> _running = [];
     private readonly EventSourceRunner _runner = new(attempts, time, idleWindow);
     private EventSource? _current;
     private IEvent? _marker;
+    private EventConnectionState _state = new(EventConnectionStatus.Idle, 0, null);
 
     internal SharedEventFeed(Pipeline pipeline)
         : this(new EventAttemptSource(pipeline), pipeline.Connection.Time, pipeline.IdleWindow, new NoOpEventFeedGateProbe())
@@ -19,6 +21,17 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
 
     internal Lock Gate { get; } = new();
     internal bool IsDisposed { get; private set; }
+
+    internal int WatcherCount
+    {
+        get
+        {
+            lock (Gate)
+            {
+                return _watchers.Count;
+            }
+        }
+    }
 
     public void ThrowIfDisposed()
     {
@@ -53,6 +66,22 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     public IAsyncEnumerable<IEvent> Subscribe(EventSelection selection, CancellationToken cancellationToken) =>
         new EventSubscription<IEvent>(this, selection, cancellationToken, default);
 
+    public EventConnectionState GetConnectionState()
+    {
+        lock (Gate)
+        {
+            if (IsDisposed)
+            {
+                throw FailureClassification.DisposedClient();
+            }
+
+            return _state;
+        }
+    }
+
+    public IAsyncEnumerable<EventConnectionState> Watch(CancellationToken cancellationToken) =>
+        new EventStateWatcher(this, cancellationToken, default);
+
     internal void WithGate(Action<AfterGate> section)
     {
         var work = new AfterGate();
@@ -75,13 +104,18 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
             _ = _subscriptions.Add(events);
             if (_current is null)
             {
-                StartLocked();
+                StartLocked(work);
             }
 
             if (_marker is { } marker)
             {
                 events.OfferLocked(marker, work);
             }
+        }
+        else if (subscription is EventSubscription<EventConnectionState> watcher)
+        {
+            _ = _watchers.Add(watcher);
+            watcher.OfferLocked(_state, work);
         }
     }
 
@@ -95,9 +129,13 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
                 DetachLocked(work);
             }
         }
+        else if (subscription is EventSubscription<EventConnectionState> watcher)
+        {
+            _ = _watchers.Remove(watcher);
+        }
     }
 
-    public bool IsCurrent(EventSource source)
+    public bool RecordAttemptStarted(EventSource source)
     {
         lock (Gate)
         {
@@ -113,6 +151,7 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         }
 
         _marker = marker;
+        SetStateLocked(new EventConnectionState(EventConnectionStatus.Connected, 0, null), work);
         PublishLocked(marker, work);
     });
 
@@ -125,11 +164,12 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         }
     });
 
-    public void RecordDrop(EventSource source) => WithGate(_ =>
+    public void RecordDrop(EventSource source, Exception failure, int attempt) => WithGate(work =>
     {
         if (!IsDisposed && ReferenceEquals(_current, source))
         {
             _marker = null;
+            SetStateLocked(new EventConnectionState(EventConnectionStatus.Reconnecting, attempt, failure), work);
         }
     });
 
@@ -168,6 +208,11 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
                 {
                     subscription.EndLocked(new SubscriptionEnd(FailureClassification.DisposedClient(), false, false), work);
                 }
+
+                foreach (var watcher in _watchers.ToArray())
+                {
+                    watcher.EndLocked(new SubscriptionEnd(FailureClassification.DisposedClient(), false, false), work);
+                }
             }
         }
         catch (Exception exception)
@@ -191,10 +236,11 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         }
     }
 
-    private void StartLocked()
+    private void StartLocked(AfterGate work)
     {
         var source = new EventSource();
         _current = source;
+        SetStateLocked(new EventConnectionState(EventConnectionStatus.Connecting, 0, null), work);
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _running.Add(source, completion.Task);
         void Finish(EventSource finished)
@@ -233,6 +279,7 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         {
             _current = null;
             _marker = null;
+            SetStateLocked(new EventConnectionState(EventConnectionStatus.Idle, 0, null), work);
             work.Add(new StopWork(source).Run);
         }
     }
@@ -242,6 +289,15 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         foreach (var subscription in _subscriptions.Where(subscription => subscription.Includes(item)).ToArray())
         {
             subscription.OfferLocked(item, work);
+        }
+    }
+
+    private void SetStateLocked(EventConnectionState state, AfterGate work)
+    {
+        _state = state;
+        foreach (var watcher in _watchers.ToArray())
+        {
+            watcher.OfferLocked(state, work);
         }
     }
 }

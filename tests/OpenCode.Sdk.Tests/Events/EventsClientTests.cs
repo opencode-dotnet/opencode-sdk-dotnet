@@ -14,6 +14,41 @@ public sealed class EventsClientTests
     private readonly FixtureLoader _fixtures = new();
 
     [Test]
+    public async Task GetConnectionState_Should_Refuse_Disposed_Roots_And_End_Their_Pending_Watches()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, time: new ManualTimeProvider());
+        var door = new EventsClient(pipeline);
+        await using var watcher = door.WatchConnectionAsync().GetAsyncEnumerator();
+        await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Idle);
+        var pending = EventStreamSteps.PendingNext(watcher);
+        pipeline.Dispose();
+
+        _ = await Assert.That(door.GetConnectionState).Throws<ObjectDisposedException>();
+        _ = await Assert.That(() => door.WatchConnectionAsync()).Throws<ObjectDisposedException>();
+        _ = await Assert.That(pending).Throws<ObjectDisposedException>();
+        await Assert.That(handler.Requests).IsEmpty();
+    }
+
+    [Test]
+    public async Task GetConnectionState_Should_Remain_Virtual_And_Use_The_Mocking_Seam()
+    {
+        EventsClient door = new MockEventsClient();
+        await Assert.That(door.GetConnectionState()).IsSameReferenceAs(MockEventsClient.KnownState);
+        await using var states = door.WatchConnectionAsync().GetAsyncEnumerator();
+        await Assert.That(await EventStreamSteps.PendingNext(states).WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(states.Current).IsSameReferenceAs(MockEventsClient.KnownState);
+        await Assert.That(await EventStreamSteps.PendingNext(states).WaitAsync(HangGuard.Bound)).IsFalse();
+        var expected = "'EventsClient.Pipeline' was invoked on an instance created through the protected mocking constructor; override the member under test.";
+        var snapshotFailure = await Assert.That(() => new UnoverriddenEventsClient().GetConnectionState()).Throws<InvalidOperationException>();
+        var watchFailure = await Assert.That(() => new UnoverriddenEventsClient().WatchConnectionAsync()).Throws<InvalidOperationException>();
+        await Assert.That(snapshotFailure!.Message).IsEqualTo(expected);
+        await Assert.That(watchFailure!.Message).IsEqualTo(expected);
+    }
+
+    [Test]
     public async Task SubscribeAsync_Should_Receive_An_Event_Published_During_The_Refresh_After_Admission()
     {
         using var body = new LiveEventBody(EventStreamSteps.ConnectedFrame);
@@ -179,10 +214,21 @@ public sealed class EventsClientTests
 
     private sealed class MockEventsClient : EventsClient
     {
+        internal static readonly EventConnectionState KnownState = new(EventConnectionStatus.Reconnecting, 7, new OpenCodeTransportException("mock"));
         internal static readonly IEvent KnownEvent = new EventServerConnected { Id = "mocked", Data = new Dictionary<string, System.Text.Json.JsonElement>(StringComparer.Ordinal) };
 
         public override IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) => Sequence();
+
+        public override EventConnectionState GetConnectionState() => KnownState;
+
+        public override IAsyncEnumerable<EventConnectionState> WatchConnectionAsync(CancellationToken cancellationToken = default) => States();
+
+        private static async IAsyncEnumerable<EventConnectionState> States()
+        {
+            await Task.CompletedTask;
+            yield return KnownState;
+        }
 
         private static async IAsyncEnumerable<IEvent> Sequence()
         {

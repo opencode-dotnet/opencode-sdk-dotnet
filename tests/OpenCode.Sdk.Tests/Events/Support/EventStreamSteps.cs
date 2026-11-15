@@ -74,7 +74,7 @@ internal sealed class EventStreamSteps
     }
 
     /// <summary>Asks for the next event without waiting for it, so the test can move time while the read is pending.</summary>
-    internal static Task<bool> PendingNext(IAsyncEnumerator<IEvent> events) => events.MoveNextAsync().AsTask();
+    internal static Task<bool> PendingNext<T>(IAsyncEnumerator<T> events) => events.MoveNextAsync().AsTask();
 
     internal static async Task<IEvent> NextAsync(IAsyncEnumerator<IEvent> events)
     {

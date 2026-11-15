@@ -61,5 +61,22 @@ public class EventsClient
         return feed.Subscribe(EventSelection.Capture(request?.Types), cancellationToken);
     }
 
+    /// <summary>Gets the shared source's current snapshot without opening a connection.</summary>
+    /// <returns>The current source-level state; it is not a subscription position or liveness proof.</returns>
+    /// <exception cref="ObjectDisposedException">The root client was disposed.</exception>
+    public virtual EventConnectionState GetConnectionState() => Feed.GetConnectionState();
+
+    /// <summary>Watches the initial source snapshot and then the latest unread snapshots, coalescing intermediate changes.</summary>
+    /// <param name="cancellationToken">The cancellation token; the enumerator token is also observed.</param>
+    /// <returns>A lazy state watch that never opens or keeps alive an event source.</returns>
+    /// <exception cref="OperationCanceledException">An entry token was cancelled.</exception>
+    /// <exception cref="ObjectDisposedException">The root client was disposed.</exception>
+    public virtual IAsyncEnumerable<EventConnectionState> WatchConnectionAsync(CancellationToken cancellationToken = default)
+    {
+        var feed = Feed;
+        feed.ThrowIfDisposed();
+        return feed.Watch(cancellationToken);
+    }
+
     private SharedEventFeed Feed => _feed ?? throw MockSeam.CreateError("EventsClient", "Pipeline");
 }

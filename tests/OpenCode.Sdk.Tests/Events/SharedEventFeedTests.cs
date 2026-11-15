@@ -147,12 +147,12 @@ public sealed class SharedEventFeedTests
             moving = EventStreamSteps.PendingNext(late);
             await Assert.That(await moving.WaitAsync(HangGuard.Bound)).IsTrue();
             await Assert.That(late.Current.Id).IsEqualTo("M1");
-            scenario.Feed.RecordDrop(source);
+            scenario.Feed.RecordDrop(source, new OpenCodeTransportException("drop"), 1);
             moving = EventStreamSteps.PendingNext(late);
         }
         else
         {
-            scenario.Feed.RecordDrop(source);
+            scenario.Feed.RecordDrop(source, new OpenCodeTransportException("drop"), 1);
             moving = EventStreamSteps.PendingNext(late);
         }
 
@@ -250,15 +250,21 @@ public sealed class SharedEventFeedTests
         await using var current = await scenario.AdmitAsync("M2");
         var marker = current.Current;
         var source = scenario.Feed.GetCurrentSource();
+        var state = scenario.Feed.GetConnectionState();
         scenario.Feed.RecordConnected(oldSource, SharedEventFeedScenario.Marker("stale"));
         scenario.Feed.Publish(oldSource, SharedEventFeedScenario.Event("stale-event"));
-        scenario.Feed.RecordDrop(oldSource);
+        scenario.Feed.RecordDrop(oldSource, new OpenCodeTransportException("stale drop"), 1);
+        await Assert.That(scenario.Feed.RecordAttemptStarted(oldSource)).IsFalse();
         scenario.Feed.RecordFault(oldSource, new InvalidOperationException("stale fault"));
         oldAttempt.ReleaseCleanup();
+        var observed = oldSource.RunnerObservation!.ContinueWith(static task => task.Status,
+            CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        await Assert.That(await observed.WaitAsync(HangGuard.Bound)).IsEqualTo(TaskStatus.RanToCompletion);
         await using var late = await scenario.AdmitAsync("M2");
 
         await Assert.That(late.Current).IsSameReferenceAs(marker);
         await Assert.That(scenario.Feed.GetCurrentSource()).IsSameReferenceAs(source);
+        await Assert.That(scenario.Feed.GetConnectionState()).IsSameReferenceAs(state);
         await scenario.PublishAsync("E2");
         string?[] received = [(await EventStreamSteps.NextAsync(current)).Id, (await EventStreamSteps.NextAsync(late)).Id];
         await Assert.That(received).IsEquivalentTo((string?[])["E2", "E2"], CollectionOrdering.Matching);

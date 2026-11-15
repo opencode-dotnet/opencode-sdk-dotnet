@@ -58,6 +58,7 @@ public sealed class CancellationIdentityTests
             yield return new("events", "first-open/" + entry, caller => AtEventWaitAsync("open", entry, caller));
             yield return new("events", "live-read/" + entry, caller => AtStreamReadAsync(events: true, entry, caller));
             yield return new("events", "reconnect-delay/" + entry, caller => AtEventWaitAsync("delay", entry, caller));
+            yield return new("event-state", "pending/" + entry, caller => AtEventStateAsync(entry, caller));
             yield return new("other-sse", "headers/" + entry, caller => AtHeadersAsync(
                 (client, token) => PullAsync(client.Experimental.ReadSessionLogAsync(
                     SessionId, cancellationToken: MethodToken(entry, token)), EnumerationToken(entry, token)), caller));
@@ -174,6 +175,18 @@ public sealed class CancellationIdentityTests
             _ = await observed;
         }
 
+        return await observed;
+    }
+
+    private static async Task<OperationCanceledException> AtEventStateAsync(string entry, CancellationTokenSource caller)
+    {
+        using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint });
+        await using var watcher = client.Events.WatchConnectionAsync(MethodToken(entry, caller.Token))
+            .GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
+        await Assert.That(await watcher.MoveNextAsync()).IsTrue();
+        await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Idle);
+        var observed = CancellationAsync(async () => _ = await watcher.MoveNextAsync());
+        await caller.CancelOnWorkerAsync();
         return await observed;
     }
 
@@ -748,6 +761,8 @@ public sealed class CancellationIdentityTests
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(CursorSequence<,>)) => "cursor-items",
             _ when member.Is(typeof(EventsClient), nameof(EventsClient.SubscribeAsync), typeof(IAsyncEnumerable<IEvent>),
                 typeof(EventSubscribeRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "events",
+            _ when member.Is(typeof(EventsClient), nameof(EventsClient.WatchConnectionAsync), typeof(IAsyncEnumerable<EventConnectionState>),
+                typeof(CancellationToken)) => "event-state",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>)) => "other-sse",
             _ when member.Is(typeof(LanguageModelsClientExtensions), nameof(LanguageModelsClientExtensions.WaitForDefaultAsync), typeof(Task<ModelDefaultResponse>),
                 typeof(LanguageModelsClient), typeof(ModelDefaultRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "default-wait",

@@ -6,11 +6,18 @@ internal sealed class EventSourceRunner(IEventAttemptSource attempts, TimeProvid
     private readonly TimeSpan _idleWindow = idleWindow;
     public async Task RunAsync(SharedEventFeed feed, EventSource source)
     {
-        while (feed.IsCurrent(source))
+        var counter = 0;
+        while (feed.RecordAttemptStarted(source))
         {
             source.Token.ThrowIfCancellationRequested();
-            await ReadAttemptAsync(feed, source).ConfigureAwait(false);
-            feed.RecordDrop(source);
+            var result = await ReadAttemptAsync(feed, source).ConfigureAwait(false);
+            if (result.ConnectedFor >= TimeSpan.FromSeconds(1))
+            {
+                counter = 0;
+            }
+
+            counter++;
+            feed.RecordDrop(source, result.Failure, counter);
 #if NET
             await Task.Delay(StreamReconnect.Delay, time, source.Token).ConfigureAwait(false);
 #else
@@ -19,11 +26,14 @@ internal sealed class EventSourceRunner(IEventAttemptSource attempts, TimeProvid
         }
     }
 
-    private async Task ReadAttemptAsync(SharedEventFeed feed, EventSource source)
+    private async Task<AttemptResult> ReadAttemptAsync(SharedEventFeed feed, EventSource source)
     {
         using var attempt = new StreamAttempt(time, _idleWindow, source.Token);
         var events = attempts.OpenAsync(attempt, attempt.Token).GetAsyncEnumerator(attempt.Token);
         await using var enumeration = events.ConfigureAwait(false);
+        long? connectedAt = null;
+        AttemptResult End(Exception failure) => new(failure,
+            connectedAt is { } timestamp ? time.GetElapsedTime(timestamp) : TimeSpan.Zero);
         while (true)
         {
             bool first;
@@ -31,19 +41,24 @@ internal sealed class EventSourceRunner(IEventAttemptSource attempts, TimeProvid
             {
                 if (!await events.MoveNextAsync().ConfigureAwait(false))
                 {
-                    return;
+                    return End(FailureClassification.EventStreamEnded());
                 }
 
                 first = !attempt.IsEstablished;
                 if (first)
                 {
                     attempt.Establish();
+                    connectedAt = time.GetTimestamp();
                 }
             }
-            catch (Exception) when (!source.Token.IsCancellationRequested)
+            catch (OperationCanceledException exception) when (!source.Token.IsCancellationRequested)
             {
-                // An ordinary physical-attempt failure retries; enumeration cleanup remains outside this boundary.
-                return;
+                return End(attempt.Describe(exception));
+            }
+            catch (Exception exception) when (!source.Token.IsCancellationRequested)
+            {
+                // Cleanup remains outside this boundary. Only a failure of this physical attempt retries.
+                return End(exception);
             }
 
             if (first)
@@ -56,4 +71,6 @@ internal sealed class EventSourceRunner(IEventAttemptSource attempts, TimeProvid
             }
         }
     }
+
+    private sealed record AttemptResult(Exception Failure, TimeSpan ConnectedFor);
 }

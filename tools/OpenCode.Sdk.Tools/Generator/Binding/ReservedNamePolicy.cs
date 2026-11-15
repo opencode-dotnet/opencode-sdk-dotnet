@@ -78,6 +78,8 @@ internal static class ReservedNamePolicy
         [
             "CursorSequence",
             "ErrorBehavior",
+            "EventConnectionState",
+            "EventConnectionStatus",
             "EventsClient",
             EffectStreamTypeNamePolicy.CauseMarkerInterface,
             SessionScopedEventContract.InterfaceName,
@@ -189,6 +191,7 @@ internal static class ReservedNamePolicy
             "EventSelection",
             "EventSource",
             "EventSourceRunner",
+            "EventStateWatcher",
             "EventSubscription",
             "ExecutableResolver",
             "ExecutableSearchEnvironment",

@@ -56,6 +56,7 @@ internal static class GeneratedSourceCompiler
         ("Events/Internal/EventSelection.cs", "Events/Models/EventType.cs"),
         ("Events/Internal/EventSource.cs", "Events/Internal/EventsRawClient.cs"),
         ("Events/Internal/EventSourceRunner.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Events/Internal/EventStateWatcher.cs", "Events/Internal/EventsRawClient.cs"),
         ("Events/Internal/EventSubscription.cs", "Events/Internal/EventsRawClient.cs"),
         ("Events/Internal/SharedEventFeed.cs", "Events/Internal/EventsRawClient.cs"),
         ("Events/Internal/StopWork.cs", "Events/Internal/EventsRawClient.cs"),

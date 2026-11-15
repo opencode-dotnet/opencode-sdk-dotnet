@@ -26,6 +26,18 @@ public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
     private static readonly string[] DoorTypes = ["PtyClient", "PtysClient", "PersistentPtyClient", "PersistentPtysClient", "EventsClient"];
 
     [Test]
+    [Arguments("SubscribeAsync", true, 1)]
+    [Arguments("WatchConnectionAsync", false, 0)]
+    [Arguments("GetConnectionState", false, 0)]
+    public async Task Classify_Should_Treat_Only_The_Events_Subscription_As_An_Http_Operation(string name, bool operation, int remarks)
+    {
+        var method = (await LoadHandWrittenMethodsAsync()).Single(method => method.TypeName == "EventsClient" && method.Name == name);
+
+        await Assert.That(method.IsPublicOperation).IsEqualTo(operation);
+        await Assert.That(method.Remarks.Count).IsEqualTo(remarks);
+    }
+
+    [Test]
     public async Task HandWritten_Remarks_Should_Name_A_Pinned_Operation_By_Its_Method_And_Route()
     {
         var document = pinned.Document;
@@ -118,8 +130,14 @@ public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
                     match.Groups["method"].Value,
                     match.Groups["route"].Value))
                 .ToArray();
-            var isPublicOperation = method.Modifiers.Any(SyntaxKind.PublicKeyword)
-                                    && method.ReturnType is GenericNameSyntax { Identifier.ValueText: "Task" or "IAsyncEnumerable" };
+            var isPublicOperation = method.Modifiers.Any(SyntaxKind.PublicKeyword) && (typeName == "EventsClient"
+                ? name switch
+                {
+                    "SubscribeAsync" => true,
+                    "WatchConnectionAsync" or "GetConnectionState" => false,
+                    _ => throw new InvalidOperationException($"Unclassified Events door member: {name}"),
+                }
+                : method.ReturnType is GenericNameSyntax { Identifier.ValueText: "Task" or "IAsyncEnumerable" });
             return new HandWrittenMethod(typeName, name, isPublicOperation, remarks);
         }
     }
