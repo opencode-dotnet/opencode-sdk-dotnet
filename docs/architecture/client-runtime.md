@@ -288,8 +288,8 @@ resolves the message's network window from those carried traits.
   the size carried by later input. An inbound resize report remains available to the consumer
   for rendering but does not overwrite that local intent. Header preparation, socket send, and
   successful resize-state publication share one serialization boundary, so each input carries
-  a coherent size in send order. Input from a
-  connection the server attached as an observer is accepted here and dropped there.
+  a coherent size in send order. Input sent on a connection the server attached as an observer is
+  accepted, and the server makes that attachment the controller.
 - **Cursor.** `PersistentPtyConnectOptions.Cursor` is a relay to the connect query and nothing
   more. There is no live-only mode here: null replays from the oldest retained byte, and zero means
   the same rather than "replay nothing". The server accepts JavaScript safe integers at or above

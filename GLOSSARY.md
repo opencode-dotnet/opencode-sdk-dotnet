@@ -1,397 +1,422 @@
 # opencode SDK for .NET
 
 Typed .NET client for the opencode HTTP API; an MCP server built on it lives in a sibling
-repository. The domain is
-largely upstream's — opencode's concepts seen through an SDK lens — with a few terms this
-project coins for itself.
+repository. Its domain is upstream's, opencode's concepts seen through an SDK lens, beside the
+language this project uses for its own engineering.
 
 ## Language
 
-### Upstream domain (as visible at the API surface)
+### Upstream domain
+
+#### Sessions
 
 **Session**:
-A persistent conversation with an Agent; the API's central concept.
+A persistent conversation with an Agent, and the API's central concept.
 
 **Session metadata**:
-Host-supplied annotations on a Session: arbitrary keys, JSON values, opaque to opencode, durable
-from creation. Children and forks inherit the parent's unless the creator supplies its own. The
-pinned document types it only as an object.
+Host-supplied annotations on a Session: arbitrary keys with JSON values, opaque to opencode and
+durable from creation. Children and forks inherit the parent's unless their creator supplies its
+own.
 
 **Message**:
-One entry in a Session's projected history; a discriminated union keyed by a literal `type` marker
-(user, assistant, synthetic, system, skill, shell, compaction, idle, and the agent/model/location
-selection records). Only an assistant Message carries a content list; the rest are flat. An idle
-Message marks where a turn ended and carries the turn's outcome.
+One entry in a Session's projected history, of one kind: user, assistant, synthetic, system, skill,
+shell, compaction, idle, or an agent, model or location selection record. Only an assistant Message
+carries content.
 
 **Assistant content**:
-A typed fragment of an assistant Message (text, reasoning, tool); a discriminated union keyed by a
-literal `type` marker, carried in that Message's `content` list. No other Message kind has one.
-_Avoid_: part (the retired 1.x term; survives only as a legacy `partID` on a revert record)
+A typed fragment of an assistant Message: text, reasoning, or a tool call.
+_Avoid_: part (the retired 1.x term)
+
+**Prompt**:
+The input a user gives a Session: text, plus optional file, Agent and skill attachments.
+
+**Turn**:
+Every Step a Session takes from one idle point to the next, including Prompts steered in while it
+was busy; an idle Message closes it and records its outcome. A server shutdown does not close a
+Turn, because the resumed run continues it.
+_Avoid_: Execution (upstream's word for one run of the Session; a restart starts another, so a Turn
+can span several)
+
+**Step**:
+One logical unit of model work within a Turn, which may take several attempts before it ends or
+fails.
 
 **Session inbox**:
-The queue of pending work for one Session — a prompt, a synthetic message, a compaction, or a move
-— each item either queued behind the current turn or steered into it.
+The queue of pending work for one Session: a Prompt, a synthetic message, a Compaction, or a move,
+each delivered by Steer or Queue.
+
+**Steer / Queue**:
+The two delivery choices for a Session inbox item. A steered item joins the busy Session at its next
+Step boundary, inside the current Turn; a queued item waits for the idle point and starts the next
+Turn.
 
 **Compaction**:
-The summarize-and-truncate boundary in a Session's history. It appears as its own Message kind,
-and a Session's active context is the Messages after the last one.
+The summarizing of a Session's history, recorded as a Message of its own kind that runs, completes
+or fails. A completed Compaction stands in for the history before it in what the model sees: its
+summary, or a provider's replacement window, which replays only on the model that made it.
+
+#### Events
 
 **Event**:
-Something that happened: an identified, typed record carrying its own `data` and, optionally, the
+Something that happened: an identified, typed record carrying its own data and, optionally, the
 Location it happened in. Every Event is either durable or ephemeral.
 
 **Durable / ephemeral Event**:
-The two durability classes every Event belongs to. A durable Event carries an envelope naming its
-Aggregate, its sequence in that Aggregate's log, and the schema version that committed it, so it
-can be read back later; an ephemeral Event carries none and exists only for subscribers attached
-at the time. In the SDK the envelope is `IDurableEnvelope`, which every durable Event's own
-envelope record implements and which `ISessionEventDurable.Durable` returns.
+The two durability classes of an Event. A durable Event carries an envelope naming its Aggregate,
+its sequence in that Aggregate's log and the schema version that committed it, so it can be read
+back; an ephemeral Event reaches only the subscribers attached at the time.
 
 **Aggregate**:
-The unit a durable Event log is kept per: an id read from a named field of the Event's own `data`,
-plus a monotonic sequence over the Events committed against it. Session Events aggregate on their
-Session; others aggregate elsewhere, such as worktree resolution on its Project.
+The unit a durable Event log is kept per: an id taken from the Event's own data, with a monotonic
+sequence over the Events committed against it. Session Events aggregate on their Session, others
+elsewhere, such as worktree resolution on its Project.
 
 **Durable Session event stream**:
-One Session Aggregate's durable Event log, read back over SSE. `after` is an exclusive sequence
-taken from a durable envelope or a sync marker, `follow` continues into live Events, and a single
-`log.synced` marker separates replay from live. The sequence is not contiguous and the log has no
-retention policy. Replay and follow both read persisted Events, and persistence is a server option
-that is off by default; without it, both deliver the marker alone.
-_Avoid_: session events (ambiguous with the live stream)
+One Session Aggregate's durable Event log, read back from an exclusive sequence and optionally
+followed into live Events, with one sync marker between replay and live. It holds only what the
+server persisted, and persistence is a server option that is off by default.
+_Avoid_: session events (ambiguous with the Live event stream)
 
 **Live event stream**:
-The instance-wide event stream; `EventSubscribeRequest.Types` filters by event type, with the initial
-`server.connected` Event always included. The operation has no cursor, replay, or resume
-channel, and is volatile by contract — a slow consumer overflows and fails the stream, and Events
-during a disconnection are missed. Every connection opens with a synthetic `server.connected`
-Event. The SDK reconnects the stream itself; a `server.connected` after the first means Events were
-missed and authoritative state should be refreshed, and a stream that cannot reconnect for one
-minute gives up and throws.
+The server's instance-wide stream of Events, each connection opening with a `server.connected`
+Event. It has no cursor or replay: a slow reader overflows, and Events during a disconnection are
+lost.
+
+**Shared event feed**:
+Upstream's client-side fan-out of one Live event stream connection to every subscriber of a client,
+each with its own Event filter and its own bounded queue; a subscriber that falls behind overflows
+and ends alone while the others continue, and every subscriber ends when the connection does.
+Reporting the connection's state and reconnecting without end belong to upstream's UI connection
+layer, which resubscribes around the feed.
+
+**Admission**:
+The point at which a subscriber joins a Shared event feed, marked by the first `server.connected` it
+receives (the cached one when the feed is already connected); from then on it is offered every Event
+it selects that the feed fans out, and none fanned out before.
+_Avoid_: connection (a new subscriber's marker does not mean the wire reconnected); admitting an
+upstream operation (the generator's selection of the protocol surface, a different thing)
+
+#### Capabilities and catalogs
 
 **Permission**:
-The gate on agent actions, expressed as rules matching an action and a resource to an effect —
-allow, deny, or ask. An `ask` raises a permission request answered through the API, and an answer
-may be kept as a standing Project-scoped grant. Every Agent carries its own ruleset, and so does
-every Session: a Session's ruleset is set at creation, replaced wholesale through `session.update`
-with its Permissions member, evaluated after the Agent's rules with the last matching rule winning, and each
-replacement raises the durable `session.permissions` Event.
+The gate on agent actions: rules matching an action and a resource to allow, deny or ask, where an
+ask raises a request the client answers and an answer can become a saved, Project-scoped grant.
+Agents and Sessions each carry a ruleset; a Session's is evaluated after its Agent's, and the last
+matching rule wins.
 
 **Form**:
-A structured question the server raises and a client answers — typed fields, optional visibility
-conditions, and a state that ends answered or cancelled. Raised against a Session or a Location.
+A structured question the server raises against a Session or a Location and a client answers: typed
+fields with optional visibility conditions, ending answered or cancelled.
 
 **Integration**:
-A connectable upstream service and the authentication methods it offers — API key, OAuth, a
-command, or the environment. Connecting runs as an attempt with its own status and leaves a
-connection behind; a Provider names the Integration it is connected through.
+A connectable upstream service and the authentication methods it offers: an API key, OAuth, a
+command, the environment, or credentials managed outside opencode. Connecting leaves a connection on
+it; the OAuth and command methods get there through an attempt with its own status.
 
 **Provider**:
-An LLM provider entry in its own catalog, carrying activation state and request settings — not its
-Models, which form a separate catalog. A Provider names the Integration it is connected through.
+An LLM provider entry in its own catalog, with its activation state and request settings, naming the
+Integration it is connected through. Its Models form a separate catalog.
 
 **Model**:
-One entry in the model catalog, naming the Provider it belongs to and carrying its capabilities,
-variants, costs, and limits. A Model carries two ids: its **catalog id**, the identity within this
-catalog, and its **provider model id**, the identity the Provider's own API uses. Sessions, Agents,
-and Messages reference a Model by catalog id, provider, and optional variant rather than embedding
-the entry; the provider model id never appears in a reference.
-_Avoid_: model id alone (it is ambiguous between the two).
+One entry in the model catalog, naming its Provider and carrying capabilities, variants, costs and
+limits, with two ids: its catalog id, which Sessions, Agents and Messages reference with the
+Provider and an optional variant, and its provider model id, which the Provider's own API uses. The
+SDK names upstream's `model` client `LanguageModelsClient`, because the `Models` namespace belongs
+to the generated model layer.
+_Avoid_: model id alone (it is ambiguous between the two)
 
 **Agent**:
-A configured opencode persona — `build` by default, others from config or plugins — selectable per
-Session or attachable to a single prompt. Carries its own Permission ruleset, an optional Model,
+A configured opencode persona, `build` by default and others from config or plugins, selectable per
+Session or attachable to a single Prompt. It carries its own Permission ruleset, an optional Model
 and a step budget.
-_Avoid_: mode (an Agent's `mode` is its primary/subagent eligibility, not its persona)
+_Avoid_: mode (an Agent's mode is its primary or subagent eligibility, not its persona)
+
+**Plugin activation**:
+The asynchronous per-Location settling of a server's plugins, during which Providers register and
+the model catalog fills. Only the endpoints that list or use Providers wait for it, for a bounded
+time; any other answer, a server info answer among them, can come before it settles.
+_Avoid_: readiness (the Launcher's start signal, a different thing)
+
+**Plugin RPC**:
+A method surface a server-side plugin registers under an RPC id, called at a Location with untyped
+JSON input and output; the plugin's notifications arrive on the Live event stream as `rpc.*` Events.
+_Avoid_: RPC alone (the SDK's own HTTP calls are not RPC)
+
+**RPC definition**:
+A plugin's typed declaration, under its RPC id, of the methods its Plugin RPC answers and the
+events it publishes.
+
+**File system**:
+The files a Location exposes to clients, read, listed, found, written and watched relative to its
+directory. The SDK names upstream's `fs` client `FileSystemClient` after upstream's own
+`FileSystem` name rather than the abbreviation.
+_Avoid_: Source watch (the SDK's pinned upstream evidence, not a file watch)
+
+**MCP server**:
+A Model Context Protocol server, local or remote, that a Location connects to for tools and
+resources, with its own connection status. The SDK names upstream's `mcp` client
+`McpServersClient` after the `Mcp.Server` records it lists rather than a mechanical plural.
+_Avoid_: MCP alone (the protocol); the MCP server built on this SDK (a sibling project, not an
+opencode capability)
+
+#### Servers and addressing
 
 **Server process**:
-One running `opencode serve` process (one endpoint); the API is bound to a single Server
-process, and cross-process aggregation lives above the SDK. Owns process-global state (auth store,
-the live event stream and the durable Event log, Sessions, Projects, saved
-Permissions). Configuration is not among them; it belongs to the Instance.
+One running `opencode serve` process at one endpoint, which the API is bound to. It owns the
+process-global state: the auth store, the event streams and log, Sessions, Projects and saved
+Permissions, but not configuration, which belongs to the Instance.
 
 **Location**:
-Public HTTP addressing by absolute directory. Resolving one yields its Project. Core and some
-event/log schemas retain workspace fields; those are distinct contracts, not an HTTP selector.
+The absolute directory a public HTTP request is addressed to; resolving one yields its Project.
 
 **Project**:
-The repository root a Location resolves to, carrying its own id and canonical path. Sessions,
-saved Permissions, and worktrees are scoped to it.
+What a Location resolves to: its version-control repository, or the directory itself when it has
+none, with its own id and canonical path. Sessions, saved Permissions and Worktrees are scoped to
+it.
 
 **Worktree**:
-A managed local directory in a Project's worktree inventory. Create, list, remove, and refresh take an explicit projectID. A caller can resolve that ID through
-`location.get` for its directory. Creation optionally names a parent directory and a child name.
+A managed local directory in a Project's worktree inventory, created, listed, removed and refreshed
+against that Project's id.
 
 **Worktree strategy**:
-A server-registered strategy used to discover and create Worktrees. The canonical Project
-selects a registered strategy for creation; removal uses the recorded strategy. The SDK does not define a closed
-strategy list or choose server defaults.
+One of the server's registered, open-ended ways to discover and create Worktrees. The Project
+selects one for creation, and removal uses the one recorded for the Worktree.
 
 **Workspace**:
-An upstream core addressing concept retained in some event/log contracts. The pinned public HTTP
-API exposes neither workspace lifecycle operations nor workspace request targeting.
+An upstream core addressing concept retained in some event and log contracts. The public HTTP API
+offers neither workspace lifecycle operations nor workspace targeting.
 
 **Instance**:
-One Location's working context inside a Server process — its configuration, agents, tools, and MCP
-servers — selected per request via Directory targeting; a Server process hosts many, keyed by
-Location. The Project is resolved from the Location, not chosen alongside it.
+One Location's working context inside a Server process: its configuration, agents, tools and MCP
+servers. A Server process hosts many, one per Location.
 
 **Directory targeting**:
-Per-request Location targeting via `location[...]` query parameters, with the
-`x-opencode-directory` header as the ambient channel the server resolves
-after an explicit directory query value; an unset directory falls back to the server's own working
-directory.
+Choosing a request's Location per request: an explicit directory query value first, then the
+directory header, then the server's own working directory.
+
+#### Terminals
 
 **PTY**:
 A pseudo-terminal session managed through the API.
 
 **PTY connection**:
-The live WebSocket attached to one PTY, carrying replayed and live output out and input in.
-Distinct from the PTY itself, which outlives any connection to it.
+The live WebSocket attached to one PTY, carrying replayed and live output out and input in. The PTY
+outlives any connection to it.
+_Avoid_: terminal (the PTY itself), session (the SDK's PTY session works over a connection)
 
 **Replay cursor**:
-The absolute position in a PTY's retained output. Normal PTY: a connection omitting it replays the
-whole retained buffer, `-1` attaches live-only, and a value at or above zero resumes from there.
-Persistent PTY: omitted means 0 (the oldest retained byte), there is no live-only mode, and the
-resume anchors are `replay_complete.endOffset` and `Info.Output.Tail`.
+The absolute position in a PTY's retained output from which a connection replays. A normal PTY can
+also attach live-only; a Persistent PTY always replays, from the oldest retained byte by default.
 
 **Connect ticket**:
-The short-lived, single-use credential the token door mints for handing a PTY connection to a
-browser. The SDK never mints one for its own connection.
+The short-lived, single-use credential minted for handing a PTY connection to a browser.
 
 **Persistent PTY**:
-A terminal owned by the `opencode-pty` daemon rather than by the Server process; it survives a
-server restart through a handoff, is keyed to a Session, and is the source of `read`'s "current
-terminal".
+A terminal owned by the opencode PTY daemon rather than by the Server process, keyed to a Session.
+It survives a server restart through a Handoff.
 
 **Handoff**:
-The expiring, single-use ticket that transfers ownership of the `opencode-pty` daemon from an
-outgoing Server process to its replacement, which must claim it before becoming ready. Its
-`instanceID` identifies the daemon process, not an Instance.
+The expiring, single-use ticket that passes ownership of the PTY daemon from an outgoing Server
+process to its replacement, which claims it before it becomes ready. The instance id it carries
+names the daemon process, not an Instance.
 
 **Attachment**:
-One live connection to a Persistent PTY: its identity, its controller/observer role, the resize
-generation it attached at, and the replay bounds the server granted it.
-_Avoid_: attachment (unqualified — the `*Attachment` types on the surface are prompt attachments:
-files, agents, and skills carried on a Message)
+One live connection to a Persistent PTY: its identity, its role, the resize generation it attached
+at, and the replay bounds the server granted it.
+_Avoid_: attachment unqualified (a Prompt's file, agent and skill attachments are a different thing)
 
 **Controller / Observer**:
-The two roles a Persistent PTY grants an Attachment. A Controller writes input and resizes; an
-Observer reads output only, and its input is dropped server-side. The server grants the role, so
-it is not necessarily the one the connection asked for.
+The two roles of an Attachment: the Controller's input and viewport drive the terminal, and an
+Observer only reads. Input sent on an Observer's connection is accepted and makes that Attachment
+the Controller, and the previous Controller becomes an Observer.
+
+**Current terminal**:
+A Session's most recently controlled Persistent PTY, which a terminal read reports; observing does
+not select one. The selection is server-local and resets when the server restarts.
+
+**Takeover**:
+A Controller attach that takes control from the Persistent PTY's current Controller, which becomes
+an Observer. Without it, a Controller attach fails while another Attachment controls the terminal.
 
 **Checkpoint**:
-The terminal-escape byte stream that repaints a screen state, carried base64 on the wire and as
-bytes in the SDK.
+The terminal-escape byte stream that repaints a screen state.
 
 **Framed input**:
-The `input_protocol=1` layout a Persistent PTY connection writes: `[type][cols][rows][data]`, so
-every input or control message carries the viewport it was typed at.
+The Persistent PTY input protocol in which every input or viewport message carries the viewport it
+was typed at.
 
 ### This project's language
 
-**Protocol surface** (historically "modern surface" in dated research docs):
-The pinned protocol API document — the surface this SDK generates (ADR-0005). Operation IDs
-are prefixless at the pin; public names carry no protocol-version prefix.
-_Avoid_: v2, V2 (in public naming); legacy (the retired 1.x dual-surface vocabulary)
+#### Connection modes
 
 **Launcher**:
-The in-core component that starts, monitors, and stops a local `opencode serve` process —
-`OpenCodeServer.StartAsync` and its working object, covering the standalone-server connection
-mode. Discovery/attachment of background services is deliberately not the launcher's job; those
-are `OpenCodeServer`'s other modes.
+The in-core component that starts, monitors and stops a local `opencode serve` process for the
+Standalone server mode.
 
 **Standalone server**:
-A fresh private `opencode serve --stdio --port 0` child owned by the SDK caller through
-`OpenCodeServer`: generated lease credential, stdin-EOF ownership, bounded tree termination.
-Upstream's `Standalone.start` connection mode.
+A fresh private `opencode serve` child that the SDK caller owns, upstream's standalone connection
+mode.
 
 **Background service**:
-Upstream's registered daemon connection mode (`Service.discover/ensure/stop` over a
-registration file); in the SDK, `OpenCodeServer.DiscoverAsync`, `OpenCodeServer.EnsureAsync`,
-and `OpenCodeServer.StopAsync`.
+Upstream's registered daemon connection mode, which the SDK discovers, ensures and stops through a
+Registration file.
 
 **Registration file**:
-The on-disk record a background service publishes (address, credential, instance identity) so
-clients can discover it; an upstream-observed contract outside the OpenAPI pin. Its identity is
-the four fields upstream's `same()` compares — `id`, `version`, `url`, `pid` — never the password.
+The on-disk record a Background service publishes, with its address, credential and instance
+identity, so clients can discover it. Its identity is its id, version, URL and pid, never the
+password.
+
+**Incumbent**:
+The running server that owns the service registered at a URL, recognized by its Registration file's
+credentials and a compatible version whatever its readiness, so a starting or failed owner still
+counts.
+_Avoid_: discovered server (discovery answers only a ready one); incumbent probe (the lookup, not
+the server)
 
 **Process identity**:
-The pid together with the start time the operating system recorded for the process. The token
-`StopAsync` compares immediately before every signal and at every look of its poll, so a pid the
-operating system reused for an unrelated process is never signalled and reads as the registered
-process being gone. Distinct from the registration file's identity, which names a service, not a
-process.
+A process's pid together with the start time the operating system recorded for it, so a pid reused
+by an unrelated process after the SDK first observed the process is not mistaken for it. It names a
+process; the Registration file's identity names a service.
 
 **Registered server handle**:
-A non-owning `OpenCodeServer` produced by discovery or Ensure: `OwnsProcess` is false
-and disposal never stops the shared service.
+A server handle produced by discovery or Ensure that does not own the process; disposing it never
+stops the shared service.
 _Avoid_: guarded server handle, shared handle (draft names for the same thing)
 
 **Service channel**:
 The CLI's compiled release identity that selects the registration and service-config filenames and
-the legacy-migration rules; the release channels share `service.json`, `local` and custom channels
-use distinct names. The SDK has none compiled in: a caller may name one, and the null default reads
-the shared release registration.
+the legacy-migration rules. The SDK has none compiled in: a caller may name one.
+
+#### Snapshot and refresh
+
+**Protocol surface**:
+The pinned protocol API document, the surface this SDK generates; its public names carry no
+protocol-version prefix.
+_Avoid_: v2, V2 (in public naming); legacy (the retired 1.x dual-surface vocabulary); modern surface
+(its name in dated research)
 
 **Accepted snapshot**:
 The reviewed protocol identity the SDK builds against: an exact upstream commit, the committed
-`spec/openapi.json` digest, an ordered snapshot recipe, a sorted operation-set digest, and the
-matching submodule gitlink. Provenance in `spec/SNAPSHOT.md`.
+document, the recipe that produced it, and the digests that prove them.
 _Avoid_: spec pin (retired term)
 
 **Snapshot recipe**:
-The ordered procedure producing the accepted document from the exact upstream commit: upstream's
-own pinned generator, run over a patch list that is normally empty. Upstream's committed document
-is never the input.
+The ordered procedure that produces the accepted document from the exact upstream commit: upstream's
+own pinned generator, run over a patch list that is normally empty.
 
 **Snapshot receipt**:
-The immutable record of one prepared snapshot candidate — inputs, hashes, patches, invariants —
-reviewed by a human before it is applied.
+The immutable record of one prepared snapshot candidate, with its inputs, hashes, patches and
+invariants, that a human reviews before it is applied.
 
 **Restore patch**:
-A temporary, hash-verified snapshot-production patch recovering contract content upstream's
-projection lost; carries an upstream report and a retirement predicate.
+A temporary, hash-verified snapshot patch that recovers contract content upstream's projection lost,
+carrying an upstream report and a retirement predicate.
 
 **Source watch**:
-The pinned set of upstream files that hand-written code in this family depends on, each a watched
-source recorded by path and SHA-256 blob hash in `spec/source-watch.json` and the receipt's
-`watchedSources`, with one or more behaviours, each naming its owning product and carrying a content
-anchor. A refresh-time review trigger; it never reaches ingestion or emission, and generation reads
-it only to refuse a query parameter type row whose evidence it does not watch.
+The pinned set of upstream files that hand-written code in this family depends on, each recorded by
+path and hash with one or more behaviours, each naming its owning product. It is evidence a refresh
+reviews and a curated type's evidence must be in; it never feeds generated output.
+
+#### Generation
 
 **Contract inventory**:
-The complete operation set of the accepted document, each operation carrying its admission state
-(selected, pending, declined, or transport-owned).
+The complete operation set of the accepted document, each operation selected, pending, declined or
+transport-owned.
 
 **Target surface**:
-The operations required to be callable; defaults to the complete contract inventory.
+The operations required to be callable; by default the whole Contract inventory.
 
 **Transport-owned operation**:
-An operation whose transport the HTTP pipeline cannot carry (a WebSocket upgrade);
-generator-owned as inventory and exclusion fingerprint, callable only through a hand-written
-door.
+An operation whose transport the HTTP pipeline cannot carry, such as a WebSocket upgrade,
+inventoried by the generator and callable only through a hand-written door.
+
+**Fingerprint pin**:
+The committed hash of an excluded operation's own spec subtree; CI breaks when that construct
+drifts.
+
+**Curation config**:
+The generator's declarative, fail-closed input that maps spec constructs to public names and rules;
+an unmapped construct breaks generation.
 
 **Operation-identity row**:
-A reason-bearing curation row admitting and naming an operation whose upstream identity violates
-upstream's own conventions; carries the upstream report and retires when the fix lands.
+A reason-bearing curation row that admits and names an operation whose upstream identity violates
+upstream's own conventions, retiring when upstream fixes it.
 
 **Naming grammar**:
-The closed set of identifier segments (`create`, `get`, `list`, `remove`, `rename`, `timeout`,
-`update`) that name an operation's verb when they close its identity. A `GET` without one reads
-as `Get<Subject>Async`; any other operation without one has no mechanical name and needs an
-operation-name row. The HTTP method is never a name source.
+The closed set of identifier segments that name an operation's verb when they close its identity;
+the HTTP method is never a name source.
 
 **Operation-name row**:
-A reason-bearing curation row naming an operation the naming grammar cannot name, or names
-gracelessly; the binder validates the identifier and every collision.
+A reason-bearing curation row naming an operation the Naming grammar cannot name, or names
+gracelessly.
 
 **Enum member-name row**:
 A reason-bearing curation row naming the C# member one enum value becomes where the mechanical
-casing is graceless (`2026-07-28` → `Revision20260728`, not `Value20260728`).
+casing is graceless.
 
 **Parameter-name row**:
 A reason-bearing curation row naming the C# parameter one route value becomes where the mechanical
-name says less than the rest of the surface (`shell.get`'s `id` → `shellId`); the wire name still
-fills the route.
-
-**Model layer**:
-The generated types and serializer registry shipped inside `OpenCode.Sdk`.
-
-**Envelope**:
-The generated, typed per-operation response object carrying status/error state plus named
-payload properties.
-
-**Single-key envelope**:
-A success body an operation declares inline as an object requiring exactly one property that is
-not `data` (`SpecEnvelopeShape.SingleKey`); the payload flattens onto the response under that
-key's PascalCase name and the wrapper is never emitted as a model. An inline object whose sole
-property is optional has no payload the envelope can promise and refuses at bind time instead.
-
-**Bound handle**:
-A sub-client bound to one resource id (e.g. a session) — partial application over the
-shared pipeline; never caches server state.
-
-**Cursor sequence** (`CursorSequence<TPage, TItem>`):
-The value a generated `Enumerate*Async` companion returns. It enumerates as the items of every page
-in order and exposes the same traversal's page envelopes through `Pages`. It is a recipe rather than
-a buffer: each enumeration issues its own requests.
-
-**PTY session** (`PtySession`):
-The working object over one PTY connection: read frames, write input, dispose to close. One of the
-two doors that build their own transport instead of riding the HTTP pipeline (the persistent PTY
-session is the other).
-
-**PTY frame**:
-One message read from a PTY connection — either output text or the single cursor control frame
-the server sends once the retained buffer has been replayed.
-
-**Terminal socket core**:
-The family-neutral WebSocket lifecycle both PTY sessions share — receive and reassembly,
-serialized sends, bounded close, disposal — with per-family decode, close, and upgrade-failure
-behavior behind named seams.
-
-**Connection snapshot**:
-The construction-time endpoint, credential, and ambient location the pipeline publishes for a
-door that cannot ride its policies.
-
-**Curation config**:
-The generator's declarative, fail-closed input mapping spec constructs to public names and
-rules; an unmapped construct breaks generation.
+name says less than the rest of the surface; the wire name still fills the route.
 
 **Stabilize-duplicate collapse**:
-The mechanical fold of a reachable `<base>_<N>` component into `<base>` when
-`StabilizeDuplicatePolicy` finds the two structurally identical, refusing by name when it does
-not; recorded as an implicit alias in `.generated-manifest.json`'s `implicitAliases` section
-rather than a curated `schemaAliases` row.
-
-**Prefix-tagged arm**:
-The at-most-one branch of a tagged union whose discriminator is a string prefix — Effect's
-`TemplateLiteral` projected as `^<prefix>[\s\S]*?$` — rather than a literal; `rpc.*` events on the
-live event stream. Dispatch tries literal tags, then the prefix, then the Unknown variant carrier.
-_Avoid_: pattern arm (a general regex is never admitted); catch-all (the Unknown variant carrier is
-the catch-all).
-
-**Unknown variant carrier**:
-The per-union `Unknown*` variant preserving a tag string and raw payload for an unrecognized
-discriminator. On the live event stream and durable Session event stream, it can also hold a known
-variant that cannot be read; the union's prefix-tagged arm still excludes its markers from the carrier
-([stream payload tolerance](docs/architecture/client-runtime.md#server-sent-events)).
-
-**Plugin activation**:
-The asynchronous per-Location settling of a server's plugins, during which Providers register, the
-model catalog fills, and the VCS summary learns its provider. The pinned HTTP API has no activation
-barrier. An info answer proves process liveness only; a catalog read can observe an empty or
-partial registry, and a VCS summary without a provider has not settled yet. Consumers that require
-a particular registration wait for that identity under a bounded cancellation token.
-_Avoid_: readiness (that is the launcher's stdout contract, a different thing).
-
-**Hoisted member**:
-A property a generated union interface declares because every member of that union already
-declares it in the same shape — the same wire name, required-ness, nullability, and represented
-type, ignoring a literal value that discriminates nothing. It is nullable on the interface
-because the union's unknown carrier materializes none of them, and it is never the discriminator.
-Where each member promotes its own record for one identical shape, the hoisted member's type is a
-generated **carrier interface** those records implement; the records keep their own identity.
-_Avoid_: shared member (ambiguous with a property two unrelated schemas happen to share)
-
-**Plugin RPC**:
-A method surface a server-side plugin registers under an `rpcID`; `rpc.call` dispatches one
-`method` to it at a Location with an untyped JSON `input` and returns an untyped `output`, and the
-plugin's notifications ride the live event stream as `rpc.*` events (the prefix-tagged arm).
-_Avoid_: RPC alone (the SDK's own HTTP calls are not RPC).
-
-**Fingerprint pin**:
-The committed hash of an excluded operation's own spec subtree, which names the components it
-references; CI breaks when the pinned construct drifts.
+The mechanical fold of a duplicate-named component into its base name when the two are structurally
+identical, recorded as an implicit alias rather than a curated one.
 
 **Output manifest**:
-The committed inventory of generated files; generated-ness is tracked here, never by
-folder or file-name convention.
+The committed inventory of generated files, the only place generated-ness is tracked.
+
+**Model layer**:
+The generated types and serializer registry shipped inside the SDK package.
+
+**Hoisted member**:
+A property a generated union interface declares because every member of the union declares it in the
+same shape; it is never the discriminator. Where members promote their own records for that shape,
+its type is a generated carrier interface the records implement.
+_Avoid_: shared member (ambiguous with a property two unrelated schemas happen to share)
+
+**Prefix-tagged arm**:
+A tagged union's single branch, at most one per union, whose discriminator is a string prefix rather
+than a literal, such as the `rpc.*` Events on the Live event stream.
+_Avoid_: pattern arm (a general regex is never admitted); catch-all (the Unknown variant carrier is
+the catch-all)
+
+**Unknown variant carrier**:
+The per-union variant that keeps the tag and raw payload of an unrecognized discriminator, or, on the
+live and durable event streams, of a known variant that cannot be read, when the carrier can hold
+that payload.
 
 **Recorded tolerance**:
 An explicit, registered runtime exception to the fail-closed default.
 
+#### Client runtime
+
 **Behavior core**:
-The hand-written transport core where all request behavior lives; generated methods only
-delegate to it.
+The hand-written transport core where all request behavior lives; generated methods only delegate to
+it.
+
+**Envelope**:
+The generated, typed response object of one operation, carrying its status and error state and its
+named payload properties.
+_Avoid_: envelope alone (a durable Event's envelope is a different thing)
+
+**Single-key envelope**:
+A success body declared inline as an object requiring exactly one property other than `data`, whose
+payload the Envelope carries under that key's PascalCase name without a wrapper model; a named
+component with one property keeps its own identity.
+
+**Bound handle**:
+A sub-client bound to one resource id, such as a Session, over the shared pipeline; it never caches
+server state.
+
+**Cursor sequence**:
+What a generated enumerate method returns: the items of every page in order, with the same
+traversal's pages beside them, issuing its own requests on each enumeration.
+
+**PTY session**:
+The working object over one PTY connection, which reads frames, writes input, and closes on
+disposal.
+_Avoid_: session alone (an opencode Session is a conversation)
+
+**PTY frame**:
+One message read from a PTY connection: output text, or the single cursor control frame the server
+sends once the retained buffer has been replayed.
