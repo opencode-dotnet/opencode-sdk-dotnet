@@ -44,7 +44,9 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
    `.scratchpad/refresh/<sha>/` without touching accepted state. A patch whose repair
    predicate raw upstream already satisfies refuses, forcing an empty-patch retirement
    refresh.
-2. Review the receipt: identity, hashes, operation delta, patch preimages.
+2. Review the receipt: identity, hashes, operation delta, patch preimages, and prepare's `Moved for`
+   and `Lost anchor for` lines. A line for `opencode-agents-ai` goes to that product; a lost anchor
+   of either owner refuses apply until the anchor is rewritten.
 3. `refresh-spec --apply <receipt.json>` requires a receipt prepared at a named release tag;
    a commit-only candidate is a dry run, not an applicable pin. Apply validates the candidate
    and this file's managed identity text before changing accepted artifacts, then installs
@@ -59,8 +61,8 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
 
 Prepare also observes every entry of `spec/source-watch.json` at the candidate commit and records
 its hash and the verdict of each anchor in the receipt's `watchedSources`; verify checks those pins against the
-submodule checkout and apply re-pins them, so an upstream change under a hand-written door is
-reviewed before the snapshot moves.
+submodule checkout and apply re-pins them, so an upstream change under code that this SDK or a product
+in its family depends on is reviewed before the snapshot moves.
 
 4. Run `generate`; resolve what it reports (wall admits, curation rows) and review the
    regenerated diff. `refresh-spec --verify` reproduces the committed identity

@@ -113,7 +113,7 @@ internal sealed partial class SourceWatchLoader(IFileSystem fileSystem)
 
     private static void ValidateBehavior(string path, WatchedBehavior behavior)
     {
-        if (!WatchOwners.All.Contains(behavior.Owner))
+        if (!WatchOwners.All.Contains(behavior.Owner, StringComparer.Ordinal))
         {
             throw new SnapshotRefreshException(
                 $"the source watch entry '{path}' declares unsupported owner '{behavior.Owner}' for anchor '{behavior.Anchor.Text}'");

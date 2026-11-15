@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 /// Observes the watched upstream sources at one revision of the submodule. Files are read as
 /// git blobs (<c>git show &lt;revision&gt;:&lt;path&gt;</c>) so the observed hash is the same
 /// object hash the pin was taken from, whatever the checkout's line endings. A watched file the
-/// revision does not carry is a loud refusal: the door's input vanished.
+/// revision does not carry is a loud refusal: an owning product's input vanished.
 /// </summary>
 internal sealed class WatchedSourceReader(IFileSystem fileSystem, IProcessRunner processRunner)
 {
@@ -55,7 +55,7 @@ internal sealed class WatchedSourceReader(IFileSystem fileSystem, IProcessRunner
 
     /// <summary>
     /// Applies one anchor. <see cref="SourceWatchLoader"/> already refuses an unsupported anchor
-    /// type with the same wording, so this arm is unreachable through the loader; it is kept
+    /// type, so this arm is unreachable through the loader; it is kept
     /// because the alternative for an anchor type this reader cannot apply is to answer
     /// <see langword="false"/> and report a lost anchor - a wrong fact, not a refusal - and a
     /// second anchor type added to the model without a case here would take exactly that path.

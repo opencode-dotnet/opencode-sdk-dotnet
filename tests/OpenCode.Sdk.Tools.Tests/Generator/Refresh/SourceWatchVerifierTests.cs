@@ -35,6 +35,18 @@ public sealed class SourceWatchVerifierTests
     }
 
     [Test]
+    public async Task Compare_Should_Name_Only_The_Lost_Anchor_When_Another_Still_Matches()
+    {
+        var (source, observation) = RefreshScenarioData.OneLostAnchor(Pinned);
+
+        var problems = SourceWatchVerifier.Compare([source], [observation]);
+
+        await Assert.That(problems).IsEquivalentTo(
+            [$"watched source '{source.Path}' no longer carries its anchor (contains 'alpha') for opencode-sdk-dotnet: the door's dependency on alpha"],
+            TUnit.Assertions.Enums.CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Compare_Should_Report_A_Source_The_Observation_Skipped()
     {
         var problems = SourceWatchVerifier.Compare([Pinned], []);
@@ -87,7 +99,7 @@ public sealed class SourceWatchVerifierTests
         await Assert.That(problems).IsEquivalentTo(
         [
             $"watched source '{pinned.Path}' changed: pinned {pinned.Sha256}, found moved; "
-                + "review the hand-written door against the door's dependency on zeta; the door's dependency on alpha",
+                + "review the code that depends on it: opencode-sdk-dotnet: the door's dependency on zeta; opencode-agents-ai: the door's dependency on alpha",
             $"watched source '{pinned.Path}' no longer carries its anchor (contains 'zeta') for opencode-sdk-dotnet: the door's dependency on zeta",
             $"watched source '{pinned.Path}' no longer carries its anchor (contains 'alpha') for opencode-agents-ai: the door's dependency on alpha",
         ], TUnit.Assertions.Enums.CollectionOrdering.Matching);

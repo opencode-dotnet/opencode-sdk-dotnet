@@ -21,9 +21,9 @@ public sealed class RefreshSpecCommandTests
     public async Task Execute_Should_Route_Prepare_Changes_To_Owners_In_Order(bool moved, bool lost)
     {
         using var scenario = await RefreshScenario.CreateAsync();
-        var firstContent = lost ? "neither" : "zeta beta";
+        var firstContent = lost ? "beta" : "zeta beta";
         var secondContent = lost ? "neither" : "alpha delta";
-        var first = RefreshScenarioData.Watched("z[1].ts", firstContent, "zeta", owner: WatchOwners.AgentsAi) with
+        var first = RefreshScenarioData.Watched("z[1].ts", firstContent, "zeta") with
         {
             Behaviors = [RefreshScenarioData.Behavior("zeta", WatchOwners.AgentsAi), RefreshScenarioData.Behavior("beta", WatchOwners.AgentsAi)],
         };
@@ -56,10 +56,13 @@ public sealed class RefreshSpecCommandTests
         if (lost)
         {
             expected.AddRange(["Lost anchor for opencode-agents-ai: z[1].ts ('zeta')",
-                "Lost anchor for opencode-agents-ai: z[1].ts ('beta')", "Lost anchor for opencode-sdk-dotnet: a.ts ('alpha')",
+                "Lost anchor for opencode-sdk-dotnet: a.ts ('alpha')",
                 "Lost anchor for opencode-agents-ai: a.ts ('delta')"]);
         }
         await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.Output).Contains(lost
+            ? "Watched sources: 3, 3 lost anchor(s) — read the owning products' code"
+            : "Watched sources: 3, every anchor still matches");
         await Assert.That(result.Output.Split('\n').Select(static line => line.TrimEnd('\r')).Where(static line =>
             line.StartsWith("Moved for ", StringComparison.Ordinal) || line.StartsWith("Lost anchor for ", StringComparison.Ordinal)))
             .IsEquivalentTo(expected, CollectionOrdering.Matching);

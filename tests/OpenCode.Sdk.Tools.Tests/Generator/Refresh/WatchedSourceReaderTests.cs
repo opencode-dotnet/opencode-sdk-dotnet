@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Generator.Refresh;
+using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 
@@ -40,7 +41,7 @@ public sealed class WatchedSourceReaderTests
     {
         var pinned = RefreshScenarioData.PtyBufferSource with
         {
-            Behaviors = [RefreshScenarioData.Behavior("zebra"), RefreshScenarioData.Behavior("absent", "opencode-agents-ai"),
+            Behaviors = [RefreshScenarioData.Behavior("zebra"), RefreshScenarioData.Behavior("absent", WatchOwners.AgentsAi),
                 RefreshScenarioData.Behavior("alpha")],
         };
         var runner = new ScriptedProcessRunner().Expect("git", ["show", $"HEAD:{pinned.Path}"],

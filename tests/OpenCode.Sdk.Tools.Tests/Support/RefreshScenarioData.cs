@@ -85,13 +85,25 @@ internal static class RefreshScenarioData
     public static SourceWatch Watch(int schemaVersion, params WatchedSource[] sources) =>
         new() { SchemaVersion = schemaVersion, Sources = sources };
 
-    public static ReceiptWatchedSource Observation(WatchedSource source, string sha256, bool anchorMatched) =>
+    public static ReceiptWatchedSource Observation(WatchedSource source, string sha256, bool anchorMatched,
+        IReadOnlyList<bool>? anchorMatches = null) =>
         new()
         {
             Path = source.Path,
             Sha256 = sha256,
-            Anchors = [.. source.Behaviors.Select(behavior => new ReceiptWatchedAnchor { Text = behavior.Anchor.Text, Matched = anchorMatched })],
+            Anchors = [.. source.Behaviors.Select((behavior, index) => new ReceiptWatchedAnchor
+            {
+                Text = behavior.Anchor.Text,
+                Matched = anchorMatches?[index] ?? anchorMatched,
+            })],
         };
+
+    /// <summary>A two-behaviour copy of <paramref name="template"/> whose first anchor still matches and whose second is lost.</summary>
+    public static (WatchedSource Source, ReceiptWatchedSource Observation) OneLostAnchor(WatchedSource template)
+    {
+        var source = template with { Behaviors = [Behavior("zeta", WatchOwners.AgentsAi), Behavior("alpha")] };
+        return (source, Observation(source, source.Sha256, anchorMatched: true, anchorMatches: [true, false]));
+    }
 
     public static IReadOnlyList<ReceiptWatchedSource> OtherSources(WatchedSource source, string variation)
     {

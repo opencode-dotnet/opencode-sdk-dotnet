@@ -438,7 +438,7 @@ public sealed class SnapshotSynchronizerTests
     /// <summary>
     /// Verify reproduces the receipt's watchedSources section rather than trusting it: here the
     /// checkout matches the committed pin exactly, and the only disagreement is the receipt's own
-    /// anchorMatched record (ADR-0020).
+    /// recorded anchor verdict (ADR-0020).
     /// </summary>
     [Test]
     public async Task Verify_Should_Report_A_Receipt_Whose_Watched_Sources_It_Cannot_Reproduce()

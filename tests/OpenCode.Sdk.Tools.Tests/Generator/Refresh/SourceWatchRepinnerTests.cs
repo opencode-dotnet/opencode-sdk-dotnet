@@ -48,6 +48,17 @@ public sealed class SourceWatchRepinnerTests
     }
 
     [Test]
+    public async Task Repin_Should_Name_Only_The_Lost_Anchor_When_Another_Still_Matches()
+    {
+        var (source, observation) = RefreshScenarioData.OneLostAnchor(RefreshScenarioData.TicketSource);
+
+        var exception = Assert.Throws<SnapshotRefreshException>(() => SourceWatchRepinner.Repin(RefreshScenarioData.Watch(2, source), [observation]));
+
+        await Assert.That(exception.Message).IsEqualTo($"the receipt reports lost anchors in {source.Path} ('alpha', opencode-sdk-dotnet); "
+            + "read the owning products' code, rewrite those anchors, then re-run prepare");
+    }
+
+    [Test]
     [Arguments("text")]
     [Arguments("order")]
     [Arguments("fewer")]
@@ -89,7 +100,7 @@ public sealed class SourceWatchRepinnerTests
             [RefreshScenarioData.Observation(other, "moved", anchorMatched: false), RefreshScenarioData.Observation(source, "moved", anchorMatched: false)]));
 
         await Assert.That(exception.Message).IsEqualTo($"the receipt reports lost anchors in {source.Path} ('zeta', opencode-agents-ai), "
-            + $"{source.Path} ('alpha', opencode-sdk-dotnet), {other.Path} ('BUFFER_LIMIT', opencode-sdk-dotnet); read the hand-written doors, "
+            + $"{source.Path} ('alpha', opencode-sdk-dotnet), {other.Path} ('BUFFER_LIMIT', opencode-sdk-dotnet); read the owning products' code, "
             + "rewrite those anchors, then re-run prepare");
     }
 

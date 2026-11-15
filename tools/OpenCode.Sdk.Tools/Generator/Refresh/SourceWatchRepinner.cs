@@ -36,7 +36,7 @@ internal static class SourceWatchRepinner
         if (unmatched.Length > 0)
         {
             throw new SnapshotRefreshException(
-                $"the receipt reports lost anchors in {string.Join(", ", unmatched)}; read the hand-written doors, "
+                $"the receipt reports lost anchors in {string.Join(", ", unmatched)}; read the owning products' code, "
                 + "rewrite those anchors, then re-run prepare");
         }
 

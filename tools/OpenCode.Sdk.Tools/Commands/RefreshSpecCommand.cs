@@ -115,13 +115,13 @@ internal sealed partial class RefreshSpecCommand : AsyncCommand<RefreshSpecComma
         var count = receipt.WatchedSources.Count.ToString(CultureInfo.InvariantCulture);
         _console.MarkupLine(lost is 0
             ? $"[grey]Watched sources:[/] {count}, every anchor still matches"
-            : $"[yellow]Watched sources:[/] {count}, {lost.ToString(CultureInfo.InvariantCulture)} lost anchor(s) — read the doors");
+            : $"[yellow]Watched sources:[/] {count}, {lost.ToString(CultureInfo.InvariantCulture)} lost anchor(s) — read the owning products' code");
     }
 
     private void WriteOwnerSummary(PrepareOutcome outcome)
     {
         var observed = outcome.Receipt.WatchedSources.ToDictionary(static source => source.Path, StringComparer.Ordinal);
-        foreach (var owner in new[] { WatchOwners.Sdk, WatchOwners.AgentsAi })
+        foreach (var owner in WatchOwners.All)
         {
             var moved = outcome.PinnedSources.Where(source => !string.Equals(source.Sha256, observed[source.Path].Sha256, StringComparison.Ordinal)
                     && source.Behaviors.Any(behavior => string.Equals(behavior.Owner, owner, StringComparison.Ordinal)))

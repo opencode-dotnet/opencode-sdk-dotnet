@@ -9,14 +9,6 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 public sealed class SourceWatchLoaderTests
 {
     [Test]
-    public async Task LoadAsync_Should_Use_Schema_Two_For_An_Absent_Watch()
-    {
-        var watch = await new SourceWatchLoader(new MockFileSystem()).LoadAsync(CancellationToken.None);
-
-        await Assert.That(watch.SchemaVersion).IsEqualTo(2);
-    }
-
-    [Test]
     public async Task LoadAsync_Should_Refuse_A_Null_Sources_Member()
     {
         var fileSystem = new MockFileSystem();

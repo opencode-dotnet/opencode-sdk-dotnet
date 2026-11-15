@@ -28,7 +28,7 @@ internal static class SourceWatchVerifier
             {
                 problems.Add(
                     $"watched source '{source.Path}' changed: pinned {source.Sha256}, found {observation.Sha256}; "
-                    + $"review the hand-written door against {string.Join("; ", source.Behaviors.Select(static behavior => behavior.Behavior))}");
+                    + $"review the code that depends on it: {string.Join("; ", source.Behaviors.Select(static behavior => $"{behavior.Owner}: {behavior.Behavior}"))}");
             }
 
             foreach (var text in observation.Anchors.Where(static anchor => !anchor.Matched).Select(static anchor => anchor.Text))
