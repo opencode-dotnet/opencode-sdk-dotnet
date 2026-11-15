@@ -13,6 +13,14 @@ namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineStreamTests
 {
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Refuse_Event_Subscribe_Without_Request_Options()
+    {
+        await Assert.That((await RefuseStreamOptionsAsync<InvalidOperationException, TestBody, TestStreamFailureCause[]>(
+            "event.subscribe", new TestStreamAdapter(), options: null)).Message)
+            .IsEqualTo("Operation 'event.subscribe' must be opened through its shared event feed.");
+    }
+
     private const string OperationId = "test.operation";
 
     private const string EventStreamMediaType = "text/event-stream";
@@ -729,8 +737,8 @@ public sealed class PipelineStreamTests
     }
 
     private static async Task<TException> RefuseStreamOptionsAsync<TException, TPayload, TCause>(string operationId,
-        IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions options)
-        where TException : ArgumentException
+        IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions? options)
+        where TException : Exception
         where TCause : IReadOnlyList<IOpenCodeStreamFailureCause>
     {
         using var scenario = PipelineScenario.Responding();

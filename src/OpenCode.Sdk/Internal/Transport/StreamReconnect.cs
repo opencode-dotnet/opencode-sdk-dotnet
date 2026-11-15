@@ -4,8 +4,8 @@ namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The reconnect rule of the event bus, as the pinned client runs it: how long each attempt may
-/// take, how long a connected stream may stay silent, the wait between attempts, and when a failing
-/// stream gives up. Knowledge source: upstream-observed.
+/// take, how long a connected stream may stay silent, and the wait between attempts.
+/// Knowledge source: upstream-observed.
 /// </summary>
 /// <remarks>
 /// Each attempt has <see cref="ConnectBound"/> to answer and deliver <c>server.connected</c> as its
@@ -13,9 +13,7 @@ namespace OpenCode.Sdk.Internal;
 /// <see cref="DefaultIdleWindow"/> unless the client options set another, as upstream's
 /// <c>idleTimeout</c> option does — and the server's keepalive keeps a quiet stream alive. Every
 /// failure, of any kind, is followed by a new attempt after <see cref="Delay"/>, with no backoff.
-/// Upstream retries forever and shows a status; the SDK has no status to show, so a stream that has
-/// failed every attempt for <see cref="GiveUp"/> — from the drop, or from the first attempt of a
-/// first open — gives up and throws the last failure.
+/// The shared source retries forever and exposes its classified attempt failures through connection state.
 /// </remarks>
 internal static class StreamReconnect
 {
@@ -33,9 +31,6 @@ internal static class StreamReconnect
     /// no other window.
     /// </summary>
     public static TimeSpan DefaultIdleWindow { get; } = TimeSpan.FromSeconds(45);
-
-    /// <summary>Gets how long every attempt may keep failing before the stream gives up.</summary>
-    public static TimeSpan GiveUp { get; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// Gets whether a frame establishes the connection that delivered it: an unnamed frame whose

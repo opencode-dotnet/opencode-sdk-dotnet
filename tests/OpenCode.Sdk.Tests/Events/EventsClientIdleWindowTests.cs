@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tests.Events;
 
 /// <summary>
 /// A connected event stream is cut when its idle window passes without a byte. Every byte,
-/// including a heartbeat, restarts the window; time with the consumer does not count as silence.
+/// including a heartbeat, restarts the window; the source reads independently of its consumers.
 /// Every bound runs on the test's clock, and each step waits until the bound it passes is armed.
 /// </summary>
 public sealed class EventsClientIdleWindowTests
@@ -91,14 +91,16 @@ public sealed class EventsClientIdleWindowTests
     {
         var window = TimeSpan.FromSeconds(10);
         using var body = new LiveEventBody(ConnectedFrame);
+        var firstEmptyRead = body.NextEmptyRead;
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body), eventStreamIdleTimeout: window);
         using var caller = new CancellationTokenSource();
         var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
         await WithPendingCancellationAsync(caller, events, async startPull =>
         {
-            var firstEmptyRead = body.NextEmptyRead;
             startPull();
-            await firstEmptyRead.WaitAsync(HangGuard.Bound);
+            var observedRead = firstEmptyRead.ContinueWith(static task => task.Status,
+                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+            await Assert.That(await observedRead.WaitAsync(HangGuard.Bound)).IsEqualTo(TaskStatus.RanToCompletion);
             await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
             server.Time.Advance(TimeSpan.FromSeconds(9));
 
@@ -188,19 +190,32 @@ public sealed class EventsClientIdleWindowTests
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
 
-    /// <summary>The consumer's time with an event is not the server's silence, so a slow consumer is never cut.</summary>
+    /// <summary>The source keeps reading and observing idle silence even when its consumer holds the admission marker.</summary>
     [Test]
-    public async Task A_Consumer_Holding_An_Event_Should_Not_Count_As_Silence()
+    public async Task SubscribeAsync_Should_Keep_The_Idle_Window_Running_While_An_Event_Is_Held()
     {
         using var body = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
+        using var replacement = new LiveEventBody(ConnectedFrame);
+        var reading = body.NextEmptyRead;
+        var replacementReading = replacement.NextEmptyRead;
+        using var server = new ScriptedEventServer(index => ScriptedEventServer.Stream(index == 1 ? body : replacement));
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        server.Time.Advance(TimeSpan.FromMinutes(10));
-        body.Append(SessionCreatedFrame);
-
-        await Assert.That(await NextAsync(events)).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
+        var first = await NextAsync(events);
+        await Assert.That(first).IsTypeOf<EventServerConnected>();
+        await reading.WaitAsync(HangGuard.Bound);
+        await Assert.That(server.Time.ArmedIn(IdleWindow)).IsEqualTo(1);
+        server.Time.Advance(IdleWindow);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+        var reconnecting = server.Events.GetConnectionState();
+        await Assert.That(reconnecting.Status).IsEqualTo(EventConnectionStatus.Reconnecting);
+        await Assert.That(reconnecting.Error).IsTypeOf<OpenCodeTransportException>();
+        server.Time.Advance(Delay);
+        await replacementReading.WaitAsync(HangGuard.Bound);
+        await Assert.That(server.Events.GetConnectionState().Status).IsEqualTo(EventConnectionStatus.Connected);
+        await Assert.That(body.IsDisposed).IsTrue();
+        await Assert.That(server.RequestCount).IsEqualTo(2);
+        var next = await NextAsync(events);
+        await Assert.That(next).IsTypeOf<EventServerConnected>();
+        await Assert.That(next).IsNotSameReferenceAs(first);
     }
 }

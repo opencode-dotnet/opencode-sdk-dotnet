@@ -97,8 +97,8 @@ internal static class FailureClassification
     public static OpenCodeTransportException EventStreamEnded() =>
         new("The opencode event stream ended.");
 
-    public static OpenCodeTransportException EventStreamGiveUp(Exception failure, TimeSpan window) =>
-        new($"The opencode event stream did not connect within {Seconds(window)} seconds.", failure);
+    public const string EventStreamNetworkTimeoutMessage =
+        "Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.";
 
     public static OpenCodeTransportException EventStreamFirstFrame() =>
         new($"The opencode event stream did not start with {StreamReconnect.ConnectedEventType}.");

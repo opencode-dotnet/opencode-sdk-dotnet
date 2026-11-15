@@ -82,10 +82,21 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   `OPENCODE_*` credential variable.
 
 `Pipeline` owns construction, the policy roster, the one-shot plane and disposal orchestration.
+Its Events-neutral `RegisterOwned(IDisposable)` hook lets a hand-written family door register a
+root-owned resource. Registration and disposal share one atomic start boundary: later registration
+throws, and a later or concurrent disposal returns immediately, even while the first cleanup is held.
+The first disposal takes the owned list and disposes it once in reverse registration order, before
+beginning lifetime cancellation and the existing transport/lifetime cleanup chain. Nested finally
+blocks preserve cleanup when an owned dispose fails; a later failure masks an earlier one.
 `ClientLifetime` owns root admission state and the saved lifetime token; `PipelineExchange` creates
 messages and dispatches them through that roster. `StreamPlane` owns a single stream's opening,
-status and media walls, framing and response lifetime. `ReconnectingEventStream` owns the reconnect
-loop and its live caller/disposed ordering, using `StreamAttempt` for each attempt's windows.
+status and media walls, framing and response lifetime. The Events door composes one `SharedEventFeed`
+and registers it with the pipeline. The feed owns source generations, subscriptions, coalescing state
+watchers and the runner ledger. `EventSourceRunner` reads physical attempts independently of consumer
+pulls, using `StreamAttempt` for their windows. Every source callback is identity-fenced under the
+feed gate; cancellation and resource cleanup run after the gate. Retired runner and worker-cancel
+tasks remain observed, and a source's CTS is released only after both complete. A retired cancel
+failure is recorded and dropped. Synchronous root disposal fences mutation, not runner completion.
 `OperationTraits` supplies per-operation rules once through `OperationRequest.Describe`; the exchange
 resolves the message's network window from those carried traits.
 
@@ -96,12 +107,15 @@ resolves the message's network window from those carried traits.
 - `OpenCodeRequestOptions.Location` overrides that directory per call. A set `Directory` wins;
   a null selector or directory inherits the ambient value. Blank values are refused, so a caller
   can inherit or replace the ambient directory but cannot clear it for one call.
+  `event.subscribe` is the exception: it accepts a per-call Location but does not send it; its
+  shared source sends only the client's ambient header snapshot.
 - The directory is percent-encoded before it rides the header; the server percent-decodes it.
   This applies to both the ambient snapshot and per-call overrides, including Unicode paths.
 - An operation's declared `location[directory]` query is a separate channel, emitted by
   `QueryStringBuilder.AddLocation`. It does not participate in the ambient/per-call header merge.
 - The server ignores the directory header on operations that resolve location from a session
-  or do not resolve location. The SDK sends it uniformly and adds no per-route validation.
+  or do not resolve location. Apart from the shared event source's ambient-only rule, the SDK sends
+  the merged header uniformly and adds no per-route validation.
 - The pinned server has no workspace targeting channel, so none exists in the public selector or
   in the header/query serializers. A generated wire model may still contain a workspace ID
   when its own pinned component declares one; that is not a request-targeting channel.
@@ -114,9 +128,9 @@ resolves the message's network window from those carried traits.
   `internalRaw` curation emission. Everything else the family needs — routes, query shapers,
   response adapters, status verdicts, wire models, envelopes, and serializer metadata — stays
   generated, so route, status, and schema drift still breaks compilation locally (ADR-0021).
-- The hand-written doors keep the generated family's shape: the protected mocking constructor,
-  `virtual` members, and the `MockSeam` guard. Each door delegates once into its raw twin and
-  adds nothing but the knowledge generation may not import.
+- The hand-written doors keep the protected mocking constructor, `virtual` members, and the
+  `MockSeam` guard. The PTY doors delegate once into their raw twins and add the knowledge generation
+  may not import. The Events door owns sharing and local selection over a generated route and adapter.
 - `CreateConnectTokenAsync` is that knowledge. The server's connect-token handler requires a
   fixed `x-opencode-ticket` value that exists only in upstream implementation source, which
   ADR-0013 forbids importing into generation; the constant therefore lives in the hand-written
@@ -132,9 +146,12 @@ resolves the message's network window from those carried traits.
   only generated internal-raw methods feed it, and only a parameter the pinned document declares
   ever becomes an entry.
 - The Events family is the third: `EventsClient` is hand-written over the generated internal
-  `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its signature and SSE
-  behaviour are the generated stream method's; the raw endpoint, routes, adapters, wire models
-  and serializer metadata remain generated.
+  `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its subscription signature is
+  unchanged; the shared feed opens the generated route and adapter directly through `StreamPlane`.
+  `Pipeline.ExecuteStreamAsync` refuses reconnecting operations, after disposed/argument/options
+  checks and before any request, so the raw method cannot become a one-shot alternative. The
+  `event.subscribe` traits row remains. The raw endpoint, routes, adapters, wire models and serializer
+  metadata remain generated (ADR-0041).
 
 ### PTY WebSocket session
 
@@ -362,10 +379,14 @@ resolves the message's network window from those carried traits.
   token-identity guarantee.
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
   `ObjectDisposedException`; caller cancellation already observed for the same failure takes
-  precedence. A terminal session owns its connection separately: its session-disposal rules apply.
+  precedence. Event subscriptions already ended by a source fault are detached and retain their
+  queued prefix and fault; root disposal does not replace those endings. A terminal session owns
+  its connection separately: its session-disposal rules apply.
 - Streaming operations take `OpenCodeRequestOptions` and return a stream rather than a response
-  envelope. Per-call `Location` applies to every connection attempt; `NoThrow` and an undefined
-  `ErrorBehavior` are refused at the call, before enumeration. Their failures always throw (ADR-0007).
+  envelope. Per-call `Location` applies to other streaming operations; `event.subscribe` accepts but
+  ignores that override. `NoThrow` and an undefined `ErrorBehavior` are refused at the call, before
+  enumeration. Declared errors on ordinary streams throw; ordinary event-attempt failures appear on
+  connection state while the shared source retries (ADR-0007, ADR-0041).
 - Network progress is bounded by a per-read window: the send and every buffered body read must
   progress inside it, and each read that progresses re-arms it, so a slow-but-flowing body
   survives while a stalled one fails. Its length is the call's `OpenCodeRequestOptions.NetworkTimeout`
@@ -415,13 +436,37 @@ resolves the message's network window from those carried traits.
 
 ## Server-sent events
 
-- Streams are exposed as `IAsyncEnumerable<T>` and open lazily on first enumeration.
-- Cancellation closes the stream through the enumeration token. On every target, caller cancellation
-  or root-client disposal releases the live response even while the consumer holds a yielded event.
-  Response disposal also interrupts downlevel reads that do not observe an async read token;
-  disposal-induced failures use the cancellation and disposal rules in Error channels.
-- `event.subscribe` reconnects as upstream's first-party client does (`client/src/solid/connection.ts`
-  at the pin), and no other stream reconnects:
+- Streams are exposed as `IAsyncEnumerable<T>` and open lazily on the first move. Other streaming
+  operations remain one-shot, pull-driven streams; only `event.subscribe` has a shared background source.
+- Other streams close their owned response on caller cancellation or root disposal, including while
+  a consumer holds an item. Response disposal also interrupts downlevel reads that ignore a read token;
+  failures follow the cancellation and disposal ordering in Error channels.
+- Each enumeration is an independent subscription to one shared background source per client.
+  Calling `SubscribeAsync` captures and validates Types, but neither the call nor `GetAsyncEnumerator`
+  admits a subscription or opens I/O. The first live move admits it under the same gate as publication.
+- The first `server.connected` marks admission, not liveness; earlier business events are not replayed.
+  From admission on, every selected event fanned out by the feed is offered in source read order until
+  the subscription ends. An event read before admission but published through the gate afterwards is
+  included. A cached marker is handed over before later publications and may share its Id with other
+  subscriptions; it is the latest marker published by the source. A join during a drop waits for
+  the next validated marker. No business history is replayed.
+- A later marker announces a possible gap: refresh authoritative state. Event objects are shared references; treat them as read-only.
+  Payload graphs and metadata dictionaries are not deep-frozen. Sharing also shifts wire and decode
+  cost to the whole bus, once per client. Invalid JSON in unselected traffic fails the shared attempt
+  for every subscriber; tolerated payload skew still arrives through the existing unknown arm.
+- EventSubscribeRequest.Types is local selection captured and validated at the call. Null or an
+  empty list selects everything; comparisons are exact ordinal spellings, RPC names have no wildcard,
+  and typed or drifted server.connected markers are always selected. No physical attempt sends types.
+  A per-call Location is accepted but not sent: every attempt sends the ambient client snapshot.
+- A subscription retains at most 4,096 queued selected events. Overflow ends only that subscription and discards its backlog.
+  Direct handoff to a pending move, including admission-marker replay, consumes no queue slot.
+  After 4,096 queued events the next refused selected offer stores one
+  `OpenCodeEventSubscriberOverflowException` with message
+  `Event subscriber exceeded its 4096-event capacity`. Capacity always reports the SDK's 4,096 bound,
+  including on consumer-constructed exceptions. Unselected events consume no capacity. Subscriber count
+  and payload size are unbounded; the count bound is not a byte or client-wide memory bound.
+- The source retries ordinary attempt failures forever, 1 s apart without backoff; connection state reports the last classified failure.
+  The transport windows follow upstream's first-party client at the pin:
   - Each attempt has 2 s to answer and deliver `server.connected` as its first event, or it fails.
     The first open runs the same check. If the connect bound passes before response headers arrive,
     the failure says "The opencode server did not answer the event stream request within 2 seconds."
@@ -431,43 +476,68 @@ resolves the message's network window from those carried traits.
     `OpenCodeClientOptions.EventStreamIdleTimeout`, as upstream's `idleTimeout` option sets it. The
     option accepts any window above zero and at most `int.MaxValue` milliseconds, but no window
     that never ends, since upstream has none; it is read once, when the client is built.
-    Any byte re-arms the window, including the server's keepalive comment every 15 s. The window
-    stops while the consumer holds an event, because a pull-based consumer's own time is not the
-    server's silence.
+     Any byte re-arms the window, including the server's keepalive comment every 15 s. The source
+     keeps reading, so idle detection continues while a consumer holds an event. Pre-marker bytes
+     do not extend the connect bound.
   - Every failure is followed by a new attempt 1 s later, with no backoff. That covers a refused
     connection, any HTTP error status (a 401 or a 404 included), an undeclared success, a body that
     is not an event stream, malformed framing or JSON, a payload neither its primary nor its
     unknown-arm metadata can materialize, a failure frame, the server ending the stream, and either
     window passing. Tolerated payload skew is not a failed attempt.
-  - No replay is requested. Each connection yields its own `server.connected`, so a second one
-    tells the consumer that events published in between are gone and authoritative state should be
-    refreshed.
-  - A stream that has failed every attempt for 1 minute gives up and throws the last failure. The
-    minute runs from the drop, or from the first attempt for a first open, and it stops once an
-    attempt delivers `server.connected`. When it passes, it cuts whatever is in flight. A window
-    passing surfaces as `OpenCodeTransportException`, never as a cancellation.
-  - Caller cancellation or root-client disposal releases the live connection at once, including while
-    the consumer holds an event. An opening, reading, or reconnecting wait ends with the cancellation
-    or disposal exception specified in Error channels; a suspended enumeration reports it on its next
-    pull. Nothing else ends it except the give-up window.
-  - Recorded divergences, both intended:
-    - Upstream retries forever and shows a connection status; the SDK has no status to show, so an
-      endless silent retry would hang `await foreach`. The consequence for consumers is that a wrong
-      address or a refused credential surfaces after one minute, not at once, as the error the server
-      last answered. It reverses if the SDK gains a connection-status surface a consumer can watch,
-      which would let it retry forever as upstream does.
-    - Upstream's clients read the bus on a background loop into a 4,096-event queue per subscriber
-      and fail a subscriber that falls behind (`client/src/shared-events.ts` at the pin). The SDK
-      reads only when the consumer pulls, as .NET's `IAsyncEnumerable` model does, so back-pressure
-      and pacing stay with the consumer, and it runs no background reader, no per-subscriber queue
-      and no drop policy of its own. The consequences: a long-held event delays noticing a lost
-      server, and a backlog sits in TCP and in the server's own 4,096-event limit. The streaming
-      guide's live-bus section shows the short loop that hands events off. It reverses if upstream's
-      first-party bus stops reading ahead of its consumer, or if a consumer need appears that pulling
-      can't meet, such as noticing a lost server while an event is held.
-  - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`, and a non-null per-call
-    `NetworkTimeout` is refused, including `Timeout.InfiniteTimeSpan`. The 2 s connect bound and the
-    1 s delay are fixed, as in upstream; per-call `Location` is sent on every reconnect attempt.
+- GetConnectionState returns a gate-selected EventConnectionState without opening I/O.
+  WatchConnectionAsync selects the initial snapshot atomically with registration and then coalesces
+  to the latest unread state; it is not a transition log. Watchers never start or keep a source alive.
+  SDK snapshots are Idle(0, null) before admission, after last leave and after an escaping source fault;
+  Connecting(0, null) on first admission; Connected(0, null) after a validated first marker; and
+  Reconnecting(attempt, error) after failure. The loop counter resets when a connection lived at
+  least one monotonic second, then increments to 1 on its drop; a shorter connection retains the
+  counter even though Connected publishes 0. Error is retained through the next opening and cleared
+  on Connected or Idle. State is source-level, not a subscriber position or a liveness guarantee.
+- An escaping source fault preserves each subscription's queued prefix, then throws the same exception.
+  The current generation detaches first and watchers receive Idle with no error. Any still-current
+  runner completion, including cancellation or normal return, takes this path with a synthesized
+  exception when necessary. A new admission starts a fresh generation and counter. Retired completions
+  are observed without changing the replacement's state, marker or registry.
+- Live cancellation wins over unread data and stored endings, but never changes an already settled move.
+  Selection under the gate is: an already settled move; live entry-token cancellation; unread data;
+  the first stored ending; otherwise install a pending move or hand over an offered item. A settled
+  move clears its pending slot, and only SourceFault preserves a backlog. Cancellation, overflow,
+  enumerator disposal and root disposal discard it. A later cancellation also discards a preserved
+  fault prefix and wins on all later pulls, with the public token-identity rule in Error channels.
+- Enumerator disposal discards unread data and later pulls end false unless an entry token is cancelled.
+  A move settled before DisposeAsync keeps its item or error. An ordinary unsettled move ends false;
+  a live cancelled token gives OCE. Explicit disposal never revives a stored overflow/fault/root
+  ending on a later pull. Concurrent moves are refused without ending the first one. Root disposal
+  closes admission and ends registered subscriptions/watchers with ODE; an already fault-ended
+  subscription retains its prefix and fault unless explicitly disposed or cancelled.
+- Caller cancellation and enumerator disposal end only that subscription. Last leave detaches and
+  clears the cache/state under the gate, then requests worker-based cancellation. Its failure is
+  recorded and dropped after retirement; CTS disposal waits for both runner and cancellation tasks.
+  Response disposal interrupts downlevel reads that do not observe an async read token. Root disposal
+  fences the feed before beginning pipeline lifetime cancellation and transport cleanup.
+- OpenCodeClientOptions.NetworkTimeout does not reach event.subscribe. Any non-null per-call
+  NetworkTimeout is refused, including Timeout.InfiniteTimeSpan. NoThrow and undefined ErrorBehavior
+  values are refused at the call. Ordinary API, transport and failure-frame errors are connection-state
+  errors, not enumeration endings; a consumer that needs a deadline owns its token and reads state.
+- Overflow recovery is resubscribe, await admission, then refresh authoritative state while the new
+  tail buffers, then apply that tail idempotently. Restart at admission if the replacement overflows;
+  refresh again on a later marker. This assumes ordinary reads reflect a change no later than its event
+  is published. There is no verified cross-operation snapshot or exactly-once merge guarantee.
+- Recorded divergences and omissions (ADR-0041):
+  - Upstream's shared layer ends subscribers on a source failure and Solid retries above it; the SDK
+    composes retry inside its one shared source. Revisit if upstream changes those layer boundaries.
+  - Upstream abort ends with done and, after source completion or subscriber overflow, no longer
+    overrides the stored ending. The SDK's public cancellation contract requires OCE and live
+    cancellation over a fault-preserved prefix or a stored overflow ending.
+    Revisit only with a change to that SDK-wide contract. Prefix preservation on source fault itself
+    follows upstream and is not a divergence.
+  - Error is an Exception rather than a message, Idle explicitly represents no source, and overflow
+    has a typed SDK exception with the upstream message and capacity. These are idiomatic .NET forms
+    of the same facts; revisit if the corresponding upstream contract changes.
+  - There is no onActivity callback: the source already runs the byte watchdog independently of
+    consumers. Solid's error history, resync, page lifecycle, server re-resolution and flush batching
+    are application responsibilities, not a second SDK control plane. Revisit with a concrete
+    consumer need or a change in upstream's first-party shared-feed contract.
 - Durable continuation is requested explicitly through `experimental.session.log`'s `after` parameter, an
   exclusive aggregate sequence read from a durable envelope or from the sync marker. One
   `log.synced` marker reports the watermark the replay was captured at; it is a boundary rather

@@ -19,7 +19,10 @@ internal sealed class Pipeline : IDisposable
     private readonly ClientLifetime _lifetime;
     private readonly PipelineExchange _exchange;
     private readonly StreamPlane _streamPlane;
-    private readonly ReconnectingEventStream _reconnectingEventStream;
+    private readonly TimeSpan _idleWindow;
+    private readonly Lock _disposalGate = new();
+    private readonly List<IDisposable> _ownedResources = [];
+    private bool _disposalStarted;
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
         IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null,
@@ -45,7 +48,7 @@ internal sealed class Pipeline : IDisposable
 
         var endpointBase = EndpointPolicy.Normalize(endpoint);
         framer ??= new ServerSentEventFramer();
-        var idleWindow = options.EventStreamIdleTimeout ?? StreamReconnect.DefaultIdleWindow;
+        _idleWindow = options.EventStreamIdleTimeout ?? StreamReconnect.DefaultIdleWindow;
 #pragma warning disable RS0030 // The client pipeline composition root chooses the system clock only when no internal provider was supplied.
         time ??= TimeProvider.System;
 #pragma warning restore RS0030
@@ -72,11 +75,14 @@ internal sealed class Pipeline : IDisposable
         Connection = new ConnectionSnapshot(endpointBase, authorization, options.Location, time);
         _exchange = new PipelineExchange(Connection, options.NetworkTimeout, policies, _lifetime.Token);
         _streamPlane = new StreamPlane(_exchange, framer, _lifetime, Connection);
-        _reconnectingEventStream = new ReconnectingEventStream(time, idleWindow, _lifetime, _streamPlane);
     }
 
     /// <summary>Gets the construction-time connection facts a non-HTTP door addresses the server with.</summary>
     public ConnectionSnapshot Connection { get; }
+
+    internal StreamPlane StreamPlane => _streamPlane;
+    internal ClientLifetime Lifetime => _lifetime;
+    internal TimeSpan IdleWindow => _idleWindow;
 
     public static Pipeline Create(OpenCodeClientOptions options, TimeProvider? time = null)
     {
@@ -171,10 +177,8 @@ internal sealed class Pipeline : IDisposable
     /// Opens a streaming operation: the status and content-type walls answer before the
     /// body is read, then each event frame's payload is yielded as it arrives. The
     /// one-shot buffer is never involved, and a stream always throws on an error status —
-    /// it has no envelope for one to ride. An operation that reconnects
-    /// (<see cref="OperationTraits"/>) runs one connection after another instead of ending
-    /// with the first. Per-call location applies to every connection attempt; a per-call timeout
-    /// bounds only the opening, and a reconnecting stream refuses it.
+    /// it has no envelope for one to ride. Reconnecting operations are refused: their hand-written
+    /// family door owns the shared source. Other streams keep per-call location and an opening-only timeout.
     /// </summary>
     public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
         IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions? requestOptions, CancellationToken cancellationToken)
@@ -192,34 +196,89 @@ internal sealed class Pipeline : IDisposable
         var reconnecting = request.Traits.Reconnects;
         if (reconnecting && requestOptions?.NetworkTimeout is not null)
         {
-            throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.", nameof(requestOptions));
+            throw new ArgumentException(FailureClassification.EventStreamNetworkTimeoutMessage, nameof(requestOptions));
         }
 
-        return reconnecting
-            ? _reconnectingEventStream.ExecuteReconnectingStreamAsync(request, adapter, cancellationToken)
-            : _streamPlane.ExecuteStreamCoreAsync(request, adapter, attempt: null, cancellationToken);
+        if (reconnecting)
+        {
+            throw new InvalidOperationException($"Operation '{operationId}' must be opened through its shared event feed.");
+        }
+
+        return _streamPlane.ExecuteStreamCoreAsync(request, adapter, attempt: null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Lets a hand-written family door own a resource whose life ends with the root client, before the transport.
+    /// Registration and disposal share one admission boundary, even while an earlier resource's cleanup is still running.
+    /// </summary>
+    internal void RegisterOwned(IDisposable resource)
+    {
+        lock (_disposalGate)
+        {
+            if (_disposalStarted)
+            {
+                throw FailureClassification.DisposedClient();
+            }
+
+            _ownedResources.Add(resource);
+        }
     }
 
     public void Dispose()
     {
-        if (!_lifetime.TryBeginDispose())
+        IDisposable[] resources;
+        lock (_disposalGate)
         {
-            return;
+            if (_disposalStarted)
+            {
+                return;
+            }
+
+            _disposalStarted = true;
+            resources = [.. _ownedResources];
+            _ownedResources.Clear();
+        }
+
+        void DisposeOwned(int index)
+        {
+            if (index < 0)
+            {
+                return;
+            }
+
+            try
+            {
+                resources[index].Dispose();
+            }
+            finally
+            {
+                DisposeOwned(index - 1);
+            }
         }
 
         try
         {
-            _lifetimeSource.Cancel();
+            DisposeOwned(resources.Length - 1);
         }
         finally
         {
-            try
+            if (_lifetime.TryBeginDispose())
             {
-                _transport.Dispose();
-            }
-            finally
-            {
-                _lifetimeSource.Dispose();
+                try
+                {
+                    _lifetimeSource.Cancel();
+                }
+                finally
+                {
+                    try
+                    {
+                        _transport.Dispose();
+                    }
+                    finally
+                    {
+                        _lifetimeSource.Dispose();
+                    }
+                }
             }
         }
     }

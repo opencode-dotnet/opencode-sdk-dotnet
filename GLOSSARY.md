@@ -394,6 +394,26 @@ An explicit, registered runtime exception to the fail-closed default.
 The hand-written transport core where all request behavior lives; generated methods only delegate to
 it.
 
+**Event feed**:
+The SDK's client-wide background source, reconnect loop and ordered fan-out of the Live event
+stream. It decodes the bus once and shares Event references; ordinary attempt failures retry
+without end and are reported through Connection state.
+
+**Event subscription**:
+One enumeration of SubscribeAsync, with its own call-time, local, exact-ordinal Event selection and
+up to 4,096 queued selected Events. A null or empty selection takes every Event, and connection
+markers always pass. A source fault leaves its queued prefix readable before the same exception
+is thrown.
+
+**Subscriber overflow**:
+The ending when an Event subscription cannot queue its next selected Event. It discards that
+subscription's unread backlog and ends it alone, while other subscriptions continue.
+
+**Connection state**:
+The Event feed's Idle, Connecting, Connected or Reconnecting snapshot, with its retry count and
+last classified exception. Its watch coalesces to the latest unread state and never keeps a source
+alive; the state is neither an Event position nor a liveness or resynchronization barrier.
+
 **Envelope**:
 The generated, typed response object of one operation, carrying its status and error state and its
 named payload properties.

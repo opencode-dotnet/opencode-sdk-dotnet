@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Threading.Channels;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Events.Support;
@@ -9,7 +11,146 @@ namespace OpenCode.Sdk.Tests.Events;
 
 public sealed class EventsClientTests
 {
+    [Test]
+    public async Task SubscribeAsync_Should_Refuse_A_Pull_On_The_Unenumerated_Recipe()
+    {
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(EventStreamSteps.ConnectedFrame));
+        await using var recipe = (IAsyncEnumerator<IEvent>)server.Events.SubscribeAsync();
+        await EventStreamSteps.AssertRecipePullRefusedAsync(recipe);
+        await Assert.That(server.RequestCount).IsEqualTo(0);
+    }
+
     private readonly FixtureLoader _fixtures = new();
+
+    [Test]
+    public async Task GetConnectionState_Should_Refuse_Disposed_Roots_And_End_Their_Pending_Watches()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, time: new ManualTimeProvider());
+        var door = new EventsClient(pipeline);
+        await using var watcher = door.WatchConnectionAsync().GetAsyncEnumerator();
+        await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Idle);
+        var pending = EventStreamSteps.PendingNext(watcher);
+        pipeline.Dispose();
+
+        _ = await Assert.That(door.GetConnectionState).Throws<ObjectDisposedException>();
+        _ = await Assert.That(() => door.WatchConnectionAsync()).Throws<ObjectDisposedException>();
+        _ = await Assert.That(pending).Throws<ObjectDisposedException>();
+        await Assert.That(handler.Requests).IsEmpty();
+    }
+
+    [Test]
+    public async Task GetConnectionState_Should_Remain_Virtual_And_Use_The_Mocking_Seam()
+    {
+        EventsClient door = new MockEventsClient();
+        await Assert.That(door.GetConnectionState()).IsSameReferenceAs(MockEventsClient.KnownState);
+        await using var states = door.WatchConnectionAsync().GetAsyncEnumerator();
+        await Assert.That(await EventStreamSteps.PendingNext(states).WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(states.Current).IsSameReferenceAs(MockEventsClient.KnownState);
+        await Assert.That(await EventStreamSteps.PendingNext(states).WaitAsync(HangGuard.Bound)).IsFalse();
+        var expected = "'EventsClient.Pipeline' was invoked on an instance created through the protected mocking constructor; override the member under test.";
+        var snapshotFailure = await Assert.That(() => new UnoverriddenEventsClient().GetConnectionState()).Throws<InvalidOperationException>();
+        var watchFailure = await Assert.That(() => new UnoverriddenEventsClient().WatchConnectionAsync()).Throws<InvalidOperationException>();
+        await Assert.That(snapshotFailure!.Message).IsEqualTo(expected);
+        await Assert.That(watchFailure!.Message).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Receive_An_Event_Published_During_The_Refresh_After_Admission()
+    {
+        using var body = new LiveEventBody(EventStreamSteps.ConnectedFrame);
+        var initiallyReading = body.NextEmptyRead;
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
+        await using var observer = server.Events.SubscribeAsync(new EventSubscribeRequest { Types = [new("rpc.other")] }).GetAsyncEnumerator();
+        await Assert.That((await EventStreamSteps.NextAsync(observer)).Type).IsEqualTo("server.connected");
+        await using var original = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That((await EventStreamSteps.NextAsync(original)).Type).IsEqualTo("server.connected");
+        await initiallyReading.WaitAsync(HangGuard.Bound);
+        var overflowFrame = WireBodyData.Frames(JsonSerializer.Serialize(SharedEventFeedScenario.Event("overflow"), OpenCodeJsonContext.Default.IEvent));
+        var drained = body.NextEmptyRead;
+        body.Append(string.Concat(Enumerable.Repeat(overflowFrame, 4097)));
+        await drained.WaitAsync(HangGuard.Bound);
+        _ = await Assert.That(async () => await original.MoveNextAsync()).Throws<OpenCodeEventSubscriberOverflowException>();
+
+        await using var replacement = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That((await EventStreamSteps.NextAsync(replacement)).Type).IsEqualTo("server.connected");
+        var refreshEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = Channel.CreateBounded<bool>(1);
+        async Task RefreshAsync()
+        {
+            refreshEntered.SetResult();
+            _ = await release.Reader.ReadAsync(CancellationToken.None);
+        }
+
+        var refreshing = RefreshAsync();
+        try
+        {
+            await refreshEntered.Task.WaitAsync(HangGuard.Bound);
+            drained = body.NextEmptyRead;
+            body.Append(WireBodyData.Frames(JsonSerializer.Serialize(SharedEventFeedScenario.Event("E2"), OpenCodeJsonContext.Default.IEvent)));
+            await drained.WaitAsync(HangGuard.Bound);
+        }
+        finally
+        {
+            _ = release.Writer.TryWrite(true);
+        }
+
+        await refreshing.WaitAsync(HangGuard.Bound);
+        var tail = await EventStreamSteps.NextAsync(replacement);
+        await Assert.That(tail.Id).IsEqualTo("E2");
+        await Assert.That(server.RequestCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Snapshot_Types_And_Validate_Default_Values_At_The_Call()
+    {
+        var frames = WireBodyData.Frames(ScriptedEventServer.Connected,
+            _fixtures.LoadJson("Events.session-created.json"), _fixtures.LoadJson("Events.unknown-log-event.json"));
+        using var handler = new RecordingHttpHandler(_ => ScriptedEventServer.StreamOf(frames));
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, time: new ManualTimeProvider());
+        var door = new EventsClient(pipeline);
+        var invalid = await Assert.That(() => door.SubscribeAsync(new EventSubscribeRequest { Types = [default] })).Throws<ArgumentException>();
+        await Assert.That(invalid!.ParamName).IsEqualTo("request");
+        await Assert.That(handler.Requests).IsEmpty();
+        var types = new List<EventType> { EventType.SessionCreated };
+        var recipe = door.SubscribeAsync(new EventSubscribeRequest { Types = types });
+        types.Clear();
+        types.Add(new EventType("session.invented.tomorrow"));
+        await using var events = recipe.GetAsyncEnumerator();
+
+        await Assert.That((await EventStreamSteps.NextAsync(events)).Type).IsEqualTo("server.connected");
+        await Assert.That((await EventStreamSteps.NextAsync(events)).Id).IsEqualTo("evt_1");
+        await Assert.That(handler.Requests.Single().RequestUri!.Query).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Share_One_Source_Between_Two_Subscriptions()
+    {
+        var bodies = new List<LiveEventBody>();
+        using var server = new ScriptedEventServer(_ =>
+        {
+            var body = new LiveEventBody(EventStreamSteps.ConnectedFrame);
+            bodies.Add(body);
+            return ScriptedEventServer.Stream(body);
+        });
+        await using var first = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        await using var second = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        var firstMarker = await EventStreamSteps.NextAsync(first);
+        var secondMarker = await EventStreamSteps.NextAsync(second);
+
+        await Assert.That(server.RequestCount).IsEqualTo(1);
+        await Assert.That(secondMarker).IsSameReferenceAs(firstMarker);
+        bodies.Single().Append(WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json")));
+        _ = await EventStreamSteps.SharedEventAsync(first, second, "evt_1");
+        await first.DisposeAsync();
+        await Assert.That(bodies.Single().IsDisposed).IsFalse();
+        bodies.Single().Append(WireBodyData.Frames(_fixtures.LoadJson("Events.unknown-log-event.json")));
+        var tail = (UnknownEvent)await EventStreamSteps.NextAsync(second);
+        await Assert.That(tail.Payload.GetProperty("id").GetString()).IsEqualTo("evt_3");
+    }
 
     [Test]
     public async Task SubscribeAsync_Should_Delegate_The_Request_Options_And_Token()
@@ -21,7 +162,10 @@ public sealed class EventsClientTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" }, time: time);
         var door = new EventsClient(pipeline);
-        var request = new EventSubscribeRequest { Types = [new EventType("session.created"), new EventType("rpc.sdk test/ç")] };
+        var request = new EventSubscribeRequest
+        {
+            Types = [new EventType("session.created"), new EventType("rpc.sdk test/ç"), new EventType("session.invented.tomorrow")],
+        };
         var options = new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/override/ç" } };
         using var caller = new CancellationTokenSource();
         await using var events = door.SubscribeAsync(request, options, caller.Token).GetAsyncEnumerator();
@@ -39,9 +183,9 @@ public sealed class EventsClientTests
         await Assert.That(received.Select(static item => item.Id)).IsEquivalentTo(expectedIds, CollectionOrdering.Matching);
         await Assert.That(((UnknownEvent)received[2]).Payload.GetProperty("id").GetString()).IsEqualTo("evt_3");
         await Assert.That(handler.Requests.Select(static attempt => attempt.RequestUri!.Query))
-            .IsEquivalentTo(["?types=session.created&types=rpc.sdk%20test%2F%C3%A7"], CollectionOrdering.Matching);
+            .IsEquivalentTo([string.Empty], CollectionOrdering.Matching);
         await Assert.That(handler.Requests.Select(static attempt => attempt.Headers["x-opencode-directory"]))
-            .IsEquivalentTo(["%2Foverride%2F%C3%A7"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["%2Fambient"], CollectionOrdering.Matching);
 
         using var readyHandler = EventStreamSteps.CreateReconnectHandler();
         using var readyHttpClient = new HttpClient(readyHandler);
@@ -72,10 +216,21 @@ public sealed class EventsClientTests
 
     private sealed class MockEventsClient : EventsClient
     {
-        internal static readonly IEvent KnownEvent = new EventServerConnected { Id = "mocked", Data = new Dictionary<string, System.Text.Json.JsonElement>(StringComparer.Ordinal) };
+        internal static readonly EventConnectionState KnownState = new(EventConnectionStatus.Reconnecting, 7, new OpenCodeTransportException("mock"));
+        internal static readonly IEvent KnownEvent = new EventServerConnected { Id = "mocked", Data = new Dictionary<string, JsonElement>(StringComparer.Ordinal) };
 
         public override IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) => Sequence();
+
+        public override EventConnectionState GetConnectionState() => KnownState;
+
+        public override IAsyncEnumerable<EventConnectionState> WatchConnectionAsync(CancellationToken cancellationToken = default) => States();
+
+        private static async IAsyncEnumerable<EventConnectionState> States()
+        {
+            await Task.CompletedTask;
+            yield return KnownState;
+        }
 
         private static async IAsyncEnumerable<IEvent> Sequence()
         {

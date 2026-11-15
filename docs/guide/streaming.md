@@ -10,7 +10,7 @@ process, and the **durable session event stream** for one conversation.
 - [📜 A single session's log](#-a-single-sessions-log)
 - [🧩 Unknown events do not break your consumer](#-unknown-events-do-not-break-your-consumer)
 - [⏹️ Cancellation and lifetime](#️-cancellation-and-lifetime)
-- [💥 Streams always throw](#-streams-always-throw)
+- [💥 Stream error channels](#-stream-error-channels)
 
 ## 🔊 The live event stream
 
@@ -197,7 +197,7 @@ the server is stopping, and the server resumes the turn after it restarts, with 
 `SessionExecutionStarted`. One exception at opencode v2.3.0: a Reject without a `Message` also ends
 the turn with `Shutdown` while the server keeps running, and that turn resumes after a later
 restart (open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180)). The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
-server is back within a minute, so to follow the resumed turn keep reading and wait the same way.
+server is back, so to follow the resumed turn keep reading under your own deadline.
 
 Match the three on their wire `Type`, not on their .NET type. A turn-end event whose payload has
 drifted from its declared shape arrives as `UnknownEvent`, so a typed match would never see it and
@@ -222,15 +222,15 @@ static string? SessionOf(IEvent @event) => @event switch
 };
 ```
 Open the bus **before**
-you prompt, because an event published before you listen is gone; the first event,
-the `server.connected` frame, says the stream is live:
+you prompt, because earlier business events are not replayed; the first `server.connected`
+marks this subscription's admission to the client's shared feed, not liveness:
 
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
-// The first event is server.connected: from here on, nothing the session publishes is missed.
+// Admission comes first: selected fan-out offers now reach this bounded, volatile subscription.
 await events.MoveNextAsync();
 
 await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repository." }, cancellationToken: deadline.Token);
@@ -268,7 +268,7 @@ var session = client.Sessions.GetSessionClient(sessionId);
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
-// 1. The stream is ready once its first event, server.connected, has arrived.
+// 1. This subscription is admitted after server.connected, which may be a cached marker.
 if (!await events.MoveNextAsync() || events.Current.Type is not "server.connected")
 {
     throw new InvalidOperationException("The event stream did not start with a server.connected frame.");
@@ -310,10 +310,11 @@ while (!turnEnded && await events.MoveNextAsync())
 }
 ```
 
-- **Open the bus first, and wait for a `server.connected` frame.** The server sends it to every new
-  subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
-  Upstream's client and the SDK both fail a connection that starts with anything else, and
-  upstream's CLI waits for this event before it sends a prompt.
+- **Subscribe first and wait for `server.connected`.** It marks admission in the shared feed's
+  fan-out order. Every later selected offer is ordered after it, until the subscription ends;
+  prior business history is not replayed. An already-read event published through the feed after
+  admission is included. The marker may be cached and share its Id with neighbours, so it is not
+  a liveness probe. A physical connection must still start with a validated marker.
 - **Filter by session once.** Every typed event that belongs to a session implements
   `ISessionScopedEvent`, and `SessionOf` also reads the session of an `UnknownEvent` from its
   payload, so one check keeps this session's events, drifted ones included, and the `switch` below it
@@ -336,8 +337,9 @@ while (!turnEnded && await events.MoveNextAsync())
 Messages already settled are on the session too: `EnumerateMessagesAsync` returns them, with each
 text content in its final form.
 
-`EventSubscribeRequest.Types` filters by event type; the initial `server.connected` still arrives.
-Omit `Types` to receive every event:
+`EventSubscribeRequest.Types` is copied and validated at the call and filters locally by exact,
+ordinal type spelling. RPC names have no wildcard; typed and drifted `server.connected` markers
+always pass. Null or an empty list receives every event. Physical attempts send no Types query:
 
 ```csharp
 await foreach (var @event in client.Events.SubscribeAsync(
@@ -347,38 +349,40 @@ await foreach (var @event in client.Events.SubscribeAsync(
 }
 ```
 
-**This stream is live and volatile, by the server's design, not the SDK's.** It has no cursor,
-no replay, and no resume channel:
+**This stream is live and volatile.** It has no cursor, business replay or resume channel:
 
 - Events published while you were disconnected are **gone**. There is no backfill to ask for.
-- A consumer slower than the producer can overflow and fail the stream.
+- The SDK admits 4,096 queued selected events per subscription; the next refused selected offer
+  ends only that subscriber with `OpenCodeEventSubscriberOverflowException` and discards its backlog.
+  Direct delivery to a pending move takes no queue slot. The bound counts events, not bytes;
+  subscriber count and payload sizes are unbounded.
+- The whole bus is decoded once per client and event/metadata objects are shared references.
+  Treat those graphs as read-only. Malformed unselected traffic can reconnect every subscriber;
+  the existing payload-skew tolerance remains.
 
 ### 🔁 A live bus that reconnects
 
-The SDK **reconnects** the bus the way upstream's own client does, and it tells you when it did:
+The SDK owns one lazy background source per client while an event subscription remains admitted:
 
 - A connection that drops, fails, or goes 45 seconds without a byte is replaced one second later.
-  The server's keepalive every 15 seconds keeps a quiet bus open, and the time your code spends on
-  an event never counts as silence. `OpenCodeClientOptions.EventStreamIdleTimeout` sets another
+  The server's keepalive every 15 seconds keeps a quiet bus open. Reading and idle detection continue
+  while your code holds an event. `OpenCodeClientOptions.EventStreamIdleTimeout` sets another
   window than 45 seconds; keep it above the 15-second keepalive, or a quiet, healthy bus is cut
   and reconnected each time.
 - Each connection has 2 seconds to answer and deliver a `server.connected` frame, or it counts as
-  failed. A reachable server that is consistently slower than that fails every attempt, and the
-  minute below applies.
-- **Every connection starts with a `server.connected` frame**, usually typed as `EventServerConnected`.
+  failed. A reachable server that is consistently slower than that keeps failing and retrying.
+- **Every physical connection starts with `server.connected`**, usually typed as `EventServerConnected`.
   Match on `Type`: a drifted marker can arrive as `UnknownEvent`. A second one means you were
   disconnected and the events in between are gone: refresh the state you care about with ordinary
   calls and carry on reading.
-- The stream never ends on its own. Your cancellation token or disposing the client releases its
-  live connection at once; a consumer holding an event sees the exception on its next pull.
-  One minute in which every attempt failed also ends it.
-  Before disposing a subscription's enumerator while a `MoveNextAsync` may still be pending, cancel
-  its token and let that call settle, because disposing it then throws `NotSupportedException`.
-- That minute applies to the first subscribe too. **A wrong address or a refused password surfaces
-  after one minute, not at once**, as the error the server last answered
-  (`OpenCodeApiException`, `OpenCodeTransportException` or `OpenCodeStreamFailureException`).
-  Upstream's client keeps retrying forever and shows a status; the SDK has no status to show, so it
-  gives up instead of hanging your `await foreach`.
+- **Retries never give up.** A wrong address, refused password, failure frame or exhausted window is
+  reported as a classified exception on connection state while the source keeps retrying, one second
+  apart without backoff. Cancellation, enumerator/client disposal, subscriber overflow or an escaping
+  source fault ends a subscription. An escaping fault preserves its queued prefix before throwing
+  the same exception; ordinary reconnects keep the subscription alive.
+- Enumerator disposal with a pending move is supported. An already settled move keeps its result;
+  an unsettled move ends false unless its token is cancelled. Disposal releases unread references,
+  and later pulls return false even after a stored overflow/fault/root ending, unless cancelled.
 
 ```csharp
 var connectedBefore = false;
@@ -395,43 +399,95 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: can
 }
 ```
 
-The SDK reads the bus only when your loop asks for the next event. While your code holds an event,
-nothing reads the connection and the idle window is stopped. A server lost then is noticed only when
-a later pull reads the connection again, after the events already received have been yielded: a clean
-loss fails that read at once and the SDK reconnects 1 second later; a half-open connection takes a full
-idle window (45 seconds by default) from that read to detect. If your handler
-is slow, hand each event off so the loop keeps reading, and process `pending.Reader` on a separate
-task. A repeated `server.connected` frame still means events were missed; an event dropped or refused
-by a full channel is a gap too: refresh the state you care about. With `System.Threading.Channels` imported:
+The source reads ahead independently of your loop. Keep event handling short enough to stay within
+your subscription's bound. An extra application queue is another buffer and another possible gap,
+not something needed to keep the SDK's connection reader alive; own and observe any worker you add.
+
+`GetConnectionState()` is an immediate source snapshot, and `WatchConnectionAsync` starts with that
+snapshot then coalesces to the latest unread state. Neither opens a source or keeps it alive. A watch
+alongside an existing event consumer can display connection health:
 
 ```csharp
-var pending = Channel.CreateBounded<IEvent>(new BoundedChannelOptions(256)
+await foreach (var state in client.Events.WatchConnectionAsync(cancellationToken))
 {
-    FullMode = BoundedChannelFullMode.Wait,
-});
-var gapDetected = 0;
+    Console.WriteLine($"{state.Status}, attempt={state.Attempt}, error={state.Error?.Message}");
+}
+```
 
-_ = Task.Run(async () =>
+Idle means no source; Connecting is its first opening; Connected follows a validated first marker;
+Reconnecting carries the classified failure and retry counter. Connected publishes attempt 0, but
+the loop counter resets only after a connection lived at least one second, then its next drop
+publishes 1. Error stays through the next opening and clears on Connected or Idle.
+
+Own a deadline token for a workflow that must not wait forever. Watch or sample state **while still
+subscribed** to explain a wait or choose an application-specific fail-fast policy. Keep a failure
+you need before cancellation: last leave returns state to Idle and clears it. Watches are not
+transition logs, so never require observing one particular transient error. Connected is also not
+a subscription-position or liveness barrier; the event markers still delimit resynchronization.
+
+### 🛟 Recovering after subscriber overflow
+
+1. Catch `OpenCodeEventSubscriberOverflowException`; that subscription and its backlog are gone.
+2. Resubscribe and await its admission marker **before** refreshing.
+3. Refresh authoritative state while the new subscription buffers its tail.
+4. Apply the tail idempotently: use entity versions/times, full-value replacement or keyed updates,
+   not duplicate counters or append-only replay of delta text.
+5. If that replacement overflows, start again at admission. A later marker also requires refresh.
+
+For example, active-session membership is refreshed once at admission. Turn-state events then
+update the set by key without an HTTP request for each event or text delta:
+
+```csharp
+var running = new HashSet<string>(StringComparer.Ordinal);
+using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+budget.CancelAfter(TimeSpan.FromMinutes(5));
+
+async Task RefreshStateAsync(CancellationToken token)
 {
-    await foreach (var queued in pending.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+    var snapshot = await client.Sessions.GetActiveAsync(cancellationToken: token);
+    running.Clear();
+    running.UnionWith(snapshot.Active.Keys);
+}
+
+void ApplyTail(IEvent item)
+{
+    switch (item)
     {
-        if (Interlocked.Exchange(ref gapDetected, 0) == 1)
-        {
-            // An event never reached this loop: refresh the state you care about.
-        }
-
-        // Slow work for `queued` goes here.
+        case SessionExecutionStarted started:
+            running.Add(started.Data.SessionId);
+            break;
+        case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
+            running.Remove(((ISessionScopedEvent)item).SessionId);
+            break;
     }
-}, cancellationToken);
+}
 
-await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+while (!budget.IsCancellationRequested)
 {
-    if (!pending.Writer.TryWrite(@event))
+    try
     {
-        Interlocked.Exchange(ref gapDetected, 1);
+        await using var subscription = client.Events.SubscribeAsync(cancellationToken: budget.Token).GetAsyncEnumerator();
+        if (!await subscription.MoveNextAsync() || subscription.Current.Type is not "server.connected")
+            throw new InvalidOperationException("The subscription was not admitted.");
+        await RefreshStateAsync(budget.Token);
+        while (await subscription.MoveNextAsync())
+        {
+            if (subscription.Current.Type is "server.connected") await RefreshStateAsync(budget.Token);
+            else ApplyTail(subscription.Current);
+        }
+        break;
+    }
+    catch (OpenCodeEventSubscriberOverflowException overflow)
+    {
+        Console.WriteLine($"Resubscribing after {overflow.Capacity}-event subscriber overflow.");
     }
 }
 ```
+
+The recipe assumes ordinary reads reflect a change no later than its event is published. It does
+not create an atomic cross-operation snapshot or promise exactly-once merging. Final text values
+can replace text; live deltas are not a durable, idempotent history. A delta buffered across a
+refresh can repeat displayed text until SessionTextEnded replaces it, because the snapshot carries no delta cursor.
 
 The durable session event stream below has a cursor, but it delivers events only from a server
 started with event persistence — and the CLI you install does not start one that way; the note on
@@ -593,22 +649,27 @@ before. See the
 
 ## ⏹️ Cancellation and lifetime
 
-- **Streams open lazily.** Calling `SubscribeAsync` or `ReadSessionLogAsync` does not touch the
-  network; the request goes out on the first `MoveNextAsync`, which is to say on the first
-  `await foreach`.
-- **The enumeration token is the off switch.** Cancelling it closes the stream and surfaces as
+- **Streams open lazily.** Calling SubscribeAsync or ReadSessionLogAsync does not touch the
+  network. The first event-subscription move admits it and starts or reuses the shared source;
+  other streams open their request on the first MoveNextAsync.
+- **Entry tokens are the off switch.** Cancelling either ends that enumeration and surfaces as
   `OperationCanceledException` carrying your token. Pass one token at either entry point, or the
   same token at both, for this identity guarantee; two distinct cancellable entry tokens are both
   observed without an identity guarantee. A `CancellationTokenSource` with a timeout, as in the
   first snippet, is a perfectly good session budget.
-- **Cancellation or root-client disposal releases the live response immediately on every target,**
-  even while your code holds a yielded event. An opening or reading wait reports cancellation or
-  `ObjectDisposedException`; a suspended enumeration reports it on the next `MoveNextAsync`.
+- **Cancellation affects only that event subscription**, releases its unread references and outranks
+  a stored fault/overflow on the next pull, without changing an already settled move. Neighbours
+  retain their source. Last leave logically detaches before worker-based physical cancellation;
+  runner and cancel completion are both observed before CTS release. Root-client disposal fences
+  the feed and releases transport; registered subscriptions/watchers report ObjectDisposedException.
+  A subscription already ended by source fault keeps its prefix and fault unless cancelled or explicitly disposed.
+  Other SSE streams retain their response-release-on-cancellation/disposal behavior, even while held.
   See the canonical [lifetime rules](../architecture/client-runtime.md#server-sent-events).
 - **`WithCancellation` works** where you did not pass a token at the call — `await foreach (var x
   in stream.WithCancellation(token))`.
-- **Disposing the enumerator ends the connection**, which `await foreach` does for you on `break`,
-  on `return`, and on an exception.
+- **Disposing an event enumerator ends its subscription**, which `await foreach` does on `break`,
+  `return` or an exception. Last leave stops the shared source. Other stream enumerators still own
+  their individual connection.
 - On the event bus, a connection that receives nothing for its idle window (45 seconds unless you
   set `EventStreamIdleTimeout`) is replaced, as above. It refuses a per-call `NetworkTimeout`,
   including `Timeout.InfiniteTimeSpan`; its connection and idle windows apply instead. On the
@@ -616,19 +677,21 @@ before. See the
   once open, a silent log stays open until you cancel,
   the server ends it, or it fails.
 
-## 💥 Streams always throw
+## 💥 Stream error channels
 
 Streaming operations take `requestOptions`, but return a stream, not a response envelope.
 [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead) is refused with
 `ArgumentException` naming `requestOptions` at the call, before enumeration; an undefined
-`ErrorBehavior` is also refused. Per-call `Location` is sent on every connection attempt, including
-reconnects; it does not filter the live event stream or change a session's directory. There is no
-envelope to put an error on, so every failure is an exception:
+`ErrorBehavior` is also refused. The live event source accepts but ignores per-call Location and
+sends only the ambient client snapshot; other streams keep the per-call override. Neither filters
+the instance-wide bus or changes a session's directory. Ordinary live-attempt errors are classified
+exceptions on connection state while retry continues; overflow and escaping source faults end
+subscriptions. Other streams have no response envelope, so their failures throw directly:
 
 ```csharp
 try
 {
-    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
+    await foreach (var @event in client.Experimental.ReadSessionLogAsync(sessionId, cancellationToken: cancellationToken))
     {
         Console.WriteLine(@event.Type);
     }
@@ -646,7 +709,8 @@ catch (OpenCodeTransportException transport)
 - `OpenCodeStreamFailureException` means the **server** ended the stream with a declared failure
   frame; its `Causes` collection carries the typed causes and is never null.
 - `OpenCodeTransportException` — its base class — covers everything else: a broken connection, a
-  body cut mid-event, an undecodable frame, a stalled read. Catching the base handles both.
+  body cut mid-event, an undecodable frame, a stalled read. Catching the base handles both on this
+  one-shot durable stream; the live source instead retries ordinary attempt failures and reports them on state.
 - `OperationCanceledException` stays itself. Your cancellation is never repackaged as a failure.
 
 Ordering matters in that `catch` chain: `OpenCodeStreamFailureException` derives from

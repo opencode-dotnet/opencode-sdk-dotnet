@@ -385,9 +385,11 @@ has the two properties to set.
 ## Known Issues
 
 - **The event bus has no replay.** `EventsClient.SubscribeAsync` is a live stream: events published
-  while you are disconnected are lost, and a consumer slower than the producer can overflow and
-  fail the stream. This is the server's contract, not an SDK limitation. See the
-  [streaming guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md).
+  while you are disconnected are lost. The SDK shares one source per client and bounds each
+  subscription to 4,096 queued selected events; the next refused offer ends that subscriber with
+  `OpenCodeEventSubscriberOverflowException`. Recover by resubscribing, awaiting admission, then
+  refreshing and applying the buffered tail idempotently. See
+  [overflow recovery](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md#-recovering-after-subscriber-overflow).
 
 - **A CLI-started server's durable session event stream holds only the sync marker.** It reads from
   the server's event store, and the distributed `opencode` CLI starts its server without event

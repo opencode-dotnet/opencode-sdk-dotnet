@@ -90,14 +90,16 @@ Three limits worth internalising:
 
 - **`NoThrow` covers declared API errors only.** It never suppresses a transport failure.
 - **Streams and automatic cursor traversals refuse `NoThrow` at the call, before enumeration.**
-  They take `requestOptions`, but their API errors always throw. A stream has no response envelope
-  to carry an error. See [streaming](streaming.md#-streams-always-throw) and [pagination](pagination.md).
+  They take `requestOptions`, but have no response envelope to carry an error. Other streams and
+  automatic traversals throw API errors; the shared event bus reports ordinary attempt failures
+  on connection state while retrying. See [streaming](streaming.md#-stream-error-channels) and [pagination](pagination.md).
 - **`Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync` refuse `NoThrow` at the call,**
   because they decide on each plugin-list answer whether to keep waiting.
 
 `OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.
-Streams apply it on every connection attempt and traversals on every page request; the server may
+Other streams apply it on every connection attempt and traversals on every page request. The shared
+event bus accepts but ignores per-call Location and sends only the ambient client snapshot. The server may
 ignore it on a route that resolves location from a session or needs no location.
 
 ## 🏷️ The typed error family

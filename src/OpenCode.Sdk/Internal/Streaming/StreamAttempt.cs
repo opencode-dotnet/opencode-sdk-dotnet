@@ -3,7 +3,7 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// One reconnecting stream attempt: before establishment the connect bound distinguishes no response
 /// from a response without a first event; once established, every byte restarts the idle window.
-/// The give-up window and caller's token cut the attempt too.
+/// Its owning source's token cuts the attempt too; subscriber tokens never reach physical I/O.
 /// </summary>
 internal sealed class StreamAttempt : IDisposable
 {
@@ -20,11 +20,11 @@ internal sealed class StreamAttempt : IDisposable
     /// <summary>Starts an attempt; its connect bound runs from now.</summary>
     /// <param name="time">The clock the windows run on.</param>
     /// <param name="idleWindow">How long it may go without a byte once established.</param>
-    /// <param name="giveUpToken">The give-up window's token, linked over the caller's.</param>
-    public StreamAttempt(TimeProvider time, TimeSpan idleWindow, CancellationToken giveUpToken)
+    /// <param name="sourceToken">The owning source's cancellation token.</param>
+    public StreamAttempt(TimeProvider time, TimeSpan idleWindow, CancellationToken sourceToken)
     {
         _idleWindow = idleWindow;
-        _window = new ProgressWindow(idleWindow, time, giveUpToken);
+        _window = new ProgressWindow(idleWindow, time, sourceToken);
         _window.Restart(StreamReconnect.ConnectBound);
     }
 
@@ -66,15 +66,9 @@ internal sealed class StreamAttempt : IDisposable
         }
     }
 
-    /// <summary>Stops the idle window while the consumer holds an event; the server's silence is not measured then.</summary>
-    public void Pause() => _window.Stop();
-
-    /// <summary>Starts the idle window again once the consumer asks for the next event.</summary>
-    public void Resume() => _window.Restart();
-
     /// <summary>
-    /// Names a cancellation that cut the attempt while neither the caller nor the give-up window
-    /// asked for it: the attempt's own window passed, which surfaces as a transport failure saying
+    /// Names a cancellation that cut the attempt while its source did not ask for it:
+    /// the attempt's own window passed, which surfaces as a transport failure saying
     /// which window it was, never as a cancellation.
     /// </summary>
     /// <param name="cancellation">The cancellation the attempt's read ended with.</param>

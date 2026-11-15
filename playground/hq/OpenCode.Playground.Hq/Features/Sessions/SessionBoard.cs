@@ -13,11 +13,20 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
     private readonly ConcurrentDictionary<string, SessionInfo> _sessions = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _running = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, NeedsYouItem> _needsYou = new(StringComparer.Ordinal);
+    private bool _ready;
+    private bool _sourceConnected;
+    private string? _connectionError;
+    private string? _subscriptionError;
+    private string? _lastError;
 
     public event EventHandler? Changed;
 
-    public bool Connected { get; private set; }
-    public string? LastError { get; private set; }
+    public bool Connected => _ready && _sourceConnected;
+    public string? LastError
+    {
+        get => _lastError ?? _subscriptionError ?? _connectionError;
+        private set => _lastError = value;
+    }
     public IReadOnlyList<SessionRow> Sessions =>
     [
         .. _sessions.Values.OrderByDescending(static session => session.Time.Updated)
@@ -74,37 +83,74 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        using var watchLifetime = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        var watching = WatchConnectionAsync(watchLifetime.Token);
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                #region panel: subscribe
-                await using var events = client.Events.SubscribeAsync(cancellationToken: stoppingToken).GetAsyncEnumerator(stoppingToken);
-                #endregion
-                // Subscribe before seeding so events cannot fall in the gap between them.
-                if (await events.MoveNextAsync())
+                try
                 {
-                    await SeedAsync(stoppingToken);
-                    Connected = true;
-                    Changed?.Invoke(this, EventArgs.Empty);
+                    #region panel: subscribe
+                    await using var events = client.Events.SubscribeAsync(cancellationToken: stoppingToken).GetAsyncEnumerator(stoppingToken);
+                    #endregion
                     while (await events.MoveNextAsync())
                     {
+                        // The admission marker refreshes first; the shared subscription buffers the idempotent dictionary updates.
                         await ApplyAsync(events.Current, stoppingToken);
                     }
                 }
+                catch (OpenCodeEventSubscriberOverflowException exception)
+                {
+                    logger.LogWarning(exception, "The board fell behind; admitting a new subscription before refreshing.");
+                    _ready = false;
+                    Changed?.Invoke(this, EventArgs.Empty);
+                    continue;
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception exception)
+                {
+                    logger.LogWarning(exception, "The board event subscription or refresh failed.");
+                    _subscriptionError = exception.Message;
+                }
+
+                _ready = false;
+                Changed?.Invoke(this, EventArgs.Empty);
+                await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        }
+        finally
+        {
+            await watchLifetime.CancelAsync();
+            await watching;
+        }
+    }
+
+    private async Task WatchConnectionAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await foreach (var state in client.Events.WatchConnectionAsync(cancellationToken))
             {
-                return;
-            }
-            catch (Exception exception)
-            {
-                logger.LogWarning(exception, "The board lost its server; reading the lists again.");
+                _sourceConnected = state.Status == EventConnectionStatus.Connected;
+                _connectionError = state.Error?.Message;
+                Changed?.Invoke(this, EventArgs.Empty);
             }
 
-            Connected = false;
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("The event connection watch ended before shutdown.");
+            }
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "The board connection watch failed.");
+            _sourceConnected = false;
+            _connectionError = exception.Message;
             Changed?.Invoke(this, EventArgs.Empty);
-            await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
         }
     }
 
@@ -167,14 +213,19 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
 
     private async Task ApplyAsync(IEvent item, CancellationToken cancellationToken)
     {
+        if (item.Type == "server.connected")
+        {
+            _ready = false;
+            Changed?.Invoke(this, EventArgs.Empty);
+            await SeedAsync(cancellationToken);
+            _subscriptionError = null;
+            _ready = true;
+            Changed?.Invoke(this, EventArgs.Empty);
+            return;
+        }
+
         switch (item)
         {
-            case EventServerConnected:
-                Connected = false;
-                Changed?.Invoke(this, EventArgs.Empty);
-                await SeedAsync(cancellationToken);
-                Connected = true;
-                break;
             case SessionCreated created:
                 var read = await client.Sessions.GetSessionClient(created.Data.SessionId).GetAsync(cancellationToken: cancellationToken);
                 _sessions[read.Session.Id] = read.Session;

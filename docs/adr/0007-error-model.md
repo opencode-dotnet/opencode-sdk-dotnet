@@ -1,6 +1,6 @@
 # Error model: typed exception spine carrying tagged error data
 
-Date: 2026-10-16
+Date: 2026-11-15
 
 API failures throw through a typed exception spine (`OpenCodeException` →
 `OpenCodeApiException`) by default; per-call `NoThrow` returns them on the response spine.
@@ -9,10 +9,13 @@ no arbitrary header dictionary (sealed 2026-08-26; internal research, 2026-08-25
 coverage-program grilling seal?").
 
 Streams and automatic cursor traversals take the shared `OpenCodeRequestOptions`.
-`Location` applies to each stream connection attempt and every page request. A stream yields
+`Location` applies to other streams' connection attempts and every page request; the shared event
+bus accepts but ignores per-call Location and follows ADR-0041. A stream yields
 an `IAsyncEnumerable<T>` rather than a response envelope, so it has no envelope to carry an
 API error; streams and automatic traversals refuse `NoThrow` at the call, before enumeration,
-and always throw API errors when encountered. Explicit page methods retain `NoThrow`.
+and other streams and automatic traversals throw API errors when encountered. The shared event
+bus reports ordinary attempt errors on connection state while retrying (ADR-0041).
+Explicit page methods retain `NoThrow`.
 On `event.subscribe`, per-call `NetworkTimeout` is refused, including
 `Timeout.InfiniteTimeSpan`: its 2-second connection and default 45-second idle windows follow
 upstream's first-party behavior. Other streams apply `NetworkTimeout` only while opening;
@@ -23,7 +26,8 @@ surface is chosen over a dedicated stream options type so callers use the same p
 location and behavior vocabulary. The trade-off is that the compiler cannot prevent a caller
 from selecting a member a stream or traversal must refuse at run time.
 
-Transport and protocol failures always throw `OpenCodeTransportException`. The spec's tagged error
+Outside the shared event bus's retry loop, transport and protocol failures throw
+`OpenCodeTransportException`. The spec's tagged error
 payloads are generated as typed models under an `OpenCodeError` base and ride **as data** on either
 channel, pattern-matchable without string sniffing. There is no client-level switch. Throwing API
 errors retain the raw body on `OpenCodeApiException`; `NoThrow` responses retain it on their shared

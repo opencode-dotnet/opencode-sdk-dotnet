@@ -138,7 +138,7 @@ event published before you listen is gone.
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
-// The first event is server.connected: from here on, nothing the session publishes is missed.
+// server.connected marks admission to the bounded shared feed, not liveness or replay of earlier business events.
 await events.MoveNextAsync();
 
 await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repository." }, cancellationToken: deadline.Token);

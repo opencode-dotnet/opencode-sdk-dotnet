@@ -1,4 +1,6 @@
 using OpenCode.Playground.Hq.Tests.Features.Conversation.Support;
+using OpenCode.Sdk;
+using OpenCode.Sdk.Models;
 using TUnit.Assertions.Enums;
 using static OpenCode.Playground.Hq.Tests.Features.Conversation.Support.ConversationScenario;
 
@@ -6,6 +8,57 @@ namespace OpenCode.Playground.Hq.Tests.Features.Conversation;
 
 public sealed class SessionConversationTests
 {
+    [Test]
+    public async Task FollowAsync_Should_Replace_Refreshed_Text_With_The_Parts_Authoritative_End()
+    {
+        using var scenario = new ConversationScenario().WithHistory(Assistant(Text("snapshot text")));
+        scenario.SessionCalls.Running = true;
+        await scenario.FollowAsync(Ended(0, "authoritative text"), Succeeded());
+
+        await Assert.That(scenario.Conversation.Lines.Select(static line => line.Text))
+            .IsEquivalentTo(["authoritative text"], CollectionOrdering.Matching);
+        await Assert.That(scenario.Conversation.Running).IsFalse();
+        await Assert.That(scenario.Conversation.EndedTurns).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task FollowAsync_Should_Refresh_On_A_Drifted_Connection_Marker()
+    {
+        using var scenario = new ConversationScenario().WithHistory(User());
+        scenario.EventCalls.Items = [Connected, () =>
+        {
+            scenario.WithHistory(Assistant(Text("refreshed")));
+            var payload = System.Text.Json.JsonSerializer.SerializeToElement(new { type = "server.connected", data = false });
+            return new UnknownEvent("server.connected", payload);
+        }];
+        await scenario.Conversation.FollowAsync(SessionId, CancellationToken.None);
+
+        await Assert.That(scenario.Conversation.Lines.Select(static line => line.Text)).IsEquivalentTo(["refreshed"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task FollowAsync_Should_Recover_From_Overflow_By_Admission_Then_Refresh_Then_An_Idempotent_Tail()
+    {
+        using var scenario = new ConversationScenario();
+        scenario.EventCalls.Subscriptions.Enqueue([Connected, () =>
+        {
+            scenario.EventCalls.Trace.Add("overflow");
+            throw new OpenCodeEventSubscriberOverflowException();
+        }]);
+        scenario.EventCalls.Subscriptions.Enqueue([() =>
+        {
+            scenario.WithHistory(Assistant(Text("snapshot")));
+            return Connected();
+        }, () => Ended(0, "tail"), () => Succeeded()]);
+        _ = await Assert.That(scenario.Conversation.FollowAsync(SessionId, CancellationToken.None)).ThrowsNothing();
+
+        await Assert.That(scenario.EventCalls.Trace)
+            .IsEquivalentTo(["subscription", "history", "overflow", "subscription", "history", "subscription", "subscription"],
+                CollectionOrdering.Matching);
+        await Assert.That(scenario.Conversation.Lines.Select(static line => line.Text)).IsEquivalentTo(["tail"], CollectionOrdering.Matching);
+        await Assert.That(scenario.Conversation.EndedTurns).IsEqualTo(1);
+    }
+
     [Test]
     public async Task FollowAsync_Should_Read_History_After_The_Subscription_Opens()
     {

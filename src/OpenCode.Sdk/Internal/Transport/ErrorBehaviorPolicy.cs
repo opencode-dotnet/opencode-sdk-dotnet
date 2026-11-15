@@ -1,8 +1,11 @@
 namespace OpenCode.Sdk.Internal;
 
-/// <summary>Resolves the per-call error channel and refuses it for doors that always throw.</summary>
+/// <summary>Resolves the per-call error channel and refuses unsupported NoThrow requests.</summary>
 internal static class ErrorBehaviorPolicy
 {
+    public const string EventSubscriptionNoThrowMessage =
+        "Event subscriptions report ordinary attempt failures through connection state; NoThrow is not supported.";
+
     public static ErrorBehavior Resolve(OpenCodeRequestOptions? requestOptions)
     {
         var errorBehavior = requestOptions?.ErrorBehavior ?? ErrorBehavior.Default;
@@ -14,11 +17,11 @@ internal static class ErrorBehaviorPolicy
         return errorBehavior;
     }
 
-    public static void RefuseNoThrow(OpenCodeRequestOptions? requestOptions, string doors)
+    public static void RefuseNoThrow(OpenCodeRequestOptions? requestOptions, string doors, string? message = null)
     {
         if (Resolve(requestOptions) is ErrorBehavior.NoThrow)
         {
-            throw new ArgumentException($"{doors} always throw API errors; NoThrow is not supported.", nameof(requestOptions));
+            throw new ArgumentException(message ?? $"{doors} always throw API errors; NoThrow is not supported.", nameof(requestOptions));
         }
     }
 }

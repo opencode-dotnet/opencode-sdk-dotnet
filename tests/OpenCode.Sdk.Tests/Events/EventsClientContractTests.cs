@@ -20,10 +20,11 @@ public sealed class EventsClientContractTests
     private readonly FixtureLoader _fixtures = new();
 
     [Test]
-    public async Task SubscribeAsync_Should_Send_Types_On_Every_Reconnect_Attempt()
+    public async Task SubscribeAsync_Should_Send_No_Types_And_Select_Locally_On_Every_Reconnect_Attempt()
     {
         var time = new ManualTimeProvider();
-        using var handler = EventStreamSteps.CreateReconnectHandler();
+        var frames = WireBodyData.Frames(ScriptedEventServer.Connected, _fixtures.LoadJson("Events.session-created.json"));
+        using var handler = new RecordingHttpHandler(_ => ScriptedEventServer.StreamOf(frames, ends: true));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, time: time);
         var request = new EventSubscribeRequest
@@ -32,15 +33,18 @@ public sealed class EventsClientContractTests
         };
         await using var events = new EventsClient(pipeline).SubscribeAsync(request).GetAsyncEnumerator();
 
-        var reconnect = await EventStreamSteps.PullAfterConnectionAsync(events);
+        await Assert.That((await EventStreamSteps.NextAsync(events)).Type).IsEqualTo("server.connected");
+        await Assert.That((await EventStreamSteps.NextAsync(events)).Id).IsEqualTo("evt_1");
+        var reconnect = EventStreamSteps.PendingNext(events);
         await time.WaitForArmedAsync(EventStreamSteps.Delay, HangGuard.Bound);
         time.Advance(EventStreamSteps.Delay);
         await Assert.That(await reconnect.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
+        await Assert.That((await EventStreamSteps.NextAsync(events)).Id).IsEqualTo("evt_1");
 
         await Assert.That(handler.Requests.Count).IsEqualTo(2);
         await Assert.That(handler.Requests.Select(static attempt => attempt.RequestUri!.Query))
-            .IsEquivalentTo(["?types=session.created&types=rpc.sdk-test", "?types=session.created&types=rpc.sdk-test"], CollectionOrdering.Matching);
+            .IsEquivalentTo([string.Empty, string.Empty], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -49,7 +53,8 @@ public sealed class EventsClientContractTests
     [Arguments(2)]
     public async Task SubscribeAsync_Should_Omit_The_Query_Without_Types(int kind)
     {
-        using var scenario = ContractScenario.RespondingWithFrames(EventStreamSteps.ConnectedFrame);
+        using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(ScriptedEventServer.Connected,
+            _fixtures.LoadJson("Events.session-created.json"), _fixtures.LoadJson("Events.unknown-log-event.json")));
         var request = kind switch
         {
             0 => null,
@@ -59,6 +64,8 @@ public sealed class EventsClientContractTests
         await using var events = scenario.Client.Events.SubscribeAsync(request).GetAsyncEnumerator();
 
         await Assert.That(await EventStreamSteps.NextAsync(events)).IsTypeOf<EventServerConnected>();
+        string[] selected = [(await EventStreamSteps.NextAsync(events)).Type, (await EventStreamSteps.NextAsync(events)).Type];
+        await Assert.That(selected).IsEquivalentTo(["session.created", "session.invented.tomorrow"], CollectionOrdering.Matching);
         await Assert.That(scenario.Requests.Single().RequestUri!.Query).IsEqualTo(string.Empty);
     }
 

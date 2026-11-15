@@ -25,22 +25,35 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     public async Task FollowAsync(string sessionId, CancellationToken cancellationToken)
     {
         SessionId = sessionId;
-        #region panel: follow
-        await foreach (var item in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
+        while (true)
         {
-            if (item is EventServerConnected)
+            try
             {
-                // A repeated connection means events were lost; stored state fills that gap.
-                await LoadAsync(cancellationToken);
-            }
-            else if (item is not ISessionScopedEvent scoped || scoped.SessionId != sessionId || !Apply(item))
-            {
-                continue;
-            }
+                #region panel: follow
+                await foreach (var item in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
+                {
+                    if (item.Type == "server.connected")
+                    {
+                        // The snapshot carries no delta cursor. A buffered delta can repeat text after refresh until the part's end replaces it.
+                        await LoadAsync(cancellationToken);
+                    }
+                    else if (item is not ISessionScopedEvent scoped || scoped.SessionId != sessionId || !Apply(item))
+                    {
+                        continue;
+                    }
 
-            Changed?.Invoke(this, EventArgs.Empty);
+                    Changed?.Invoke(this, EventArgs.Empty);
+                }
+                #endregion
+                return;
+            }
+            catch (OpenCodeEventSubscriberOverflowException exception)
+            {
+                logger.LogWarning(exception, "The conversation fell behind; admitting a new subscription before reloading session {SessionId}.", sessionId);
+                Ready = false;
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
         }
-        #endregion
     }
 
     /// <summary>Shows the prompt at once, then sends it with an id of HQ's own; false when the prompt was not sent.</summary>

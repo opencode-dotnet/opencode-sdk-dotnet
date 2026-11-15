@@ -31,7 +31,7 @@ try
     await using var events = client.Events.SubscribeAsync(cancellationToken: listening.Token).GetAsyncEnumerator();
     try
     {
-        // The first event is always server.connected: the subscription is live, so nothing published after it is missed.
+        // server.connected admits this bounded subscription; it is not liveness or replay of earlier business events.
         await events.MoveNextAsync();
         var vcs = await client.Vcs.GetVcsAsync(cancellationToken: deadline.Token);
         var branch = vcs.Vcs.Branch.Current ?? await AnnouncedBranchAsync(events, client.Vcs, vcs.Location.Directory, listening, deadline.Token);

@@ -119,11 +119,15 @@ internal sealed class ConversationScenario : OpenCodeClient
 
     internal sealed class ConversationEvents : EventsClient
     {
+        public Queue<IReadOnlyList<Func<IEvent>>> Subscriptions { get; } = new();
+        public override EventConnectionState GetConnectionState() => new(EventConnectionStatus.Connected, 0, null);
+        public override IAsyncEnumerable<EventConnectionState> WatchConnectionAsync(CancellationToken cancellationToken = default) =>
+            new[] { GetConnectionState() }.ToAsyncEnumerable();
         public IReadOnlyList<Func<IEvent>> Items { get; set; } = [];
         public List<string> Trace { get; } = [];
         public override IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
-            Items.Select(next =>
+            (Subscriptions.TryDequeue(out var scripted) ? scripted : Items).Select(next =>
             {
                 var item = next();
                 Trace.Add("subscription");
