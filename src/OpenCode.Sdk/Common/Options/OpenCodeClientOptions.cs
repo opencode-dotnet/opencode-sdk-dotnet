@@ -15,7 +15,8 @@ public sealed class OpenCodeClientOptions
     /// non-null <see cref="Location"/>, is refused. Content headers replace the content's headers
     /// when content exists and are dropped otherwise. Headers reach HTTP operations, SSE opens
     /// and reconnects, and cursor pages, not terminal upgrades or background-service info probes.
-    /// Invalid HTTP token names and values containing CR or LF are refused with <see cref="ArgumentException"/>.
+    /// Invalid HTTP token names, null values, and values containing NUL (U+0000), CR, LF or any
+    /// character above U+007F are refused with <see cref="ArgumentException"/>.
     /// </summary>
     public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 

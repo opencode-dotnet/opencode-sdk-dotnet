@@ -115,8 +115,17 @@ resolves the message's network window from those carried traits.
   `x-opencode-directory` with a non-null `Location`, with an `ArgumentException` naming both
   members. Names compare ordinally, case-insensitively. Without those conflicting members both
   headers are accepted; a per-call `Location` can replace the client-wide directory header.
-- Invalid HTTP token names and values containing CR or LF are refused with `ArgumentException`.
-  Content headers from either caller set replace the content's values when content exists.
+- Invalid HTTP token names, null values, and values containing NUL (U+0000), CR, LF or any character
+  above U+007F are refused with `ArgumentException`. Names are validated first; a value refusal names
+  the header and the zero-based position of its first refused character, never the value. A null
+  value refusal names the header without a position.
+  Upstream builds a fetch `Headers` object from every header set
+  (`packages/client/src/promise/generated/client.ts`, `prepare`, at the pin); fetch `Headers` refuses
+  NUL, CR and LF in values, so refusing those matches upstream.
+  - Recorded divergence: upstream admits U+0080-U+00FF as Latin-1, but .NET's HTTP transport sends
+    ASCII-only header values by default and fails such a request mid-send. The SDK refuses them at
+    the option instead. Reversal trigger: if the SDK gains a header-encoding option, values above 0x7F are admitted per that option.
+- Content headers from either caller set replace the content's values when content exists.
   - Recorded divergence of form: on a request without content they are dropped, because
     `HttpRequestMessage` cannot carry content headers. Upstream's fetch headers can carry them.
     Reversal trigger: if `HttpRequestMessage` can carry a content header without content.

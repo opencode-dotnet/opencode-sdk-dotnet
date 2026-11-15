@@ -13,8 +13,8 @@ public sealed class OpenCodeRequestOptions
     /// non-null <see cref="OpenCodeClientOptions.Location"/>; these per-call headers allow both names.
     /// Content headers replace the content's headers when content exists and are dropped otherwise.
     /// Headers reach HTTP operations, SSE opens and reconnects, and cursor pages, not terminal
-    /// upgrades or background-service info probes. Invalid HTTP token names and values containing
-    /// CR or LF are refused with <see cref="ArgumentException"/>.
+    /// upgrades or background-service info probes. Invalid HTTP token names, null values, and values
+    /// containing NUL (U+0000), CR, LF or any character above U+007F are refused with <see cref="ArgumentException"/>.
     /// </summary>
     public IReadOnlyDictionary<string, string>? Headers { get; init; }
 

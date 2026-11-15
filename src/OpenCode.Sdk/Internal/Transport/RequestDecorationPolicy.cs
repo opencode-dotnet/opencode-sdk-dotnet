@@ -64,12 +64,18 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
 
             if (header.Value is null)
             {
-                throw new ArgumentException(member + " contains a null value.", parameterName);
+                throw new ArgumentException($"{member} value for '{header.Key}' is null.", parameterName);
             }
 
-            if (header.Value.Contains('\r', StringComparison.Ordinal) || header.Value.Contains('\n', StringComparison.Ordinal))
+            for (var index = 0; index < header.Value.Length; index++)
             {
-                throw new ArgumentException(member + " contains a value with CR or LF.", parameterName);
+                if (header.Value[index] is '\0' or '\r' or '\n' or > '\u007f')
+                {
+                    var position = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    throw new ArgumentException(
+                        $"{member} value for '{header.Key}' has a refused character at position {position}.",
+                        parameterName);
+                }
             }
 
             snapshot[header.Key] = snapshot.TryGetValue(header.Key, out var preceding) ? preceding + ", " + header.Value : header.Value;

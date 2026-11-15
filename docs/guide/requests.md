@@ -226,6 +226,8 @@ over client-wide headers, which win over the SDK's `User-Agent`. Construction re
 `Authorization` with a non-null `Password`, or `x-opencode-directory` with a non-null `Location`.
 Content headers replace the body's headers and are dropped without a body. These headers reach
 HTTP calls and streams, not terminal WebSocket upgrades or background-service info probes.
+Header values containing NUL (U+0000), CR, LF or any character above U+007F are refused with
+`ArgumentException`.
 
 ## ⏱️ How long a call may wait
 

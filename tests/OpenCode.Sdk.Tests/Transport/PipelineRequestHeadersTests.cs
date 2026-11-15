@@ -19,11 +19,15 @@ public sealed class PipelineRequestHeadersTests
     private const string CallerValue = "caller";
     private const string AuthorizationValue = "Bearer caller";
     private const string InvalidNameReason = " contains an invalid HTTP token name.";
-    private const string InvalidValueReason = " contains a value with CR or LF.";
-    private const string NullValueReason = " contains a null value.";
+    private const string InvalidValueReason = " value for 'X-Probe' has a refused character at position 3.";
+    private const string Latin1ValueReason = " value for 'X-Probe' has a refused character at position 2.";
+    private const string NullValueReason = " value for 'X-Probe' is null.";
     private const string ValidValue = "valid";
     private const string CarriageValue = "bad\rvalue";
     private const string LineFeedValue = "bad\nvalue";
+    private const string NulValue = "bad\0value\0";
+    private const string Latin1Value = "ok\u0080value\u0081";
+    private const string EuroValue = "bad€value€";
     private const string ClientValue = "client";
     private const string BeforeValue = "before";
 
@@ -78,6 +82,12 @@ public sealed class PipelineRequestHeadersTests
     [Arguments(false, "é", ValidValue, InvalidNameReason)]
     [Arguments(true, "X-Probe", null, NullValueReason)]
     [Arguments(false, "X-Probe", null, NullValueReason)]
+    [Arguments(true, "X-Probe", NulValue, InvalidValueReason)]
+    [Arguments(false, "X-Probe", NulValue, InvalidValueReason)]
+    [Arguments(true, "X-Probe", Latin1Value, Latin1ValueReason)]
+    [Arguments(false, "X-Probe", Latin1Value, Latin1ValueReason)]
+    [Arguments(true, "X-Probe", EuroValue, InvalidValueReason)]
+    [Arguments(false, "X-Probe", EuroValue, InvalidValueReason)]
     public async Task Headers_Should_Validate_Before_Sending(bool clientWide, string name, string? value, string reason)
     {
         using var handler = new RecordingHttpHandler();
