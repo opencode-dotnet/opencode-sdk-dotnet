@@ -683,6 +683,45 @@ public sealed class ServiceEnsurerTests
     }
 
     [Test]
+    public async Task EnsureAsync_Should_Carry_A_Terminate_IO_Failure_Into_The_Timeout()
+    {
+        SeedRegistered();
+        AnswerRegistered(Ready);
+        var cause = new IOException("The terminate signal failed.");
+        _processControl.TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Terminate).Returns(_ => throw cause);
+        DeadlineAfter(clockReads: 40);
+
+        var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None)).Throws<OpenCodeServerException>();
+
+        await Assert.That(exception!.Message).IsEqualTo(ServiceEnsurer.TimeoutMessage);
+        await Assert.That(exception.InnerException).IsSameReferenceAs(cause);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Propagate_Caller_Cancellation_During_Replacement()
+    {
+        SeedRegistered();
+        AnswerRegistered(Ready);
+        using var caller = new CancellationTokenSource();
+        _handoff.PrepareAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<TimeSpan>(), caller.Token)
+            .Returns(async _ =>
+            {
+                await caller.CancelOnWorkerAsync();
+                caller.Token.ThrowIfCancellationRequested();
+            });
+
+        var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            caller.Token)).Throws<OperationCanceledException>();
+
+        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+        await Assert.That(_starts).IsEmpty();
+        await Assert.That(_signalled).IsEmpty();
+    }
+
+    [Test]
     public async Task EnsureAsync_Should_Throw_On_An_Incompatible_Health_Protocol_Whose_Version_Matches()
     {
         // service-reconnect.test.ts: a registered owner whose health endpoint disappeared is neither
@@ -790,23 +829,33 @@ public sealed class ServiceEnsurerTests
     }
 
     [Test]
-    [Arguments("options")]
-    [Arguments(null)]
-    public async Task EnsureAsync_Should_Propagate_An_Unrelated_Handoff_Argument_Error_Without_Signalling(string? parameterName)
+    [Arguments("argument", "options")]
+    [Arguments("argument", null)]
+    [Arguments("io", null)]
+    public async Task EnsureAsync_Should_Replace_The_Old_Service_When_Handoff_Preparation_Fails(string failureKind, string? parameterName)
     {
         SeedRegistered();
         AnswerRegistered(Ready);
-        var failure = new ArgumentException("The handoff implementation rejected another parameter.", parameterName);
+        ElectOnSpawn("2.0.4");
+        Exception failure = failureKind == "io"
+            ? new IOException("The handoff failed.")
+            : new ArgumentException("The handoff implementation rejected another parameter.", parameterName);
         _handoff.PrepareAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException(failure));
 
-        var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
-            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
-            CancellationToken.None)).Throws<ArgumentException>();
+        try
+        {
+            var registration = await Ensurer().EnsureAsync(
+                new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+                CancellationToken.None);
 
-        await Assert.That(exception).IsSameReferenceAs(failure);
-        await Assert.That(_signalled).IsEmpty();
-        await Assert.That(_starts).IsEmpty();
+            await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+            await Assert.That(_starts.Count).IsEqualTo(1);
+        }
+        finally
+        {
+            _ = _processControl.Received(1).TrySignal(new ProcessIdentity(RegisteredPid, Start.UtcDateTime), ProcessSignal.Terminate);
+        }
     }
 
     [Test]

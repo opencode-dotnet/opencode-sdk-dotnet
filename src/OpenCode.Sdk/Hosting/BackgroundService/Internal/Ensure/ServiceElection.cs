@@ -23,7 +23,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     private bool _announced;
     private DateTimeOffset? _lastSpawn;
     private TimeSpan _spawnDelay = seams.Timing.SpawnDelay;
-    private OpenCodeServerException? _lastReplaceFailure;
+    private Exception? _lastReplaceFailure;
     private OpenCodeServerException? _failure;
 
     /// <summary>Runs the election until a ready compatible service is registered.</summary>
@@ -158,6 +158,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     /// then skips a record that changed again since. The handoff or clear is best-effort and never
     /// keeps the old service running, and a failure does not end the election, which probes again
     /// next round. The last failure is kept as the timeout's cause when no contender failure is held.
+    /// The caller's cancellation still propagates.
     /// </summary>
     private async Task ReplaceAsync(bool handOff, CancellationToken cancellationToken)
     {
@@ -173,7 +174,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
                 await seams.Terminator.TerminateAsync(current, paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OpenCodeServerException failure)
+        catch (Exception failure) when (failure is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             _lastReplaceFailure = failure;
         }
