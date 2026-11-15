@@ -80,10 +80,21 @@ internal static class LadderTree
     /// <param name="role">The role.</param>
     /// <param name="hangGuard">Bounds a tree that never reports; it decides nothing else.</param>
     /// <returns>The pid.</returns>
+    /// <exception cref="TimeoutException">The guard expires before the role reports its pid.</exception>
+    public static Task<int> WaitForPidAsync(OpenCodeServerOutput output, string role, TimeSpan hangGuard) =>
+        WaitForPidAsync(output, role, hangGuard, TimeProvider.System);
+
+    /// <summary>Waits for a role's pid with the guard and pauses driven by the supplied clock.</summary>
+    /// <param name="output">The start's collector.</param>
+    /// <param name="role">The role.</param>
+    /// <param name="hangGuard">Bounds a tree that never reports; it decides nothing else.</param>
+    /// <param name="time">The clock that drives the guard and pauses.</param>
+    /// <returns>The pid.</returns>
+    /// <exception cref="TimeoutException">The guard expires before the role reports its pid.</exception>
     [SlopwatchSuppress("SW004", "The collector raises no arrival event; the pause only paces a re-read, and the arrival decides")]
-    public static async Task<int> WaitForPidAsync(OpenCodeServerOutput output, string role, TimeSpan hangGuard)
+    public static async Task<int> WaitForPidAsync(OpenCodeServerOutput output, string role, TimeSpan hangGuard, TimeProvider time)
     {
-        using var guard = new CancellationTokenSource(hangGuard);
+        using var guard = TimedCancellation.Create(hangGuard, time);
         while (true)
         {
             if (Pids(output).TryGetValue(role, out var pid))
@@ -91,7 +102,21 @@ internal static class LadderTree
                 return pid;
             }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(10), guard.Token);
+            try
+            {
+#if NET
+                await Task.Delay(TimeSpan.FromMilliseconds(10), time, guard.Token);
+#else
+                await time.Delay(TimeSpan.FromMilliseconds(10), guard.Token);
+#endif
+            }
+            catch (OperationCanceledException exception) when (guard.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"The ladder tree reported no '{role}' pid within "
+                    + hangGuard.TotalSeconds.ToString(CultureInfo.InvariantCulture)
+                    + " s: " + string.Join(" | ", output.GetSnapshot().StandardError), exception);
+            }
         }
     }
 
