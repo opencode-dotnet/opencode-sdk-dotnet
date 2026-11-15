@@ -12,6 +12,7 @@ internal sealed class TerminalSendDeadline : IDisposable
     private readonly CancellationTokenRegistration _interruption;
     private readonly Func<TerminalConnectionOutcome?> _getOutcome;
     private readonly Type _owner;
+    private readonly WebSocketFailureContext? _context;
     private Task? _physicalSend;
     private bool _sendThrew;
     private bool _timeoutAccepted;
@@ -21,8 +22,14 @@ internal sealed class TerminalSendDeadline : IDisposable
         TimeSpan timeout,
         TimeProvider time,
         Func<TerminalConnectionOutcome?> getOutcome,
-        CancellationToken caller)
+        CancellationToken caller) : this(owner, timeout, time, getOutcome, context: null, caller)
     {
+    }
+
+    public TerminalSendDeadline(Type owner, TimeSpan timeout, TimeProvider time,
+        Func<TerminalConnectionOutcome?> getOutcome, WebSocketFailureContext? context, CancellationToken caller)
+    {
+        _context = context;
         _owner = owner;
         _caller = caller;
         _getOutcome = getOutcome;
@@ -59,7 +66,7 @@ internal sealed class TerminalSendDeadline : IDisposable
     {
         if (_caller.IsCancellationRequested)
         {
-            return new OperationCanceledException("The opencode PTY WebSocket send was canceled.", exception, _caller);
+            return new OperationCanceledException($"{(_context ?? WebSocketFailureContext.Terminal).Prefix} send was canceled.", exception, _caller);
         }
 
         if (queued && disposed)
@@ -72,13 +79,13 @@ internal sealed class TerminalSendDeadline : IDisposable
             if (_timeoutAccepted)
             {
                 var message = queued
-                    ? "The opencode PTY WebSocket send timed out while waiting for send admission."
-                    : "The opencode PTY WebSocket send timed out during the socket write; delivery is uncertain.";
+                    ? $"{(_context ?? WebSocketFailureContext.Terminal).Prefix} send timed out while waiting for send admission."
+                    : $"{(_context ?? WebSocketFailureContext.Terminal).Prefix} send timed out during the socket write; delivery is uncertain.";
                 return new OpenCodeTransportException(message, new TimeoutException(message, exception));
             }
         }
 
-        return outcome?.SendFailure ?? FailureClassification.Map(exception, FailurePhase.PtyWebSocketWrite, _caller);
+        return outcome?.SendFailure ?? FailureClassification.Map(exception, FailurePhase.PtyWebSocketWrite, _context, _caller);
     }
 
     /// <summary>Releases the operation's registrations and timer once its send settles.</summary>

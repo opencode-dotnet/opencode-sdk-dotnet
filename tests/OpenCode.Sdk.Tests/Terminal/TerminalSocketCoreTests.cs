@@ -15,6 +15,31 @@ namespace OpenCode.Sdk.Tests.Terminal;
 public sealed class TerminalSocketCoreTests
 {
     [Test]
+    [Arguments(false, "could not be read.")]
+    [Arguments(true, "could not be written to.")]
+    public async Task ReadAsync_Should_Use_The_Owners_Failure_Context(bool write, string suffix)
+    {
+        var cause = new WebSocketException("wire");
+        using var socket = write ? new ScriptedTerminalWebSocket().FailingNextSendWith(cause) : new ScriptedTerminalWebSocket().Faulting(cause);
+        await using var core = new TerminalSocketCore<PtyFrame>(socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance,
+            typeof(ClientMcpOptions), new ManualTimeProvider(), context: new WebSocketFailureContext("client MCP 'app'"));
+        var failure = await Assert.That(async () =>
+        {
+            if (write)
+            {
+                await core.SendAsync(new ArraySegment<byte>([1]), WebSocketMessageType.Text, CancellationToken.None);
+            }
+            else
+            {
+                await using var frames = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator();
+                _ = await frames.MoveNextAsync();
+            }
+        }).Throws<OpenCodeTransportException>();
+        await Assert.That(failure!.Message).IsEqualTo($"The opencode client MCP 'app' WebSocket {suffix}");
+        await Assert.That(failure.InnerException).IsSameReferenceAs(cause);
+    }
+
+    [Test]
     public async Task ReadAsync_Should_Limit_An_Oversized_Rent_And_Return_It_After_Normal_Close()
     {
         var pool = new TrackingByteArrayPool(spareCapacity: 64);

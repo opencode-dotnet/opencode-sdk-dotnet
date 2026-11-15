@@ -1,5 +1,7 @@
+using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Experimental.Support;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Terminal;
@@ -12,6 +14,30 @@ namespace OpenCode.Sdk.Tests.Terminal;
 public sealed class ClientTerminalWebSocketTests
 {
     private const string TerminalId = "pty_100";
+
+    [Test]
+    [Arguments(false, "Basic root")]
+    [Arguments(true, "Bearer explicit")]
+    public async Task ConnectAsync_Should_Apply_Root_And_Explicit_Handshake_Headers(bool overrideAuthorization, string expected)
+    {
+        using var scenario = new ClientMcpScenario();
+        var listener = scenario.Listener;
+        using var raw = new ClientWebSocket();
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Extra"] = "extra" };
+        if (overrideAuthorization)
+        {
+            headers["Authorization"] = "Bearer explicit";
+        }
+
+        using var socket = new ClientTerminalWebSocket(raw, new AuthenticationHeaderValue("Basic", "root"), headers);
+        var connect = socket.ConnectAsync(new UriBuilder(listener.Prefixes.Single()) { Scheme = "ws" }.Uri,
+            "app", new ClientMcpUpgradeFailurePolicy(), CancellationToken.None);
+        var request = await listener.GetContextAsync();
+        using var peer = (await request.AcceptWebSocketAsync(subProtocol: null)).WebSocket;
+        await connect;
+        await Assert.That(request.Request.Headers["Authorization"]).IsEqualTo(expected);
+        await Assert.That(request.Request.Headers["X-Extra"]).IsEqualTo("extra");
+    }
 
     /// <summary>
     /// Loopback port 1 is the address nothing in this repository ever binds, so the upgrade is

@@ -21,15 +21,18 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
     private readonly ArrayPool<byte> _pool;
     private bool _abandoned;
     private TerminalConnectionOutcome? _outcome;
+    private readonly WebSocketFailureContext? _context;
 
     public TerminalReceivePump(
         ITerminalWebSocket socket,
         ITerminalFrameDecoder<TFrame> decoder,
         ITerminalClosePolicy closePolicy,
         Func<Task> onEnded,
-        ArrayPool<byte> pool)
+        ArrayPool<byte> pool,
+        WebSocketFailureContext? context = null)
     {
         _pool = pool;
+        _context = context;
         _completion = ReceiveAsync(socket, decoder, closePolicy, onEnded);
     }
 
@@ -82,7 +85,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
                 return;
             }
 
-            _outcome = new TerminalConnectionOutcome(failure);
+            _outcome = new TerminalConnectionOutcome(failure, _context);
             _ = _frames.Writer.TryComplete();
         }
     }
@@ -93,7 +96,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         lock (_sync)
         {
             _abandoned = true;
-            _outcome = new TerminalConnectionOutcome(null);
+            _outcome = new TerminalConnectionOutcome(null, _context);
             _ = _frames.Writer.TryComplete();
             while (_frames.Reader.TryRead(out _))
             {
@@ -131,7 +134,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.PtyWebSocketRead))
         {
-            Complete(FailureClassification.Map(exception, FailurePhase.PtyWebSocketRead, CancellationToken.None));
+            Complete(FailureClassification.Map(exception, FailurePhase.PtyWebSocketRead, _context, CancellationToken.None));
         }
         catch (OpenCodeTransportException exception)
         {

@@ -76,6 +76,12 @@ internal static class ReservedNamePolicy
     /// </summary>
     public static readonly FrozenSet<string> SpineTypeNames = FrozenSet.ToFrozenSet(
         [
+            "ClientMcpContent",
+            "ClientMcpOptions",
+            "ClientMcpSchema",
+            "ClientMcpTool",
+            "ClientMcpToolContext",
+            "ClientMcpToolResult",
             "CursorSequence",
             "ErrorBehavior",
             "EventConnectionState",
@@ -194,6 +200,9 @@ internal static class ReservedNamePolicy
             "ChildStreamSet",
             "ClientIdentityComposer",
             "ClientLifetime",
+            "ClientMcpConnectUriBuilder",
+            "ClientMcpConnector",
+            "ClientMcpUpgradeFailurePolicy",
             "ClientTerminalWebSocket",
             "ConnectionResolver",
             "ConnectionSeams",
@@ -424,6 +433,7 @@ internal static class ReservedNamePolicy
             "UnionVariantRead",
             "UserAgentPolicy",
             "VersionMismatchNotifier",
+            "WebSocketFailureContext",
             "WebSocketSchemePolicy",
             "WindowsChildExit",
             "WindowsCommand",
