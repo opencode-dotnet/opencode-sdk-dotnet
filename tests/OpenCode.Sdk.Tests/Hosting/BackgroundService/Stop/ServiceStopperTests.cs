@@ -522,9 +522,11 @@ public sealed class ServiceStopperTests
     }
 
     [Test]
-    [Arguments(false)]
-    [Arguments(true)]
-    public async Task StopAsync_Should_Terminate_When_Handoff_Preparation_Fails(bool endpointRefusal)
+    [Arguments(false, "server")]
+    [Arguments(true, "server")]
+    [Arguments(false, "io")]
+    [Arguments(false, "timeout")]
+    public async Task StopAsync_Should_Terminate_When_Handoff_Preparation_Fails(bool endpointRefusal, string failureKind)
     {
         SeedModern();
         if (endpointRefusal)
@@ -542,13 +544,43 @@ public sealed class ServiceStopperTests
                     _ = EndpointPolicy.Normalize(call.Arg<ServiceRegistration>().Endpoint);
                 }
 
-                return Task.FromException(new OpenCodeServerException("The handoff failed."));
+                Exception failure = failureKind switch
+                {
+                    "io" => new IOException("The handoff failed."),
+                    "timeout" => new OperationCanceledException("The handoff request timed out."),
+                    _ => new OpenCodeServerException("The handoff failed."),
+                };
+                return Task.FromException(failure);
             });
 
-        await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { Pty = OpenCodeServerStopPtyMode.Handoff }, CancellationToken.None);
+        try
+        {
+            await Stopper(handoff).StopAsync(new OpenCodeServerStopOptions { Pty = OpenCodeServerStopPtyMode.Handoff }, CancellationToken.None);
+        }
+        finally
+        {
+            _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+        }
 
         _ = handoff.Received(1).PrepareAsync(SharedRegistrationPath(), Arg.Any<ServiceRegistration>(), Timing.RequestTimeout, Arg.Any<CancellationToken>());
-        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+    }
+
+    [Test]
+    public async Task StopAsync_Should_Terminate_When_The_Default_Clear_Fails()
+    {
+        SeedModern();
+        var handoff = Substitute.For<IServicePtyHandoff>();
+        handoff.ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new IOException("The sidecar could not be cleared.")));
+
+        try
+        {
+            await Stopper(handoff).StopAsync(options: null, CancellationToken.None);
+        }
+        finally
+        {
+            _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+        }
     }
 
     [Test]

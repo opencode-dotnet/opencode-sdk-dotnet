@@ -9,7 +9,7 @@ internal sealed class ServicePtyHandoffStep(IServicePtyHandoff handoff, TimeSpan
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client's stop catches a failed handoff or clear and only warns (service.ts): endpoint refusal is best-effort too, and termination of the old service remains the observable outcome.")]
+        "The pinned client's stop catches every handoff or clear failure and only warns (stop in promise/service.ts and effect/service.ts); the SDK has no warning channel here, so the failure is dropped. Only the caller's cancellation propagates, so the old service is still terminated.")]
     public async Task RunAsync(string registrationFile, ServiceRegistration? registration, bool handOff, CancellationToken cancellationToken)
     {
         try
@@ -25,7 +25,7 @@ internal sealed class ServicePtyHandoffStep(IServicePtyHandoff handoff, TimeSpan
                 await handoff.ClearAsync(registrationFile, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception failure) when (failure is OpenCodeServerException or ArgumentException { ParamName: "endpoint" })
+        catch (Exception failure) when (failure is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             // Best-effort: the old service is terminated next either way.
         }

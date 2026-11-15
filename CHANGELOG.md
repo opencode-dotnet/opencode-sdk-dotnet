@@ -22,6 +22,7 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
+- `StopAsync` and the `EnsureAsync` version-mismatch replacement treat a failed persistent-terminal handoff or clear as best-effort, whatever the exception type, as opencode's CLI does. Before: a failure other than an `OpenCodeServerException` ended `StopAsync` before it terminated the old service, and ended `EnsureAsync` at once. After: `StopAsync` terminates the old service; `EnsureAsync` keeps polling, and the last replacement failure becomes the inner exception of its timeout. The caller's cancellation still ends both. (#871)
 - The packages' .NET dependency floors move from `10.0.13` to the `10.0.15` servicing release: on `net472` and `netstandard2.0`, `System.Text.Json`, `System.Threading.Channels`, `System.Collections.Immutable`, `Microsoft.Bcl.AsyncInterfaces`, `Microsoft.Bcl.Memory` and `Microsoft.Bcl.TimeProvider`; in `OpenCodeDotNet.Sdk.Extensions`, on every target, `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Options.ConfigurationExtensions`. No security advisory of the .NET 10.0.14 or 10.0.15 release lists these packages.
 - Background-service discovery (`OpenCodeServer.DiscoverAsync` and the probe `EnsureAsync` runs) now takes the client's proxy decision for a loopback service. Behind an environment proxy (`HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`), set `NO_PROXY` to reach a loopback service directly, as with opencode's CLI; behind a system proxy, that proxy's own bypass list applies, as it does for the client. .NET Framework is unchanged.
 
