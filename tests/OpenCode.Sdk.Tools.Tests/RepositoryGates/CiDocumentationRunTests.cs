@@ -29,6 +29,7 @@ public sealed class CiDocumentationRunTests
                       fi
             """);
         await Assert.That(changes).Contains("""
+                      git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"
                       code=false
                       docs=false
                       benchmarks=false
