@@ -54,6 +54,14 @@ public sealed class CancellationIdentityTests
         // Since upstream v2.3.0 stop has no cancellable network wait: entry is its first cancellation point.
         // Mid-poll cancellation is proven by StopAsync_Should_Leave_The_Registration_When_Cancelled_After_The_Terminate_Signal.
         yield return new("stop", "pre-cancelled", ServiceDoors.AtStopPreCancelledAsync);
+        foreach (var door in new ServiceConfigCancellationDoors(token => OpenCodeServiceConfiguration.ReadAsync(cancellationToken: token)).Rows)
+        {
+            yield return new(door.Row, "pre-cancelled", async caller =>
+            {
+                await caller.CancelOnWorkerAsync();
+                return await CancellationAsync(() => door.Invoke(caller.Token));
+            });
+        }
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -641,6 +649,8 @@ public sealed class CancellationIdentityTests
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(Task<>)) &&
                 typeof(OpenCodeResponse).IsAssignableFrom(member.ReturnType.GetGenericArguments()[0]) => "http",
+            _ when member.IsStatic && member.DeclaringType == typeof(OpenCodeServiceConfiguration) &&
+                new ServiceConfigCancellationDoors(token => OpenCodeServiceConfiguration.ReadAsync(cancellationToken: token)).RowFor(member.Name) is { } row => row,
             _ => null,
         };
 

@@ -19,6 +19,20 @@ public sealed class ServiceFileSystemTests
 {
     private static readonly byte[] Content = Encoding.UTF8.GetBytes("{\"url\":\"http://127.0.0.1:1\"}");
 
+    [Test]
+    public async Task Exists_Should_Report_Files_And_Directories_And_Reject_Missing_Entries()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var file = directory.File("exists.json");
+        _ = await new ServiceFileSystem().TryCreateExclusiveAsync(file, Content, CancellationToken.None);
+        var fileSystem = new ServiceFileSystem();
+
+        await Assert.That(file).Satisfies(path => path is not null && fileSystem.Exists(path));
+        await Assert.That(directory.Path).Satisfies(path => path is not null && fileSystem.Exists(path));
+        await Assert.That(directory.File("absent.json")).Satisfies(path => path is not null && !fileSystem.Exists(path));
+        await Assert.That(directory.File("missing", "absent.json")).Satisfies(path => path is not null && !fileSystem.Exists(path));
+    }
+
     private static class ServiceFileSystemData
     {
         public const int SharingViolation = 32;

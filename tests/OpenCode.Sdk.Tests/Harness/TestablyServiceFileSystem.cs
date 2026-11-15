@@ -14,6 +14,19 @@ internal sealed class TestablyServiceFileSystem(IFileSystem fileSystem) : IServi
 {
     private const int CopyBufferSize = 4096;
 
+    public bool Exists(string path)
+    {
+        try
+        {
+            _ = fileSystem.File.GetAttributes(path);
+            return true;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
+    }
+
     public async Task<byte[]?> TryReadAllBytesAsync(string path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

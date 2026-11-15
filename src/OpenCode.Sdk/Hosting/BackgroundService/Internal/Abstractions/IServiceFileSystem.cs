@@ -2,11 +2,16 @@ namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The file access the background-service door performs, and nothing more: read, one exclusive
-/// create, one rename, and one delete. The shipped implementation sits on <c>System.IO</c>; tests
+/// create, one existence check, one rename, and one delete. The shipped implementation sits on <c>System.IO</c>; tests
 /// supply an adapter over the repository's filesystem double.
 /// </summary>
 internal interface IServiceFileSystem
 {
+    /// <summary>Whether any directory entry, including a directory or link, occupies the path.</summary>
+    /// <param name="path">The absolute path an exclusive create would find occupied.</param>
+    /// <returns>True when an entry exists, even when its contents cannot be read.</returns>
+    public bool Exists(string path);
+
     /// <summary>
     /// Reads a whole file the way the pinned client's <c>read</c> treats one: a file that is
     /// missing, sits under a missing directory, or cannot be read is absent state, never a

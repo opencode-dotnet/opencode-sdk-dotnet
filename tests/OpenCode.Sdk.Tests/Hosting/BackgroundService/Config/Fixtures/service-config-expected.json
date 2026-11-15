@@ -1,0 +1,86 @@
+[
+  {
+    "name": "absent",
+    "outcome": "ok",
+    "message": null,
+    "output": "{}",
+    "file": null
+  },
+  {
+    "name": "empty",
+    "outcome": "ok",
+    "message": null,
+    "output": "{}",
+    "file": "{}"
+  },
+  {
+    "name": "all-members",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"disabled\": true,\n  \"remote\": {},\n  \"remoteAccepted\": true,\n  \"hostname\": \"127.0.0.2\",\n  \"port\": 5123,\n  \"cors\": [\n    \"https://b.example\",\n    \"https://a.example\"\n  ],\n  \"env\": {\n    \"10\": \"ten\",\n    \"B\": \"two\",\n    \"XDG_STATE_HOME\": \"saved-state\"\n  }\n}",
+    "file": "{\"env\":{\"B\":\"two\",\"10\":\"ten\",\"XDG_STATE_HOME\":\"saved-state\"},\"cors\":[\"https://b.example\",\"https://a.example\"],\"password\":\"stored-password\",\"port\":5123,\"hostname\":\"127.0.0.2\",\"remoteAccepted\":true,\"remote\":{\"route\":\"stored-route\"},\"disabled\":true}"
+  },
+  {
+    "name": "legacy-on",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"hostname\": \"legacy-on\",\n  \"env\": {\n    \"A\": \"1\"\n  },\n  \"remote\": {}\n}",
+    "file": "{\n  \"hostname\": \"legacy-on\",\n  \"env\": {\n    \"A\": \"1\"\n  },\n  \"remote\": {\n    \"route\": \"@route\"\n  }\n}\n"
+  },
+  {
+    "name": "legacy-off",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"hostname\": \"legacy-off\",\n  \"env\": {\n    \"A\": \"1\"\n  }\n}",
+    "file": "{\n  \"hostname\": \"legacy-off\",\n  \"env\": {\n    \"A\": \"1\"\n  }\n}\n"
+  },
+  {
+    "name": "accepted-without-remote",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"remoteAccepted\": true\n}",
+    "file": "{\"remoteAccepted\":true}"
+  },
+  {
+    "name": "neither-shape",
+    "outcome": "ok",
+    "message": null,
+    "output": "{}",
+    "file": "{\"disabled\":\"true\"}"
+  },
+  {
+    "name": "unknown-member",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"port\": 4096\n}",
+    "file": "{\"future\":{\"nested\":true},\"port\":4096}"
+  },
+  {
+    "name": "stored-route-and-env-route",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"remote\": {},\n  \"env\": {\n    \"route\": \"environment-route\"\n  }\n}",
+    "file": "{\"remote\":{\"route\":\"kept-route\"},\"password\":\"kept-password\",\"env\":{\"route\":\"environment-route\"}}"
+  },
+  {
+    "name": "repeated-member",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"hostname\": \"last\",\n  \"env\": {\n    \"A\": \"1\"\n  }\n}",
+    "file": "{\"hostname\":\"first\",\"hostname\":\"last\",\"env\":{\"A\":\"1\"}}"
+  },
+  {
+    "name": "surrogate-route",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"remote\": {},\n  \"env\": {\n    \"A\": \"1\"\n  }\n}",
+    "file": "{\"remote\":{\"route\":\"\\ud800\"},\"env\":{\"A\":\"1\"}}"
+  },
+  {
+    "name": "surrogate-cors",
+    "outcome": "ok",
+    "message": null,
+    "output": "{\n  \"cors\": [\n    \"\\ud800\"\n  ],\n  \"env\": {\n    \"A\": \"1\"\n  }\n}",
+    "file": "{\"cors\":[\"\\ud800\"],\"env\":{\"A\":\"1\"}}"
+  }
+]

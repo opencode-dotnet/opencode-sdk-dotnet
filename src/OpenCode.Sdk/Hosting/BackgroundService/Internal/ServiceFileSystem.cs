@@ -28,6 +28,19 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
 
     internal ServiceFileSystem(IFileRenameKernel? renameKernel) => _renameKernel = renameKernel;
 
+    public bool Exists(string path)
+    {
+        try
+        {
+            _ = File.GetAttributes(path);
+            return true;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
+    }
+
     public async Task<byte[]?> TryReadAllBytesAsync(string path, CancellationToken cancellationToken)
     {
         try

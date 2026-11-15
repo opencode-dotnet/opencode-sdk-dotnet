@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 
@@ -11,6 +12,47 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 /// </summary>
 public sealed class ServiceConfigReaderTests
 {
+    [Test]
+    [Arguments(ServiceConfigData.RemoteRoute, null)]
+    [Arguments(ServiceConfigData.LegacyRemoteTrue, true)]
+    [Arguments(ServiceConfigData.LegacyRemoteFalse, false)]
+    public async Task TryReadDocument_Should_Retain_The_Current_And_Legacy_Remote_Values(string json, bool? legacy)
+    {
+        var document = ServiceConfigReader.TryReadDocument(Bytes(json));
+
+        await Assert.That(document).IsNotNull();
+        await Assert.That(document.LegacyRemote).IsEqualTo(legacy);
+        await Assert.That(document.RemoteRoute).IsEqualTo(legacy is null ? "0123456789abcdef" : null);
+        await Assert.That(document.Environment!["A"]).IsEqualTo("1");
+        await Assert.That(ServiceConfigReader.IsCurrent(Bytes(json))).IsEqualTo(legacy is null);
+    }
+
+    [Test]
+    [Arguments("surrogate-route")]
+    [Arguments("surrogate-cors")]
+    [Arguments("repeated-member")]
+    public async Task TryReadDocument_Should_Refuse_Undecodable_Strings_Without_Changing_The_Existing_Projections(string name)
+    {
+        using var corpus = JsonDocument.Parse(new FixtureLoader().LoadJson("BackgroundService.service-config-corpus.json"));
+        var json = corpus.RootElement.EnumerateArray().Single(row => row.GetProperty("name").GetString() == name)
+            .GetProperty("initial").GetString()!;
+        var bytes = Bytes(json);
+
+        await Assert.That(ServiceConfigReader.TryReadDocument(bytes)).IsNull();
+        if (name == "repeated-member")
+        {
+            await Assert.That(ServiceConfigReader.TryReadEnvironment(bytes)).IsNull();
+            await Assert.That(ServiceConfigReader.IsCurrent(bytes)).IsFalse();
+        }
+        else
+        {
+            var environment = ServiceConfigReader.TryReadEnvironment(bytes);
+            await Assert.That(environment).IsNotNull();
+            await Assert.That(environment["A"]).IsEqualTo("1");
+            await Assert.That(ServiceConfigReader.IsCurrent(bytes)).IsTrue();
+        }
+    }
+
     [Test]
     public async Task TryReadEnvironment_Should_Return_The_Environment_Map_Of_The_Pinned_Config()
     {

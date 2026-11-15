@@ -63,6 +63,21 @@ internal sealed record ServiceSelection(
                 options.InstalledVersion,
                 options.ExpectedVersion);
 
+    /// <summary>Validates and snapshots service-configuration options.</summary>
+    /// <param name="options">The public options; null means every default.</param>
+    /// <returns>The selection, without a direct registration path or expected version.</returns>
+    /// <exception cref="ArgumentException">An option is blank.</exception>
+    public static ServiceSelection Snapshot(OpenCodeServiceConfigOptions? options) =>
+        options is null
+            ? new ServiceSelection(null, null, null, null)
+            : Validate(
+                nameof(OpenCodeServiceConfigOptions) + ".",
+                nameof(options),
+                options.Channel,
+                registrationFilePath: null,
+                options.InstalledVersion,
+                expectedVersion: null);
+
     /// <summary>
     /// The one rule set both option types share; <paramref name="prefix"/> names the type in every
     /// message and <paramref name="paramName"/> is the public method's parameter the exception names.

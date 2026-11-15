@@ -1,0 +1,65 @@
+[
+  {
+    "name": "absent",
+    "initial": null,
+    "command": ["get"]
+  },
+  {
+    "name": "empty",
+    "initial": "{}",
+    "command": ["get"]
+  },
+  {
+    "name": "all-members",
+    "initial": "{\"env\":{\"B\":\"two\",\"10\":\"ten\",\"XDG_STATE_HOME\":\"saved-state\"},\"cors\":[\"https://b.example\",\"https://a.example\"],\"password\":\"stored-password\",\"port\":5123,\"hostname\":\"127.0.0.2\",\"remoteAccepted\":true,\"remote\":{\"route\":\"stored-route\"},\"disabled\":true}",
+    "command": ["get"]
+  },
+  {
+    "name": "legacy-on",
+    "initial": "{\"remote\":true,\"hostname\":\"legacy-on\",\"env\":{\"A\":\"1\"}}",
+    "command": ["get"]
+  },
+  {
+    "name": "legacy-off",
+    "initial": "{\"remote\":false,\"hostname\":\"legacy-off\",\"env\":{\"A\":\"1\"}}",
+    "command": ["get"]
+  },
+  {
+    "name": "accepted-without-remote",
+    "initial": "{\"remoteAccepted\":true}",
+    "command": ["get"]
+  },
+  {
+    "name": "neither-shape",
+    "initial": "{\"disabled\":\"true\"}",
+    "command": ["get"]
+  },
+  {
+    "name": "unknown-member",
+    "initial": "{\"future\":{\"nested\":true},\"port\":4096}",
+    "command": ["get"]
+  },
+  {
+    "name": "stored-route-and-env-route",
+    "initial": "{\"remote\":{\"route\":\"kept-route\"},\"password\":\"kept-password\",\"env\":{\"route\":\"environment-route\"}}",
+    "command": ["get"]
+  },
+  {
+    "name": "repeated-member",
+    "initial": "{\"hostname\":\"first\",\"hostname\":\"last\",\"env\":{\"A\":\"1\"}}",
+    "command": ["get"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "surrogate-route",
+    "initial": "{\"remote\":{\"route\":\"\\ud800\"},\"env\":{\"A\":\"1\"}}",
+    "command": ["get"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "surrogate-cors",
+    "initial": "{\"cors\":[\"\\ud800\"],\"env\":{\"A\":\"1\"}}",
+    "command": ["get"],
+    "divergence": "Q2-a"
+  }
+]
