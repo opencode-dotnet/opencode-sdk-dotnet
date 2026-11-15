@@ -64,6 +64,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
         }
         catch (Exception failure) when (failure is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
+            // The SDK drops request failures where upstream warns (prepare in pty-handoff.ts); it has no warning channel here.
             // Another caller may already have prepared and stopped this server; otherwise the
             // daemon's terminals are shut down and the replacement starts without a handoff.
             if (await IsFreshMatchAsync(sidecarPath, registration, cancellationToken).ConfigureAwait(false))
@@ -190,7 +191,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client's prepare catches every shutdown fallback failure (prepare in pty-handoff.ts); the SDK has no warning channel here, so request failures are dropped where upstream warns and shutdown failures are dropped as upstream does. Only the caller's cancellation propagates, so the replacement starts without the terminals.")]
+        "The pinned client's prepare drops every shutdown fallback failure with .catch(() => {}) (prepare in pty-handoff.ts); the SDK drops it silently as upstream does. Only the caller's cancellation propagates, and a null sidecar is published next.")]
     private async Task ShutdownAsync(ServiceRegistration registration, TimeSpan timeout, CancellationToken cancellationToken)
     {
         using var deadline = TimedCancellation.Create(timeout, time);

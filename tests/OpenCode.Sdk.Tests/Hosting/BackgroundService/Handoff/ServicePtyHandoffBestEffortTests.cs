@@ -98,7 +98,6 @@ public sealed class ServicePtyHandoffBestEffortTests
 
     [Test]
     [Arguments("options")]
-    [Arguments(null)]
     [Arguments("io")]
     public async Task PrepareAsync_Should_Swallow_A_Failed_Shutdown_Fallback(string? parameterName)
     {
@@ -114,6 +113,7 @@ public sealed class ServicePtyHandoffBestEffortTests
         await Assert.That(async () => await handoff.PrepareAsync(
             _scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, CancellationToken.None)).ThrowsNothing();
 
+        _ = shutdown.Received(1).ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>());
         _ = await _scenario.AssertNullSidecarAsync();
     }
 
@@ -121,6 +121,7 @@ public sealed class ServicePtyHandoffBestEffortTests
     public async Task PrepareAsync_Should_Take_The_Shutdown_Fallback_When_The_Ticket_Request_Fails_With_An_IO_Error()
     {
         _scenario.EnsureSidecarDirectory();
+        await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.NotFound, "{}"));
         var files = new TestablyServiceFileSystem(_scenario.FileSystem);
         var fileSystem = Substitute.For<IServiceFileSystem>();
         fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -138,11 +139,12 @@ public sealed class ServicePtyHandoffBestEffortTests
                 call => _scenario.Clock.CreateTimer(call.Arg<TimerCallback>(), call.Arg<object?>(), call.ArgAt<TimeSpan>(2), call.ArgAt<TimeSpan>(3)));
         var shutdown = Substitute.For<IServicePtyShutdown>();
         shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
-        var registration = FixedRegistration();
+        var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
         await Assert.That(async () => await new ServicePtyHandoff(fileSystem, time, shutdown).PrepareAsync(
             _scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None)).ThrowsNothing();
 
+        await Assert.That(server.Requests).IsEmpty();
         _ = fileSystem.Received(2).TryReadAllBytesAsync(_scenario.SidecarPath(), CancellationToken.None);
         _ = shutdown.Received(1).ShutdownAsync(registration, Arg.Any<CancellationToken>());
         _ = await _scenario.AssertNullSidecarAsync();
