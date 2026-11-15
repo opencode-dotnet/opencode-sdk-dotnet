@@ -1,9 +1,10 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The one network exchange discovery performs: an authenticated info request against a
-/// registration's endpoint, classified into the daemon's state. Behind a seam so the orchestration
-/// is tested without a socket and so the pin's route and identity decoder live in one place.
+/// The one network exchange discovery performs: an info request against a registration's endpoint,
+/// Basic-authenticated when the registration has a password, classified into the daemon's state.
+/// Behind a seam so the orchestration is tested without a socket and so the pin's route and
+/// identity decoder live in one place.
 /// </summary>
 internal interface IServiceInfoProbe
 {

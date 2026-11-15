@@ -12,11 +12,9 @@ Nightly builds of `master` are on
 ### 💥 Breaking changes
 
 - `OpenCodeServerOptions.ReadinessTimeout` now defaults to `Timeout.InfiniteTimeSpan`: a standalone start waits for readiness until its cancellation token fires, as opencode's CLI does. Before: `StartAsync()` failed after 60 seconds without a readiness line. After: set `ReadinessTimeout = TimeSpan.FromSeconds(60)` to keep that failure, an `OpenCodeServerException` naming the bound; a cancellation token bounds the wait too, but ends the start with `OperationCanceledException`.
-- `OpenCodeServer.Password` is `string?`: a background service whose registration carries no password is now discovered and reused, as opencode's CLI does, and its handle's `Password` is null. Before: `string password = server.Password;`. After: `string? password = server.Password;`.
+- **A background service registered without a password is used, as opencode's CLI uses it.** `OpenCodeServer.Password` is `string?`: such a service is now discovered and reused, and its handle's `Password` is null. Before: `string password = server.Password;`. After: `string? password = server.Password;`.
 
 ### 🔧 Changes
-
-- Background-service discovery and `EnsureAsync` use a registration without a password instead of ignoring it.
 
 - Background-service discovery (`OpenCodeServer.DiscoverAsync` and the probe `EnsureAsync` runs) now takes the client's proxy decision for a loopback service. Behind an environment proxy (`HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`), set `NO_PROXY` to reach a loopback service directly, as with opencode's CLI; behind a system proxy, that proxy's own bypass list applies, as it does for the client. .NET Framework is unchanged.
 

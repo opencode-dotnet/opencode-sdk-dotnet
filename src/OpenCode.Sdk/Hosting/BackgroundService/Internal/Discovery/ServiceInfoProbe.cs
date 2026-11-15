@@ -6,7 +6,8 @@ using System.Text;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// Performs the pinned client's authenticated info exchange over the probe's own loopback-aware
+/// Performs the pinned client's info exchange, Basic-authenticated when the registration has a
+/// password, over the probe's own loopback-aware
 /// transport (<see cref="LoopbackTransport"/> on the platform). The probe decodes only pid/version; the public
 /// generated info model has a different contract. Discovery keeps its own request bound and never
 /// forwards credentials on redirects.

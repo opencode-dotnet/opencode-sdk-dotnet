@@ -512,13 +512,12 @@ Windows: its refused port answers at once, while a proxy in the way can take up 
 
 ### What the handle is
 
-A discovered `OpenCodeServer` carries the same `Endpoint`, `Username`, `Password`, and `ProcessId`
-a started one does, and `CreateClient()` binds a client to it the same way. When the registration
-published no password, the handle's `Password` is null and its client sends no credential.
-The difference is
-ownership, and it is visible: **`OwnsProcess` is false**, `DisposeAsync` ends nothing, and the pid
-is the daemon's own rather than a child of yours. Do not kill that pid: it is shared with every
-other opencode client on the machine.
+A discovered `OpenCodeServer` carries the same `Endpoint`, `Username`, `Password`, and `ProcessId` a
+started one does, and `CreateClient()` binds a client to it the same way. When the registration
+published no password, the handle's `Password` is null and its client sends no credential. The
+difference is ownership, and it is visible: **`OwnsProcess` is false**, `DisposeAsync` ends nothing,
+and the pid is the daemon's own rather than a child of yours. Do not kill that pid: it is shared
+with every other opencode client on the machine.
 
 ### What can fail
 

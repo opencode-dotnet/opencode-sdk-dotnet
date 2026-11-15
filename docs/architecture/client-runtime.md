@@ -850,10 +850,10 @@ start, before any test fallback cleanup.
 delegate receives a fresh identity-unset options instance, and setting `Endpoint`, `Username`, or
 `Password` there is refused with `InvalidOperationException`. On success the door never mutates the
 delegate's instance: it builds a distinct, freshly constructed `OpenCodeClientOptions` carrying its
-own endpoint and lease credential, copying over only the behavior members (`Location`) the delegate
-set; the object the delegate received stays identity-unset for as long as the caller keeps a
-reference to it. Every call builds a new client over its own owned transport, which the caller
-disposes.
+own endpoint and credential (a started server's lease, a registration's password, or none),
+copying over only the behavior members (`Location`) the delegate set; the object the delegate
+received stays identity-unset for as long as the caller keeps a reference to it. Every call builds
+a new client over its own owned transport, which the caller disposes.
 
 The failure plane of every local-server door, standalone start and background-service discovery
 alike, is `OpenCodeServerException : OpenCodeException`. A bounded stderr tail rides every startup
@@ -932,7 +932,8 @@ refuses as a target: the connect target becomes the same family's loopback, whil
 URL is kept verbatim for identity.
 The info probe is a raw `GET /api/info` through an owned non-redirecting handler with a
 two-second bound. It uses Basic authentication when the registration has a password and sends no
-credential otherwise, as upstream does. It rides neither the pipeline's decoration policy nor its progress window, and
+credential otherwise, as upstream does. It rides neither the pipeline's decoration policy nor its
+progress window, and
 `ServiceInfoProbe` owns its transport and path, while `ServiceProbeResponseClassifier` decodes
 only the required first-party pid/version evidence. Every owned loopback connect on Windows
 (.NET 5 and later), in both the probe's transport (`LoopbackTransport`) and the pipeline's owned
