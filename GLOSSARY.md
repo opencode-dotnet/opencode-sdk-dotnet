@@ -146,6 +146,19 @@ _Avoid_: RPC alone (the SDK's own HTTP calls are not RPC)
 A plugin's typed declaration, under its RPC id, of the methods its Plugin RPC answers and the
 events it publishes.
 
+**File system**:
+The files a Location exposes to clients, read, listed, found, written and watched relative to its
+directory. The SDK names upstream's `fs` client `FileSystemClient` after upstream's own
+`FileSystem` name rather than the abbreviation.
+_Avoid_: Source watch (the SDK's pinned upstream evidence, not a file watch)
+
+**MCP server**:
+A Model Context Protocol server, local or remote, that a Location connects to for tools and
+resources, with its own connection status. The SDK names upstream's `mcp` client
+`McpServersClient` after the `Mcp.Server` records it lists rather than a mechanical plural.
+_Avoid_: MCP alone (the protocol); the MCP server built on this SDK (a sibling project, not an
+opencode capability)
+
 #### Servers and addressing
 
 **Server process**:
