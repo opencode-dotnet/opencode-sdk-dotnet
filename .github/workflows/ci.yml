@@ -569,7 +569,9 @@ jobs:
         continue-on-error: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         with:
           name: "Test Results (${{ matrix.name }})"
-          path: "test-results/**/*.trx"
+          # Read only direct TRX files: merged/ reports repeat module results and inflate
+          # the reporter totals posted to the badges.
+          path: "test-results/*/*.trx"
           reporter: dotnet-trx
           path-replace-backslashes: true
           fail-on-error: true
@@ -596,7 +598,7 @@ jobs:
           # signing tool and the server in lockstep. (The 2026-08-31 401s were ultimately a
           # corrupted repository secret, not the tag - but deploy-aligned pinning stays the
           # safer default until badge-smith tags releases in lockstep with its deployments.)
-          ref: d778400bd16cee44994f1c9bb68121e6a54d66cf
+          ref: bc7ed07860ec4b0e702add6370c2636daccb2adf
           path: .badge-smith
 
       - name: Update test badge via BadgeSmith API
