@@ -168,7 +168,8 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
             var current = await ServiceRegistrationReader
                 .TryReadAsync(seams.FileSystem, paths.RegistrationFile, cancellationToken)
                 .ConfigureAwait(false);
-            await PrepareOrClearAsync(current, handOff, cancellationToken).ConfigureAwait(false);
+            await new ServicePtyHandoffStep(seams.Handoff, seams.Timing.RequestTimeout)
+                .RunAsync(paths.RegistrationFile, current, handOff, cancellationToken).ConfigureAwait(false);
             if (current is not null)
             {
                 await seams.Terminator.TerminateAsync(current, paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
@@ -177,34 +178,6 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
         catch (OpenCodeServerException failure)
         {
             _lastReplaceFailure = failure;
-        }
-    }
-
-    /// <summary>
-    /// <c>stop</c>'s handoff step: a failure to prepare or clear is only warned about upstream, so
-    /// the terminate that follows always runs. The caller's cancellation still propagates.
-    /// </summary>
-    [SlopwatchSuppress(
-        "SW003",
-        "The pinned client's stop catches a failed handoff or clear and only warns (service.ts): endpoint refusal is best-effort too, and termination of the old service remains the observable outcome.")]
-    private async Task PrepareOrClearAsync(ServiceRegistration? registration, bool handOff, CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (handOff && registration is not null)
-            {
-                await seams.Handoff
-                    .PrepareAsync(paths.RegistrationFile, registration, seams.Timing.RequestTimeout, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            else
-            {
-                await seams.Handoff.ClearAsync(paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
-            }
-        }
-        catch (Exception failure) when (failure is OpenCodeServerException or ArgumentException { ParamName: "endpoint" })
-        {
-            // Best-effort: the old service is terminated next either way.
         }
     }
 

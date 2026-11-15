@@ -554,14 +554,16 @@ What it does, in order:
 
 1. Resolves the registration exactly as discovery does — the shared release registration by
    default, a named `Channel`, or a `RegistrationFilePath` — including the CLI's legacy migration.
-2. Removes the handoff sidecar the CLI keeps beside the registration.
+2. Removes the handoff sidecar by default, or attempts to publish a handoff ticket when
+   `PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff`.
 3. Ends the registered process: a request to stop first (`SIGTERM`), a hard kill (`SIGKILL`) if it
    is still there about five seconds later, then the same wait again. On Windows both rungs are a
    hard kill, because another process cannot be signalled there.
 4. Removes the registration once the process is gone.
 
-The stop does not contact the daemon: like the CLI's `service stop` since opencode 2.3.0, it ends
-the process that owns the persistent-terminal daemon, which ends the terminals with it.
+By default the stop does not contact the daemon: like the CLI's `service stop`, it ends the
+process that owns the persistent-terminal daemon, which ends the terminals with it. Handoff mode
+asks the old service for a ticket before stopping it; a failed preparation still stops the service.
 
 Before the first signal and before the removal it re-reads the registration and checks that it
 still names the same service (`id`, `version`, `url`, `pid`), so a service that re-registered under
@@ -571,7 +573,7 @@ disappears or changes hands meanwhile. It identifies the process by pid *and* st
 every signal and at every look while it waits — so a pid the operating system handed to an
 unrelated process is never signalled.
 
-`OpenCodeServerStopOptions` has three optional members; leave the whole thing out to stop the
+`OpenCodeServerStopOptions` has four optional members; leave the whole thing out to stop the
 shared release registration.
 
 | Member | Meaning |
@@ -579,6 +581,24 @@ shared release registration.
 | `Channel` | The CLI's service channel, as for discovery. |
 | `RegistrationFilePath` | An absolute path to stop directly, as for discovery. Cannot be combined with `Channel` or `InstalledVersion`. |
 | `InstalledVersion` | The migration comparand, as for discovery. A stop never filters by version. |
+| `PersistentPtys` | Null or `OpenCodeServerStopPersistentPtyMode.Clear` removes any handoff ticket; terminals end with the service. `Handoff` attempts a best-effort handoff for the next service. |
+
+To restart as the managed connection does and attempt to keep persistent terminals, stop with
+`Handoff`, then ensure with the same registration selection (the same channel or direct path).
+Preservation is best-effort: the ticket must be prepared and adopted by the next service before
+it expires.
+
+```csharp
+await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions
+{
+    Channel = "dev",
+    PersistentPtys = OpenCodeServerStopPersistentPtyMode.Handoff,
+});
+await using var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
+{
+    Channel = "dev",
+});
+```
 
 The call completes successfully when there is nothing to stop: no registration, or one that does
 not decode. It throws `ArgumentException` for blank or contradictory options;
