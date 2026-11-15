@@ -33,7 +33,17 @@ public sealed class PluginWaitTests
     {
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
-        using var scenario = EmptyLists();
+        var lists = 0;
+        // The first list moves the clock past the bound: a clock that started before the first answer would end at once.
+        using var scenario = ContractScenario.Responding(_ =>
+        {
+            if (++lists == 1)
+            {
+                time.Advance(TimeSpan.FromSeconds(6));
+            }
+
+            return Answer(HttpStatusCode.OK, WireBodyData.EmptyPluginList);
+        });
 
         await new ManualClockWaits(time).ConsumeWaitsAsync(
             token => new PluginWait(scenario.Client.Plugins, time).WaitAsync(null, null, token),
@@ -49,12 +59,14 @@ public sealed class PluginWaitTests
     [Arguments(true)]
     public async Task WaitAsync_Should_End_Without_Throwing_When_The_Plugin_List_Fails(bool transportFailure)
     {
+        var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
         using var scenario = ContractScenario.Responding(_ => transportFailure
             ? throw new HttpRequestException("Plugin list failed.") : Answer(HttpStatusCode.InternalServerError, WireBodyData.UnknownError));
 
-        await new PluginWait(scenario.Client.Plugins, new ManualTimeProvider()).WaitAsync(null, null, caller.Token)
-            .WaitAsync(HangGuard.Bound);
+        await new ManualClockWaits(time).EndBeforeAnyWaitAsync(
+            token => new PluginWait(scenario.Client.Plugins, time).WaitAsync(null, null, token),
+            operation => operation.WaitAsync(HangGuard.Bound, caller.Token), caller);
 
         await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
             ["/api/plugin"], CollectionOrdering.Matching);

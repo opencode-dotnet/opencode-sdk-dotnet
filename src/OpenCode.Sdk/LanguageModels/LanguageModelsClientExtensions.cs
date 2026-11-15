@@ -31,8 +31,8 @@ public static class LanguageModelsClientExtensions
         ArgumentNullException.ThrowIfNull(client);
         ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Default-model waits");
 
-        return client.PipelineOrNull?.Connection.Time is { } time
-            ? new DefaultModelWait(client, time).WaitAsync(request, requestOptions, cancellationToken)
+        return client.PipelineOrNull is { } pipeline
+            ? new DefaultModelWait(client, pipeline.Connection.Time).WaitAsync(request, requestOptions, cancellationToken)
             : client.GetDefaultAsync(request, requestOptions, cancellationToken);
     }
 }

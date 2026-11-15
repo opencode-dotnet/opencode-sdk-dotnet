@@ -38,6 +38,6 @@ internal sealed class ConnectionSnapshot
     /// <summary>Gets the ambient location a per-call selector merges over member by member.</summary>
     public LocationSelector? Location { get; }
 
-    /// <summary>Gets the client's clock for non-HTTP send and close deadlines.</summary>
+    /// <summary>Gets the client's clock for waits and deadlines outside the HTTP policies.</summary>
     public TimeProvider Time { get; }
 }

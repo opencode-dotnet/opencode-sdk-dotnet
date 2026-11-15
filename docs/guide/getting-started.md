@@ -237,10 +237,9 @@ if (model is not null)
   server's periodic plugin refresh, they can answer `503` with a `ServiceUnavailableError` whose
   `Service` is `plugin`, meaning "plugins still loading"; usage limits and web search queries also
   return `ServiceUnavailableError` for upstream failures. Before anything model-related, call
-  `WaitForDefaultAsync`: it runs the same plugin wait first, like opencode's CLI one-shot commands,
-  listing the location's plugins until
-  non-empty, waiting 25 ms after each empty answer for about five seconds, then reads the default
-  model once. A failed plugin list is ignored and ends the wait early. Every failure of the default
+  `WaitForDefaultAsync`: it runs `WaitForPluginsAsync` first, like opencode's CLI one-shot
+  commands, listing the location's plugins until non-empty, waiting 25 ms after each empty answer
+  for about five seconds, then reads the default model once. A failed plugin list is ignored and ends the wait early. Every failure of the default
   read propagates, including `ServiceUnavailableError`, with no further attempt. A non-empty plugin
   list is not a completion barrier: a catalog can still grow after the method returns. On a mocking
   instance built through the protected constructor, it skips the poll and reads once. The bound is

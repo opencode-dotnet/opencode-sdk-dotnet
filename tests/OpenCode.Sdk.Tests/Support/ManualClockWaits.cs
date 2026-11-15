@@ -33,7 +33,7 @@ internal sealed class ManualClockWaits(ManualTimeProvider time)
         }, waits, caller);
     }
 
-    public static async Task ObserveAsync(params Task?[] tasks)
+    private static async Task ObserveAsync(params Task?[] tasks)
     {
         var all = Task.WhenAll(tasks.OfType<Task>());
         // The owners have cancelled; this cleanup has no cancellation token of its own.
@@ -69,12 +69,37 @@ internal sealed class ManualClockWaits(ManualTimeProvider time)
     }
 
     /// <summary>
+    /// Requires the operation to end before the clock arms any wait, then hands the ended operation to
+    /// <paramref name="verify"/>. A wait that keeps polling fails at that check, never at the hang guard.
+    /// </summary>
+    public async Task EndBeforeAnyWaitAsync<T>(Func<CancellationToken, T> start, Func<T, Task> verify, CancellationTokenSource caller)
+        where T : Task
+    {
+        var operation = start(caller.Token);
+        using var decided = new CancellationTokenSource();
+        var created = time.WaitForTimerAsync(HangGuard.Bound, decided.Token);
+        try
+        {
+            var first = await Task.WhenAny(operation, created).WaitAsync(HangGuard.Bound, caller.Token);
+            await Assert.That(first).IsSameReferenceAs(operation);
+            await verify(operation);
+        }
+        finally
+        {
+            // Cleanup observes the operation and its losing timer observer after cancellation.
+            await decided.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await ObserveAsync(operation, created);
+        }
+    }
+
+    /// <summary>
     /// Starts the operation and passes each wait between its attempts: waits in real time until the
     /// next wait is created or the operation ends, requires the wait, checks its length, and only then
     /// moves the clock. The losing waiter is cancelled and observed. On a failed check, the caller
     /// cancels the operation and observes both it and this helper before the failure propagates.
     /// </summary>
-    public async Task PassWaitsAsync(Func<Task> start, TimeSpan[] waits)
+    private async Task PassWaitsAsync(Func<Task> start, TimeSpan[] waits)
     {
         var operation = start();
         using (var decided = new CancellationTokenSource())

@@ -155,7 +155,7 @@ public sealed class LanguageModelsClientContractTests
         var client = new UnavailableLanguageModels();
 
         await AssertUnavailableWithoutWaitAsync(time,
-            token => new DefaultModelWait(client, time).WaitAsync(null, null, token), caller);
+            token => client.WaitForDefaultAsync(cancellationToken: token), caller);
 
         await Assert.That(client.Tokens).IsEquivalentTo([caller.Token], CollectionOrdering.Matching);
     }
@@ -234,26 +234,12 @@ public sealed class LanguageModelsClientContractTests
         await AssertLocationAsync(scenario.Requests.Single(static request => request.RequestUri!.AbsolutePath == "/api/model/default"));
     }
 
-    private static async Task AssertUnavailableWithoutWaitAsync(ManualTimeProvider time, Func<CancellationToken, Task<ModelDefaultResponse>> start, CancellationTokenSource caller)
-    {
-        var operation = start(caller.Token);
-        using var decided = new CancellationTokenSource();
-        var created = time.WaitForTimerAsync(HangGuard.Bound, decided.Token);
-        try
+    private static Task AssertUnavailableWithoutWaitAsync(ManualTimeProvider time, Func<CancellationToken, Task<ModelDefaultResponse>> start, CancellationTokenSource caller) =>
+        new ManualClockWaits(time).EndBeforeAnyWaitAsync(start, async operation =>
         {
-            var first = await Task.WhenAny(operation, created).WaitAsync(HangGuard.Bound, caller.Token);
-            await Assert.That(first).IsSameReferenceAs(operation);
             var failure = await Assert.That(operation.WaitAsync(HangGuard.Bound, caller.Token)).Throws<OpenCodeApiException>();
             await Assert.That(failure!.Error).IsTypeOf<ServiceUnavailableError>();
-        }
-        finally
-        {
-            // Cleanup observes the operation and its losing timer observer after cancellation.
-            await decided.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            await ManualClockWaits.ObserveAsync(operation, created);
-        }
-    }
+        }, caller);
 
     private static ModelDefaultRequest ForwardedRequest() => new() { Location = new LocationSelector { Directory = "/query/dir" } };
 
