@@ -32,7 +32,7 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Ensure;
 [ClassDataSource<PinnedManagedServiceFixture>(Shared = SharedType.PerTestSession)]
 public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture service)
 {
-    private static readonly RealFileSystem FileSystem = new();
+    private readonly RealFileSystem FileSystem = new();
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -340,11 +340,11 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             Environment = context.Environment,
         };
 
-    private static async Task<ServiceRegistration> ReadRegistrationAsync(string path) =>
+    private async Task<ServiceRegistration> ReadRegistrationAsync(string path) =>
         await ServiceRegistrationReader.TryReadAsync(new TestablyServiceFileSystem(FileSystem), path, CancellationToken.None).ConfigureAwait(false)
         ?? throw new InvalidOperationException($"No usable registration at '{path}'.");
 
-    private static async Task SeedAsync(string path, string document)
+    private async Task SeedAsync(string path, string document)
     {
         _ = FileSystem.Directory.CreateDirectory(FileSystem.Path.GetDirectoryName(path)!);
         using var stream = FileSystem.FileStream.New(path, FileMode.Create, FileAccess.Write, FileShare.None);

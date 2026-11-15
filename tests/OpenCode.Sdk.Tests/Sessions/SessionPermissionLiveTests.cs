@@ -85,7 +85,7 @@ public sealed class SessionPermissionLiveTests(SimulatedDriveServerFixture serve
             await Assert.That(afterRemoval.Saved).DoesNotContain(info => info.Id == cleanupState.SavedId);
             await Assert.That(OwnedSavedPermissions(afterRemoval.Saved, location.Project.Id)).IsEmpty();
 
-            WriteEvidence(consumed.Status, removed.Status);
+            Console.WriteLine(WriteEvidence(consumed.Status, removed.Status));
         }
         catch (Exception exception)
         {
@@ -150,12 +150,11 @@ public sealed class SessionPermissionLiveTests(SimulatedDriveServerFixture serve
             info.Action == SimulationConfigSeed.PermissionProbeAction &&
             info.Resource == PermissionResource)];
 
-    private static void WriteEvidence(int consumedStatus, int removedStatus) =>
-        Console.WriteLine(
-            "session-permission-live: effect=ask pending-consumed-status=" + consumedStatus.ToString(
-                System.Globalization.CultureInfo.InvariantCulture) +
-            " saved-grant-removed-status=" + removedStatus.ToString(
-                System.Globalization.CultureInfo.InvariantCulture));
+    private static string WriteEvidence(int consumedStatus, int removedStatus) =>
+        "session-permission-live: effect=ask pending-consumed-status=" + consumedStatus.ToString(
+            System.Globalization.CultureInfo.InvariantCulture) +
+        " saved-grant-removed-status=" + removedStatus.ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
 
     private sealed class PermissionCleanupState
     {

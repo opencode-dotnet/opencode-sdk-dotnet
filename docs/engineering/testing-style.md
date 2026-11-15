@@ -6,7 +6,8 @@ Binding authorship style for every test in this repository. `quality-gates.md` o
 current assurance posture and completion gates; operational build-out state belongs in
 `../ROADMAP.md`. This document governs how tests are written inside that architecture and
 applies `coding-style.md` to test code - test infrastructure is code and follows every rule
-there.
+there. For the statics rule, a client, session, terminal or other seam that a test helper receives
+as an argument counts as an injected seam.
 
 ## 1. Test infrastructure is a first-class citizen
 

@@ -13,7 +13,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class SystemConfigurationIsolationLiveTests
 {
-    private static readonly RealFileSystem FileSystem = new();
+    private readonly RealFileSystem FileSystem = new();
 
     /// <summary>
     /// A configuration document seeded under the run root's own <c>ProgramData</c> reaches the
@@ -45,7 +45,7 @@ public sealed class SystemConfigurationIsolationLiveTests
     }
 
     /// <summary>Writes an empty configuration document where the server's system directory resolves.</summary>
-    private static async Task<string> SeedSystemDocumentAsync(TestRunRoot runRoot, CancellationToken cancellationToken)
+    private async Task<string> SeedSystemDocumentAsync(TestRunRoot runRoot, CancellationToken cancellationToken)
     {
         var system = FileSystem.Path.Combine(SystemConfigurationSources.ProgramDataFor(FileSystem, runRoot.Path), "opencode");
         _ = FileSystem.Directory.CreateDirectory(system);

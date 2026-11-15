@@ -21,7 +21,7 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
     private const string SidecarSuffix = ".pty-handoff";
     private const string SidecarContent = "{\"source\":{},\"handoff\":null,\"expiresAt\":0}";
     private const string OtherPassword = "not-the-daemon-s-p455";
-    private static readonly RealFileSystem FileSystem = new();
+    private readonly RealFileSystem FileSystem = new();
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(30);
 
     [Test]
@@ -83,5 +83,5 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
     }
 
     /// <summary>Writes one file beside the daemon's own; synchronous, the shape every test leg's Testably asset has.</summary>
-    private static void Seed(string path, string content) => FileSystem.File.WriteAllText(path, content);
+    private void Seed(string path, string content) => FileSystem.File.WriteAllText(path, content);
 }
