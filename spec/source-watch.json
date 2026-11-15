@@ -1246,6 +1246,94 @@
           }
         }
       ]
+    },
+    {
+      "path": "packages/cli/src/run/noninteractive.ts",
+      "sha256": "771876a072ddbbe878c98c8470e25b030c2b5356123f79e668a2e38c3342bdb8",
+      "behaviors": [
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "A permission request belongs to the run when its session is the run\u0027s session or has it up its parent chain; a session with no parent that is not the root is not owned.",
+          "anchor": {
+            "type": "contains",
+            "text": "(session) =\u003E (session.parentID ? ownsSession(session.parentID) : false)"
+          }
+        },
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "A permission request is answered before the run\u0027s own-session event filter, so a child session\u0027s request is seen.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (event.type === \u0022permission.asked\u0022)"
+          }
+        },
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "After the turn ends, the run waits for the background jobs this prompt started (descendants included) before it finishes.",
+          "anchor": {
+            "type": "contains",
+            "text": ".list({ sessionID: input.sessionID, descendants: true })"
+          }
+        },
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "After the prompt is admitted, the run answers the permission requests that were already pending.",
+          "anchor": {
+            "type": "contains",
+            "text": "input.client.permission.list({ sessionID: input.sessionID })"
+          }
+        },
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "A tool call\u0027s name comes from its input-started event, and is \u0060tool\u0060 when no start was seen.",
+          "anchor": {
+            "type": "contains",
+            "text": "name: event.type === \u0022session.tool.input.started\u0022 ? event.data.name : (current?.name ?? \u0022tool\u0022),"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/tool/plugin/subagent.ts",
+      "sha256": "56b02b373dc25963e1df700d8786879b4114542e1dbd192d6fe8a790c30812e8",
+      "behaviors": [
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "Subagents run in the background, so a child can ask for permission after the parent\u0027s turn has ended.",
+          "anchor": {
+            "type": "contains",
+            "text": "Subagents always run in the background"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/permission.ts",
+      "sha256": "fb3c9eb5226761074e9f4f293b215e99a345a232d7fe88a6584667f6a9e48e40",
+      "behaviors": [
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "A reject settles every other pending request of the same session.",
+          "anchor": {
+            "type": "contains",
+            "text": "// Feedback applies to the whole batch, so parallel asks don\u0027t end the step."
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/session/runner/llm.ts",
+      "sha256": "04be4f888e90189a3e54ef0b85f7e80cd166842bf7c2f1018b971dc2b3bd44fe",
+      "behaviors": [
+        {
+          "owner": "opencode-agents-ai",
+          "behavior": "A tool call still open when the turn ends is reported as interrupted, with this text.",
+          "anchor": {
+            "type": "contains",
+            "text": "Tool execution interrupted: ${tool.name}"
+          }
+        }
+      ]
     }
   ]
 }

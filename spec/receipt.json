@@ -914,6 +914,62 @@
           "matched": true
         }
       ]
+    },
+    {
+      "path": "packages/cli/src/run/noninteractive.ts",
+      "sha256": "771876a072ddbbe878c98c8470e25b030c2b5356123f79e668a2e38c3342bdb8",
+      "anchors": [
+        {
+          "text": "(session) =\u003E (session.parentID ? ownsSession(session.parentID) : false)",
+          "matched": true
+        },
+        {
+          "text": "if (event.type === \u0022permission.asked\u0022)",
+          "matched": true
+        },
+        {
+          "text": ".list({ sessionID: input.sessionID, descendants: true })",
+          "matched": true
+        },
+        {
+          "text": "input.client.permission.list({ sessionID: input.sessionID })",
+          "matched": true
+        },
+        {
+          "text": "name: event.type === \u0022session.tool.input.started\u0022 ? event.data.name : (current?.name ?? \u0022tool\u0022),",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/tool/plugin/subagent.ts",
+      "sha256": "56b02b373dc25963e1df700d8786879b4114542e1dbd192d6fe8a790c30812e8",
+      "anchors": [
+        {
+          "text": "Subagents always run in the background",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/permission.ts",
+      "sha256": "fb3c9eb5226761074e9f4f293b215e99a345a232d7fe88a6584667f6a9e48e40",
+      "anchors": [
+        {
+          "text": "// Feedback applies to the whole batch, so parallel asks don\u0027t end the step.",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/session/runner/llm.ts",
+      "sha256": "04be4f888e90189a3e54ef0b85f7e80cd166842bf7c2f1018b971dc2b3bd44fe",
+      "anchors": [
+        {
+          "text": "Tool execution interrupted: ${tool.name}",
+          "matched": true
+        }
+      ]
     }
   ]
 }
