@@ -36,6 +36,17 @@ internal sealed class ServiceStopper(
         var paths = await new ServiceRegistrationLocator(environment, fileSystem)
             .LocateAsync(selection, cancellationToken)
             .ConfigureAwait(false);
+        await StopLocatedAsync(paths, mode, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Stops the registration at already located paths without migration.</summary>
+    /// <param name="paths">The already located service paths.</param>
+    /// <param name="mode">Clear or hand off persistent terminals.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>A task completing when the registered process is gone or absent.</returns>
+    public async Task StopLocatedAsync(ServicePaths paths, OpenCodeServerStopPtyMode? mode, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         var registration = await ServiceRegistrationReader
             .TryReadAsync(fileSystem, paths.RegistrationFile, cancellationToken)
             .ConfigureAwait(false);

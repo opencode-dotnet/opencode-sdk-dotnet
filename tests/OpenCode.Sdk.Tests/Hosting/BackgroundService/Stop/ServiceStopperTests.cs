@@ -638,6 +638,20 @@ public sealed class ServiceStopperTests
         await Assert.That(_processControl.ReceivedCalls()).IsEmpty();
     }
 
+    [Test]
+    public async Task StopLocatedAsync_Should_Not_Migrate_A_Legacy_Registration()
+    {
+        var selection = ServiceSelection.Snapshot(new OpenCodeServerStopOptions { Channel = "dev" });
+        var paths = new ServicePathResolver(_environment).Resolve(selection);
+        Seed(paths.LegacyRegistrationFiles[0], ServiceRegistrationData.DevPrereleaseDotted);
+
+        await Stopper().StopLocatedAsync(paths, mode: null, CancellationToken.None);
+
+        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsFalse();
+        _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+        await Assert.That(ReadText(paths.LegacyRegistrationFiles[0])).IsEqualTo(ServiceRegistrationData.DevPrereleaseDotted);
+    }
+
     private async Task AssertSharedRegistrationAbsentAsync() =>
         await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
 

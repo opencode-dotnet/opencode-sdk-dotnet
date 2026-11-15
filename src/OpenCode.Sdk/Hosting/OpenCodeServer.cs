@@ -58,12 +58,16 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// Initializes a handle over a server another process runs: the identity a registration
     /// published, no child, no ownership. Disposal is a no-op.
     /// </summary>
-    internal OpenCodeServer(Uri endpoint, string? password, int processId)
+    internal OpenCodeServer(Uri endpoint, string? password, int processId, string? version)
     {
         _endpoint = endpoint;
         _password = password;
         _processId = processId;
+        RegisteredVersion = version;
     }
+
+    /// <summary>Gets the version carried by the registration, if any.</summary>
+    internal string? RegisteredVersion { get; }
 
     /// <summary>
     /// Initializes a mocking instance; members invoked without an override throw an instructive failure.

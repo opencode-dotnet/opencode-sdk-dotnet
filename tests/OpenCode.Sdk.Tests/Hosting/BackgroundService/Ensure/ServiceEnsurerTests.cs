@@ -14,7 +14,7 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Ensure;
 /// The Ensure door over substituted seams: no live process, no real registration, no socket. Each
 /// test states one upstream behavior (<c>ensure</c> in <c>promise/service.ts</c>, its contender rules
 /// in <c>contenderPool</c> in <c>service-contender.ts</c>, its decision in <c>decide</c> in
-/// <c>service-probe.ts</c>, and <c>server-connection.ts:74-84</c>) and asserts what the seams observed
+/// <c>service-probe.ts</c>, and <c>server-connection.ts:89-99</c>) and asserts what the seams observed
 /// — spawns, signals, handoff calls, <c>OnStart</c>, and the instants the test's own clock showed at
 /// each — never how many times the loop read the clock.
 /// </summary>
@@ -1028,6 +1028,53 @@ public sealed class ServiceEnsurerTests
             .Throws<OperationCanceledException>();
     }
 
+    [Test]
+    public async Task EnsureLocatedAsync_Should_Spawn_With_The_Snapshot_Overlay_Without_Reading_The_Config()
+    {
+        Seed(ConfigPath(), ServiceConfigData.DisabledWithEnvironment);
+        var adapter = new TestablyServiceFileSystem(_fileSystem);
+        var fileSystem = Substitute.For<IServiceFileSystem>();
+        fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => adapter.TryReadAllBytesAsync(call.Arg<string>(), call.Arg<CancellationToken>()));
+        var paths = new ServicePathResolver(_environment).Resolve(ServiceSelection.Snapshot((OpenCodeServerEnsureOptions?)null));
+        var overlay = new ServiceConfigEnvironment(new Dictionary<string, string>(StringComparer.Ordinal) { ["A"] = "snapshot" });
+        ElectOnSpawn(Version);
+
+        _ = await Ensurer(fileSystem: fileSystem).EnsureLocatedAsync(EnsureRequest.Snapshot(null), paths, overlay, CancellationToken.None);
+
+        await Assert.That(_starts.Single().Environment["A"]).IsEqualTo("snapshot");
+        _ = fileSystem.DidNotReceive().TryReadAllBytesAsync(ConfigPath(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>Characterizes the public path's per-spawn read, including a contender that exits without registering.</summary>
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task EnsureAsync_Should_Read_The_Config_At_Every_Spawn(bool secondSpawn)
+    {
+        Seed(ConfigPath(), ServiceConfigData.DisabledWithEnvironment);
+        var changed = new System.Text.Json.Nodes.JsonObject
+        {
+            ["env"] = new System.Text.Json.Nodes.JsonObject { ["A"] = "2" },
+        };
+        var options = new OpenCodeServerEnsureOptions { OnStart = _ => Seed(ConfigPath(), changed.ToJsonString()) };
+        _clock.GetUtcNow().Returns(_ => _time.GetUtcNow());
+        ExitCleanlyUntilElected(secondSpawn ? 2 : 1, contender =>
+            contender.TryGetFailure().Returns(_ =>
+            {
+                changed["env"]!["A"] = "3";
+                Seed(ConfigPath(), changed.ToJsonString());
+                _time.Advance(TimeSpan.FromSeconds(2));
+                return null;
+            }));
+
+        _ = await Ensurer(Timing with { SpawnDelay = TimeSpan.FromSeconds(1) }).EnsureAsync(options, CancellationToken.None);
+
+        string?[] expected = secondSpawn ? ["2", "3"] : ["2"];
+        await Assert.That(_starts.Select(start => start.Environment["A"]))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
     private static OpenCodeServerEnsureOptions ReplacementOptions() =>
         new() { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace };
 
@@ -1055,10 +1102,10 @@ public sealed class ServiceEnsurerTests
         await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)], CollectionOrdering.Any);
     }
 
-    private ServiceEnsurer Ensurer(ServiceTiming? timing = null) =>
+    private ServiceEnsurer Ensurer(ServiceTiming? timing = null, IServiceFileSystem? fileSystem = null) =>
         new(
             _environment,
-            new TestablyServiceFileSystem(_fileSystem),
+            fileSystem ?? new TestablyServiceFileSystem(_fileSystem),
             _probe,
             _spawner,
             _handoff,

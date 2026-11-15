@@ -13,7 +13,7 @@ namespace OpenCode.Sdk.Internal;
 /// Its fields are upstream's loop locals and its contender pool's state; one instance serves one
 /// call.
 /// </summary>
-internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest request, ServicePaths paths)
+internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest request, ServicePaths paths, ServiceConfigEnvironment? snapshot)
 {
     private static readonly ServiceProbeResult NoService = new(State: null, Version: null, TimedOut: false, Compatible: true);
 
@@ -275,14 +275,9 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     /// </remarks>
     private async Task<IReadOnlyDictionary<string, string>?> OverlayAsync(CancellationToken cancellationToken)
     {
-        Dictionary<string, string>? configured = null;
-        if (paths.ConfigFile is { } configFile &&
-            await seams.FileSystem.TryReadAllBytesAsync(configFile, cancellationToken).ConfigureAwait(false) is { } bytes)
-        {
-            configured = ServiceConfigReader.TryReadEnvironment(bytes)?
-                .Where(static entry => !string.Equals(entry.Key, "XDG_STATE_HOME", StringComparison.Ordinal))
-                .ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.Ordinal);
-        }
+        var captured = snapshot ?? await new ServiceConfigEnvironmentReader(seams.FileSystem)
+            .ReadAsync(paths, cancellationToken).ConfigureAwait(false);
+        var configured = captured.Entries;
 
         if (configured is null || request.Environment is null)
         {
