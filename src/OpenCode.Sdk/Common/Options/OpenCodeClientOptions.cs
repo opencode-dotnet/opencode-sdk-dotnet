@@ -7,6 +7,18 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeClientOptions
 {
+    /// <summary>
+    /// Gets the case-insensitive headers copied and validated once at client construction.
+    /// Later values replace earlier ones: SDK User-Agent, these headers, SDK authentication,
+    /// merged location and operation-declared headers, then <see cref="OpenCodeRequestOptions.Headers"/>.
+    /// Authorization with a non-null <see cref="Password"/>, or x-opencode-directory with a
+    /// non-null <see cref="Location"/>, is refused. Content headers replace the content's headers
+    /// when content exists and are dropped otherwise. Headers reach HTTP operations, SSE opens
+    /// and reconnects, and cursor pages, not terminal upgrades or background-service info probes.
+    /// Invalid HTTP token names and values containing CR or LF are refused with <see cref="ArgumentException"/>.
+    /// </summary>
+    public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Gets or sets the absolute HTTP or HTTPS server endpoint; required to build a client.</summary>
     public Uri? Endpoint { get; set; }
 

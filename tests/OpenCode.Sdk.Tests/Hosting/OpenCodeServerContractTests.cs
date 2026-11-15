@@ -1,5 +1,6 @@
 using System.Reflection;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting;
@@ -13,6 +14,30 @@ public sealed class OpenCodeServerContractTests
     private static OpenCodeServer CreateStartedDoor() => new(DoorEndpoint, DoorPassword);
 
     private static OpenCodeServer CreateDiscoveredDoor() => new(DoorEndpoint, DoorPassword, processId: 48213);
+
+    [Test]
+    public async Task CreateClient_Should_Copy_And_Snapshot_Configured_Headers_On_The_Wire()
+    {
+        await using var wire = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse
+        {
+            StatusCode = System.Net.HttpStatusCode.OK,
+            ContentType = "application/json",
+            Body = WireBodyData.InfoOk,
+        });
+        var server = new OpenCodeServer(wire.Endpoint, DoorPassword);
+        OpenCodeClientOptions? configured = null;
+        using var client = server.CreateClient(options =>
+        {
+            configured = options;
+            options.Headers.Add("X-Factory", "before");
+        });
+        configured!.Headers["X-Factory"] = "after";
+
+        _ = await client.Server.GetInfoAsync();
+
+        await Assert.That(wire.Requests.Single().Headers).ContainsKey("X-Factory");
+        await Assert.That(wire.Requests.Single().Headers["X-Factory"]).IsEqualTo("before");
+    }
 
     [Test]
     public async Task OwnsProcess_Should_Be_False_For_A_Bare_Mock()
@@ -150,7 +175,8 @@ public sealed class OpenCodeServerContractTests
         var identityMembers = new HashSet<string>(StringComparer.Ordinal) { "Endpoint", "Username", "Password" };
         var behaviorMembers = typeof(OpenCodeClientOptions)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(property => property.CanWrite && !identityMembers.Contains(property.Name))
+            .Where(property => (property.CanWrite || typeof(System.Collections.IEnumerable).IsAssignableFrom(property.PropertyType))
+                && !identityMembers.Contains(property.Name))
             .Select(property => property.Name)
             .ToArray();
 
@@ -159,7 +185,7 @@ public sealed class OpenCodeServerContractTests
         // that silence loud instead of quiet. Extend both the expected list and the propagation
         // check below in the same change that adds the member.
         // Member/type membership is the contract; declaration order is not asserted here.
-        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Location", "NetworkTimeout"], CollectionOrdering.Any);
+        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Headers", "Location", "NetworkTimeout"], CollectionOrdering.Any);
 
         var server = CreateStartedDoor();
         var sentinelLocation = new LocationSelector { Directory = "/sentinel-workspace" };

@@ -58,13 +58,29 @@ internal sealed class Pipeline : IDisposable
         // null password means no credential, as in the pinned client; any other string is sent
         // as written, since a server configured with a whitespace password runs with that one.
         var password = options.Password;
+        foreach (var name in options.Headers.Keys)
+        {
+            var conflict = name switch
+            {
+                _ when password is not null && string.Equals(name, "Authorization", StringComparison.OrdinalIgnoreCase) => nameof(options.Password),
+                _ when options.Location is not null && string.Equals(name, "x-opencode-directory", StringComparison.OrdinalIgnoreCase) => nameof(options.Location),
+                _ => null,
+            };
+            if (conflict is not null)
+            {
+                throw new ArgumentException(
+                    $"OpenCodeClientOptions.Headers contains {name}, which conflicts with OpenCodeClientOptions.{conflict}.", nameof(options));
+            }
+        }
+
         var authorization = password is null
             ? null
             : new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}")));
         _transport = new TransportPolicy(httpClient, ownsHttpClient);
         PipelinePolicy[] policies =
         [
-            new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve()),
+            new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve(),
+                RequestDecorationPolicy.SnapshotHeaders(options.Headers)),
             new ResponseBufferingPolicy(bufferPool ?? ResponseBufferingPolicy.DefaultPool, time),
             _transport,
         ];

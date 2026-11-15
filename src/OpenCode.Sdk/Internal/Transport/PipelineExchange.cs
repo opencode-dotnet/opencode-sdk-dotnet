@@ -42,7 +42,7 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
                 LifetimeToken = lifetimeToken,
                 NetworkToken = cancellationToken,
                 NetworkTimeout = NetworkTimeouts.Resolve(operation.Traits, perCallNetworkTimeout, _clientNetworkTimeout),
-                PerCallLocation = operation.Options?.Location,
+                Options = operation.Options,
                 DeclaredHeaders = operation.DeclaredHeaders,
                 BufferBody = bufferBody,
             };

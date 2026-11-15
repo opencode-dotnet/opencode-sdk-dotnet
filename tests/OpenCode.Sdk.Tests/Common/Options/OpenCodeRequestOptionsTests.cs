@@ -3,6 +3,15 @@ namespace OpenCode.Sdk.Tests.Common.Options;
 public sealed class OpenCodeRequestOptionsTests
 {
     [Test]
+    public async Task Headers_Should_Default_To_Null()
+    {
+        var property = typeof(OpenCodeRequestOptions).GetProperty("Headers");
+        await Assert.That(property).IsNotNull();
+        await Assert.That(property!.PropertyType).IsEqualTo(typeof(IReadOnlyDictionary<string, string>));
+        await Assert.That(property.GetValue(new OpenCodeRequestOptions())).IsNull();
+    }
+
+    [Test]
     public async Task Constructor_Should_Default_To_Throwing_Behavior()
     {
         var options = new OpenCodeRequestOptions();

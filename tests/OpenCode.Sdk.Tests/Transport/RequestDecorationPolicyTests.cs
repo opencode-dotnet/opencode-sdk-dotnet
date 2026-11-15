@@ -15,6 +15,155 @@ public sealed class RequestDecorationPolicyTests
 {
     private const string OperationId = "test.operation";
 
+    private static async Task AssertHeaderAsync(IReadOnlyDictionary<string, string> headers, string name, string expected)
+    {
+        await Assert.That(headers).ContainsKey(name);
+        await Assert.That(headers[name]).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task Headers_Should_Reach_Every_Cursor_Page()
+    {
+        using var scenario = ContractScenario.RespondingWithPages(WireBodyData.Page("", next: "continuation"), WireBodyData.Page(""));
+        var options = new OpenCodeRequestOptions
+        {
+            Headers = new Dictionary<string, string>(StringComparer.Ordinal) { ["X-Page"] = "every-page" },
+        };
+        var received = new List<string?>();
+        await foreach (var page in scenario.Client.Sessions.GetSessionClient("ses_headers")
+            .EnumerateMessagesAsync(requestOptions: options).Pages.WithCancellation(CancellationToken.None))
+        {
+            received.Add(page.Cursor.Next);
+        }
+
+        await Assert.That(received).IsEquivalentTo(["continuation", null], CollectionOrdering.Matching);
+        await Assert.That(scenario.Requests.Count).IsEqualTo(2);
+        foreach (var request in scenario.Requests)
+        {
+            await AssertHeaderAsync(request.Headers, "X-Page", "every-page");
+        }
+    }
+
+    [Test]
+    public async Task Headers_Should_Join_Case_Equivalent_Call_Names_In_Insertion_Order()
+    {
+        using var scenario = PipelineScenario.Responding();
+        var call = new OpenCodeRequestOptions
+        {
+            Headers = new Dictionary<string, string>(StringComparer.Ordinal) { ["x-PROBE"] = "first", ["X-Probe"] = "second" },
+        };
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), call, CancellationToken.None);
+
+        await AssertHeaderAsync(scenario.Requests.Single().Headers, "X-Probe", "first, second");
+    }
+
+    [Test]
+    [Arguments("Authorization", false, "Bearer caller")]
+    [Arguments("x-opencode-directory", false, "/caller")]
+    [Arguments("x-opencode-directory", true, "%2Fper-call")]
+    public async Task Headers_Should_Accept_Unopposed_Client_Headers_And_Apply_PerCall_Location(string name, bool perCall, string expected)
+    {
+        using var handler = new RecordingHttpHandler();
+        using var http = new HttpClient(handler);
+        var options = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint, Username = "custom" };
+        options.Headers.Add(name, name is "Authorization" ? "Bearer caller" : "/caller");
+        using var pipeline = Pipeline.Create(http, options);
+        options.Headers.Clear();
+        options.Headers.Add("X-Added-Later", "mutated");
+        var call = perCall ? new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/per-call" } } : null;
+
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), call, CancellationToken.None);
+
+        await AssertHeaderAsync(handler.Requests.Single().Headers, name, expected);
+        await Assert.That(handler.Requests.Single().Headers).DoesNotContainKey("X-Added-Later");
+    }
+
+    [Test]
+    public async Task Headers_Should_Replace_Sdk_Credentials_And_Location_Per_Call()
+    {
+        using var scenario = PipelineScenario.Decorating(password: "secret", location: new LocationSelector { Directory = "/sdk" });
+        var call = new OpenCodeRequestOptions
+        {
+            Headers = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["aUtHoRiZaTiOn"] = "Bearer call",
+                ["X-OPENCODE-DIRECTORY"] = "/call",
+            },
+        };
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), call, CancellationToken.None);
+
+        await Assert.That(scenario.Requests.Single().Authorization).IsEqualTo("Bearer call");
+        await AssertHeaderAsync(scenario.Requests.Single().Headers, "x-opencode-directory", "/call");
+    }
+
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(false, true)]
+    [Arguments(true, false)]
+    [Arguments(true, true)]
+    public async Task Headers_Should_Replace_Content_Headers_Only_When_Content_Exists(bool perCall, bool hasBody)
+    {
+        string? language = null;
+        using var handler = new RecordingHttpHandler(request =>
+        {
+            language = request.Content?.Headers.ContentLanguage.SingleOrDefault();
+            return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+        });
+        using var http = new HttpClient(handler);
+        var headers = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Content-Type"] = "application/custom",
+            ["Content-Language"] = "tr",
+        };
+        var client = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint };
+        foreach (var header in headers.Where(_ => !perCall))
+        {
+            client.Headers.Add(header);
+        }
+
+        using var pipeline = Pipeline.Create(http, client);
+        var call = perCall ? new OpenCodeRequestOptions { Headers = headers } : null;
+        if (hasBody)
+        {
+            _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Post, "/api/info", new TestBody { Value = "probe" },
+                TestBodyJsonContext.Default.TestBody, new RecordingResponseAdapter(), call, CancellationToken.None);
+        }
+        else
+        {
+            _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), call, CancellationToken.None);
+        }
+
+        var request = handler.Requests.Single();
+        await Assert.That(request.ContentType).IsEqualTo(hasBody ? "application/custom" : null);
+        await Assert.That(language).IsEqualTo(hasBody ? "tr" : null);
+        await Assert.That(request.Headers).DoesNotContainKey("Content-Type");
+        await Assert.That(request.Headers).DoesNotContainKey("Content-Language");
+    }
+
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    public async Task Headers_Should_Replace_Earlier_Levels_By_Name(int level)
+    {
+        using var handler = new RecordingHttpHandler();
+        using var http = new HttpClient(handler);
+        var clientOptions = new OpenCodeClientOptions { Endpoint = PipelineFactory.Endpoint };
+        if (level >= 1)
+        {
+            clientOptions.Headers.Add("USER-AGENT", "client");
+        }
+
+        using var pipeline = Pipeline.Create(http, clientOptions);
+        var call = new OpenCodeRequestOptions { Headers = new Dictionary<string, string>(StringComparer.Ordinal) { ["user-agent"] = "call" } };
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(),
+            level >= 3 ? call : null, level >= 2 ? [new DeclaredHeader("User-Agent", "declared")] : null, CancellationToken.None);
+
+        var expected = level switch { 3 => "call", 2 => "declared", 1 => "client", _ => UserAgentPolicy.Resolve().ToString() };
+        await AssertHeaderAsync(handler.Requests.Single().Headers, "User-Agent", expected);
+    }
+
     private static async Task AssertDecoratedLocationAsync(
         Pipeline pipeline, IReadOnlyList<RecordedRequest> requests, OpenCodeRequestOptions options, string expectedDirectory)
     {

@@ -100,6 +100,29 @@ failure is recorded and dropped. Synchronous root disposal fences mutation, not 
 `OperationTraits` supplies per-operation rules once through `OperationRequest.Describe`; the exchange
 resolves the message's network window from those carried traits.
 
+### Request headers
+
+- `OpenCodeClientOptions.Headers` is a pre-created, empty, ordinal case-insensitive dictionary,
+  copied and validated once at construction. `OpenCodeRequestOptions.Headers` is an optional
+  read-only dictionary, validated and copied at the call's start before sending. An SSE stream
+  reuses its snapshot on every reconnect; each cursor page is a separate call with its own snapshot.
+  Case-equivalent names within a per-call set join in insertion order with `", "`.
+- Later steps replace a name: (1) SDK `User-Agent`; (2) client-wide headers; (3) SDK `Authorization`
+  from credentials, `x-opencode-directory` from merged location, and operation-declared headers;
+  (4) per-call headers. This follows upstream's `prepare` merge
+  (`packages/client/src/promise/generated/client.ts:363-369` at the pin).
+- Construction refuses `Authorization` with a non-null `Password` (not `Username` alone), and
+  `x-opencode-directory` with a non-null `Location`, with an `ArgumentException` naming both
+  members. Names compare ordinally, case-insensitively. Without those conflicting members both
+  headers are accepted; a per-call `Location` can replace the client-wide directory header.
+- Invalid HTTP token names and values containing CR or LF are refused with `ArgumentException`.
+  Content headers from either caller set replace the content's values when content exists.
+  - Recorded divergence of form: on a request without content they are dropped, because
+    `HttpRequestMessage` cannot carry content headers. Upstream's fetch headers can carry them.
+- Both sets reach every HTTP operation, SSE open and reconnect, and cursor page, not terminal
+  WebSocket upgrades (as upstream's terminal sockets carry no caller headers), nor the
+  background-service info probe, which is not a client.
+
 ### Location
 
 - `LocationSelector` addresses a directory only. `OpenCodeClientOptions.Location` is the ambient
