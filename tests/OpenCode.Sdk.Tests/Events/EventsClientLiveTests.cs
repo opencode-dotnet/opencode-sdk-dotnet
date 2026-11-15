@@ -42,14 +42,16 @@ public sealed class EventsClientLiveTests(PinnedOpenCodeServerFixture server)
         var nonce = "rpc-event-live-" + Guid.NewGuid().ToString("N");
         var reader = new OwnedEventReader(EventWait, CleanupTimeout, cancellationToken);
         var probe = new SessionEventProbe(reader);
+        var otherReader = new OwnedEventReader(EventWait, CleanupTimeout, cancellationToken);
+        var otherProbe = new SessionEventProbe(otherReader);
         Exception? primaryFailure = null;
 
         try
         {
-            // The subscription is attached before the emit call, so the proof rests on a causal
-            // barrier rather than on replay.
+            // Both subscriptions are admitted before the emit call; neither depends on business replay.
             probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
-            await probe.WaitForConnectedAsync(cancellationToken);
+            otherProbe.Start(client.Events.SubscribeAsync(cancellationToken: otherReader.Token));
+            await Task.WhenAll(probe.WaitForConnectedAsync(cancellationToken), otherProbe.WaitForConnectedAsync(cancellationToken));
 
             var emitted = await client.Rpc.CallAsync(
                 TestRpcPlugin.Id,
@@ -62,14 +64,11 @@ public sealed class EventsClientLiveTests(PinnedOpenCodeServerFixture server)
             await Assert.That(output.GetProperty("nonce").GetString()).IsEqualTo(nonce);
 
             using var barrier = SessionEventProbe.Barrier(cancellationToken);
-            var observed = await probe.WaitForAsync<EventRpc>(
-                rpc => string.Equals(rpc.Type, ObservedEventType, StringComparison.Ordinal)
-                    && rpc.Data.TryGetValue("nonce", out var carried)
-                    && carried.ValueKind == JsonValueKind.String
-                    && string.Equals(carried.GetString(), nonce, StringComparison.Ordinal),
-                "the rpc event '" + ObservedEventType + "' carrying the nonce", barrier.Token);
+            var observed = await WaitForNonceAsync(probe, nonce, barrier.Token);
+            var other = await WaitForNonceAsync(otherProbe, nonce, barrier.Token);
             await Assert.That(observed.Data.Count).IsEqualTo(1);
             await Assert.That(observed.Location.Directory).IsEqualTo(resolved.Directory);
+            await Assert.That(other).IsSameReferenceAs(observed);
 
             Console.WriteLine(
                 "rpc-event-live: mode=owned arm=emit status=" + Number(emitted.Status) +
@@ -87,9 +86,16 @@ public sealed class EventsClientLiveTests(PinnedOpenCodeServerFixture server)
         }
         finally
         {
-            await reader.CompleteAsync(primaryFailure);
+            await Task.WhenAll(reader.CompleteAsync(primaryFailure), otherReader.CompleteAsync(primaryFailure));
         }
     }
+
+    private static Task<EventRpc> WaitForNonceAsync(SessionEventProbe probe, string nonce, CancellationToken cancellationToken) =>
+        probe.WaitForAsync<EventRpc>(rpc => string.Equals(rpc.Type, ObservedEventType, StringComparison.Ordinal)
+                && rpc.Data.TryGetValue("nonce", out var carried)
+                && carried.ValueKind == JsonValueKind.String
+                && string.Equals(carried.GetString(), nonce, StringComparison.Ordinal),
+            "the rpc event '" + ObservedEventType + "' carrying the nonce", cancellationToken);
 
     /// <summary>
     /// Activation is awaited in the client's location before the event proof depends on the plugin,

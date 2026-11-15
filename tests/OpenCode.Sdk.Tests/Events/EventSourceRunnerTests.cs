@@ -74,11 +74,7 @@ public sealed class EventSourceRunnerTests
         await scenario.Feed.JoinAsync().WaitAsync(HangGuard.Bound);
         await using var fresh = await scenario.AdmitAsync("M2");
         var failure = new OpenCodeTransportException("fresh failure");
-        _ = scenario.CurrentAttempt!.Items.Writer.TryComplete(failure);
-        scenario.CurrentAttempt.ReleaseCleanup();
-        await scenario.Time.WaitForArmedAsync(EventStreamSteps.Delay, HangGuard.Bound);
-
-        var state = scenario.Feed.GetConnectionState();
+        var state = await scenario.FailAttemptAsync(scenario.CurrentAttempt!, failure);
         await Assert.That(state.Status).IsEqualTo(EventConnectionStatus.Reconnecting);
         await Assert.That(state.Attempt).IsEqualTo(1);
         await Assert.That(state.Error).IsSameReferenceAs(failure);
@@ -157,8 +153,7 @@ public sealed class EventSourceRunnerTests
         await Assert.That(latest.Error).IsNotSameReferenceAs(first);
         await Assert.That(((OpenCodeApiException)latest.Error!).Status).IsEqualTo(500);
         server.Time.Advance(EventStreamSteps.Delay);
-        await Assert.That(await moving.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current.Type).IsEqualTo("server.connected");
+        await EventStreamSteps.AssertConnectedAsync(events, await moving.WaitAsync(HangGuard.Bound));
     }
 
     [Test]
@@ -173,8 +168,7 @@ public sealed class EventSourceRunnerTests
         await Assert.That(state.Error).IsTypeOf<OpenCodeTransportException>();
         await Assert.That(state.Error!.Message).IsEqualTo("The opencode event stream ended.");
         server.Time.Advance(EventStreamSteps.Delay);
-        await Assert.That(await moving.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current.Type).IsEqualTo("server.connected");
+        await EventStreamSteps.AssertConnectedAsync(events, await moving.WaitAsync(HangGuard.Bound));
     }
 
     [Test]
@@ -192,8 +186,7 @@ public sealed class EventSourceRunnerTests
         await Assert.That(cause.Defect.ValueKind).IsEqualTo(JsonValueKind.String);
         await Assert.That(cause.Defect.GetString()).IsEqualTo("boom");
         server.Time.Advance(EventStreamSteps.Delay);
-        await Assert.That(await moving.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current.Type).IsEqualTo("server.connected");
+        await EventStreamSteps.AssertConnectedAsync(events, await moving.WaitAsync(HangGuard.Bound));
     }
 
     [Test]
@@ -249,8 +242,7 @@ public sealed class EventSourceRunnerTests
         }
 
         server.Time.Advance(EventStreamSteps.Delay);
-        await Assert.That(await moving.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current.Type).IsEqualTo("server.connected");
+        await EventStreamSteps.AssertConnectedAsync(events, await moving.WaitAsync(HangGuard.Bound));
     }
 
     [Test]
@@ -272,11 +264,7 @@ public sealed class EventSourceRunnerTests
         await Assert.That(scenario.Feed.GetConnectionState().Attempt).IsEqualTo(0);
         scenario.Time.Advance(longConnection ? TimeSpan.FromSeconds(1) : TimeSpan.FromSeconds(1) - EventStreamSteps.OneTick);
         var failure = new OpenCodeTransportException("connected drop");
-        _ = second.Items.Writer.TryComplete(failure);
-        second.ReleaseCleanup();
-        await scenario.Time.WaitForArmedAsync(EventStreamSteps.Delay, HangGuard.Bound);
-
-        var state = scenario.Feed.GetConnectionState();
+        var state = await scenario.FailAttemptAsync(second, failure);
         await Assert.That(state.Status).IsEqualTo(EventConnectionStatus.Reconnecting);
         await Assert.That(state.Attempt).IsEqualTo(longConnection ? 1 : 2);
         await Assert.That(state.Error).IsSameReferenceAs(failure);
@@ -288,9 +276,7 @@ public sealed class EventSourceRunnerTests
         await using var scenario = new SharedEventFeedScenario();
         await using var events = await scenario.AdmitAsync("M");
         var failure = new OpenCodeTransportException("drop");
-        _ = scenario.CurrentAttempt!.Items.Writer.TryComplete(failure);
-        scenario.CurrentAttempt.ReleaseCleanup();
-        await scenario.Time.WaitForArmedAsync(EventStreamSteps.Delay, HangGuard.Bound);
+        _ = await scenario.FailAttemptAsync(scenario.CurrentAttempt!, failure);
         scenario.Time.Advance(EventStreamSteps.Delay);
         var replacement = await scenario.Attempts.NextOpenAsync();
         var opening = scenario.Feed.GetConnectionState();
@@ -365,11 +351,7 @@ public sealed class EventSourceRunnerTests
         await Assert.That(connected.Attempt).IsEqualTo(0);
         await Assert.That(connected.Error).IsNull();
         var failure = new OpenCodeTransportException("lost connection");
-        _ = attempt.Items.Writer.TryComplete(failure);
-        attempt.ReleaseCleanup();
-        await scenario.Time.WaitForArmedAsync(EventStreamSteps.Delay, HangGuard.Bound);
-
-        var reconnecting = scenario.Feed.GetConnectionState();
+        var reconnecting = await scenario.FailAttemptAsync(attempt, failure);
         await Assert.That(reconnecting.Status).IsEqualTo(EventConnectionStatus.Reconnecting);
         await Assert.That(reconnecting.Attempt).IsEqualTo(1);
         await Assert.That(reconnecting.Error).IsSameReferenceAs(failure);

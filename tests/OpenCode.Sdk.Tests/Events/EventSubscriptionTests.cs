@@ -1,6 +1,6 @@
+using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
-using NSubstitute;
 using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -45,9 +45,7 @@ public sealed class EventSubscriptionTests
                 break;
         }
 
-        await caller.CancelOnWorkerAsync();
-        var canceled = await EventStreamSteps.PendingCancellationAsync(events).WaitAsync(HangGuard.Bound);
-        await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
+        await EventStreamSteps.CancelAndCaptureAsync(caller, events);
         await Assert.That(events.RetainedCount).IsEqualTo(0);
     }
 
@@ -79,7 +77,7 @@ public sealed class EventSubscriptionTests
     {
         using var caller = new CancellationTokenSource();
         await using var scenario = new SharedEventFeedScenario();
-        await using var events = new EventSubscription<IEvent>(scenario.Feed, EventSelection.Capture(null), caller.Token, default);
+        await using var events = scenario.CreateSubscription(caller.Token);
         events.Precheck();
         if (!disposeBeforeAdoption)
         {
@@ -93,11 +91,8 @@ public sealed class EventSubscriptionTests
         }
 
         scenario.Feed.Adopt(events, lease);
-        await caller.CancelOnWorkerAsync();
-        var canceled = await EventStreamSteps.PendingCancellationAsync(events).WaitAsync(HangGuard.Bound);
-        await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(events.RegistrationCount).IsEqualTo(0);
-        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(0);
+        await EventStreamSteps.CancelAndCaptureAsync(caller, events);
+        await AssertNoAdmissionAsync(scenario, events);
     }
 
     [Test]
@@ -111,8 +106,7 @@ public sealed class EventSubscriptionTests
         using var enumeration = new CancellationTokenSource();
         var enumeratorToken = sameToken ? caller.Token : enumeration.Token;
         await using var scenario = new SharedEventFeedScenario();
-        await using var events = (EventSubscription<IEvent>)scenario.Feed.Subscribe(EventSelection.Capture(null), caller.Token)
-            .GetAsyncEnumerator(enumeratorToken);
+        await using var events = scenario.CreateSubscription(caller.Token, enumeratorToken);
         var moving = EventStreamSteps.PendingNext(events);
         var attempt = await scenario.Attempts.NextOpenAsync();
         await attempt.PublishAsync(SharedEventFeedScenario.Marker("M"));
@@ -175,6 +169,7 @@ public sealed class EventSubscriptionTests
     {
         await using var scenario = new SharedEventFeedScenario();
         await using var owner = await scenario.AdmitAsync("M");
+        await Assert.That(owner.RetainedCount).IsEqualTo(0);
         await using var events = replay
             ? (EventSubscription<IEvent>)scenario.Feed.Subscribe(EventSelection.Capture(null), default).GetAsyncEnumerator()
             : owner;
@@ -184,6 +179,7 @@ public sealed class EventSubscriptionTests
             await scenario.PublishAsync("E0");
         }
 
+        await Assert.That(events.RetainedCount).IsEqualTo(0);
         for (var index = 1; index <= 4097; index++)
         {
             await scenario.PublishAsync("E" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -243,7 +239,7 @@ public sealed class EventSubscriptionTests
     {
         using var caller = new CancellationTokenSource();
         await using var scenario = new SharedEventFeedScenario();
-        await using var events = new EventSubscription<IEvent>(scenario.Feed, EventSelection.Capture(null), caller.Token, default);
+        await using var events = scenario.CreateSubscription(caller.Token);
         events.Precheck();
         await caller.CancelOnWorkerAsync();
         var lease = events.RegisterToken(caller.Token);
@@ -256,8 +252,7 @@ public sealed class EventSubscriptionTests
 
         await Assert.That(result.Error).IsTypeOf<OperationCanceledException>();
         await Assert.That(((OperationCanceledException)result.Error!).CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(events.RegistrationCount).IsEqualTo(0);
-        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(0);
+        await AssertNoAdmissionAsync(scenario, events);
     }
 
     [Test]
@@ -310,10 +305,10 @@ public sealed class EventSubscriptionTests
         await using var scenario = new SharedEventFeedScenario();
         await using var first = await scenario.AdmitAsync("M");
         await using var second = await scenario.AdmitAsync("M");
-        await scenario.PublishAsync("E1");
-        await scenario.PublishAsync("E2");
+        await scenario.PublishPrefixAsync("E1", "E2");
         var failure = new InvalidOperationException("source cleanup");
         await scenario.FaultAsync(failure);
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
         foreach (var events in new[] { first, second })
         {
             string?[] actual = [(await EventStreamSteps.NextAsync(events)).Id, (await EventStreamSteps.NextAsync(events)).Id];
@@ -335,13 +330,9 @@ public sealed class EventSubscriptionTests
         using var caller = new CancellationTokenSource();
         await using var scenario = new SharedEventFeedScenario();
         await using var events = await scenario.AdmitAsync("M", caller.Token);
-        await scenario.PublishAsync("E1");
-        await scenario.PublishAsync("E2");
+        await scenario.PublishPrefixAsync("E1", "E2");
         await scenario.FaultAsync(new InvalidOperationException("source cleanup"));
-        await caller.CancelOnWorkerAsync();
-
-        var canceled = await EventStreamSteps.PendingCancellationAsync(events).WaitAsync(HangGuard.Bound);
-        await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
+        await EventStreamSteps.CancelAndCaptureAsync(caller, events);
         await Assert.That(events.RetainedCount).IsEqualTo(0);
     }
 
@@ -355,8 +346,7 @@ public sealed class EventSubscriptionTests
         using var caller = new CancellationTokenSource();
         await using var scenario = new SharedEventFeedScenario();
         await using var events = await scenario.AdmitAsync("M", caller.Token);
-        await scenario.PublishAsync("E1");
-        await scenario.PublishAsync("E2");
+        await scenario.PublishPrefixAsync("E1", "E2");
         switch (ending)
         {
             case "fault":
@@ -390,8 +380,7 @@ public sealed class EventSubscriptionTests
     {
         await using var scenario = new SharedEventFeedScenario();
         await using var ended = await scenario.AdmitAsync("M");
-        await scenario.PublishAsync("E1");
-        await scenario.PublishAsync("E2");
+        await scenario.PublishPrefixAsync("E1", "E2");
         var failure = new InvalidOperationException("source cleanup");
         await scenario.FaultAsync(failure);
         await using var live = await scenario.AdmitAsync("M2");
@@ -440,6 +429,53 @@ public sealed class EventSubscriptionTests
         await Assert.That(overflow.Message).IsEqualTo("Event subscriber exceeded its 4096-event capacity");
         var repeated = await Assert.That(async () => await events.MoveNextAsync()).Throws<OpenCodeEventSubscriberOverflowException>();
         await Assert.That(repeated).IsSameReferenceAs(overflow);
+    }
+
+    private static async Task AssertNoAdmissionAsync(SharedEventFeedScenario scenario, EventSubscription<IEvent> events)
+    {
+        await Assert.That(events.RegistrationCount).IsEqualTo(0);
+        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task EndLocked_Should_Keep_The_First_Stored_Ending()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var events = await scenario.AdmitAsync("first-ending-marker");
+        await scenario.PublishPrefixAsync("prefix-one", "prefix-two");
+        var first = new InvalidOperationException("first ending");
+        var second = new InvalidOperationException("second ending");
+        scenario.Feed.WithGate(work =>
+        {
+            events.EndLocked(new SubscriptionEnd(first, true, false), work);
+            events.EndLocked(new SubscriptionEnd(second, true, false), work);
+        });
+
+        string?[] prefix = [(await EventStreamSteps.NextAsync(events)).Id, (await EventStreamSteps.NextAsync(events)).Id];
+        await Assert.That(prefix).IsEquivalentTo((string?[])["prefix-one", "prefix-two"], CollectionOrdering.Matching);
+        var observed = await Assert.That(async () => await events.MoveNextAsync()).Throws<InvalidOperationException>();
+        await Assert.That(observed).IsSameReferenceAs(first);
+    }
+
+    [Test]
+    public async Task OfferLocked_Should_Drain_Overflow_Before_Releasing_The_Gate()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var events = await scenario.AdmitAsync("atomic-overflow-marker");
+        var offered = SharedEventFeedScenario.Event("atomic-overflow-offer");
+        var retainedAtDecision = -1;
+        scenario.Feed.WithGate(work =>
+        {
+            for (var index = 0; index < 4097; index++)
+            {
+                events.OfferLocked(offered, work);
+            }
+
+            retainedAtDecision = events.RetainedCount;
+        });
+
+        await Assert.That(retainedAtDecision).IsEqualTo(0);
+        _ = await Assert.That(async () => await events.MoveNextAsync()).Throws<OpenCodeEventSubscriberOverflowException>();
     }
 
     [Test]

@@ -147,6 +147,20 @@ namespace OpenCode.Sdk
         Default = 0,
         NoThrow = 1,
     }
+    public sealed class EventConnectionState
+    {
+        public EventConnectionState(OpenCode.Sdk.EventConnectionStatus status, int attempt, System.Exception? error) { }
+        public int Attempt { get; }
+        public System.Exception? Error { get; }
+        public OpenCode.Sdk.EventConnectionStatus Status { get; }
+    }
+    public enum EventConnectionStatus
+    {
+        Idle = 0,
+        Connecting = 1,
+        Connected = 2,
+        Reconnecting = 3,
+    }
     public sealed class EventSubscribeRequest : System.IEquatable<OpenCode.Sdk.EventSubscribeRequest>
     {
         public EventSubscribeRequest() { }
@@ -155,7 +169,9 @@ namespace OpenCode.Sdk
     public class EventsClient
     {
         protected EventsClient() { }
+        public virtual OpenCode.Sdk.EventConnectionState GetConnectionState() { }
         public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.IEvent> SubscribeAsync(OpenCode.Sdk.EventSubscribeRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.EventConnectionState> WatchConnectionAsync(System.Threading.CancellationToken cancellationToken = default) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -954,6 +970,13 @@ namespace OpenCode.Sdk
         public System.TimeSpan? NetworkTimeout { get; set; }
         public string? Password { get; set; }
         public string Username { get; set; }
+    }
+    public sealed class OpenCodeEventSubscriberOverflowException : OpenCode.Sdk.OpenCodeException
+    {
+        public OpenCodeEventSubscriberOverflowException() { }
+        public OpenCodeEventSubscriberOverflowException(string message) { }
+        public OpenCodeEventSubscriberOverflowException(string message, System.Exception innerException) { }
+        public int Capacity { get; }
     }
     public class OpenCodeException : System.Exception
     {

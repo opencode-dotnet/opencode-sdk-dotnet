@@ -12,6 +12,82 @@ namespace OpenCode.Playground.Hq.Tests.Features.Sessions;
 public sealed class SessionBoardTests
 {
     [Test]
+    public async Task SessionBoard_Should_Own_And_Observe_The_State_Watch_With_Its_Hosting_Lifetime()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        await Assert.That(scenario.EventCalls.WatchCalls).IsEqualTo(1);
+        await Assert.That(scenario.Board.Connected).IsTrue();
+        var failure = Unauthorized();
+        await scenario.SendStateAsync(new EventConnectionState(EventConnectionStatus.Reconnecting, 1, failure));
+        await Assert.That(scenario.Board.Connected).IsFalse();
+        await Assert.That(scenario.Board.LastError).IsEqualTo(failure.Message);
+        await Assert.That(scenario.EventCalls.SubscribeCalls).IsEqualTo(1);
+        await scenario.Board.StopAsync(CancellationToken.None);
+        await Assert.That(scenario.EventCalls.WatchToken.IsCancellationRequested).IsTrue();
+        await Assert.That(scenario.EventCalls.WatchEnded.Task.Status).IsEqualTo(TaskStatus.RanToCompletion);
+    }
+
+    [Test]
+    public async Task SessionBoard_Should_Recover_From_Overflow_By_Admission_Then_Refresh_Then_An_Idempotent_Tail()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        var refreshes = scenario.SessionCalls.Refreshes;
+        scenario.EventCalls.Trace.Clear();
+        scenario.SessionCalls.Items = [Session(9, "last")];
+        scenario.SessionCalls.Active = new HashSet<string>(StringComparer.Ordinal);
+        scenario.SessionCalls.ListingRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        scenario.EventCalls.Input.Writer.TryWrite(() =>
+        {
+            scenario.EventCalls.Trace.Add("overflow");
+            throw new OpenCodeEventSubscriberOverflowException();
+        });
+        await scenario.SettleAsync();
+        await Assert.That(scenario.EventCalls.SubscribeCalls).IsEqualTo(2);
+        await Assert.That(scenario.SessionCalls.Refreshes).IsEqualTo(refreshes);
+        await Assert.That(scenario.EventCalls.Trace).IsEquivalentTo(["overflow", "subscribe"], CollectionOrdering.Matching);
+        var refreshing = scenario.SendAsync(Connected());
+        try
+        {
+            await scenario.SessionCalls.ListingStarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assert.That(scenario.EventCalls.Trace)
+                .IsEquivalentTo(["overflow", "subscribe", "admission", "refresh"], CollectionOrdering.Matching);
+            var started = new SessionExecutionStarted
+            {
+                Id = "started",
+                Created = 1,
+                Durable = new() { AggregateId = "ses_9", Seq = 1, Version = 1 },
+                Data = new() { SessionId = "ses_9" },
+            };
+            scenario.EventCalls.Input.Writer.TryWrite(() => started);
+            scenario.EventCalls.Input.Writer.TryWrite(() => started);
+        }
+        finally
+        {
+            scenario.SessionCalls.ListingRelease.TrySetResult();
+            await refreshing;
+        }
+
+        await scenario.SettleAsync();
+        await scenario.SettleAsync();
+        await Assert.That(scenario.Board.Sessions.Select(static row => row.Session.Id)).IsEquivalentTo(["ses_9"], CollectionOrdering.Matching);
+        await Assert.That(scenario.Board.Sessions.Single().Status).IsEqualTo("running");
+    }
+
+    [Test]
+    public async Task SessionBoard_Should_Refresh_On_A_Drifted_Connection_Marker()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        scenario.SessionCalls.Items = [Session(9, "last")];
+        var payload = System.Text.Json.JsonSerializer.SerializeToElement(new { type = "server.connected", data = false });
+        await scenario.SendAsync(new UnknownEvent("server.connected", payload));
+
+        await Assert.That(scenario.Board.Sessions.Select(static row => row.Session.Id)).IsEquivalentTo(["ses_9"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task SessionBoard_Should_Not_List_Asks_For_Directories_Without_An_Active_Session()
     {
         await using var scenario = new BoardScenario();
@@ -96,11 +172,11 @@ public sealed class SessionBoardTests
     {
         await using var scenario = new BoardScenario();
         await scenario.StartAsync();
-        scenario.EventCalls.Input.Writer.TryWrite(static () => throw Unauthorized());
-        await scenario.SettleAsync();
+        await scenario.SendStateAsync(new EventConnectionState(EventConnectionStatus.Reconnecting, 1, Unauthorized()));
         await Assert.That(scenario.Board.Connected).IsFalse();
         scenario.SessionCalls.Items = [Session(8, "first")];
         scenario.SessionCalls.Active = new HashSet<string>(["ses_8"], StringComparer.Ordinal);
+        await scenario.SendStateAsync(new EventConnectionState(EventConnectionStatus.Connected, 0, null));
         await scenario.SendAsync(Connected());
         await Assert.That(scenario.Board.Connected).IsTrue();
         await Assert.That(scenario.Board.Sessions.Select(static row => row.Session.Id)).IsEquivalentTo(["ses_8"], CollectionOrdering.Matching);
@@ -180,7 +256,11 @@ public sealed class SessionBoardTests
 
     private sealed class BoardScenario : OpenCodeClient, IAsyncDisposable
     {
-        public BoardScenario() => Board = new SessionBoard(this, NullLogger<SessionBoard>.Instance);
+        public BoardScenario()
+        {
+            Board = new SessionBoard(this, NullLogger<SessionBoard>.Instance);
+            SessionCalls.Trace = EventCalls.Trace;
+        }
         public SessionBoard Board { get; }
         public BoardSessions SessionCalls { get; } = new();
         public BoardPermissions PermissionCalls { get; } = new();
@@ -222,10 +302,22 @@ public sealed class SessionBoardTests
             await SettleAsync();
         }
 
+        public async Task SendStateAsync(EventConnectionState state)
+        {
+            while (EventCalls.StatePulls.Reader.TryRead(out _))
+            {
+                // Drain acknowledgements for the state that preceded this explicit change.
+            }
+
+            EventCalls.States.Writer.TryWrite(state);
+            await EventCalls.StatePulls.Reader.ReadAsync(CancellationToken.None).AsTask().WaitAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
+        }
+
         public async Task SettleAsync()
         {
             // A pull after handling an event, or the service ending, bounds the observation; no sleep decides a verdict.
-            await Task.WhenAny(EventCalls.Pulls.Reader.ReadAsync().AsTask(), Board.ExecuteTask ?? Task.CompletedTask).WaitAsync(TimeSpan.FromSeconds(10));
+            await Task.WhenAny(EventCalls.Pulls.Reader.ReadAsync(CancellationToken.None).AsTask(), Board.ExecuteTask ?? Task.CompletedTask)
+                .WaitAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
         }
 
         public async ValueTask DisposeAsync()
@@ -238,21 +330,60 @@ public sealed class SessionBoardTests
 
     private sealed class BoardEvents : EventsClient
     {
+        private EventConnectionState _state = new(EventConnectionStatus.Connected, 0, null);
+        public List<string> Trace { get; } = [];
+        public int SubscribeCalls { get; private set; }
+        public int WatchCalls { get; private set; }
+        public CancellationToken WatchToken { get; private set; }
+        public TaskCompletionSource WatchEnded { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Channel<EventConnectionState> States { get; } = Channel.CreateUnbounded<EventConnectionState>();
+        public Channel<byte> StatePulls { get; } = Channel.CreateUnbounded<byte>();
+        public override EventConnectionState GetConnectionState() => _state;
+        public override async IAsyncEnumerable<EventConnectionState> WatchConnectionAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            WatchCalls++;
+            WatchToken = cancellationToken;
+            try
+            {
+                yield return _state;
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    StatePulls.Writer.TryWrite(0);
+                    _state = await States.Reader.ReadAsync(cancellationToken);
+                    yield return _state;
+                }
+            }
+            finally
+            {
+                WatchEnded.TrySetResult();
+            }
+        }
+
         public Channel<Func<IEvent>> Input { get; } = Channel.CreateUnbounded<Func<IEvent>>();
         public Channel<byte> Pulls { get; } = Channel.CreateUnbounded<byte>();
         public override async IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            SubscribeCalls++;
+            Trace.Add("subscribe");
             while (!cancellationToken.IsCancellationRequested)
             {
                 Pulls.Writer.TryWrite(0);
-                yield return (await Input.Reader.ReadAsync(cancellationToken))();
+                var item = (await Input.Reader.ReadAsync(cancellationToken))();
+                if (item.Type == "server.connected")
+                {
+                    Trace.Add("admission");
+                }
+
+                yield return item;
             }
         }
     }
 
     private sealed class BoardSessions : SessionsClient
     {
+        public List<string> Trace { get; set; } = [];
+        public int Refreshes { get; private set; }
         private bool _descending;
         public IReadOnlyList<SessionInfo> Items { get; set; } = [Session(0, "first"), Session(1, "gone"), Session(2, "last")];
         public IReadOnlySet<string> Active { get; set; } = new HashSet<string>(["ses_0", "ses_1", "ses_2"], StringComparer.Ordinal);
@@ -266,15 +397,17 @@ public sealed class SessionBoardTests
         public override async Task<SessionListResponse> ListSessionsAsync(SessionListRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
+            if (request?.Cursor is null)
+            {
+                _descending = request?.Order == ListOrder.Descending;
+                Refreshes++;
+                Trace.Add("refresh");
+            }
+
             if (ListingRelease is { } release)
             {
                 ListingStarted.TrySetResult();
                 await release.Task.WaitAsync(cancellationToken);
-            }
-
-            if (request?.Cursor is null)
-            {
-                _descending = request?.Order == ListOrder.Descending;
             }
 
             var ordered = _descending ? Items.OrderByDescending(static item => item.Time.Updated) : Items.OrderBy(static item => item.Time.Updated);

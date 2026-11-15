@@ -2,7 +2,6 @@ using System.Net;
 using System.Reflection;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
-using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -22,26 +21,26 @@ public sealed class EventsClientReconnectTests
     [Test]
     public async Task SubscribeAsync_Should_Decode_Unselected_Frames_And_Reconnect_All_Subscribers_On_Invalid_Json()
     {
-        using var initial = new LiveEventBody(EventStreamSteps.ConnectedFrame);
-        using var replacement = new LiveEventBody(EventStreamSteps.ConnectedFrame);
+        using var initial = new LiveEventBody(ConnectedFrame);
+        using var replacement = new LiveEventBody(ConnectedFrame);
         using var server = new ScriptedEventServer(index => ScriptedEventServer.Stream(index == 1 ? initial : replacement));
         var request = new EventSubscribeRequest { Types = [new("rpc.sdk-test")] };
         await using var first = server.Events.SubscribeAsync(request).GetAsyncEnumerator();
         await using var second = server.Events.SubscribeAsync(request).GetAsyncEnumerator();
-        var oldMarker = await EventStreamSteps.NextAsync(first);
-        await Assert.That(await EventStreamSteps.NextAsync(second)).IsSameReferenceAs(oldMarker);
+        var oldMarker = await NextAsync(first);
+        await Assert.That(await NextAsync(second)).IsSameReferenceAs(oldMarker);
         await Assert.That(server.RequestCount).IsEqualTo(1);
         Drop(initial, "malformed-frame");
         await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         server.Time.Advance(Delay);
-        var newMarker = await EventStreamSteps.NextAsync(first);
+        var newMarker = await NextAsync(first);
         await Assert.That(newMarker).IsNotSameReferenceAs(oldMarker);
-        await Assert.That(await EventStreamSteps.NextAsync(second)).IsSameReferenceAs(newMarker);
+        await Assert.That(await NextAsync(second)).IsSameReferenceAs(newMarker);
         var drifted = System.Text.Json.Nodes.JsonNode.Parse(ScriptedEventServer.Connected)!.AsObject();
         drifted["data"] = false;
         replacement.Append(WireBodyData.Frames(drifted.ToJsonString()));
-        var left = await EventStreamSteps.NextAsync(first);
-        var right = await EventStreamSteps.NextAsync(second);
+        var left = await NextAsync(first);
+        var right = await NextAsync(second);
 
         await Assert.That(left).IsTypeOf<UnknownEvent>();
         await Assert.That(left.Type).IsEqualTo("server.connected");
@@ -399,8 +398,7 @@ public sealed class EventsClientReconnectTests
         var initiallyReading = body.NextEmptyRead;
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+        await using var events = await SubscribeConnectedAsync(server, caller.Token);
         await initiallyReading.WaitAsync(HangGuard.Bound);
         var interval = TimeSpan.FromTicks(IdleWindow.Ticks / 2);
         for (var elapsed = TimeSpan.Zero; elapsed < TimeSpan.FromMinutes(10); elapsed += interval)

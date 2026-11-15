@@ -9,7 +9,10 @@ namespace OpenCode.Sdk;
 public sealed record EventSubscribeRequest
 {
     /// <summary>
-    /// Only send events of these types, plus the initial server.connected event. When omitted, all events are sent.
+    /// Locally select exact event types, captured at the call; null or empty selects all events and server.connected always passes.
     /// </summary>
+    /// <remarks>
+    /// The shared source sends no types query and decodes the whole bus once.
+    /// </remarks>
     public IReadOnlyList<EventType>? Types { get; init; }
 }

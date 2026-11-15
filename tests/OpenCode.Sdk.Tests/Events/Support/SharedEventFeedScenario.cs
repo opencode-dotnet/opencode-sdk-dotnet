@@ -18,11 +18,16 @@ internal sealed class SharedEventFeedScenario : IAsyncDisposable
     public SharedEventFeed Feed { get; }
     public ScriptedEventAttemptSource.Attempt? CurrentAttempt { get; private set; }
 
+    public EventSubscription<IEvent> CreateSubscription(CancellationToken caller = default, CancellationToken enumeration = default) =>
+        (EventSubscription<IEvent>)Feed.Subscribe(EventSelection.Capture(null), caller).GetAsyncEnumerator(enumeration);
+
+    public EventStateWatcher CreateWatcher(CancellationToken caller = default, CancellationToken enumeration = default) =>
+        (EventStateWatcher)Feed.Watch(caller).GetAsyncEnumerator(enumeration);
+
     public async Task<EventSubscription<IEvent>> AdmitAsync(string id, CancellationToken cancellationToken = default)
     {
         var opensSource = Feed.GetCurrentSource() is null;
-        var events = (EventSubscription<IEvent>)Feed.Subscribe(EventSelection.Capture(null), cancellationToken)
-            .GetAsyncEnumerator(CancellationToken.None);
+        var events = CreateSubscription(cancellationToken);
         var moving = events.MoveNextAsync().AsTask();
         if (opensSource)
         {
@@ -39,6 +44,22 @@ internal sealed class SharedEventFeedScenario : IAsyncDisposable
     }
 
     public async Task PublishAsync(string id) => await CurrentAttempt!.PublishAsync(Event(id));
+
+    public async Task PublishPrefixAsync(params string[] ids)
+    {
+        foreach (var id in ids)
+        {
+            await PublishAsync(id);
+        }
+    }
+
+    public async Task<EventConnectionState> FailAttemptAsync(ScriptedEventAttemptSource.Attempt attempt, Exception failure)
+    {
+        _ = attempt.Items.Writer.TryComplete(failure);
+        attempt.ReleaseCleanup();
+        await Time.WaitForArmedAsync(EventStreamSteps.Delay, HangGuard.Bound);
+        return Feed.GetConnectionState();
+    }
 
     public async Task FaultAsync(Exception failure)
     {

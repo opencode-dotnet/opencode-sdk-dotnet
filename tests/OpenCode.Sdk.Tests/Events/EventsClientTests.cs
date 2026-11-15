@@ -1,6 +1,6 @@
-using OpenCode.Sdk.Internal;
 using System.Text.Json;
 using System.Threading.Channels;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Harness;
@@ -139,10 +139,7 @@ public sealed class EventsClientTests
         await Assert.That(server.RequestCount).IsEqualTo(1);
         await Assert.That(secondMarker).IsSameReferenceAs(firstMarker);
         bodies.Single().Append(WireBodyData.Frames(_fixtures.LoadJson("Events.session-created.json")));
-        var left = await EventStreamSteps.NextAsync(first);
-        var right = await EventStreamSteps.NextAsync(second);
-        await Assert.That(left.Id).IsEqualTo("evt_1");
-        await Assert.That(right).IsSameReferenceAs(left);
+        _ = await EventStreamSteps.SharedEventAsync(first, second, "evt_1");
         await first.DisposeAsync();
         await Assert.That(bodies.Single().IsDisposed).IsFalse();
         bodies.Single().Append(WireBodyData.Frames(_fixtures.LoadJson("Events.unknown-log-event.json")));
@@ -215,7 +212,7 @@ public sealed class EventsClientTests
     private sealed class MockEventsClient : EventsClient
     {
         internal static readonly EventConnectionState KnownState = new(EventConnectionStatus.Reconnecting, 7, new OpenCodeTransportException("mock"));
-        internal static readonly IEvent KnownEvent = new EventServerConnected { Id = "mocked", Data = new Dictionary<string, System.Text.Json.JsonElement>(StringComparer.Ordinal) };
+        internal static readonly IEvent KnownEvent = new EventServerConnected { Id = "mocked", Data = new Dictionary<string, JsonElement>(StringComparer.Ordinal) };
 
         public override IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) => Sequence();

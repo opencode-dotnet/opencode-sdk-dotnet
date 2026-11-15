@@ -24,9 +24,11 @@ input, a cursor domain without a live-only mode, no pre-upgrade existence check)
 families' public doors are hand-written over generated internal raw clients and share one
 family-neutral socket core behind named decode, close, and upgrade seams.
 
-The Events family's public door is hand-written over its raw client, so behaviour above the
-generated stream belongs to hand-written code. Its raw endpoint, routes, adapters, wire models and
-serializer metadata stay generated; its signature and SSE behaviour are the generated stream method's.
+The Events family's public door owns the shared feed and local selection (ADR-0041), opening physical
+attempts through the generated route and adapter on the stream plane rather than delegating to its
+raw twin's subscribe method. The raw endpoint, routes, adapters, wire models and serializer metadata
+stay generated; the public subscription signature stays stable while its runtime contract belongs
+to hand-written code.
 
 ## Considered options
 

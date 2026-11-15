@@ -1,4 +1,3 @@
-using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -35,14 +34,10 @@ public sealed class EventSourceTests
             var current = scenario.Feed.GetCurrentSource();
             _ = oldAttempt.Items.Writer.TryComplete();
             oldAttempt.ReleaseCleanup();
-            var runnerObserved = source.RunnerObservation!.ContinueWith(static task => task.Status,
-                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-            await Assert.That(await runnerObserved.WaitAsync(HangGuard.Bound)).IsEqualTo(TaskStatus.RanToCompletion);
+            await EventStreamSteps.ObserveSourceCompletionAsync(source);
             await Assert.That(source.IsReleased).IsFalse();
             release.Set();
-            var cancelObserved = source.CancellationObservation!.ContinueWith(static task => task.Status,
-                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-            await Assert.That(await cancelObserved.WaitAsync(HangGuard.Bound)).IsEqualTo(TaskStatus.RanToCompletion);
+            await EventStreamSteps.ObserveSourceCompletionAsync(source, cancellation: true);
 
             Exception[] expected = [failure];
             await Assert.That(source.CancellationFailure!.InnerExceptions).IsEquivalentTo(expected, CollectionOrdering.Matching);
@@ -68,11 +63,8 @@ public sealed class EventSourceTests
     public async Task RequestStop_Should_Observe_Runner_And_Worker_Cancellation_Before_Releasing_The_Cts(bool failCancellation)
     {
         await using var scenario = new SharedEventFeedScenario();
-        await using var events = scenario.Feed.Subscribe(EventSelection.Capture(null), default).GetAsyncEnumerator();
-        var first = events.MoveNextAsync().AsTask();
-        var attempt = await scenario.Attempts.NextOpenAsync();
-        await attempt.PublishAsync(SharedEventFeedScenario.Marker("M"));
-        await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
+        await using var events = await scenario.AdmitAsync("M");
+        var attempt = scenario.CurrentAttempt!;
         var source = scenario.Feed.GetCurrentSource()!;
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var release = new ManualResetEventSlim();
@@ -97,9 +89,7 @@ public sealed class EventSourceTests
             await entered.Task.WaitAsync(HangGuard.Bound);
             _ = attempt.Items.Writer.TryComplete();
             attempt.ReleaseCleanup();
-            var runnerObserved = source.RunnerObservation!.ContinueWith(static task => task.Status,
-                CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
-            await Assert.That(await runnerObserved.WaitAsync(HangGuard.Bound)).IsEqualTo(TaskStatus.RanToCompletion);
+            await EventStreamSteps.ObserveSourceCompletionAsync(source);
 
             await Assert.That(source.IsReleased).IsFalse();
             await Assert.That(source.Token.IsCancellationRequested).IsTrue();

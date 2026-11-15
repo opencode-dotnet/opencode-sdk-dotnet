@@ -26,6 +26,29 @@ public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
     private static readonly string[] DoorTypes = ["PtyClient", "PtysClient", "PersistentPtyClient", "PersistentPtysClient", "EventsClient"];
 
     [Test]
+    public async Task SubscribeAsync_Remarks_Should_Quote_The_Current_Server_Sent_Events_Canon()
+    {
+        var method = (await LoadHandWrittenMethodsAsync()).Single(static method => method.TypeName == "EventsClient" && method.Name == "SubscribeAsync");
+        var fileSystem = new RealFileSystem();
+        var path = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "docs/architecture/client-runtime.md");
+        var canon = await fileSystem.File.ReadAllTextAsync(path, CancellationToken.None);
+        const string heading = "## Server-sent events";
+        var start = canon.IndexOf(heading, StringComparison.Ordinal);
+        await Assert.That(start).IsGreaterThanOrEqualTo(0);
+        var end = canon.IndexOf("\n## ", start + heading.Length, StringComparison.Ordinal);
+        var section = Normalize((end < 0 ? canon[start..] : canon[start..end]).Replace("`", "", StringComparison.Ordinal));
+        var excerpts = Normalize(method.PlainRemarks).Split(". ", StringSplitOptions.RemoveEmptyEntries)
+            .Where(static excerpt => !excerpt.StartsWith("Operation ", StringComparison.Ordinal)).ToArray();
+        await Assert.That(excerpts).IsNotEmpty();
+        foreach (var excerpt in excerpts)
+        {
+            await Assert.That(section).Contains(excerpt.TrimEnd('.'));
+        }
+    }
+
+    private static string Normalize(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    [Test]
     [Arguments("SubscribeAsync", true, 1)]
     [Arguments("WatchConnectionAsync", false, 0)]
     [Arguments("GetConnectionState", false, 0)]
@@ -109,19 +132,22 @@ public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
 
     private sealed record OperationRemark(string Member, string OperationId, string Method, string Route);
 
-    private sealed record HandWrittenMethod(string TypeName, string Name, bool IsPublicOperation, IReadOnlyList<OperationRemark> Remarks)
+    private sealed record HandWrittenMethod(string TypeName, string Name, bool IsPublicOperation,
+        IReadOnlyList<OperationRemark> Remarks, string PlainRemarks)
     {
         public static HandWrittenMethod Of(MethodDeclarationSyntax method)
         {
             var typeName = ((TypeDeclarationSyntax)method.Parent!).Identifier.ValueText;
             var name = method.Identifier.ValueText;
-            var remarkText = string.Concat(method
+            var remarkElements = method
                 .GetLeadingTrivia()
                 .Select(static trivia => trivia.GetStructure())
                 .OfType<DocumentationCommentTriviaSyntax>()
                 .SelectMany(static comment => comment.Content.OfType<XmlElementSyntax>())
-                .Where(static element => element.StartTag.Name.LocalName.ValueText == "remarks")
-                .Select(static element => element.Content.ToString()));
+                .Where(static element => element.StartTag.Name.LocalName.ValueText == "remarks").ToArray();
+            var remarkText = string.Concat(remarkElements.Select(static element => element.Content.ToString()));
+            var plainRemarks = string.Concat(remarkElements.SelectMany(static element => element.DescendantNodes().OfType<XmlTextSyntax>())
+                .SelectMany(static text => text.TextTokens).Select(static token => token.ValueText));
             var remarks = RemarkPattern()
                 .Matches(remarkText)
                 .Select(match => new OperationRemark(
@@ -138,7 +164,7 @@ public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
                     _ => throw new InvalidOperationException($"Unclassified Events door member: {name}"),
                 }
                 : method.ReturnType is GenericNameSyntax { Identifier.ValueText: "Task" or "IAsyncEnumerable" });
-            return new HandWrittenMethod(typeName, name, isPublicOperation, remarks);
+            return new HandWrittenMethod(typeName, name, isPublicOperation, remarks, plainRemarks);
         }
     }
 }

@@ -219,11 +219,8 @@ public sealed class SharedEventFeedTests
         var metadata = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
         var native = (SessionCreated)JsonSerializer.Deserialize(_fixtures.LoadJson("Events.session-created.json"), OpenCodeJsonContext.Default.IEvent)!;
         await scenario.CurrentAttempt!.PublishAsync(native with { Metadata = metadata });
-        var left = await EventStreamSteps.NextAsync(first);
-        var right = await EventStreamSteps.NextAsync(second);
-
-        await Assert.That(left.Id).IsEqualTo("evt_1");
-        await Assert.That(right).IsSameReferenceAs(left);
+        var right = await EventStreamSteps.SharedEventAsync(first, second, "evt_1");
+        var left = first.Current;
         await Assert.That(right.Metadata).IsSameReferenceAs(metadata);
         metadata.Add("controlled-mutation", default);
         await Assert.That(left.Metadata).ContainsKey("controlled-mutation");
@@ -340,6 +337,7 @@ public sealed class SharedEventFeedTests
         await Assert.That(scenario.Feed.GetCurrentSource()).IsSameReferenceAs(source);
         await Assert.That(source.Token.IsCancellationRequested).IsFalse();
         await second.DisposeAsync();
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
         scenario.CurrentAttempt!.ReleaseCleanup();
         await scenario.Feed.JoinAsync().WaitAsync(HangGuard.Bound);
         await Assert.That(source.Token.IsCancellationRequested).IsTrue();
@@ -389,6 +387,7 @@ public sealed class SharedEventFeedTests
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelOnWorkerAsync();
         scenario.Feed.Complete(source, canceled ? Task.FromCanceled(cancellation.Token) : Task.CompletedTask);
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
 
         var left = await Assert.That(async () => await first.MoveNextAsync()).Throws<Exception>();
         var right = await Assert.That(async () => await second.MoveNextAsync()).Throws<Exception>();

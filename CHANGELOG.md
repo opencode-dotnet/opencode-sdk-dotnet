@@ -9,21 +9,32 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already released in SDK 1.1.0.
+
 ### 💥 Breaking changes
 
 - `OpenCodeServerOptions.ReadinessTimeout` now defaults to `Timeout.InfiniteTimeSpan`: a standalone start waits for readiness until its cancellation token fires, as opencode's CLI does. Before: `StartAsync()` failed after 60 seconds without a readiness line. After: set `ReadinessTimeout = TimeSpan.FromSeconds(60)` to keep that failure, an `OpenCodeServerException` naming the bound; a cancellation token bounds the wait too, but ends the start with `OperationCanceledException`.
 - **A background service registered without a password is used, as opencode's CLI uses it.** `OpenCodeServer.Password` is `string?`: such a service is now discovered and reused, and its handle's `Password` is null. Before: `string password = server.Password;`. After: `string? password = server.Password;`.
+- `EventsClient.SubscribeAsync` now uses one shared background source per root client. Each enumeration is an independent subscription with 4,096 queued selected events allowed; the next refused selected offer discards that subscriber's backlog and throws `OpenCodeEventSubscriberOverflowException`. A sole subscriber's overflow stops the source.
+- The first `server.connected` is an admission marker, possibly cached and sharing its Id with neighbours, not a new physical connection or liveness proof. Earlier business events are not replayed. A later marker still announces a possible gap.
+- Ordinary event-attempt failures retry forever instead of giving up after a minute. API, transport and failure-frame exceptions are exposed on connection state rather than ending the subscription. Consumers that require a deadline own a cancellation token.
+- An unexpected source/cleanup fault ends admitted subscriptions after their queued prefix with the same exception; state watchers receive Idle. Cancellation still wins over a preserved prefix on a later pull.
 
 ### ✨ Added
 
 - `OpenCodeServerStopOptions.Pty` accepts `OpenCodeServerStopPtyMode.Handoff` so that `StopAsync` attempts a best-effort persistent-terminal handoff after it reads the registration and before it signals the process. Follow it with `EnsureAsync` using the same registration selection to restart as the managed connection does; preservation depends on preparing and adopting the ticket before it expires. Null and `Clear` keep the default: terminals end with the service, as with the CLI's `service restart`.
 - `Plugins.WaitForPluginsAsync` waits for a location's plugins to load, as the CLI does before listing agents, models and integrations; `LanguageModels.WaitForDefaultAsync` now runs it.
 - `OpenCodeServer.ShutdownPersistentPtyAsync` discovers the background service and, when one is running, shuts down its persistent terminals, as opencode's CLI does before an uninstall; with no service it does nothing. It is experimental (`OPENCODE002`).
+- Virtual `EventsClient.GetConnectionState()` and `WatchConnectionAsync(CancellationToken)` expose `EventConnectionState` and `EventConnectionStatus` (Idle, Connecting, Connected, Reconnecting). Watches coalesce to the latest unread state and do not start or retain a source.
+- `OpenCodeEventSubscriberOverflowException.Capacity` reports the SDK's fixed 4,096 bound, including for instances constructed through its standard public constructors.
 
 ### 🔧 Changes
 
 - `StopAsync` and the `EnsureAsync` version-mismatch replacement treat a failed persistent-terminal handoff or clear as best-effort, whatever the exception type, as opencode's CLI does. Before: a failure other than an `OpenCodeServerException` ended `StopAsync` before it terminated the old service, and ended `EnsureAsync` at once. After: `StopAsync` terminates the old service; `EnsureAsync` keeps polling, and the last replacement failure becomes the inner exception of its timeout. The caller's cancellation still ends both. (#871)
 - The packages' .NET dependency floors move from `10.0.13` to the `10.0.15` servicing release: on `net472` and `netstandard2.0`, `System.Text.Json`, `System.Threading.Channels`, `System.Collections.Immutable`, `Microsoft.Bcl.AsyncInterfaces`, `Microsoft.Bcl.Memory` and `Microsoft.Bcl.TimeProvider`; in `OpenCodeDotNet.Sdk.Extensions`, on every target, `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Options.ConfigurationExtensions`. No security advisory of the .NET 10.0.14 or 10.0.15 release lists these packages.
+- Event Types are copied and validated at the call and selected locally; physical attempts send no Types query. The whole bus is decoded once, so malformed unselected traffic reconnects every subscriber. Event and metadata instances are shared references, not deep-frozen graphs; consumers treat them as read-only. Queue bounds count events, not bytes, and subscriber count remains unbounded.
+- Event subscriptions accept but no longer forward per-call Location. Every shared attempt sends only the client's ambient header snapshot; other operations retain their existing override behavior.
+- Event idle detection keeps running while a consumer holds an event. Disposing an enumerator with a pending move is supported: an unsettled move ends false unless cancelled, and an already settled move keeps its result. Disposal drains unread data and later pulls end false, even after an earlier overflow, fault or root disposal, unless an entry token is cancelled.
 - Background-service discovery (`OpenCodeServer.DiscoverAsync` and the probe `EnsureAsync` runs) now takes the client's proxy decision for a loopback service. Behind an environment proxy (`HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`), set `NO_PROXY` to reach a loopback service directly, as with opencode's CLI; behind a system proxy, that proxy's own bypass list applies, as it does for the client. .NET Framework is unchanged.
 
 ### 🐛 Fixes

@@ -481,6 +481,11 @@ materializable.
   payload, frame, declared failure event, typed cause, and statuses from the pin. Cause models,
   converters, array metadata, and adapter metadata pass through the same emitted registry and
   System.Text.Json source-generation compile proof as payload models (ADR-0008, ADR-0015).
+  The Events door captures local selection instead of forwarding its request/options to a raw
+  subscribe call. Its attempt source uses the generated route without Types and the generated
+  adapter directly on StreamPlane, retaining every status, framing and materialization wall.
+  Reconnecting operations are refused by the generic stream entry; no alternate one-shot Events
+  stream is exposed. Other generated streaming operations keep their existing one-shot semantics.
 - Exclusion is reserved for transports the HTTP pipeline cannot carry, such as a WebSocket upgrade.
   Every excluded operation is fingerprint-pinned so protocol drift forces review (ADR-0008).
 - Unknown response media types fail generation. Supported non-JSON response bodies follow the

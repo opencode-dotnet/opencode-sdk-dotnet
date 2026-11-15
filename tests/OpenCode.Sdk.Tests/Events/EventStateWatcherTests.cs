@@ -11,16 +11,14 @@ public sealed class EventStateWatcherTests
     {
         await using var scenario = new SharedEventFeedScenario();
         await using var events = await scenario.AdmitAsync("M");
-        await using var watcher = scenario.Feed.Watch(default).GetAsyncEnumerator();
+        await using var watcher = scenario.CreateWatcher();
         await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Connected);
         var failure = new InvalidOperationException("source cleanup");
         await scenario.FaultAsync(failure);
 
-        await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Idle);
-        await Assert.That(watcher.Current.Attempt).IsEqualTo(0);
-        await Assert.That(watcher.Current.Error).IsNull();
+        var idle = await EventStreamSteps.NextAsync(watcher);
+        await EventStreamSteps.AssertStateAsync(idle, EventConnectionStatus.Idle, 0, null);
         var observed = await Assert.That(async () => await events.MoveNextAsync()).Throws<InvalidOperationException>();
         await Assert.That(observed).IsSameReferenceAs(failure);
         await using var replacement = await scenario.AdmitAsync("M2");
@@ -37,7 +35,7 @@ public sealed class EventStateWatcherTests
         await using var scenario = new SharedEventFeedScenario();
         await using var events = await scenario.AdmitAsync("M");
         var source = scenario.Feed.GetCurrentSource()!;
-        await using var watcher = scenario.Feed.Watch(default).GetAsyncEnumerator();
+        await using var watcher = scenario.CreateWatcher();
         if (watchFirst)
         {
             await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
@@ -58,7 +56,7 @@ public sealed class EventStateWatcherTests
         await using var scenario = new SharedEventFeedScenario();
         await using var events = await scenario.AdmitAsync("M");
         var source = scenario.Feed.GetCurrentSource()!;
-        await using var watcher = scenario.Feed.Watch(default).GetAsyncEnumerator();
+        await using var watcher = scenario.CreateWatcher();
         await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
         var earlier = new OpenCodeTransportException("earlier");
         var latest = new OpenCodeTransportException("latest");
@@ -90,7 +88,7 @@ public sealed class EventStateWatcherTests
     public async Task GetConnectionState_Should_Throw_ObjectDisposedException_After_Disposal()
     {
         await using var scenario = new SharedEventFeedScenario();
-        await using var watcher = scenario.Feed.Watch(default).GetAsyncEnumerator();
+        await using var watcher = scenario.CreateWatcher();
         await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
         var pending = EventStreamSteps.PendingNext(watcher);
         scenario.Feed.Dispose();
@@ -113,8 +111,7 @@ public sealed class EventStateWatcherTests
         using var caller = new CancellationTokenSource();
         using var enumeration = new CancellationTokenSource();
         await using var scenario = new SharedEventFeedScenario();
-        await using var watcher = (EventStateWatcher)scenario.Feed.Watch(caller.Token)
-            .GetAsyncEnumerator(sameToken ? caller.Token : enumeration.Token);
+        await using var watcher = scenario.CreateWatcher(caller.Token, sameToken ? caller.Token : enumeration.Token);
         await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Idle);
         await Assert.That(watcher.RegistrationCount).IsEqualTo(sameToken ? 1 : 2);
@@ -123,16 +120,7 @@ public sealed class EventStateWatcherTests
 
         await Assert.That(watcher.RegistrationCount).IsEqualTo(0);
         await Assert.That(scenario.Feed.WatcherCount).IsEqualTo(0);
-        OperationCanceledException? canceled = null;
-        try
-        {
-            _ = await watcher.MoveNextAsync();
-        }
-        catch (OperationCanceledException exception)
-        {
-            canceled = exception;
-        }
-
+        var canceled = await EventStreamSteps.PendingCancellationAsync(watcher).WaitAsync(HangGuard.Bound);
         await Assert.That(canceled).IsNotNull();
         if (sameToken)
         {
@@ -147,7 +135,7 @@ public sealed class EventStateWatcherTests
     {
         using var caller = new CancellationTokenSource();
         await using var scenario = new SharedEventFeedScenario();
-        await using var watcher = (EventStateWatcher)scenario.Feed.Watch(caller.Token).GetAsyncEnumerator();
+        await using var watcher = scenario.CreateWatcher(caller.Token);
         await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
         await DedicatedThread.Run(caller.Cancel).WaitAsync(HangGuard.Bound);
 
@@ -166,16 +154,14 @@ public sealed class EventStateWatcherTests
         await Assert.That(initial.Status).IsEqualTo(EventConnectionStatus.Idle);
         await Assert.That(initial.Attempt).IsEqualTo(0);
         await Assert.That(initial.Error).IsNull();
-        await using var watcher = (EventStateWatcher)scenario.Feed.Watch(default).GetAsyncEnumerator();
+        await using var watcher = scenario.CreateWatcher();
         await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(watcher.Current).IsSameReferenceAs(initial);
         await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(0);
         await using var events = await scenario.AdmitAsync("M");
         await events.DisposeAsync();
-        await Assert.That(await EventStreamSteps.PendingNext(watcher).WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Idle);
-        await Assert.That(watcher.Current.Attempt).IsEqualTo(0);
-        await Assert.That(watcher.Current.Error).IsNull();
+        var idle = await EventStreamSteps.NextAsync(watcher);
+        await EventStreamSteps.AssertStateAsync(idle, EventConnectionStatus.Idle, 0, null);
         await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
         await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(1);
     }
