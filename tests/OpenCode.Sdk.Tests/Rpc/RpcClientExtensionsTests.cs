@@ -73,8 +73,7 @@ public sealed class RpcClientExtensionsTests
     [Test]
     [Arguments(400, RpcFacadeData.RejectionBody, RpcFacadeData.RejectedType, RpcFacadeData.RejectionData)]
     [Arguments(500, RpcFacadeData.InternalErrorBody, RpcFacadeData.InvalidOutputType, null)]
-    [Arguments(500, "{\"_tag\":\"RpcInternalError\",\"type\":\"rpc.internal\",\"message\":\"RPC call failed\",\"data\":"
-        + RpcFacadeData.RejectionData + "}", RpcFacadeData.InternalType, RpcFacadeData.RejectionData)]
+    [Arguments(500, RpcFacadeData.InternalErrorDataBody, RpcFacadeData.InternalType, RpcFacadeData.RejectionData)]
     [Arguments(400, RpcFacadeData.UnavailableBody, RpcFacadeData.UnavailableType, null)]
     public async Task CallAsync_Should_Unwrap_The_Rpc_Failure(int status, string body, string errorType, string? data)
     {

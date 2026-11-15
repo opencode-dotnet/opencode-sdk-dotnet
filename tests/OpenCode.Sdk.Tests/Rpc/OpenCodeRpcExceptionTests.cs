@@ -42,7 +42,7 @@ public sealed class OpenCodeRpcExceptionTests
         await Assert.That(exception.Status).IsEqualTo(0);
         if (constructor == "none")
         {
-            await Assert.That(exception.Message).IsNotEmpty();
+            await Assert.That(exception.Message).Contains(typeof(OpenCodeRpcException).FullName!);
         }
         else
         {

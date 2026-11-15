@@ -46,6 +46,8 @@ internal static class RpcFacadeData
         "{\"_tag\":\"RpcError\",\"type\":\"" + RejectedType + "\",\"message\":\"" + RejectedMessage + "\",\"data\":" + RejectionData + "}";
     public const string InternalErrorBody =
         "{\"_tag\":\"RpcInternalError\",\"type\":\"" + InvalidOutputType + "\",\"message\":\"" + InvalidOutputMessage + "\"}";
+    public const string InternalErrorDataBody =
+        "{\"_tag\":\"RpcInternalError\",\"type\":\"" + InternalType + "\",\"message\":\"" + InternalMessage + "\",\"data\":" + RejectionData + "}";
     public const string UnavailableBody =
         "{\"_tag\":\"RpcError\",\"type\":\"" + UnavailableType + "\",\"message\":\"" + UnavailableMessage + "\"}";
     public static readonly RpcDefinition Definition = new(TestRpcPlugin.Id);
