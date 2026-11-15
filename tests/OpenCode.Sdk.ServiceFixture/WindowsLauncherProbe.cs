@@ -55,6 +55,14 @@ internal static class WindowsLauncherProbe
     /// <summary>How long a round of the handle count waits for its exit watches to be released.</summary>
     private static readonly TimeSpan ReleaseBound = TimeSpan.FromSeconds(10);
 
+    /// <summary>
+    /// How long a probe's start waits for readiness. With a failed start's cleanup (up to 29 seconds on
+    /// Windows) it stays below the timeouts of the tests that end the probe process, 120 seconds for the
+    /// handle-isolation probe and 240 seconds for the handle cycles, so a server that stays silent fails
+    /// here, naming the bound and its stderr tail.
+    /// </summary>
+    private static readonly TimeSpan ReadinessBound = TimeSpan.FromSeconds(45);
+
     private const int CyclesPerRound = 10;
 
     /// <summary><c>STD_OUTPUT_HANDLE</c>.</summary>
@@ -121,7 +129,7 @@ internal static class WindowsLauncherProbe
     public static async Task<int> ProbeHandleIsolationAsync(IReadOnlyList<string> command)
     {
         using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
-        var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = [.. command] }).ConfigureAwait(false);
+        var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = [.. command], ReadinessTimeout = ReadinessBound }).ConfigureAwait(false);
         await using (server.ConfigureAwait(false))
         {
             pipe.DisposeLocalCopyOfClientHandle();
@@ -300,7 +308,7 @@ internal static class WindowsLauncherProbe
     {
         for (var cycle = 0; cycle < cycles; cycle++)
         {
-            var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = [.. command] }).ConfigureAwait(false);
+            var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = [.. command], ReadinessTimeout = ReadinessBound }).ConfigureAwait(false);
             await server.DisposeAsync().ConfigureAwait(false);
             await FailedStartAsync(new OpenCodeServerOptions { Command = [command[0], "-e", "process.exit(3)"] }).ConfigureAwait(false);
             await FailedStartAsync(new OpenCodeServerOptions

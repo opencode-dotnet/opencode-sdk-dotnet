@@ -711,10 +711,11 @@ its shutdown never blocks on a full pipe, then drains the output inside its boun
 collection closes: the final snapshot holds what the server wrote until it ended. That drain is at
 most one second, after the ladder.
 
-The readiness wait ends at the first stdout line, at the caller's cancellation, at the configured
-timeout, or when the child shows it never will be ready: the root's exit, observed by the exit watch
-rather than by end-of-stream, or stdout reaching end-of-stream while the server keeps running, which
-upstream also fails at once. The output is then drained once,
+The readiness wait ends at the first stdout line, at the caller's cancellation, at the readiness
+timeout when the caller set one (by default there is none, as upstream's standalone start sets none,
+`packages/cli/src/services/standalone.ts:49`), or when the child shows it never will be ready: the
+root's exit, observed by the exit watch rather than by end-of-stream, or stdout reaching end-of-stream
+while the server keeps running, which upstream also fails at once. The output is then drained once,
 for at most one second — a descendant holding stdout open costs that second and no more — and a
 readiness line already in the pipe still wins, because the first line wins whatever follows it.
 
@@ -818,6 +819,7 @@ The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, 
 | Signal end | Fails `exited` with `KilledBySignal`, carrying the signal's name | Completes `Exited` with the signal as a value: its name and its number | A task that never faults is the idiomatic form, and the number is a superset. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
+| Readiness bound | Awaits the readiness line with no timeout | Waits until the caller's token fires by default; an optional `ReadinessTimeout` bounds the wait | A superset: a caller can ask for a failed start instead of an indefinite wait, and the default is upstream's behaviour. |
 | Children at exit | A synchronous exit hook sends `SIGKILL` to the group of every detached child still running | Installs no process-exit hook | The hook covers a process's own detached children, and the SDK's only child is the server. When its stdin lease (`src/OpenCode.Sdk/Hosting/Launcher/Internal/OwnedServerProcess.cs:13`) ends, the server exits normally, and its own exit hook sends `SIGKILL` to the detached tool groups it still tracks (`packages/util/src/cross-spawn-spawner.ts:415-419` at the pin), so nothing the hook exists for is left to the SDK. |
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close beyond a collector's one-second drain, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
 
@@ -836,6 +838,7 @@ The launcher's recorded divergences from upstream on Windows (ADR-0031, ADR-0032
 | Tree kill | Runs `taskkill` through `cmd.exe` and `PATH`, and leaves a run that hangs | Runs it from System32 with no handle of the host's, and ends a run its bound overtakes | No substituted executable, and nothing outlives disposal. |
 | Forced-exit wait | Waits on the root's exit alone after the second rung | Bounds it at 10 seconds | Disposal never hangs on a process the kernel cannot end. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
+| Readiness bound | Awaits the readiness line with no timeout | Waits until the caller's token fires by default; an optional `ReadinessTimeout` bounds the wait | A superset: a caller can ask for a failed start instead of an indefinite wait, and the default is upstream's behaviour. |
 | Batch-shim arguments | Spawns through cross-spawn 7.0.6, the version its lockfile pins (`bun.lock:2813`, used at `packages/util/src/cross-spawn-spawner.ts:30`), which runs a `.cmd` or `.bat` target as `cmd.exe /d /s /c`, quotes each argument and caret-escapes its own metacharacter set (CR and LF are not in it), and escapes a second time only when the resolved path matches `node_modules/.bin/*.cmd` (cross-spawn `lib/util/escape.js:4-44`, `lib/parse.js:40-59`) | Refuses a leading argument that carries `&`, `^`, `%`, `!`, `"`, the pipe character, the less-than or greater-than sign, CR or LF (`src/OpenCode.Sdk/Hosting/Internal/BatchCommandLine.cs:23-25`, `:77-79`) | `%VAR%` and `!VAR!` expansion cannot be escaped reliably on a `cmd.exe` command line: whether an escape survives depends on percent and delayed expansion and on how many times the target re-parses its arguments, which the launcher cannot know for an arbitrary batch file (BatBadBut: CVE-2024-24576, CVE-2024-27980). |
 
 The forced-exit wait observes the directly owned process. A whole-tree kill is asynchronous: the

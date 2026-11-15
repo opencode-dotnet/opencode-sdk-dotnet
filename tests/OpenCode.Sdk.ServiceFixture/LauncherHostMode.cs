@@ -19,9 +19,17 @@ internal static class LauncherHostMode
     /// <summary>How long the host waits for the exit report once disposal returned.</summary>
     private static readonly TimeSpan ExitReportBound = TimeSpan.FromSeconds(15);
 
+    /// <summary>
+    /// How long the start waits for readiness. A failed start ends its child before it throws, which can
+    /// take up to 29 seconds on Windows and 19 elsewhere; this bound plus that cleanup stays below the
+    /// host's 60-second start bound, so a server that stays silent fails here, naming the bound and its
+    /// stderr tail, before the host gives up.
+    /// </summary>
+    private static readonly TimeSpan ReadinessBound = TimeSpan.FromSeconds(20);
+
     public static async Task<int> RunAsync(IReadOnlyList<string> command)
     {
-        var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = [.. command] }).ConfigureAwait(false);
+        var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = [.. command], ReadinessTimeout = ReadinessBound }).ConfigureAwait(false);
         Task exitReport;
         await using (server.ConfigureAwait(false))
         {

@@ -297,9 +297,9 @@ public sealed class OpenCodeServerProcessGroupTests
 
     /// <summary>
     /// The stand-in closes its stdout instead of reporting readiness and keeps running: the close
-    /// itself fails the start, and the root is ended. The readiness timeout stays at its default,
-    /// far beyond any start, so a launcher that waited for an exit or for the timeout instead would
-    /// fail the start only at that timeout, and the failure would name the timeout, never the close.
+    /// itself fails the start, and the root is ended. There is no default readiness bound, so a
+    /// launcher that waited for an exit instead would wait until the test's token cancels the start,
+    /// and the failure would name the cancellation, never the close.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -335,9 +335,9 @@ public sealed class OpenCodeServerProcessGroupTests
     /// <summary>
     /// The root exits before readiness while a detached descendant keeps its stdout open, so no
     /// end-of-stream comes: the exit itself fails the start, after one bounded drain. The readiness
-    /// timeout stays at its default, far beyond any start, so a launcher that waited for the
-    /// end-of-stream instead would fail the start only at that timeout, and the failure would name
-    /// the timeout, never the exit.
+    /// wait has no default bound, so a launcher that waited for the end-of-stream instead would wait
+    /// until the test's token cancels the start, and the failure would name the cancellation, never
+    /// the exit.
     /// </summary>
     [Test]
     [Timeout(120_000)]
