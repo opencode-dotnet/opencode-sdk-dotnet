@@ -35,6 +35,7 @@ public sealed class HandWrittenTransportTableTests(PinnedBinding pinnedBinding)
             "experimental.generate.image",
             "experimental.generate.text",
             "experimental.session.wait",
+            "rpc.call",
             "session.command",
             "session.generate",
             "session.shell",

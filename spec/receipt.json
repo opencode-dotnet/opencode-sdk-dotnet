@@ -970,6 +970,16 @@
           "matched": true
         }
       ]
+    },
+    {
+      "path": "packages/core/src/rpc.ts",
+      "sha256": "bccdda8febbbf254519bc3480c08eb8b5712e60159e595b4ceea5b321f7ac5fc",
+      "anchors": [
+        {
+          "text": "// A long-lived RPC must release its location when the routing cache invalidates it.",
+          "matched": true
+        }
+      ]
     }
   ]
 }

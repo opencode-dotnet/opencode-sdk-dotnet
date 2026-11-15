@@ -1334,6 +1334,20 @@
           }
         }
       ]
+    },
+    {
+      "path": "packages/core/src/rpc.ts",
+      "sha256": "bccdda8febbbf254519bc3480c08eb8b5712e60159e595b4ceea5b321f7ac5fc",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "rpc.call answers only when the plugin\u0027s handler returns or the routing cache closes the RPC (rpc.unavailable), so a long-lived handler holds the response headers until it ends; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
+          "anchor": {
+            "type": "contains",
+            "text": "// A long-lived RPC must release its location when the routing cache invalidates it."
+          }
+        }
+      ]
     }
   ]
 }

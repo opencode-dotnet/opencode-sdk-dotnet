@@ -15,6 +15,7 @@ internal readonly record struct OperationTraits(bool Reconnects, bool HasNoNetwo
             ["experimental.generate.image"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["experimental.generate.text"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["experimental.session.wait"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["rpc.call"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.command"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.generate"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.shell"] = new(Reconnects: false, HasNoNetworkWindow: true),

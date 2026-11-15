@@ -25,6 +25,10 @@ Nightly builds of `master` are on
 - The packages' .NET dependency floors move from `10.0.13` to the `10.0.15` servicing release: on `net472` and `netstandard2.0`, `System.Text.Json`, `System.Threading.Channels`, `System.Collections.Immutable`, `Microsoft.Bcl.AsyncInterfaces`, `Microsoft.Bcl.Memory` and `Microsoft.Bcl.TimeProvider`; in `OpenCodeDotNet.Sdk.Extensions`, on every target, `Microsoft.Extensions.DependencyInjection.Abstractions` and `Microsoft.Extensions.Options.ConfigurationExtensions`. No security advisory of the .NET 10.0.14 or 10.0.15 release lists these packages.
 - Background-service discovery (`OpenCodeServer.DiscoverAsync` and the probe `EnsureAsync` runs) now takes the client's proxy decision for a loopback service. Behind an environment proxy (`HTTP_PROXY`, `HTTPS_PROXY` or `ALL_PROXY`), set `NO_PROXY` to reach a loopback service directly, as with opencode's CLI; behind a system proxy, that proxy's own bypass list applies, as it does for the client. .NET Framework is unchanged.
 
+### 🐛 Fixes
+
+- `client.Rpc.CallAsync` runs until the plugin's method returns, as opencode's own client does: it no longer takes the client-wide `NetworkTimeout` (100 s by default). A per-call `NetworkTimeout` still bounds it, and the cancellation token is its deadline.
+
 ### 📚 Documentation
 
 - The streaming guide says that a turn's end and `client.Experimental.WaitForSessionAsync` cover one session, not the background jobs its prompt started, and that a job `ListJobsAsync` lists is not necessarily still running. It recommends a `Message` with every permission Reject: at opencode v2.3.0, a Reject without one ends the turn as a shutdown, and a background subagent rejected that way stays listed as `cancelled` with its parent never told.
