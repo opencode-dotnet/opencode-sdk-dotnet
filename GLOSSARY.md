@@ -291,7 +291,7 @@ carrying an upstream report and a retirement predicate.
 **Source watch**:
 The pinned set of upstream files that hand-written code in this family depends on, each recorded by
 path and hash with one or more behaviours, each naming its owning product. It is evidence a refresh
-reviews and a curated type's evidence must be in; it is never a generation input.
+reviews and a curated type's evidence must be in; it never feeds generated output.
 
 #### Generation
 
