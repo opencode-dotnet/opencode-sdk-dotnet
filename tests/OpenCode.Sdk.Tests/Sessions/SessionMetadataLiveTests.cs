@@ -77,7 +77,10 @@ public sealed class SessionMetadataLiveTests(SimulatedDriveServerFixture server)
         }
         finally
         {
-            await CleanupAsync(session, primaryFailure);
+            if (await CleanupAsync(session, primaryFailure) is { } exceptionName)
+            {
+                Console.WriteLine("session-metadata-live: cleanup suppressed " + exceptionName);
+            }
         }
     }
 
@@ -107,7 +110,7 @@ public sealed class SessionMetadataLiveTests(SimulatedDriveServerFixture server)
                 .ToDictionary(static member => member.Name, static member => member.Value.Clone(), StringComparer.Ordinal));
     }
 
-    private static async Task CleanupAsync(SessionClient session, Exception? primaryFailure)
+    private static async Task<string?> CleanupAsync(SessionClient session, Exception? primaryFailure)
     {
         using var cleanup = new CancellationTokenSource(CleanupTimeout);
         try
@@ -116,8 +119,10 @@ public sealed class SessionMetadataLiveTests(SimulatedDriveServerFixture server)
         }
         catch (Exception exception) when (primaryFailure is not null)
         {
-            Console.WriteLine("session-metadata-live: cleanup suppressed " + exception.GetType().Name);
+            return exception.GetType().Name;
         }
+
+        return null;
     }
 
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);

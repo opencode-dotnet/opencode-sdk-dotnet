@@ -32,7 +32,7 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Ensure;
 [ClassDataSource<PinnedManagedServiceFixture>(Shared = SharedType.PerTestSession)]
 public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture service)
 {
-    private static readonly RealFileSystem FileSystem = new();
+    private readonly RealFileSystem _fileSystem = new();
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(30);
 
     /// <summary>
@@ -142,7 +142,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             await Assert.That(new ProcessGroupSignal().ProbeProcess(server.ProcessId)).IsEqualTo(SignalDelivery.NoSuchTarget);
         }
 
-        await Assert.That(release.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(release.RegistrationFile).Satisfies(path => !_fileSystem.File.Exists(path));
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(server.ProcessId, ExitBound, cancellationToken)).IsTrue()
             .Because("the published build's daemon should leave once Stop ends it");
     }
@@ -155,7 +155,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
 
         // The default command resolves through the isolated process's PATH, whose first entry is
         // the forwarding shim: the shipped PATH/PATHEXT resolution, not an explicit path.
-        var result = await new ServiceFixtureCommand(FileSystem)
+        var result = await new ServiceFixtureCommand(_fileSystem)
             .RunAsync(["ensure-channel", "local", context.LedgerPath], context.IsolatedProcessEnvironment(), cancellationToken);
 
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
@@ -181,16 +181,16 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
     {
         var context = Context;
         var callerDirectory = context.Environment["OPENCODE_CONFIG_DIR"];
-        var savedDirectory = FileSystem.Path.Combine(context.RunRoot, "saved-config");
-        var channelFile = FileSystem.Path.GetFileName(context.RegistrationFile);
+        var savedDirectory = _fileSystem.Path.Combine(context.RunRoot, "saved-config");
+        var channelFile = _fileSystem.Path.GetFileName(context.RegistrationFile);
         var savedPort = EnsureServiceContext.ReserveUnguardedPort(LoopbackPortReservation.Hold, context.Port);
 
-        await SeedAsync(FileSystem.Path.Combine(callerDirectory, channelFile), new JsonObject
+        await SeedAsync(_fileSystem.Path.Combine(callerDirectory, channelFile), new JsonObject
         {
             ["port"] = context.Port,
             ["env"] = new JsonObject { ["OPENCODE_CONFIG_DIR"] = savedDirectory },
         }.ToJsonString());
-        await SeedAsync(FileSystem.Path.Combine(savedDirectory, channelFile), new JsonObject
+        await SeedAsync(_fileSystem.Path.Combine(savedDirectory, channelFile), new JsonObject
         {
             ["port"] = savedPort,
         }.ToJsonString());
@@ -204,11 +204,11 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             options.Location = new LocationSelector { Directory = context.RunRoot });
         var response = await client.Config.GetConfigAsync(cancellationToken: cancellationToken);
         var directories = response.Config.OfType<ConfigDirectory>()
-            .Select(directory => FileSystem.Path.GetFullPath(directory.Path)).ToList();
+            .Select(directory => _fileSystem.Path.GetFullPath(directory.Path)).ToList();
 
         // Application config discovery reads the saved environment after startup.
-        await Assert.That(directories).Contains(FileSystem.Path.GetFullPath(savedDirectory));
-        await Assert.That(directories).DoesNotContain(FileSystem.Path.GetFullPath(callerDirectory));
+        await Assert.That(directories).Contains(_fileSystem.Path.GetFullPath(savedDirectory));
+        await Assert.That(directories).DoesNotContain(_fileSystem.Path.GetFullPath(callerDirectory));
     }
 
     [Test]
@@ -253,7 +253,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
     public async Task EnsureAsync_Should_Recover_From_An_Unresponsive_Daemon_After_Three_Timeouts(CancellationToken cancellationToken)
     {
         var context = Context;
-        await using var stall = await ServiceFixtureProcess.StartDaemonStandInAsync(FileSystem, "stall", cancellationToken);
+        await using var stall = await ServiceFixtureProcess.StartDaemonStandInAsync(_fileSystem, "stall", cancellationToken);
 
         await SeedAsync(context.RegistrationFile, ServiceRegistrationDocument.Compose(
             "stalled", "local", stall.Endpoint, stall.ProcessId, "stall-p455"));
@@ -277,7 +277,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
     public async Task EnsureAsync_Should_Replace_A_Version_Mismatched_Service(CancellationToken cancellationToken)
     {
         var context = Context;
-        await using var stale = await ServiceFixtureProcess.StartDaemonStandInAsync(FileSystem, "stale", cancellationToken);
+        await using var stale = await ServiceFixtureProcess.StartDaemonStandInAsync(_fileSystem, "stale", cancellationToken);
 
         // A registration naming the stale daemon's own identity: the probe reads it ready at the
         // never-built 0.0.0-stale version, which the Replace policy refuses.
@@ -324,7 +324,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             new OpenCodeServerStopOptions { RegistrationFilePath = context.RegistrationFile },
             cancellationToken);
 
-        await Assert.That(context.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(context.RegistrationFile).Satisfies(path => !_fileSystem.File.Exists(path));
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(processId, ExitBound, cancellationToken)).IsTrue()
             .Because("the stopped daemon must leave the process table, reaped by the host that spawned it");
     }
@@ -340,14 +340,14 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             Environment = context.Environment,
         };
 
-    private static async Task<ServiceRegistration> ReadRegistrationAsync(string path) =>
-        await ServiceRegistrationReader.TryReadAsync(new TestablyServiceFileSystem(FileSystem), path, CancellationToken.None).ConfigureAwait(false)
+    private async Task<ServiceRegistration> ReadRegistrationAsync(string path) =>
+        await ServiceRegistrationReader.TryReadAsync(new TestablyServiceFileSystem(_fileSystem), path, CancellationToken.None).ConfigureAwait(false)
         ?? throw new InvalidOperationException($"No usable registration at '{path}'.");
 
-    private static async Task SeedAsync(string path, string document)
+    private async Task SeedAsync(string path, string document)
     {
-        _ = FileSystem.Directory.CreateDirectory(FileSystem.Path.GetDirectoryName(path)!);
-        using var stream = FileSystem.FileStream.New(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        _ = _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(path)!);
+        using var stream = _fileSystem.FileStream.New(path, FileMode.Create, FileAccess.Write, FileShare.None);
         var bytes = Encoding.UTF8.GetBytes(document);
         await stream.WriteAsync(bytes, CancellationToken.None).ConfigureAwait(false);
     }

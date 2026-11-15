@@ -83,11 +83,14 @@ public sealed class SessionPermissionRulesLiveTests(SimulatedDriveServerFixture 
         }
         finally
         {
-            await CleanupAsync(session, primaryFailure);
+            if (await CleanupAsync(session, primaryFailure) is { } exceptionName)
+            {
+                Console.WriteLine("session-permission-rules-live: cleanup suppressed " + exceptionName);
+            }
         }
     }
 
-    private static async Task CleanupAsync(SessionClient session, Exception? primaryFailure)
+    private static async Task<string?> CleanupAsync(SessionClient session, Exception? primaryFailure)
     {
         using var cleanup = new CancellationTokenSource(CleanupTimeout);
         try
@@ -96,8 +99,10 @@ public sealed class SessionPermissionRulesLiveTests(SimulatedDriveServerFixture 
         }
         catch (Exception exception) when (primaryFailure is not null)
         {
-            Console.WriteLine("session-permission-rules-live: cleanup suppressed " + exception.GetType().Name);
+            return exception.GetType().Name;
         }
+
+        return null;
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
