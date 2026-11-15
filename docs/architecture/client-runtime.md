@@ -343,7 +343,7 @@ resolves the message's network window from those carried traits.
   once. Every failure of the default read propagates, including `ServiceUnavailableError`, with no
   further attempt. Both skip the poll on a mocking instance (the protected constructor); the
   default-model wait still reads once. They are the two one-shot doors that wait; the plugin wait
-  ends without a read. They are methods the consumer calls, not a pipeline policy.
+  reads no catalog after it. They are methods the consumer calls, not a pipeline policy.
 - Throwing API errors retain the raw response body. `NoThrow` responses retain it on the shared
   response spine, including when typed error parsing fails (ADR-0007). A response's printed form
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,

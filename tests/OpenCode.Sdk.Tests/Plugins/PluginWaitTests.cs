@@ -66,7 +66,11 @@ public sealed class PluginWaitTests
 
         await new ManualClockWaits(time).EndBeforeAnyWaitAsync(
             token => new PluginWait(scenario.Client.Plugins, time).WaitAsync(null, null, token),
-            operation => operation.WaitAsync(HangGuard.Bound, caller.Token), caller);
+            operation =>
+            {
+                Task[] ended = [operation];
+                return Task.WhenAll(ended).WaitAsync(HangGuard.Bound, caller.Token);
+            }, caller);
 
         await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsolutePath)).IsEquivalentTo(
             ["/api/plugin"], CollectionOrdering.Matching);
