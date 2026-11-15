@@ -9,7 +9,7 @@ internal sealed class ServicePtyHandoffStep(IServicePtyHandoff handoff, TimeSpan
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client's stop catches every handoff or clear failure and only warns (promise/service.ts:105-111, effect/service.ts:133-137): only caller cancellation propagates, so termination of the old service remains the observable outcome.")]
+        "The pinned client's stop catches every handoff or clear failure and only warns (stop in promise/service.ts and effect/service.ts); the SDK has no warning channel here, so the failure is dropped. Only the caller's cancellation propagates, so the old service is still terminated.")]
     public async Task RunAsync(string registrationFile, ServiceRegistration? registration, bool handOff, CancellationToken cancellationToken)
     {
         try
