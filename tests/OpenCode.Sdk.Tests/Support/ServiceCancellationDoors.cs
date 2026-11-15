@@ -58,6 +58,7 @@ internal sealed class ServiceCancellationDoors(
         var heldPath = (row, stage) switch
         {
             ("discover" or "incumbent", _) => "/api/info",
+            ("resolve" or "reconnect", _) => "/api/info",
             (_, "ticket") => HandoffPath,
             _ => ShutdownPath,
         };
@@ -103,6 +104,8 @@ internal sealed class ServiceCancellationDoors(
             string[] expectedPaths = (row, stage) switch
             {
                 ("discover" or "incumbent", _) => ["/api/info"],
+                ("resolve" or "reconnect", _) => ["/api/info"],
+                ("restart", _) => [heldPath],
                 (_, "fallback") => ["/api/info", HandoffPath, ShutdownPath],
                 _ => ["/api/info", heldPath],
             };
@@ -159,6 +162,10 @@ internal sealed class ServiceCancellationDoors(
             await OpenCodeServer.ShutdownPersistentPtyAsync(
                 new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
         }
+        else if (row is "resolve" or "reconnect" or "restart")
+        {
+            await InvokeConnectionAsync(row, registrationPath, endpoint, caller);
+        }
         else
         {
             await using var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
@@ -169,5 +176,27 @@ internal sealed class ServiceCancellationDoors(
                 Command = ["bun", "--version"],
             }, caller);
         }
+    }
+
+    private static async Task InvokeConnectionAsync(string row, string registrationPath, Uri endpoint, CancellationToken caller)
+    {
+        if (row == "resolve")
+        {
+            await using var connection = await OpenCodeServer.ResolveAsync(new OpenCodeServerResolveOptions
+            {
+                Endpoint = endpoint,
+                Password = ServicePassword,
+            }, caller);
+            return;
+        }
+
+        var snapshot = new ManagedServiceSnapshot(
+            EnsureRequest.Snapshot(new OpenCodeServerEnsureOptions { RegistrationFilePath = registrationPath }),
+            new ServicePaths(registrationPath, ConfigFile: null, LegacyRegistrationFiles: [], LegacyConfigFile: null),
+            new ServiceConfigEnvironment(Entries: null));
+        var operations = new OpenCodeServerServiceOperations(snapshot, new ServerDoors());
+        await using var server = row == "reconnect"
+            ? await operations.ReconnectAsync(caller)
+            : await operations.RestartAsync(caller);
     }
 }

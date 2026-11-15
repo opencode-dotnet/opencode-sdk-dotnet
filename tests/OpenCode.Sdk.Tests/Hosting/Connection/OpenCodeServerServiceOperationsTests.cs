@@ -23,9 +23,9 @@ public sealed class OpenCodeServerServiceOperationsTests
     [Test]
     public async Task ReconnectAsync_Should_Ensure_The_Snapshot_With_Ignore_And_No_OnStart()
     {
-        await using var replacement = new OpenCodeServer(Endpoint, "pw", 42, "2.3.0");
+        await using var replacement = Replacement();
         using var caller = new CancellationTokenSource();
-        _doors.EnsureLocatedAsync(Arg.Any<EnsureRequest>(), _snapshot.Paths, _snapshot.Overlay, caller.Token).Returns(replacement);
+        ReturnOnEnsure(replacement, caller.Token);
 
         var result = await new OpenCodeServerServiceOperations(_snapshot, _doors).ReconnectAsync(caller.Token);
 
@@ -47,9 +47,9 @@ public sealed class OpenCodeServerServiceOperationsTests
     [Test]
     public async Task RestartAsync_Should_Stop_With_Handoff_Then_Ensure()
     {
-        await using var replacement = new OpenCodeServer(Endpoint, "pw", 42, "2.3.0");
+        await using var replacement = Replacement();
         using var caller = new CancellationTokenSource();
-        _doors.EnsureLocatedAsync(Arg.Any<EnsureRequest>(), _snapshot.Paths, _snapshot.Overlay, caller.Token).Returns(replacement);
+        ReturnOnEnsure(replacement, caller.Token);
 
         var result = await new OpenCodeServerServiceOperations(_snapshot, _doors).RestartAsync(caller.Token);
 
@@ -88,6 +88,11 @@ public sealed class OpenCodeServerServiceOperationsTests
         await Assert.That(failure!.CancellationToken).IsEqualTo(token);
         await Assert.That(_doors.ReceivedCalls()).IsEmpty();
     }
+
+    private static OpenCodeServer Replacement() => new(Endpoint, "pw", 42, "2.3.0");
+
+    private void ReturnOnEnsure(OpenCodeServer replacement, CancellationToken token) =>
+        _doors.EnsureLocatedAsync(Arg.Any<EnsureRequest>(), _snapshot.Paths, _snapshot.Overlay, token).Returns(replacement);
 
     [Test]
     public async Task ServerVersion_Should_Keep_The_Resolved_Value_After_Reconnect_And_Restart()

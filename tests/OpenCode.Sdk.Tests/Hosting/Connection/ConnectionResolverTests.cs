@@ -36,6 +36,8 @@ public sealed class ConnectionResolverTests : IDisposable
         _files.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
             .Returns(call => adapter.TryCreateExclusiveAsync(call.Arg<string>(), call.Arg<ReadOnlyMemory<byte>>(), call.Arg<CancellationToken>()));
         _doors.StartAsync(Arg.Any<OpenCodeServerOptions?>(), Arg.Any<CancellationToken>()).Returns(_ => Shared(null));
+        _doors.DiscoverLocatedAsync(Arg.Any<ServicePaths>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns((OpenCodeServer?)null);
         _doors.EnsureLocatedAsync(Arg.Any<EnsureRequest>(), Arg.Any<ServicePaths>(), Arg.Any<ServiceConfigEnvironment>(), Arg.Any<CancellationToken>())
             .Returns(_ => Shared("2.2.7"));
         _handler = new RecordingHttpHandler(_ => InfoReply("2.3.0"));
@@ -80,8 +82,10 @@ public sealed class ConnectionResolverTests : IDisposable
         using var transport = new HttpClient(handler);
         var seams = _seams with { ProbeTransport = transport };
         var contexts = new List<OpenCodeServerVersionMismatchContext>();
-        await using var connection = await OpenCodeServer.ResolveWithSeamsAsync(
+        var resolving = OpenCodeServer.ResolveWithSeamsAsync(
             new() { Endpoint = Endpoint, OnServerVersionMismatch = contexts.Add }, seams, CancellationToken.None);
+        await Assert.That(resolving).ThrowsNothing();
+        await using var connection = await resolving;
 
         await Assert.That(contexts.Count).IsEqualTo(1);
         await Assert.That(contexts[0].Endpoint).IsEqualTo(Endpoint);
@@ -95,12 +99,14 @@ public sealed class ConnectionResolverTests : IDisposable
     [Test]
     public async Task ResolveAsync_Should_Not_Validate_Unused_Service_Options_In_Explicit_Mode()
     {
-        await using var connection = await ResolveAsync(new()
+        var resolving = ResolveAsync(new()
         {
             Endpoint = Endpoint,
             Launch = new OpenCodeServerOptions(),
             Service = new OpenCodeServerEnsureOptions { VersionPolicy = OpenCodeServerVersionPolicy.Replace },
         });
+        await Assert.That(resolving).ThrowsNothing();
+        await using var connection = await resolving;
 
         await Assert.That(connection.Mode).IsEqualTo(OpenCodeServerConnectionMode.Explicit);
         await Assert.That(_doors.ReceivedCalls()).IsEmpty();
@@ -108,13 +114,17 @@ public sealed class ConnectionResolverTests : IDisposable
     }
 
     [Test]
-    public async Task ResolveAsync_Should_Start_A_Standalone_Server_Without_Reading_The_Config()
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ResolveAsync_Should_Start_A_Standalone_Server_Without_Reading_The_Config(bool autostart)
     {
         var launch = new OpenCodeServerOptions();
-        await using var connection = await ResolveAsync(new() { Standalone = true, Launch = launch });
+        await using var started = Shared(null);
+        _doors.StartAsync(launch, Arg.Any<CancellationToken>()).Returns(started);
+        await using var connection = await ResolveAsync(new() { Standalone = true, Launch = launch, Autostart = autostart });
 
         await Assert.That(connection.Mode).IsEqualTo(OpenCodeServerConnectionMode.Standalone);
-        await Assert.That(connection.Server).IsNotNull();
+        await Assert.That(connection.Server).IsSameReferenceAs(started);
         await Assert.That(connection.ServerVersion).IsNull();
         await Assert.That(connection.ServiceOperations).IsNull();
         await AssertCallsAsync("StartAsync");
@@ -195,6 +205,7 @@ public sealed class ConnectionResolverTests : IDisposable
 
         var request = (EnsureRequest)_doors.ReceivedCalls().Single().GetArguments()[0]!;
         await Assert.That(request.LoopVersion).IsNull();
+        await Assert.That(request.Selection.ExpectedVersion).IsNull();
         await Assert.That(connection.ServerVersion).IsNull();
     }
 
@@ -205,11 +216,13 @@ public sealed class ConnectionResolverTests : IDisposable
     {
         _doors.DiscoverLocatedAsync(Arg.Any<ServicePaths>(), expectedVersion: null, Arg.Any<CancellationToken>())
             .Returns(_ => hit ? Shared("2.2.7") : null);
-        await using var connection = await ResolveAsync(new()
+        var resolving = ResolveAsync(new()
         {
             Autostart = false,
             Service = new OpenCodeServerEnsureOptions { ExpectedVersion = "2.2.0", VersionPolicy = OpenCodeServerVersionPolicy.Error },
         });
+        await Assert.That(resolving).ThrowsNothing();
+        await using var connection = await resolving;
 
         await Assert.That(connection.Mode).IsEqualTo(hit ? OpenCodeServerConnectionMode.Service : OpenCodeServerConnectionMode.Standalone);
         await Assert.That(connection.ServerVersion).IsEqualTo(hit ? "2.2.7" : null);

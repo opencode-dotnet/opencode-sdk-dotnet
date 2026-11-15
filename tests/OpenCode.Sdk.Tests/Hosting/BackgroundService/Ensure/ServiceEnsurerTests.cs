@@ -1032,10 +1032,7 @@ public sealed class ServiceEnsurerTests
     public async Task EnsureLocatedAsync_Should_Spawn_With_The_Snapshot_Overlay_Without_Reading_The_Config()
     {
         Seed(ConfigPath(), ServiceConfigData.DisabledWithEnvironment);
-        var adapter = new TestablyServiceFileSystem(_fileSystem);
-        var fileSystem = Substitute.For<IServiceFileSystem>();
-        fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(call => adapter.TryReadAllBytesAsync(call.Arg<string>(), call.Arg<CancellationToken>()));
+        var fileSystem = RecordingFiles();
         var paths = new ServicePathResolver(_environment).Resolve(ServiceSelection.Snapshot((OpenCodeServerEnsureOptions?)null));
         var overlay = new ServiceConfigEnvironment(new Dictionary<string, string>(StringComparer.Ordinal) { ["A"] = "snapshot" });
         ElectOnSpawn(Version);
@@ -1044,6 +1041,30 @@ public sealed class ServiceEnsurerTests
 
         await Assert.That(_starts.Single().Environment["A"]).IsEqualTo("snapshot");
         _ = fileSystem.DidNotReceive().TryReadAllBytesAsync(ConfigPath(), Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task EnsureLocatedAsync_Should_Keep_An_Absent_Captured_Overlay()
+    {
+        Seed(ConfigPath(), ServiceConfigData.DisabledWithEnvironment);
+        var fileSystem = RecordingFiles();
+        var paths = new ServicePathResolver(_environment).Resolve(ServiceSelection.Snapshot((OpenCodeServerEnsureOptions?)null));
+        ElectOnSpawn(Version);
+
+        _ = await Ensurer(fileSystem: fileSystem).EnsureLocatedAsync(
+            EnsureRequest.Snapshot(null), paths, new ServiceConfigEnvironment(Entries: null), CancellationToken.None);
+
+        await Assert.That(_starts.Single().Environment).IsEmpty();
+        _ = fileSystem.DidNotReceive().TryReadAllBytesAsync(ConfigPath(), Arg.Any<CancellationToken>());
+    }
+
+    private IServiceFileSystem RecordingFiles()
+    {
+        var adapter = new TestablyServiceFileSystem(_fileSystem);
+        var fileSystem = Substitute.For<IServiceFileSystem>();
+        fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => adapter.TryReadAllBytesAsync(call.Arg<string>(), call.Arg<CancellationToken>()));
+        return fileSystem;
     }
 
     /// <summary>Characterizes the public path's per-spawn read, including a contender that exits without registering.</summary>

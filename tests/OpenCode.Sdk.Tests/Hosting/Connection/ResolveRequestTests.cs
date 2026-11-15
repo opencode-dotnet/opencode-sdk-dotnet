@@ -5,6 +5,10 @@ namespace OpenCode.Sdk.Tests.Hosting.Connection;
 
 public sealed class ResolveRequestTests
 {
+    private readonly IServerDoors _doors = Substitute.For<IServerDoors>();
+    private readonly IServiceFileSystem _files = Substitute.For<IServiceFileSystem>();
+    private readonly IServiceEnvironment _environment = Substitute.For<IServiceEnvironment>();
+
     [Test]
     public async Task Snapshot_Should_Refuse_An_Endpoint_With_Standalone()
     {
@@ -25,20 +29,16 @@ public sealed class ResolveRequestTests
     [Arguments(false, true)]
     public async Task Snapshot_Should_Refuse_A_Password_Without_An_Endpoint(bool standalone, bool autostart)
     {
-        var doors = Substitute.For<IServerDoors>();
-        var files = Substitute.For<IServiceFileSystem>();
-        var environment = Substitute.For<IServiceEnvironment>();
-
         var failure = await Assert.That(async () => _ = await OpenCodeServer.ResolveWithSeamsAsync(
             new OpenCodeServerResolveOptions { Password = "pw", Standalone = standalone, Autostart = autostart },
-            new ConnectionSeams(doors, environment, files), CancellationToken.None)).Throws<ArgumentException>();
+            new ConnectionSeams(_doors, _environment, _files), CancellationToken.None)).Throws<ArgumentException>();
 
         await Assert.That(failure!.ParamName).IsEqualTo("options");
         await Assert.That(failure.Message).IsEqualTo(
             "Password applies only to an explicit Endpoint; a standalone or service connection carries its own credentials. (Parameter 'options')");
-        await Assert.That(doors.ReceivedCalls()).IsEmpty();
-        await Assert.That(files.ReceivedCalls()).IsEmpty();
-        await Assert.That(environment.ReceivedCalls()).IsEmpty();
+        await Assert.That(_doors.ReceivedCalls()).IsEmpty();
+        await Assert.That(_files.ReceivedCalls()).IsEmpty();
+        await Assert.That(_environment.ReceivedCalls()).IsEmpty();
     }
 
     [Test]
@@ -58,18 +58,14 @@ public sealed class ResolveRequestTests
     [Test]
     public async Task ResolveAsync_Should_Refuse_Invalid_Service_Options_Before_Any_Io_On_A_Managed_Path()
     {
-        var doors = Substitute.For<IServerDoors>();
-        var files = Substitute.For<IServiceFileSystem>();
-        var environment = Substitute.For<IServiceEnvironment>();
-
         var failure = await Assert.That(async () => _ = await OpenCodeServer.ResolveWithSeamsAsync(
             new OpenCodeServerResolveOptions { Service = new OpenCodeServerEnsureOptions { VersionPolicy = OpenCodeServerVersionPolicy.Replace } },
-            new ConnectionSeams(doors, environment, files), CancellationToken.None)).Throws<ArgumentException>();
+            new ConnectionSeams(_doors, _environment, _files), CancellationToken.None)).Throws<ArgumentException>();
 
         await Assert.That(failure!.Message).IsEqualTo(
             "OpenCodeServerEnsureOptions.VersionPolicy Replace needs ExpectedVersion; without it there is nothing to mismatch. (Parameter 'options')");
-        await Assert.That(files.ReceivedCalls()).IsEmpty();
-        await Assert.That(environment.ReceivedCalls()).IsEmpty();
-        await Assert.That(doors.ReceivedCalls()).IsEmpty();
+        await Assert.That(_files.ReceivedCalls()).IsEmpty();
+        await Assert.That(_environment.ReceivedCalls()).IsEmpty();
+        await Assert.That(_doors.ReceivedCalls()).IsEmpty();
     }
 }

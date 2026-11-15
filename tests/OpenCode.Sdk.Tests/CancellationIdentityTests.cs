@@ -51,6 +51,9 @@ public sealed class CancellationIdentityTests
         yield return new("ensure", "handoff-ticket", caller => ServiceDoors.AtServiceRequestAsync("ensure", "ticket", caller));
         yield return new("ensure", "shutdown-fallback", caller => ServiceDoors.AtServiceRequestAsync("ensure", "fallback", caller));
         yield return new("shutdown-persistent-pty", "shutdown-request", caller => ServiceDoors.AtServiceRequestAsync("shutdown-persistent-pty", "shutdown", caller));
+        yield return new("resolve", "explicit-probe", caller => ServiceDoors.AtServiceRequestAsync("resolve", "probe", caller));
+        yield return new("reconnect", "authenticated-probe", caller => ServiceDoors.AtServiceRequestAsync("reconnect", "probe", caller));
+        yield return new("restart", "handoff-ticket", caller => ServiceDoors.AtServiceRequestAsync("restart", "ticket", caller));
         // Since upstream v2.3.0 stop has no cancellable network wait: entry is its first cancellation point.
         // Mid-poll cancellation is proven by StopAsync_Should_Leave_The_Registration_When_Cancelled_After_The_Terminate_Signal.
         yield return new("stop", "pre-cancelled", ServiceDoors.AtStopPreCancelledAsync);
@@ -627,6 +630,12 @@ public sealed class CancellationIdentityTests
                 typeof(OpenCodeServiceConfigOptions), typeof(CancellationToken)) => "service-config-read",
             _ when member.Is(typeof(OpenCodeServiceConfiguration), nameof(OpenCodeServiceConfiguration.GetOrCreatePasswordAsync), typeof(Task<string>),
                 typeof(OpenCodeServiceConfigOptions), typeof(CancellationToken)) => "service-config-write",
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.ResolveAsync), typeof(Task<OpenCodeServerConnection>),
+                typeof(OpenCodeServerResolveOptions), typeof(CancellationToken)) => "resolve",
+            _ when member.Is(typeof(OpenCodeServerServiceOperations), nameof(OpenCodeServerServiceOperations.ReconnectAsync), typeof(Task<OpenCodeServer>),
+                typeof(CancellationToken)) => "reconnect",
+            _ when member.Is(typeof(OpenCodeServerServiceOperations), nameof(OpenCodeServerServiceOperations.RestartAsync), typeof(Task<OpenCodeServer>),
+                typeof(CancellationToken)) => "restart",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.ConnectAsync), typeof(Task<PtySession>),
                 typeof(PtyConnectOptions), typeof(CancellationToken)) => "pty-connect",
             _ when member.Is(typeof(PersistentPtyClient), nameof(PersistentPtyClient.ConnectAsync), typeof(Task<PersistentPtySession>),
