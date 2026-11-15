@@ -1,6 +1,9 @@
+using System.Globalization;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
+using OpenCode.Sdk.Tests.PersistentPtys;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 
@@ -27,6 +30,7 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 [NotInParallel]
 public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture service)
 {
+    private const string ShutdownSessionTitle = "background service persistent terminal shutdown";
     private static readonly RealFileSystem FileSystem = new();
 
     [Test]
@@ -121,6 +125,59 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
         await Assert.That(verdict!.TimedOut).IsFalse();
         await Assert.That(verdict.IsReadyAndCompatible).IsTrue();
         await Assert.That(verdict.Version).IsEqualTo(service.Version);
+    }
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task ShutdownPersistentPtyAsync_Should_End_The_Service_Terminals_Or_Answer_The_Daemon_Absent_Arm(CancellationToken cancellationToken)
+    {
+        var options = new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile };
+        var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System));
+        await using var handle = await OpenCodeServer.DiscoverWithSeamsAsync(options, probe, cancellationToken);
+        await Assert.That(handle).IsNotNull();
+        using var client = handle.CreateClient();
+        var session = await client.Sessions.CreateSessionAsync(
+            new SessionCreateRequest { Title = ShutdownSessionTitle }, cancellationToken: cancellationToken);
+        var created = await client.PersistentPtys.CreatePersistentPtyAsync(
+            session.Session.Id, PersistentPtyLiveTests.CreateRequest(), OpenCodeRequestOptions.NoThrow, cancellationToken);
+        var before = await client.PersistentPtys.ListPersistentPtysAsync(session.Session.Id, cancellationToken: cancellationToken);
+        if (PersistentPtyDaemonGate.DaemonExpected)
+        {
+            await Assert.That(created.Status).IsEqualTo(200);
+            await Assert.That(before.PersistentPtys.Select(static pty => pty.Id).ToArray()).Contains(created.PersistentPty.Id);
+        }
+        else
+        {
+            await Assert.That(created.Status).IsEqualTo(503);
+            await Assert.That(created.Error).IsTypeOf<ServiceUnavailableError>();
+            await Assert.That(((ServiceUnavailableError)created.Error!).Service).IsEqualTo(PersistentPtyLiveTests.DaemonService);
+        }
+
+        var shutdownProbe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System));
+        await OpenCodeServer.ShutdownPersistentPtyWithSeamsAsync(options,
+            new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), shutdownProbe), new ServicePtyShutdown(), cancellationToken);
+
+        var verdict = shutdownProbe.Last;
+        await Assert.That(verdict).IsNotNull();
+        await Assert.That(verdict!.TimedOut).IsFalse();
+        await Assert.That(verdict.IsReadyAndCompatible).IsTrue();
+        var after = await client.PersistentPtys.ListPersistentPtysAsync(
+            session.Session.Id, OpenCodeRequestOptions.NoThrow, cancellationToken);
+        await Assert.That(after.Status).IsEqualTo(200).Because("Server answer: " + after.RawBody);
+        if (PersistentPtyDaemonGate.DaemonExpected)
+        {
+            await Assert.That(after.PersistentPtys.Select(static pty => pty.Id).ToArray()).DoesNotContain(created.PersistentPty.Id);
+        }
+        else
+        {
+            await Assert.That(after.PersistentPtys).IsEmpty();
+        }
+
+        Console.WriteLine($"ppty-shutdown-live: arm={(PersistentPtyDaemonGate.DaemonExpected ? "daemon" : "daemon-absent")} " +
+            $"create={created.Status.ToString(CultureInfo.InvariantCulture)} before-status={before.Status.ToString(CultureInfo.InvariantCulture)} " +
+            $"before-ids={string.Join(',', before.PersistentPtys.Select(static pty => pty.Id))} " +
+            $"after-status={after.Status.ToString(CultureInfo.InvariantCulture)} " +
+            $"after-ids={string.Join(',', after.PersistentPtys.Select(static pty => pty.Id))}");
     }
 
     private async Task<OpenCodeServer> DiscoverByFileAsync(CancellationToken cancellationToken)

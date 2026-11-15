@@ -1,7 +1,8 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The API call the handoff's prepare fallback makes (<c>pty-handoff.ts</c>): the generated
+/// The API call made by the handoff's prepare fallback (<c>pty-handoff.ts</c>) and by
+/// <see cref="OpenCodeServer.ShutdownPersistentPtyAsync"/> (<c>server-connection.ts</c>, <c>shutdownPersistentPty</c>): the generated
 /// <c>experimental.persistentPty.shutdown</c> door against the registered endpoint. Behind a seam so the
 /// orchestration runs without a socket; the shipped implementation rides the public client.
 /// </summary>

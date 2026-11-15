@@ -1,6 +1,6 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-10
+Date: 2026-11-15
 
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it except three declined operations (the client-hosted MCP attach and its token, deferred in #529, and the legacy text-generation endpoint), and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
@@ -49,5 +49,7 @@ watching, the v1 migration status, and the config update. The
 ## OPENCODE002
 
 The persistent-PTY family (`client.PersistentPtys`): the collection and handle clients, the
-WebSocket connect door with its session, options and frames, and the types only it uses. The
+WebSocket connect door with its session, options and frames, and the types only it uses.
+`OpenCodeServer.ShutdownPersistentPtyAsync`, which discovers the background service and shuts its
+persistent terminals down, carries the same id. The
 [terminals guide](terminals.md#-persistent-ptys) covers how it works.

@@ -48,6 +48,7 @@ public sealed class CancellationIdentityTests
         yield return new("discover", "authenticated-probe", caller => AtServiceRequestAsync("discover", "probe", caller));
         yield return new("ensure", "handoff-ticket", caller => AtServiceRequestAsync("ensure", "ticket", caller));
         yield return new("ensure", "shutdown-fallback", caller => AtServiceRequestAsync("ensure", "fallback", caller));
+        yield return new("shutdown-persistent-pty", "shutdown-request", caller => AtServiceRequestAsync("shutdown-persistent-pty", "shutdown", caller));
         // Since upstream v2.3.0 stop has no cancellable network wait: entry is its first cancellation point.
         // Mid-poll cancellation is proven by StopAsync_Should_Leave_The_Registration_When_Cancelled_After_The_Terminate_Signal.
         yield return new("stop", "pre-cancelled", AtStopPreCancelledAsync);
@@ -601,6 +602,11 @@ public sealed class CancellationIdentityTests
             await using var server = await OpenCodeServer.DiscoverAsync(
                 new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
         }
+        else if (row == "shutdown-persistent-pty")
+        {
+            await OpenCodeServer.ShutdownPersistentPtyAsync(
+                new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
+        }
         else
         {
             await using var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
@@ -716,6 +722,8 @@ public sealed class CancellationIdentityTests
                 typeof(OpenCodeServerEnsureOptions), typeof(CancellationToken)) => "ensure",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StopAsync), typeof(Task),
                 typeof(OpenCodeServerStopOptions), typeof(CancellationToken)) => "stop",
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.ShutdownPersistentPtyAsync), typeof(Task),
+                typeof(OpenCodeServerDiscoverOptions), typeof(CancellationToken)) => "shutdown-persistent-pty",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.ConnectAsync), typeof(Task<PtySession>),
                 typeof(PtyConnectOptions), typeof(CancellationToken)) => "pty-connect",
             _ when member.Is(typeof(PersistentPtyClient), nameof(PersistentPtyClient.ConnectAsync), typeof(Task<PersistentPtySession>),

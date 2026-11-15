@@ -11,6 +11,7 @@ register any of them with a container.
 - [🔗 A server you already run](#-a-server-you-already-run)
 - [🛰️ Discovering the background service](#️-discovering-the-background-service)
   - [🛑 Stopping the background service](#-stopping-the-background-service)
+  - [🧹 Shutting down the service's persistent terminals](#-shutting-down-the-services-persistent-terminals)
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
 - [🧩 Registering with dependency injection](#-registering-with-dependency-injection)
 
@@ -615,6 +616,22 @@ waits for, but Windows releases the daemon's database files (`opencode.db-shm` a
 later; runs measured the gap between 12 and 38 ms. Deleting an isolated data directory right after
 the stop can therefore fail with an `IOException` naming one of those files. Code that removes the
 directory should be ready to retry the deletion for a short bound of its own.
+
+### 🧹 Shutting down the service's persistent terminals
+
+`OpenCodeServer.ShutdownPersistentPtyAsync` finds the service as discovery does and, when one is
+running, ends its persistent-terminal daemon and every terminal it owns, in every session.
+
+```csharp
+await OpenCodeServer.ShutdownPersistentPtyAsync();
+await OpenCodeServer.StopAsync();
+```
+
+This is the order the CLI's uninstall uses before it removes the installation. The shutdown takes
+`OpenCodeServerDiscoverOptions` (see [Shaping the lookup](#shaping-the-lookup)); a set
+`ExpectedVersion` limits it to a service at that version. With no service it does nothing.
+A refused or unreachable shutdown throws `OpenCodeApiException` or `OpenCodeTransportException`.
+It needs the [opt-in](experimental.md#opencode002) (`OPENCODE002`), as the persistent-PTY family does.
 
 ### 🟢 Ensuring the background service
 
