@@ -309,8 +309,9 @@ Terminal sessions own their connections separately. See the canonical
 ## 🚀 When a local-server door fails
 
 The local-server doors — `OpenCodeServer.StartAsync`, `OpenCodeServer.DiscoverAsync`,
-`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`, `OpenCodeServer.StopAsync`, and
-`OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for their local lifecycle failures.
+`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
+`OpenCodeServer.StopAsync`, and `OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for
+their local lifecycle failures.
 Discovery uses it for exactly one cause: an XDG variable was unset and no user home directory
 resolved either (`USERPROFILE` on Windows, `HOME` elsewhere, and the profile folder all empty),
 so the registration roots cannot be located. Every ordinary way a background service can be absent

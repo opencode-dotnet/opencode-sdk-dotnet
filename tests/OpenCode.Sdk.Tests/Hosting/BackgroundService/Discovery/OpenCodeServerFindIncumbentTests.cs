@@ -64,6 +64,7 @@ public sealed class OpenCodeServerFindIncumbentTests
     [Test]
     [Arguments("http://0.0.0.0:4096", CallerAddress)]
     [Arguments("http://[::]:4096", "http://[::1]:4096")]
+    [Arguments("http://u:p@127.0.0.1:4096", "http://u:p@127.0.0.1:4096")]
     public async Task FindIncumbentWithSeamsAsync_Should_Connect_Unspecified_Addresses_As_Loopback(string address, string endpoint)
     {
         await SeedRegistrationAsync();
@@ -152,6 +153,8 @@ public sealed class OpenCodeServerFindIncumbentTests
     [Arguments("x-opencode://127.0.0.1:4096")]
     [Arguments("x-opencode:/a")]
     [Arguments("x-opencode:\t/a")]
+    [Arguments("x-opencode:\n/a")]
+    [Arguments("x-opencode:\r/a")]
     [Arguments(" x-opencode:/a ")]
     public async Task FindIncumbentWithSeamsAsync_Should_Return_Null_Without_Probing_For_A_Non_Http_Base_Url(string address)
     {
@@ -160,6 +163,33 @@ public sealed class OpenCodeServerFindIncumbentTests
 
         await Assert.That(await FindAsync(new Uri(address, UriKind.Absolute))).IsNull();
         await Assert.That(_probe.ReceivedCalls()).IsEmpty();
+    }
+
+    [Test]
+    [Arguments(@"http:\\127.0.0.1:4096", true)]
+    [Arguments(@"https:\\127.0.0.1:4096", true)]
+    [Arguments(@"ws:\\127.0.0.1:4096", false)]
+    [Arguments(@"wss:\\127.0.0.1:4096", false)]
+    [Arguments(@"ftp:\\127.0.0.1", false)]
+    [Arguments("file:c:/x", false)]
+    public async Task FindIncumbentWithSeamsAsync_Should_Accept_Special_Scheme_Bases_Without_Forward_Slashes(string address, bool http)
+    {
+        await SeedRegistrationAsync();
+        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
+
+        var result = await FindAsync(new Uri(address, UriKind.Absolute));
+        await using var handle = result?.Server;
+
+        if (http)
+        {
+            await Assert.That(result).IsNotNull();
+            _ = _probe.Received(1).ProbeAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>());
+        }
+        else
+        {
+            await Assert.That(result).IsNull();
+            await Assert.That(_probe.ReceivedCalls()).IsEmpty();
+        }
     }
 
     [Test]

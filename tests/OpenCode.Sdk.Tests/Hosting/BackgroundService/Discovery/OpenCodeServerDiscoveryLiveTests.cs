@@ -184,21 +184,30 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
 
     [Test]
     [Timeout(120_000)]
-    public async Task FindIncumbentAsync_Should_Report_The_Managed_Service_Ready_At_Its_Url(CancellationToken cancellationToken)
+    public async Task FindIncumbentAsync_Should_Probe_The_Caller_Address(CancellationToken cancellationToken)
     {
+        var url = new Uri(service.Endpoint, "/caller");
         var probe = new RecordingProbe(PatientProbe());
-        var result = await OpenCodeServer.FindIncumbentWithSeamsAsync(service.Endpoint,
+        var result = await OpenCodeServer.FindIncumbentWithSeamsAsync(url,
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile },
             new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), probe), cancellationToken);
 
         await AssertReadyVerdictAsync(probe);
         await Assert.That(result).IsNotNull();
+        var registration = probe.LastRegistration;
+        await Assert.That(registration).IsNotNull();
+        await Assert.That(registration.Url).IsEqualTo(url.OriginalString);
         await using var handle = result.Server;
         await Assert.That(result.State).IsEqualTo(OpenCodeServerState.Ready);
-        await Assert.That(handle.Endpoint).IsEqualTo(service.Endpoint);
+        await Assert.That(handle.Endpoint).IsEqualTo(url);
         await Assert.That(handle.ProcessId).IsEqualTo(service.ProcessId);
         await Assert.That(handle.OwnsProcess).IsFalse();
-        using var client = handle.CreateClient();
+        using var client = new OpenCodeClient(new OpenCodeClientOptions
+        {
+            Endpoint = service.Endpoint,
+            Username = handle.Username,
+            Password = handle.Password,
+        });
         var info = await client.Server.GetInfoAsync(cancellationToken: cancellationToken);
         await Assert.That(info.Status).IsEqualTo(200);
         await Assert.That(info.ServerInfo.Pid).IsEqualTo(service.ProcessId);
@@ -246,13 +255,16 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
         }
     }
 
-    /// <summary>The platform probe, remembering the last verdict it gave discovery.</summary>
+    /// <summary>The platform probe, remembering the last registration and verdict it gave discovery.</summary>
     private sealed class RecordingProbe(IServiceInfoProbe inner) : IServiceInfoProbe
     {
         public ServiceProbeResult? Last { get; private set; }
 
+        public ServiceRegistration? LastRegistration { get; private set; }
+
         public async Task<ServiceProbeResult> ProbeAsync(ServiceRegistration registration, CancellationToken cancellationToken)
         {
+            LastRegistration = registration;
             Last = await inner.ProbeAsync(registration, cancellationToken).ConfigureAwait(false);
             return Last;
         }

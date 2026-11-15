@@ -49,6 +49,7 @@ internal static class ServiceRegistrationReader
             start++;
         }
 
+        // Mirror WHATWG's trailing C0-control-and-space strip.
         while (end > start && text[end - 1] <= ' ')
         {
             end--;
@@ -56,12 +57,17 @@ internal static class ServiceRegistrationReader
 
         text = new string([.. text[start..end].Where(static value => value is not '\t' and not '\n' and not '\r')]);
         var colon = text.IndexOf(':', StringComparison.Ordinal);
-        if (colon < 0 || !Uri.CheckSchemeName(text[..colon]))
+        if (colon < 0)
         {
             return false;
         }
 
         var scheme = text[..colon];
+        if (!Uri.CheckSchemeName(scheme))
+        {
+            return false;
+        }
+
         return string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
             || string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase)
             || string.Equals(scheme, "ws", StringComparison.OrdinalIgnoreCase)

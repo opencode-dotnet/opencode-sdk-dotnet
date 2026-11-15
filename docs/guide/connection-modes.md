@@ -492,7 +492,7 @@ shared release registration.
 |---|---|
 | `Channel` | The CLI's service channel. Null reads the shared release registration (`service.json`), which the `latest`, `dev`, `beta`, and `next` builds all publish to. `local` and any other name read `service-<channel>.json`; for a channel that ever had the CLI's earlier hashed filename, discovery first performs the same one-time copy the CLI performs. |
 | `RegistrationFilePath` | An absolute path to read directly. It bypasses the channel rules and the environment entirely — the test double's door, and the door for a daemon whose file you already know. Cannot be combined with `Channel` or `InstalledVersion`. |
-| `ExpectedVersion` | Accept only a daemon whose health answer reports exactly this version; null accepts any ready daemon. |
+| `ExpectedVersion` | Accept only a daemon whose health answer reports exactly this version; null accepts any version. |
 | `InstalledVersion` | The version the channel migration compares a legacy registration against, the way the CLI compares its own compiled version. Defaults to `ExpectedVersion`; when both are set they must be equal. |
 
 Every member is validated at the call: a blank string, a relative path, or a contradictory pair
@@ -505,12 +505,14 @@ Basic authentication with the registered password when there is one, and sends n
 there is none, as opencode's probe does. A 2xx answer whose pid matches the registration is a
 ready service; a 404 identifies a registered daemon that speaks another protocol version, a 500
 is a daemon that failed to boot, and anything else is a daemon still starting — and only the
-first becomes a handle. The probe follows no redirects and sends the credential to the
-registered origin only. Discovery uses the same proxy as the client, so a loopback service behind
-an environment proxy needs `NO_PROXY` (for example `NO_PROXY=127.0.0.1,localhost`), as with opencode's
-own CLI. On .NET Framework the runtime bypasses the proxy for loopback. With a direct connection, a
-registration whose daemon is gone answers null in milliseconds on every operating system, including
-Windows: its refused port answers at once, while a proxy in the way can take up to the probe's bound.
+first becomes a handle. The probe follows no redirects. The doors that discover send the
+credential to the registered origin only, except `FindIncumbentAsync`, which sends it to the
+URL you pass. Discovery uses the same proxy as the client, so a loopback service behind an
+environment proxy needs `NO_PROXY` (for example `NO_PROXY=127.0.0.1,localhost`), as with opencode's
+own CLI. On .NET Framework the runtime bypasses the proxy for loopback. With a direct
+connection, a registration whose daemon is gone answers null in milliseconds on every operating
+system, including Windows: its refused port answers at once, while a proxy in the way can take
+up to the probe's bound.
 
 ### What the handle is
 
@@ -569,7 +571,8 @@ Console.WriteLine(incumbent.State switch
 ```
 
 The URL is required. The probe goes to it, not to the registered URL, with the registration's
-password. `Ready` is a 2xx answer; `Waiting` is any other answer identifying the registered service,
+password. Your URL receives the registration's credential, so pass only an address you trust.
+`Ready` is a 2xx answer; `Waiting` is any other answer identifying the registered service,
 such as 503 while it starts or stops; `Failed` is a 500 answer, a service that failed to start.
 Null covers no registration (whatever the URL), one that does not decode, an answer that does not
 identify the registered service, a probe past its two-second bound, a service that speaks another
