@@ -64,12 +64,15 @@ The board opens the bus, awaits its first event, seeds the newest **500 sessions
 running, reads asks for those sessions' directories, then follows events. An unavailable directory
 is logged and skipped.
 A session renamed, deleted or archived elsewhere keeps its old row until the board reconnects or HQ restarts.
-A repeated `server.connected` refreshes the lists because disconnected events are lost. After a
-failure surfaces, the screen says it is disconnected and the board retries. The SDK's own retries
-can take about a minute before an exception surfaces; `Connected` may stay true during that time.
+A repeated `server.connected` refreshes the lists because disconnected events are lost. The SDK
+retries ordinary attempt failures forever and reports them through connection state; the board's
+owned state watch updates `Connected` and the connection error independently of event consumption.
+Subscriber overflow admits a replacement before refreshing. A subscription or refresh failure
+is logged and shown separately from permission/form-answer errors; a failed watch also clears `Connected`.
 A stopped server stays stopped until you press Start on its resource in the dashboard.
 `/health` separately probes the server under a short timeout instead of reporting a stale 200.
-Each open session page holds its own event stream, cancelled when the page closes.
+Each open session page holds its own subscription on the same root client's shared source,
+cancelled when the page closes.
 Pages don't prerender: a prerendered button shows before its handler is attached, so an early click is dropped (#775). The page appears once its connection is up.
 
 The dashboard shows HttpClient and ASP.NET Core traces and host logs, not SDK spans: the SDK's own

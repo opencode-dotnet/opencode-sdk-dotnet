@@ -15,7 +15,7 @@ for the others, and several consumers do not duplicate wire traffic and decoding
   that subscription and releases its backlog. A pending move's direct handoff takes no queue slot.
   A sole subscriber's overflow stops the source. The limit counts events, not bytes, and there is
   no subscriber-count limit.
-- A cached first `server.connected` marks admission in the feed's fan-out order, not liveness or a
+- The latest cached `server.connected` marks admission in the feed's fan-out order, not liveness or a
   new server connection. Its Id can be shared. Earlier business events are not replayed; a later
   marker announces a possible gap. Recovery admits a replacement before refreshing, then applies
   its buffered tail idempotently and restarts if that replacement overflows. Exactly-once and
@@ -58,8 +58,9 @@ for the others, and several consumers do not duplicate wire traffic and decoding
 ## Divergences and reversal triggers
 
 Retry composes inside the SDK source where upstream's shared layer and Solid split those layers.
-Cancellation throws OCE, including over a fault-preserved prefix, because that is the SDK-wide
-cancellation contract; upstream abort returns done. Exception-valued Error, explicit Idle and the
+Cancellation throws OCE, including over a fault-preserved prefix or a stored overflow ending,
+because that is the SDK-wide cancellation contract; upstream abort returns done while subscribed
+and leaves a stored ending unchanged after source completion or overflow. Exception-valued Error, explicit Idle and the
 typed overflow exception are idiomatic .NET forms. Standard public exception constructors remain
 available and Capacity always reports the SDK's bound. Current runtime canon records these and the
 omitted application facilities (history, resync, lifecycle, re-resolution, batching and onActivity).

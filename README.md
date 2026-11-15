@@ -389,7 +389,7 @@ has the two properties to set.
   subscription to 4,096 queued selected events; the next refused offer ends that subscriber with
   `OpenCodeEventSubscriberOverflowException`. Recover by resubscribing, awaiting admission, then
   refreshing and applying the buffered tail idempotently. See
-  [overflow recovery](docs/guide/streaming.md#-recovering-after-subscriber-overflow).
+  [overflow recovery](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md#-recovering-after-subscriber-overflow).
 
 - **A CLI-started server's durable session event stream holds only the sync marker.** It reads from
   the server's event store, and the distributed `opencode` CLI starts its server without event

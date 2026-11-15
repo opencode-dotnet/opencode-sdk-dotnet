@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Internal;
 internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider time, TimeSpan idleWindow,
     IEventFeedGateProbe probe) : IDisposable
 {
-    private readonly HashSet<EventSubscription<IEvent>> _subscriptions = [];
+    private readonly List<EventSubscription<IEvent>> _subscriptions = [];
     private readonly HashSet<EventSubscription<EventConnectionState>> _watchers = [];
     private readonly Dictionary<EventSource, Task> _running = [];
     private readonly EventSourceRunner _runner = new(attempts, time, idleWindow);
@@ -64,7 +64,7 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     }
 
     public IAsyncEnumerable<IEvent> Subscribe(EventSelection selection, CancellationToken cancellationToken) =>
-        new EventSubscription<IEvent>(this, selection, cancellationToken, default);
+        new EventSubscription<IEvent>(this, selection, cancellationToken, default, enumerableOnly: true);
 
     public EventConnectionState GetConnectionState()
     {
@@ -80,7 +80,7 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     }
 
     public IAsyncEnumerable<EventConnectionState> Watch(CancellationToken cancellationToken) =>
-        new EventStateWatcher(this, cancellationToken, default);
+        new EventStateWatcher(this, cancellationToken, default, enumerableOnly: true);
 
     internal void WithGate(Action<AfterGate> section)
     {
@@ -101,7 +101,7 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     {
         if (subscription is EventSubscription<IEvent> events)
         {
-            _ = _subscriptions.Add(events);
+            _subscriptions.Add(events);
             if (_current is null)
             {
                 StartLocked(work);
@@ -150,7 +150,6 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
             return;
         }
 
-        _marker = marker;
         SetStateLocked(new EventConnectionState(EventConnectionStatus.Connected, 0, null), work);
         PublishLocked(marker, work);
     });
@@ -181,9 +180,10 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         }
 
         DetachLocked(work);
+        var ending = new SubscriptionEnd(exception, true, false);
         foreach (var subscription in _subscriptions.ToArray())
         {
-            subscription.EndLocked(new SubscriptionEnd(exception, true, false), work);
+            subscription.EndLocked(ending, work);
         }
     });
 
@@ -240,7 +240,6 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
     {
         var source = new EventSource();
         _current = source;
-        SetStateLocked(new EventConnectionState(EventConnectionStatus.Connecting, 0, null), work);
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _running.Add(source, completion.Task);
         void Finish(EventSource finished)
@@ -263,6 +262,8 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
                 source.Start(_runner, this, Finish);
             }
         }
+
+        SetStateLocked(new EventConnectionState(EventConnectionStatus.Connecting, 0, null), work);
     }
 
     internal void Complete(EventSource source, Task task)
@@ -278,17 +279,27 @@ internal sealed class SharedEventFeed(IEventAttemptSource attempts, TimeProvider
         if (_current is { } source)
         {
             _current = null;
+            work.Add(new StopWork(source).Run);
             _marker = null;
             SetStateLocked(new EventConnectionState(EventConnectionStatus.Idle, 0, null), work);
-            work.Add(new StopWork(source).Run);
         }
     }
 
     private void PublishLocked(IEvent item, AfterGate work)
     {
-        foreach (var subscription in _subscriptions.Where(subscription => subscription.Includes(item)).ToArray())
+        if (string.Equals(item.Type, StreamReconnect.ConnectedEventType, StringComparison.Ordinal))
         {
-            subscription.OfferLocked(item, work);
+            _marker = item;
+        }
+
+        // An offer can remove its own subscription. Walking backwards keeps the remaining indices valid.
+        for (var index = _subscriptions.Count - 1; index >= 0; index--)
+        {
+            var subscription = _subscriptions[index];
+            if (subscription.Includes(item))
+            {
+                subscription.OfferLocked(item, work);
+            }
         }
     }
 

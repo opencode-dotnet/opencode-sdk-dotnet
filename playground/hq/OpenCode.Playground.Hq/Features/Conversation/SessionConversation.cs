@@ -9,7 +9,6 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     private readonly List<ConversationLine> _lines = [];
     private readonly Dictionary<(string AssistantMessageId, long Ordinal), int> _live = [];
     private readonly HashSet<string> _outbox = [with(StringComparer.Ordinal)];
-    private readonly HashSet<string> _ended = [with(StringComparer.Ordinal)];
     private bool _executing;
     private int _sending;
 
@@ -26,7 +25,6 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     public async Task FollowAsync(string sessionId, CancellationToken cancellationToken)
     {
         SessionId = sessionId;
-        _ended.Clear();
         while (true)
         {
             try
@@ -36,7 +34,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
                 {
                     if (item.Type == "server.connected")
                     {
-                        // Admission precedes the snapshot; final text replaces values and turn ends are keyed by event id.
+                        // The snapshot carries no delta cursor. A buffered delta can repeat text after refresh until the part's end replaces it.
                         await LoadAsync(cancellationToken);
                     }
                     else if (item is not ISessionScopedEvent scoped || scoped.SessionId != sessionId || !Apply(item))
@@ -150,10 +148,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
                 return true;
             case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
                 _executing = false;
-                if (_ended.Add(item.Id!))
-                {
-                    EndedTurns++;
-                }
+                EndedTurns++;
                 if (item is SessionExecutionFailed failed)
                 {
                     LastError = $"The turn failed: {failed.Data.Error.Message}";

@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -12,6 +13,56 @@ namespace OpenCode.Sdk.Tests.Events;
 
 public sealed class SharedEventFeedTests
 {
+    [Test]
+    public async Task SubscribeAsync_Should_Create_Queue_And_Watch_State_Only_For_Enumerators()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var recipe = (EventSubscription<IEvent>)scenario.Feed.Subscribe(EventSelection.Capture(null), default);
+        await using var watchRecipe = (EventStateWatcher)scenario.Feed.Watch(default);
+        var queue = typeof(EventSubscription<IEvent>).GetField("_queue", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var watch = typeof(EventStateWatcher).GetField("_subscription", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        await Assert.That(queue.GetValue(recipe)).IsNull();
+        await Assert.That(watch.GetValue(watchRecipe)).IsNull();
+        await using var events = recipe.GetAsyncEnumerator();
+        await using var watcher = watchRecipe.GetAsyncEnumerator();
+
+        await Assert.That(queue.GetValue(events)).IsNotNull();
+        await Assert.That(watch.GetValue(watcher)).IsNotNull();
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
+        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Replay_The_Latest_Marker_Without_Business_History()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var first = await scenario.AdmitAsync("marker-one");
+        var lateRecipe = scenario.Feed.Subscribe(EventSelection.Capture(null), default);
+        var latest = SharedEventFeedScenario.Marker("marker-two");
+        await scenario.CurrentAttempt!.PublishAsync(latest);
+        await scenario.PublishAsync("earlier-business");
+        await using var late = lateRecipe.GetAsyncEnumerator();
+
+        await Assert.That(await EventStreamSteps.NextAsync(late)).IsSameReferenceAs(latest);
+        await scenario.PublishAsync("later-business");
+        await Assert.That((await EventStreamSteps.NextAsync(late)).Id).IsEqualTo("later-business");
+        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Complete_Should_Propagate_The_Current_Runners_Faulted_Task()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var events = await scenario.AdmitAsync("faulted-task-marker");
+        var source = scenario.Feed.GetCurrentSource()!;
+        var failure = new InvalidOperationException("faulted task");
+        scenario.Feed.Complete(source, Task.FromException(failure));
+
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
+        var observed = await Assert.That(async () => await events.MoveNextAsync()).Throws<InvalidOperationException>();
+        await Assert.That(observed).IsSameReferenceAs(failure);
+    }
+
     private readonly FixtureLoader _fixtures = new();
 
     [Test]
@@ -253,6 +304,9 @@ public sealed class SharedEventFeedTests
         scenario.Feed.RecordDrop(oldSource, new OpenCodeTransportException("stale drop"), 1);
         await Assert.That(scenario.Feed.RecordAttemptStarted(oldSource)).IsFalse();
         scenario.Feed.RecordFault(oldSource, new InvalidOperationException("stale fault"));
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsSameReferenceAs(source);
+        await Assert.That(scenario.Feed.GetConnectionState()).IsSameReferenceAs(state);
+        await Assert.That(current.RetainedCount).IsEqualTo(0);
         oldAttempt.ReleaseCleanup();
         var observed = oldSource.RunnerObservation!.ContinueWith(static task => task.Status,
             CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
@@ -260,8 +314,6 @@ public sealed class SharedEventFeedTests
         await using var late = await scenario.AdmitAsync("M2");
 
         await Assert.That(late.Current).IsSameReferenceAs(marker);
-        await Assert.That(scenario.Feed.GetCurrentSource()).IsSameReferenceAs(source);
-        await Assert.That(scenario.Feed.GetConnectionState()).IsSameReferenceAs(state);
         await scenario.PublishAsync("E2");
         string?[] received = [(await EventStreamSteps.NextAsync(current)).Id, (await EventStreamSteps.NextAsync(late)).Id];
         await Assert.That(received).IsEquivalentTo((string?[])["E2", "E2"], CollectionOrdering.Matching);

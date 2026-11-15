@@ -16,6 +16,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
     private bool _ready;
     private bool _sourceConnected;
     private string? _connectionError;
+    private string? _subscriptionError;
     private string? _lastError;
 
     public event EventHandler? Changed;
@@ -23,7 +24,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
     public bool Connected => _ready && _sourceConnected;
     public string? LastError
     {
-        get => _lastError ?? _connectionError;
+        get => _lastError ?? _subscriptionError ?? _connectionError;
         private set => _lastError = value;
     }
     public IReadOnlyList<SessionRow> Sessions =>
@@ -113,7 +114,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
                 catch (Exception exception)
                 {
                     logger.LogWarning(exception, "The board event subscription or refresh failed.");
-                    LastError = exception.Message;
+                    _subscriptionError = exception.Message;
                 }
 
                 _ready = false;
@@ -130,10 +131,25 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
 
     private async Task WatchConnectionAsync(CancellationToken cancellationToken)
     {
-        await foreach (var state in client.Events.WatchConnectionAsync(cancellationToken))
+        try
         {
-            _sourceConnected = state.Status == EventConnectionStatus.Connected;
-            _connectionError = state.Error?.Message;
+            await foreach (var state in client.Events.WatchConnectionAsync(cancellationToken))
+            {
+                _sourceConnected = state.Status == EventConnectionStatus.Connected;
+                _connectionError = state.Error?.Message;
+                Changed?.Invoke(this, EventArgs.Empty);
+            }
+
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                throw new InvalidOperationException("The event connection watch ended before shutdown.");
+            }
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "The board connection watch failed.");
+            _sourceConnected = false;
+            _connectionError = exception.Message;
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
@@ -202,7 +218,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
             _ready = false;
             Changed?.Invoke(this, EventArgs.Empty);
             await SeedAsync(cancellationToken);
-            LastError = null;
+            _subscriptionError = null;
             _ready = true;
             Changed?.Invoke(this, EventArgs.Empty);
             return;

@@ -4,11 +4,11 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;
 
-/// <summary>One enumerator's selection, tokens, pending move and first ending, all selected under the feed gate.</summary>
+/// <summary>A lightweight recipe or one enumerator's queue, tokens, pending move and first ending under the feed gate.</summary>
 internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection? selection,
-    CancellationToken callToken, CancellationToken enumeratorToken) : IAsyncEnumerable<T>, IAsyncEnumerator<T> where T : class
+    CancellationToken callToken, CancellationToken enumeratorToken, bool enumerableOnly = false) : IAsyncEnumerable<T>, IAsyncEnumerator<T> where T : class
 {
-    private readonly Channel<T>? _queue = selection is null ? null : Channel.CreateBounded<T>(
+    private readonly Channel<T>? _queue = selection is null || enumerableOnly ? null : Channel.CreateBounded<T>(
         new BoundedChannelOptions(EventFeedBounds.SubscriberCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -16,7 +16,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
             SingleWriter = false,
             AllowSynchronousContinuations = false,
         });
-    private readonly List<CancellationTokenRegistration> _leases = [];
+    private List<CancellationTokenRegistration>? _leases = enumerableOnly ? null : [];
     private T? _latest;
     private EventPendingMove<T>? _pending;
     private SubscriptionEnd? _end;
@@ -33,7 +33,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
         {
             lock (feed.Gate)
             {
-                return _leases.Count;
+                return _leases?.Count ?? 0;
             }
         }
     }
@@ -87,7 +87,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
     {
         if (_end is null && !_disposed)
         {
-            _leases.Add(lease);
+            (_leases ??= []).Add(lease);
         }
         else
         {
@@ -134,7 +134,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
         }
         else if (!_queue.Writer.TryWrite(item))
         {
-            EndLocked(new SubscriptionEnd(new OpenCodeEventSubscriberOverflowException(EventFeedBounds.SubscriberCapacity), false, true), work);
+            EndLocked(new SubscriptionEnd(OpenCodeEventSubscriberOverflowException.Create(), false, true), work);
         }
     }
 
@@ -149,12 +149,16 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
                 DrainLocked();
             }
 
-            foreach (var lease in _leases)
+            if (_leases is { } leases)
             {
-                work.Add(lease.Dispose);
+                foreach (var lease in leases)
+                {
+                    work.Add(lease.Dispose);
+                }
+
+                leases.Clear();
             }
 
-            _leases.Clear();
             feed.RemoveLocked(this, ending, work);
         }
 
@@ -182,7 +186,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
             var delivery = await completion.Task.ConfigureAwait(false);
             if (delivery.Error is { } error)
             {
-                ExceptionDispatchInfo.Capture(error).Throw();
+                (delivery.Dispatch ?? ExceptionDispatchInfo.Capture(error)).Throw();
             }
 
             Current = delivery.Item!;
@@ -245,7 +249,7 @@ internal sealed class EventSubscription<T>(SharedEventFeed feed, EventSelection?
         }
         else if (_disposed || _end is not null)
         {
-            SettleLocked(move, new Delivery<T>(null, _disposed ? null : _end!.Error));
+            SettleLocked(move, new Delivery<T>(null, _disposed ? null : _end!.Error, _disposed ? null : _end!.Dispatch));
         }
         else if (offered is not null)
         {

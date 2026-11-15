@@ -69,11 +69,10 @@ public sealed class EventsClientTests
         await Assert.That((await EventStreamSteps.NextAsync(replacement)).Type).IsEqualTo("server.connected");
         var refreshEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = Channel.CreateBounded<bool>(1);
-        async Task<Dictionary<string, int>> RefreshAsync()
+        async Task RefreshAsync()
         {
             refreshEntered.SetResult();
             _ = await release.Reader.ReadAsync(CancellationToken.None);
-            return new Dictionary<string, int>(StringComparer.Ordinal) { ["E2"] = 1 };
         }
 
         var refreshing = RefreshAsync();
@@ -89,13 +88,9 @@ public sealed class EventsClientTests
             _ = release.Writer.TryWrite(true);
         }
 
-        var projection = await refreshing.WaitAsync(HangGuard.Bound);
+        await refreshing.WaitAsync(HangGuard.Bound);
         var tail = await EventStreamSteps.NextAsync(replacement);
         await Assert.That(tail.Id).IsEqualTo("E2");
-        var applied = projection.TryAdd(tail.Id!, 1);
-        await Assert.That(applied).IsFalse();
-        await Assert.That(projection.Keys).IsEquivalentTo(["E2"], CollectionOrdering.Matching);
-        await Assert.That(projection["E2"]).IsEqualTo(1);
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
 
@@ -108,7 +103,8 @@ public sealed class EventsClientTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, time: new ManualTimeProvider());
         var door = new EventsClient(pipeline);
-        _ = await Assert.That(() => door.SubscribeAsync(new EventSubscribeRequest { Types = [default] })).Throws<ArgumentException>();
+        var invalid = await Assert.That(() => door.SubscribeAsync(new EventSubscribeRequest { Types = [default] })).Throws<ArgumentException>();
+        await Assert.That(invalid!.ParamName).IsEqualTo("request");
         await Assert.That(handler.Requests).IsEmpty();
         var types = new List<EventType> { EventType.SessionCreated };
         var recipe = door.SubscribeAsync(new EventSubscribeRequest { Types = types });

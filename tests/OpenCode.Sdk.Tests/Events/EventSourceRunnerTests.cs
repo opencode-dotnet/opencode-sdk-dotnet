@@ -13,6 +13,61 @@ namespace OpenCode.Sdk.Tests.Events;
 public sealed class EventSourceRunnerTests
 {
     [Test]
+    public async Task RecordDrop_Should_Keep_The_Queued_Prefix_Across_A_Retried_Attempt()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var events = await scenario.AdmitAsync("before-drop");
+        await scenario.PublishPrefixAsync("queued-one", "queued-two");
+        var failure = new OpenCodeTransportException("retryable read");
+        var state = await scenario.FailAttemptAsync(scenario.CurrentAttempt!, failure);
+        await Assert.That(state.Status).IsEqualTo(EventConnectionStatus.Reconnecting);
+        await Assert.That(events.RetainedCount).IsEqualTo(2);
+        scenario.Time.Advance(EventStreamSteps.Delay);
+        var retry = await scenario.Attempts.NextOpenAsync();
+        await retry.PublishAsync(SharedEventFeedScenario.Marker("after-drop"));
+
+        string?[] delivered = [(await EventStreamSteps.NextAsync(events)).Id, (await EventStreamSteps.NextAsync(events)).Id,
+            (await EventStreamSteps.NextAsync(events)).Id];
+        await Assert.That(delivered).IsEquivalentTo((string?[])["queued-one", "queued-two", "after-drop"], CollectionOrdering.Matching);
+        await Assert.That(scenario.Attempts.OpenCount).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task OpenAsync_Should_Fault_Synchronously_Without_Retry_And_Allow_A_Fresh_Subscription()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        var failure = new InvalidOperationException("synchronous source creation");
+        var opened = new List<EventSource>();
+        scenario.Attempts.OnOpen = () =>
+        {
+            opened.Add(scenario.Feed.GetCurrentSource()!);
+            throw failure;
+        };
+        for (var attempt = 1; attempt <= 2; attempt++)
+        {
+            await using var events = scenario.CreateSubscription();
+            await using var watcher = scenario.CreateWatcher();
+            Task<bool>? moving = null;
+            Task<bool>? connecting = null;
+            scenario.Feed.WithGate(_ =>
+            {
+                moving = EventStreamSteps.PendingNext(events);
+                connecting = EventStreamSteps.PendingNext(watcher);
+            });
+            await Assert.That(await connecting!.WaitAsync(HangGuard.Bound)).IsTrue();
+            await Assert.That(watcher.Current.Status).IsEqualTo(EventConnectionStatus.Connecting);
+            var idle = await EventStreamSteps.NextAsync(watcher);
+            await Assert.That(idle.Status).IsEqualTo(EventConnectionStatus.Idle);
+            var observed = await Assert.That(moving!).Throws<InvalidOperationException>();
+            await Assert.That(observed).IsSameReferenceAs(failure);
+            await scenario.Feed.JoinAsync().WaitAsync(HangGuard.Bound);
+            await Assert.That(opened.Count).IsEqualTo(attempt);
+            await Assert.That(opened[^1].Token.IsCancellationRequested).IsTrue();
+            await Assert.That(scenario.Time.ArmedIn(EventStreamSteps.Delay)).IsEqualTo(0);
+        }
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task SubscribeAsync_Should_Not_Reconnect_The_Durable_Session_Log(bool failureFrame)

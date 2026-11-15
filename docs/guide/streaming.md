@@ -10,7 +10,7 @@ process, and the **durable session event stream** for one conversation.
 - [📜 A single session's log](#-a-single-sessions-log)
 - [🧩 Unknown events do not break your consumer](#-unknown-events-do-not-break-your-consumer)
 - [⏹️ Cancellation and lifetime](#️-cancellation-and-lifetime)
-- [💥 Streams always throw](#-streams-always-throw)
+- [💥 Stream error channels](#-stream-error-channels)
 
 ## 🔊 The live event stream
 
@@ -434,40 +434,31 @@ a subscription-position or liveness barrier; the event markers still delimit res
    not duplicate counters or append-only replay of delta text.
 5. If that replacement overflows, start again at admission. A later marker also requires refresh.
 
-For example, this cache re-reads a session's full value instead of treating an event as a duplicate
-increment. Re-applying the same tail is harmless:
+For example, active-session membership is refreshed once at admission. Turn-state events then
+update the set by key without an HTTP request for each event or text delta:
 
 ```csharp
-var cache = new Dictionary<string, SessionInfo>(StringComparer.Ordinal);
+var running = new HashSet<string>(StringComparer.Ordinal);
 using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 budget.CancelAfter(TimeSpan.FromMinutes(5));
 
 async Task RefreshStateAsync(CancellationToken token)
 {
-    var snapshot = new Dictionary<string, SessionInfo>(StringComparer.Ordinal);
-    await foreach (var value in client.Sessions.EnumerateSessionsAsync(cancellationToken: token))
-    {
-        snapshot[value.Id] = value;
-    }
-    cache.Clear();
-    foreach (var value in snapshot.Values) cache[value.Id] = value;
+    var snapshot = await client.Sessions.GetActiveAsync(cancellationToken: token);
+    running.Clear();
+    running.UnionWith(snapshot.Active.Keys);
 }
 
-async Task ApplyTailAsync(IEvent item, CancellationToken token)
+void ApplyTail(IEvent item)
 {
-    var id = SessionOf(item);
-    if (id is null) return;
-    try
+    switch (item)
     {
-        var latest = (await client.Sessions.GetSessionClient(id).GetAsync(cancellationToken: token)).Session;
-        if (!cache.TryGetValue(id, out var previous) || latest.Time.Updated >= previous.Time.Updated)
-        {
-            cache[id] = latest;
-        }
-    }
-    catch (OpenCodeApiException error) when (error.Error is SessionNotFoundError)
-    {
-        cache.Remove(id);
+        case SessionExecutionStarted started:
+            running.Add(started.Data.SessionId);
+            break;
+        case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
+            running.Remove(((ISessionScopedEvent)item).SessionId);
+            break;
     }
 }
 
@@ -482,7 +473,7 @@ while (!budget.IsCancellationRequested)
         while (await subscription.MoveNextAsync())
         {
             if (subscription.Current.Type is "server.connected") await RefreshStateAsync(budget.Token);
-            else await ApplyTailAsync(subscription.Current, budget.Token);
+            else ApplyTail(subscription.Current);
         }
         break;
     }
@@ -495,7 +486,8 @@ while (!budget.IsCancellationRequested)
 
 The recipe assumes ordinary reads reflect a change no later than its event is published. It does
 not create an atomic cross-operation snapshot or promise exactly-once merging. Final text values
-can replace text; live deltas are not a durable, idempotent history.
+can replace text; live deltas are not a durable, idempotent history. A delta buffered across a
+refresh can repeat displayed text until SessionTextEnded replaces it, because the snapshot carries no delta cursor.
 
 The durable session event stream below has a cursor, but it delivers events only from a server
 started with event persistence — and the CLI you install does not start one that way; the note on
@@ -685,7 +677,7 @@ before. See the
   once open, a silent log stays open until you cancel,
   the server ends it, or it fails.
 
-## 💥 Streams always throw
+## 💥 Stream error channels
 
 Streaming operations take `requestOptions`, but return a stream, not a response envelope.
 [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead) is refused with

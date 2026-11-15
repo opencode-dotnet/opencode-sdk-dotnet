@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging;
 using OpenCode.Playground.Hq.Features.Sessions;
 using OpenCode.Sdk;
 using OpenCode.Sdk.Models;
@@ -11,6 +11,35 @@ namespace OpenCode.Playground.Hq.Tests.Features.Sessions;
 
 public sealed class SessionBoardTests
 {
+    [Test]
+    public async Task SessionBoard_Should_Report_A_Watch_Fault_Before_Shutdown()
+    {
+        await using var scenario = new BoardScenario();
+        var failure = new InvalidOperationException("watch lost");
+        scenario.EventCalls.WatchFailure = failure;
+        await scenario.StartAsync();
+
+        await Assert.That(scenario.Board.Connected).IsFalse();
+        await Assert.That(scenario.Board.LastError).IsEqualTo("watch lost");
+        await Assert.That(scenario.Logger.LastFailure).IsSameReferenceAs(failure);
+        await Assert.That(scenario.EventCalls.SubscribeCalls).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task SessionBoard_Should_Keep_A_Permission_Answer_Error_After_Refresh()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        scenario.SessionCalls.ReplyFailure = Unauthorized();
+        var ask = scenario.Board.NeedsYou.Single(static item => item.Id == "ask_first");
+        await scenario.Board.AnswerAsync(ask, PermissionReply.Once, CancellationToken.None);
+        scenario.SessionCalls.Items = [Session(7, "refreshed")];
+        await scenario.SendAsync(Connected());
+
+        await Assert.That(scenario.Board.LastError).IsEqualTo("Could not answer permission. Try again.");
+        await Assert.That(scenario.Board.Sessions.Single().Session.Id).IsEqualTo("ses_7");
+    }
+
     [Test]
     public async Task SessionBoard_Should_Own_And_Observe_The_State_Watch_With_Its_Hosting_Lifetime()
     {
@@ -36,7 +65,7 @@ public sealed class SessionBoardTests
         var refreshes = scenario.SessionCalls.Refreshes;
         scenario.EventCalls.Trace.Clear();
         scenario.SessionCalls.Items = [Session(9, "last")];
-        scenario.SessionCalls.Active = new HashSet<string>(StringComparer.Ordinal);
+        scenario.SessionCalls.Active = new HashSet<string>(["ses_9"], StringComparer.Ordinal);
         scenario.SessionCalls.ListingRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
         scenario.EventCalls.Input.Writer.TryWrite(() =>
         {
@@ -61,7 +90,6 @@ public sealed class SessionBoardTests
                 Data = new() { SessionId = "ses_9" },
             };
             scenario.EventCalls.Input.Writer.TryWrite(() => started);
-            scenario.EventCalls.Input.Writer.TryWrite(() => started);
         }
         finally
         {
@@ -69,7 +97,6 @@ public sealed class SessionBoardTests
             await refreshing;
         }
 
-        await scenario.SettleAsync();
         await scenario.SettleAsync();
         await Assert.That(scenario.Board.Sessions.Select(static row => row.Session.Id)).IsEquivalentTo(["ses_9"], CollectionOrdering.Matching);
         await Assert.That(scenario.Board.Sessions.Single().Status).IsEqualTo("running");
@@ -258,10 +285,11 @@ public sealed class SessionBoardTests
     {
         public BoardScenario()
         {
-            Board = new SessionBoard(this, NullLogger<SessionBoard>.Instance);
+            Board = new SessionBoard(this, Logger);
             SessionCalls.Trace = EventCalls.Trace;
         }
         public SessionBoard Board { get; }
+        public BoardLogger Logger { get; } = new();
         public BoardSessions SessionCalls { get; } = new();
         public BoardPermissions PermissionCalls { get; } = new();
         public BoardForms FormCalls { get; } = new();
@@ -331,6 +359,7 @@ public sealed class SessionBoardTests
     private sealed class BoardEvents : EventsClient
     {
         private EventConnectionState _state = new(EventConnectionStatus.Connected, 0, null);
+        public Exception? WatchFailure { get; set; }
         public List<string> Trace { get; } = [];
         public int SubscribeCalls { get; private set; }
         public int WatchCalls { get; private set; }
@@ -348,6 +377,11 @@ public sealed class SessionBoardTests
                 yield return _state;
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    if (WatchFailure is { } failure)
+                    {
+                        throw failure;
+                    }
+
                     StatePulls.Writer.TryWrite(0);
                     _state = await States.Reader.ReadAsync(cancellationToken);
                     yield return _state;
@@ -378,6 +412,15 @@ public sealed class SessionBoardTests
                 yield return item;
             }
         }
+    }
+
+    private sealed class BoardLogger : ILogger<SessionBoard>
+    {
+        public Exception? LastFailure { get; private set; }
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => true;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter) => LastFailure = exception;
     }
 
     private sealed class BoardSessions : SessionsClient

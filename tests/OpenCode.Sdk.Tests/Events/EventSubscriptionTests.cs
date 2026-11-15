@@ -10,6 +10,25 @@ namespace OpenCode.Sdk.Tests.Events;
 public sealed class EventSubscriptionTests
 {
     [Test]
+    public async Task MoveNextAsync_Should_Keep_The_Stored_Faults_Stack_Stable_On_Repeated_Pulls()
+    {
+        await using var scenario = new SharedEventFeedScenario();
+        await using var events = await scenario.AdmitAsync("stack-marker");
+        var failure = new InvalidOperationException("stable dispatch");
+        await scenario.FaultAsync(failure);
+        var traces = new List<string?>();
+        for (var pull = 0; pull < 3; pull++)
+        {
+            var observed = await Assert.That(async () => await events.MoveNextAsync()).Throws<InvalidOperationException>();
+            await Assert.That(observed).IsSameReferenceAs(failure);
+            traces.Add(observed!.StackTrace);
+        }
+
+        await Assert.That(traces[1]).IsNotNull();
+        await Assert.That(traces[2]).IsEqualTo(traces[1]);
+    }
+
+    [Test]
     [Arguments("fault")]
     [Arguments("root")]
     [Arguments("false")]
@@ -418,6 +437,7 @@ public sealed class EventSubscriptionTests
         await attempt.PublishAsync(SharedEventFeedScenario.Marker("M"));
         await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current.Id).IsEqualTo("M");
+        var source = scenario.Feed.GetCurrentSource()!;
         for (var index = 1; index <= 4096; index++)
         {
             await attempt.PublishAsync(SharedEventFeedScenario.Event("E" + index.ToString(System.Globalization.CultureInfo.InvariantCulture)));
@@ -429,6 +449,12 @@ public sealed class EventSubscriptionTests
         await Assert.That(overflow.Message).IsEqualTo("Event subscriber exceeded its 4096-event capacity");
         var repeated = await Assert.That(async () => await events.MoveNextAsync()).Throws<OpenCodeEventSubscriberOverflowException>();
         await Assert.That(repeated).IsSameReferenceAs(overflow);
+        await Assert.That(scenario.Feed.GetCurrentSource()).IsNull();
+        await Assert.That(scenario.Feed.GetConnectionState().Status).IsEqualTo(EventConnectionStatus.Idle);
+        attempt.ReleaseCleanup();
+        await scenario.Feed.JoinAsync().WaitAsync(HangGuard.Bound);
+        await Assert.That(attempt.Token.IsCancellationRequested).IsTrue();
+        await Assert.That(source.IsReleased).IsTrue();
     }
 
     private static async Task AssertNoAdmissionAsync(SharedEventFeedScenario scenario, EventSubscription<IEvent> events)

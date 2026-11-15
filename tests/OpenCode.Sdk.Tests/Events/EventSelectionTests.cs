@@ -48,6 +48,6 @@ public sealed class EventSelectionTests
         var exception = await Assert.That(() => EventSelection.Capture([default])).Throws<ArgumentException>();
 
         await Assert.That(exception!.Message).StartsWith("A default EventType has no wire value.");
-        await Assert.That(exception.ParamName).IsEqualTo("value");
+        await Assert.That(exception.ParamName).IsEqualTo("request");
     }
 }

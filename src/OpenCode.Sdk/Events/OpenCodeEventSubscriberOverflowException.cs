@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using System.Globalization;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
@@ -26,9 +26,8 @@ public sealed class OpenCodeEventSubscriberOverflowException : OpenCodeException
     {
     }
 
-    internal OpenCodeEventSubscriberOverflowException(int capacity)
-        : base("Event subscriber exceeded its 4096-event capacity") =>
-        Debug.Assert(capacity == EventFeedBounds.SubscriberCapacity, "The SDK has one fixed subscriber capacity.");
+    internal static OpenCodeEventSubscriberOverflowException Create() =>
+        new("Event subscriber exceeded its " + EventFeedBounds.SubscriberCapacity.ToString(CultureInfo.InvariantCulture) + "-event capacity");
 
     /// <summary>Gets the SDK's fixed 4,096-event subscriber bound, including on consumer-constructed exceptions.</summary>
     public int Capacity { get; } = EventFeedBounds.SubscriberCapacity;

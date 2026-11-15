@@ -54,11 +54,10 @@ public class EventsClient
         ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Streams");
         if (requestOptions?.NetworkTimeout is not null)
         {
-            throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.",
-                nameof(requestOptions));
+            throw new ArgumentException(FailureClassification.EventStreamNetworkTimeoutMessage, nameof(requestOptions));
         }
 
-        return feed.Subscribe(EventSelection.Capture(request?.Types), cancellationToken);
+        return feed.Subscribe(EventSelection.Capture(request?.Types, nameof(request)), cancellationToken);
     }
 
     /// <summary>Gets the shared source's current snapshot without opening a connection.</summary>

@@ -63,9 +63,14 @@ internal sealed class SharedEventFeedScenario : IAsyncDisposable
 
     public async Task FaultAsync(Exception failure)
     {
+        await using var watcher = CreateWatcher(CancellationToken.None, CancellationToken.None);
+        _ = await EventStreamSteps.NextAsync(watcher);
+        var changed = EventStreamSteps.PendingNext(watcher);
         CurrentAttempt!.CleanupFailure = failure;
         _ = CurrentAttempt.Items.Writer.TryComplete();
         CurrentAttempt.ReleaseCleanup();
+        await Assert.That(await changed.WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
+        await EventStreamSteps.AssertStateAsync(watcher.Current, EventConnectionStatus.Idle, 0, null);
         await Feed.JoinAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
     }
 

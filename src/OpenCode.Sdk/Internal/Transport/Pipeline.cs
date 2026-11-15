@@ -196,7 +196,7 @@ internal sealed class Pipeline : IDisposable
         var reconnecting = request.Traits.Reconnects;
         if (reconnecting && requestOptions?.NetworkTimeout is not null)
         {
-            throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.", nameof(requestOptions));
+            throw new ArgumentException(FailureClassification.EventStreamNetworkTimeoutMessage, nameof(requestOptions));
         }
 
         if (reconnecting)
