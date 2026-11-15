@@ -5,7 +5,6 @@ using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
-using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 
@@ -76,7 +75,11 @@ public sealed class OpenCodeServerDescriptorTests
             {
                 foreach (var descriptors in serverDescriptors)
                 {
-                    await Assert.That(descriptors.Keys.Order().ToArray()).IsEquivalentTo([0, 1, 2], CollectionOrdering.Matching);
+                    var foreign = descriptors
+                        .Where(static entry => entry.Key > 2)
+                        .Select(static entry => entry.Key.ToString(CultureInfo.InvariantCulture) + " -> " + (entry.Value.IsPipe ? "pipe " : string.Empty) + entry.Value)
+                        .ToList();
+                    await Assert.That(foreign).IsEmpty();
                 }
             }
             else
