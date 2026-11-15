@@ -62,7 +62,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
         {
             throw FailureClassification.CallerCancellation(failure, "The persistent-terminal handoff request was canceled.", cancellationToken);
         }
-        catch (Exception failure) when (failure is OpenCodeException or OperationCanceledException or ArgumentException { ParamName: "endpoint" })
+        catch (Exception failure) when (failure is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             // Another caller may already have prepared and stopped this server; otherwise the
             // daemon's terminals are shut down and the replacement starts without a handoff.
@@ -190,7 +190,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client's shutdown .catch(() => {}) is best-effort (prepare in pty-handoff.ts): endpoint refusal or a failed shutdown leads to a null sidecar and replacement without these terminals.")]
+        "The pinned client's prepare catches every shutdown fallback failure (prepare in pty-handoff.ts); the SDK has no warning channel here, so request failures are dropped where upstream warns and shutdown failures are dropped as upstream does. Only the caller's cancellation propagates, so the replacement starts without the terminals.")]
     private async Task ShutdownAsync(ServiceRegistration registration, TimeSpan timeout, CancellationToken cancellationToken)
     {
         using var deadline = TimedCancellation.Create(timeout, time);
@@ -203,7 +203,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
         {
             throw FailureClassification.CallerCancellation(failure, "The persistent-terminal shutdown fallback was canceled.", cancellationToken);
         }
-        catch (Exception failure) when (failure is OpenCodeException or OperationCanceledException or ArgumentException { ParamName: "endpoint" })
+        catch (Exception failure) when (failure is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             // Best-effort: the replacement starts without these terminals.
         }
@@ -211,18 +211,18 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
 
     /// <summary>
     /// <c>publish(...).catch(warn)</c>: a sidecar that cannot be written leaves the replacement
-    /// without a handoff; it never fails the preparation.
+    /// without a handoff; only the caller's cancellation fails the preparation.
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client only warns when publishing the handoff fails (prepare in pty-handoff.ts): the replacement then starts without the terminals, which is the best-effort contract.")]
+        "The pinned client's prepare catches every sidecar publish failure and only warns (prepare in pty-handoff.ts); the SDK has no warning channel here, so the failure is dropped. Only the caller's cancellation propagates, so the replacement starts without the terminals.")]
     private async Task TryPublishAsync(string sidecarPath, PtyHandoffSidecar sidecar, CancellationToken cancellationToken)
     {
         try
         {
             await PublishAsync(sidecarPath, sidecar, cancellationToken).ConfigureAwait(false);
         }
-        catch (OpenCodeServerException)
+        catch (Exception failure) when (failure is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
             // Best-effort: no sidecar means no handoff.
         }

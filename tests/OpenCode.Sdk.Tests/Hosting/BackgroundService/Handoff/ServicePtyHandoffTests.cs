@@ -250,33 +250,72 @@ public sealed class ServicePtyHandoffTests
     [Test]
     [Arguments("options")]
     [Arguments(null)]
-    public async Task PrepareAsync_Should_Propagate_An_Unrelated_Shutdown_Argument_Error(string? parameterName)
+    [Arguments("io")]
+    public async Task PrepareAsync_Should_Swallow_A_Failed_Shutdown_Fallback(string? parameterName)
     {
+        _scenario.EnsureSidecarDirectory();
         await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.NotFound, "{}"));
-        var failure = new ArgumentException("The shutdown implementation rejected another parameter.", parameterName);
+        Exception failure = parameterName == "io"
+            ? new IOException("The shutdown failed.")
+            : new ArgumentException("The shutdown implementation rejected another parameter.", parameterName);
         var shutdown = Substitute.For<IServicePtyShutdown>();
         shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.FromException(failure));
         var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown);
 
-        var exception = await Assert.That(async () => await handoff.PrepareAsync(
-            _scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, CancellationToken.None)).Throws<ArgumentException>();
+        await Assert.That(async () => await handoff.PrepareAsync(
+            _scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, CancellationToken.None)).ThrowsNothing();
 
-        await Assert.That(exception).IsSameReferenceAs(failure);
-        await Assert.That(_scenario.ReadSidecar()).IsNull();
+        _ = await AssertNullSidecarAsync();
     }
 
     [Test]
-    public async Task PrepareAsync_Should_Complete_Without_A_Sidecar_When_The_Publish_Fails()
+    public async Task PrepareAsync_Should_Take_The_Shutdown_Fallback_When_The_Ticket_Request_Fails_With_An_IO_Error()
+    {
+        _scenario.EnsureSidecarDirectory();
+        var files = new TestablyServiceFileSystem(_scenario.FileSystem);
+        var fileSystem = Substitute.For<IServiceFileSystem>();
+        fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => files.TryReadAllBytesAsync(call.Arg<string>(), call.Arg<CancellationToken>()));
+        fileSystem.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(call => files.TryCreateExclusiveAsync(call.Arg<string>(), call.Arg<ReadOnlyMemory<byte>>(), call.Arg<CancellationToken>()));
+        fileSystem.When(static system => system.Rename(Arg.Any<string>(), Arg.Any<string>()))
+            .Do(call => files.Rename(call.ArgAt<string>(0), call.ArgAt<string>(1)));
+        var time = Substitute.For<TimeProvider>();
+        time.GetUtcNow().Returns(_scenario.Clock.GetUtcNow());
+        // Fail the ticket request's bound once, before transport can wrap the IOException;
+        // the shutdown fallback gets a working bound from the same clock seam.
+        time.CreateTimer(Arg.Any<TimerCallback>(), Arg.Any<object?>(), Arg.Any<TimeSpan>(), Arg.Any<TimeSpan>())
+            .Returns(_ => throw new IOException("The ticket request's timer could not be created."),
+                call => _scenario.Clock.CreateTimer(call.Arg<TimerCallback>(), call.Arg<object?>(), call.ArgAt<TimeSpan>(2), call.ArgAt<TimeSpan>(3)));
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        var registration = FixedRegistration();
+
+        await Assert.That(async () => await new ServicePtyHandoff(fileSystem, time, shutdown).PrepareAsync(
+            _scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None)).ThrowsNothing();
+
+        _ = fileSystem.Received(2).TryReadAllBytesAsync(_scenario.SidecarPath(), CancellationToken.None);
+        _ = shutdown.Received(1).ShutdownAsync(registration, Arg.Any<CancellationToken>());
+        _ = await AssertNullSidecarAsync();
+    }
+
+    [Test]
+    [Arguments("io")]
+    [Arguments("argument")]
+    public async Task PrepareAsync_Should_Complete_Without_A_Sidecar_When_The_Publish_Fails(string failureKind)
     {
         await using var server = LoopbackHttpServer.Start(static _ =>
             Json(HttpStatusCode.OK, Fixtures.LoadJson("BackgroundService.pty-handoff-response-ticket.json")));
         var fileSystem = Substitute.For<IServiceFileSystem>();
         fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((byte[]?)null);
+        Exception failure = failureKind == "io"
+            ? new IOException("The sidecar directory vanished.")
+            : new ArgumentException("The sidecar write was refused.", "path");
         fileSystem.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new IOException("The sidecar directory vanished."));
+            .ThrowsAsync(failure);
 
-        await new ServicePtyHandoff(fileSystem, _scenario.Clock, new ServicePtyShutdown()).PrepareAsync(
-            _scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, CancellationToken.None);
+        await Assert.That(async () => await new ServicePtyHandoff(fileSystem, _scenario.Clock, new ServicePtyShutdown()).PrepareAsync(
+            _scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, CancellationToken.None)).ThrowsNothing();
 
         _ = fileSystem.Received(1).TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>());
         fileSystem.DidNotReceiveWithAnyArgs().Rename(default!, default!);
@@ -509,6 +548,28 @@ public sealed class ServicePtyHandoffTests
         // Cancellation, never the fallback a daemon error takes.
         await Assert.That(caught).IsNotNull();
         server.ReleaseResponses();
+    }
+
+    [Test]
+    public async Task PrepareAsync_Should_Rethrow_Caller_Cancellation_During_The_Publish()
+    {
+        await using var server = LoopbackHttpServer.Start(static _ =>
+            Json(HttpStatusCode.OK, Fixtures.LoadJson("BackgroundService.pty-handoff-response-ticket.json")));
+        using var caller = new CancellationTokenSource();
+        var fileSystem = Substitute.For<IServiceFileSystem>();
+        fileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((byte[]?)null);
+        fileSystem.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                await caller.CancelOnWorkerAsync();
+                return await Task.FromCanceled<bool>(call.Arg<CancellationToken>());
+            });
+
+        var exception = await Assert.That(async () => await new ServicePtyHandoff(fileSystem, _scenario.Clock, new ServicePtyShutdown()).PrepareAsync(
+            _scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, caller.Token)).Throws<OperationCanceledException>();
+
+        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+        fileSystem.DidNotReceiveWithAnyArgs().Rename(default!, default!);
     }
 
     /// <summary>The pinned client's <c>environment</c> reads a JSON-null ticket as no ticket and removes the variable.</summary>
