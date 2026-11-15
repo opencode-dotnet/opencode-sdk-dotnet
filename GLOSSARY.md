@@ -34,12 +34,12 @@ The input a user gives a Session: text, plus optional file, Agent and skill atta
 Every Step a Session takes from one idle point to the next, including Prompts steered in while it
 was busy; an idle Message closes it and records its outcome. A server shutdown does not close a
 Turn, because the resumed run continues it.
-_Avoid_: Execution (upstream's word for one run from a start or restart to idle; a Turn can span
-several)
+_Avoid_: Execution (upstream's word for one run of the Session; a restart starts another, so a Turn
+can span several)
 
 **Step**:
-One model request within a Turn, from its dispatch to its end or failure, and the assistant Message
-it produces.
+One logical unit of model work within a Turn, which may take several attempts before it ends or
+fails.
 
 **Session inbox**:
 The queue of pending work for one Session: a Prompt, a synthetic message, a Compaction, or a move,
@@ -85,15 +85,16 @@ lost.
 **Shared event feed**:
 Upstream's client-side fan-out of one Live event stream connection to every subscriber of a client,
 each with its own Event filter and its own bounded queue; a subscriber that falls behind overflows
-and ends alone while the others continue. Upstream's client reports the connection's state
-(connecting, connected or reconnecting) and reconnects without end.
+and ends alone while the others continue, and every subscriber ends when the connection does.
+Reporting the connection's state and reconnecting without end belong to upstream's UI connection
+layer, which resubscribes around the feed.
 
 **Admission**:
 The point at which a subscriber joins a Shared event feed, marked by the first `server.connected` it
 receives (the cached one when the feed is already connected); from then on it is offered every Event
-it selects that the feed fans out, and none fanned out before. A later `server.connected` on the
-same subscription means the feed reconnected and Events in between may be gone.
-_Avoid_: connection (a new subscriber's marker does not mean the wire reconnected)
+it selects that the feed fans out, and none fanned out before.
+_Avoid_: connection (a new subscriber's marker does not mean the wire reconnected); admitting an
+upstream operation (the generator's selection of the protocol surface, a different thing)
 
 #### Capabilities and catalogs
 
@@ -120,8 +121,8 @@ Integration it is connected through. Its Models form a separate catalog.
 One entry in the model catalog, naming its Provider and carrying capabilities, variants, costs and
 limits, with two ids: its catalog id, which Sessions, Agents and Messages reference with the
 Provider and an optional variant, and its provider model id, which the Provider's own API uses. The
-SDK names upstream's `model` client `LanguageModelsClient`, because the Models folder and namespace
-belong to the generated model layer.
+SDK names upstream's `model` client `LanguageModelsClient`, because the `Models` namespace belongs
+to the generated model layer.
 _Avoid_: model id alone (it is ambiguous between the two)
 
 **Agent**:
@@ -132,8 +133,8 @@ _Avoid_: mode (an Agent's mode is its primary or subagent eligibility, not its p
 
 **Plugin activation**:
 The asynchronous per-Location settling of a server's plugins, during which Providers register and
-the model catalog fills. Only the endpoints that list or use Providers wait for it, for at most five
-seconds; any other answer, a server info answer among them, can come before it settles.
+the model catalog fills. Only the endpoints that list or use Providers wait for it, for a bounded
+time; any other answer, a server info answer among them, can come before it settles.
 _Avoid_: readiness (the Launcher's start signal, a different thing)
 
 **Plugin RPC**:
@@ -184,6 +185,7 @@ A pseudo-terminal session managed through the API.
 **PTY connection**:
 The live WebSocket attached to one PTY, carrying replayed and live output out and input in. The PTY
 outlives any connection to it.
+_Avoid_: terminal (the PTY itself), session (the SDK's PTY session works over a connection)
 
 **Replay cursor**:
 The absolute position in a PTY's retained output from which a connection replays. A normal PTY can
@@ -288,9 +290,8 @@ carrying an upstream report and a retirement predicate.
 
 **Source watch**:
 The pinned set of upstream files that hand-written code in this family depends on, each recorded by
-path and hash with one or more behaviours, each naming its owning product. A refresh-time review
-trigger: it never reaches ingestion or emission, and generation reads it only to refuse a query
-parameter type row whose evidence it does not watch.
+path and hash with one or more behaviours, each naming its owning product. It is evidence a refresh
+reviews and a curated type's evidence must be in; it is never a generation input.
 
 #### Generation
 
@@ -356,8 +357,9 @@ _Avoid_: pattern arm (a general regex is never admitted); catch-all (the Unknown
 the catch-all)
 
 **Unknown variant carrier**:
-The per-union variant that keeps the tag and raw payload of an unrecognized discriminator, or, on an
-event stream, of a known variant that cannot be read.
+The per-union variant that keeps the tag and raw payload of an unrecognized discriminator, or, on the
+live and durable event streams, of a known variant that cannot be read, when the carrier can hold
+that payload.
 
 **Recorded tolerance**:
 An explicit, registered runtime exception to the fail-closed default.
@@ -370,11 +372,13 @@ it.
 
 **Envelope**:
 The generated, typed response object of one operation, carrying its status and error state and its
-named payload properties; not a durable Event's envelope.
+named payload properties.
+_Avoid_: envelope alone (a durable Event's envelope is a different thing)
 
 **Single-key envelope**:
-A success body declared as an object requiring exactly one property other than `data`, whose payload
-the Envelope carries under that key's name without a wrapper model.
+A success body declared inline as an object requiring exactly one property other than `data`, whose
+payload the Envelope carries under that key's PascalCase name without a wrapper model; a named
+component with one property keeps its own identity.
 
 **Bound handle**:
 A sub-client bound to one resource id, such as a Session, over the shared pipeline; it never caches
@@ -387,6 +391,7 @@ traversal's pages beside them, issuing its own requests on each enumeration.
 **PTY session**:
 The working object over one PTY connection, which reads frames, writes input, and closes on
 disposal.
+_Avoid_: session alone (an opencode Session is a conversation)
 
 **PTY frame**:
 One message read from a PTY connection: output text, or the single cursor control frame the server
