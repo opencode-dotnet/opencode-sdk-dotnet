@@ -253,15 +253,14 @@ internal static class OperationMethodEmitter
     }
 
     /// <summary>
-    /// Describes the per-call options. An internal-raw stream is opened only by its family's
-    /// hand-written owner, which decides those options, so the caller-facing stream rules do not
-    /// describe it.
+    /// Describes the per-call options. An internal-raw stream's family has a hand-written owner that
+    /// decides which per-call options apply, so the caller-facing stream rules do not describe it.
     /// </summary>
     private static string RequestOptionsDocumentation(OperationPlan operation, EmissionMode emission) =>
         (operation.Stream, emission) switch
         {
             (null, _) => "The per-call options.",
-            (_, EmissionMode.InternalRaw) => "The per-call options; only the hand-written owner of this family calls this method, and it supplies them.",
+            (_, EmissionMode.InternalRaw) => "The per-call options; the family's hand-written owner decides which apply.",
             _ => "The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.",
         };
 

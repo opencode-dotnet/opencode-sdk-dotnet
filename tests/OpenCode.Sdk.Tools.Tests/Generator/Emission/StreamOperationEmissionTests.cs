@@ -90,7 +90,7 @@ public sealed class StreamOperationEmissionTests
 
     [Test]
     [Arguments(false, "The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.")]
-    [Arguments(true, "The per-call options; only the hand-written owner of this family calls this method, and it supplies them.")]
+    [Arguments(true, "The per-call options; the family&apos;s hand-written owner decides which apply.")]
     public async Task Emit_Should_Document_Stream_Request_Options_By_Family_Emission(bool internalRaw, string expected)
     {
         var plan = await EmitterPlanFixture.CreateStreamPlanAsync();

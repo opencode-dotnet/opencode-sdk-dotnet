@@ -21,7 +21,7 @@ internal sealed class EventsRawClient
     /// Subscribe to events. Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.
     /// </summary>
     /// <param name = "request">The request shaping the query.</param>
-    /// <param name = "requestOptions">The per-call options; only the hand-written owner of this family calls this method, and it supplies them.</param>
+    /// <param name = "requestOptions">The per-call options; the family&apos;s hand-written owner decides which apply.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;IEvent&apos; stream.</returns>
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401); streaming API errors always throw.</exception>
