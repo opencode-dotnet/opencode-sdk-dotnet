@@ -49,6 +49,18 @@ internal sealed class ClientMcpLiveWire(SimulatedDriveServerFixture server, Loca
         return JsonNode.Parse(Encoding.UTF8.GetString([.. bytes]))!.AsObject();
     }
 
+    public async Task AssertInitializedAndListToolsAsync(CancellationToken cancellationToken)
+    {
+        var initialized = await ReadAsync(cancellationToken);
+        await Assert.That(initialized!["method"]!.GetValue<string>()).IsEqualTo("notifications/initialized");
+        var list = await ReadAsync(cancellationToken);
+        await Assert.That(list!["method"]!.GetValue<string>()).IsEqualTo("tools/list");
+        await ReplyAsync(list, new JsonObject
+        {
+            ["result"] = new JsonObject { ["tools"] = new JsonArray() },
+        }, cancellationToken);
+    }
+
     public Task ReplyAsync(JsonObject request, JsonObject response, CancellationToken cancellationToken)
     {
         response["jsonrpc"] = "2.0";

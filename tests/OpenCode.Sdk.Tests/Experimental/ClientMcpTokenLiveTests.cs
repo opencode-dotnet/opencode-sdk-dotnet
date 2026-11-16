@@ -31,14 +31,7 @@ public sealed class ClientMcpTokenLiveTests(SimulatedDriveServerFixture server)
         var response = JsonNode.Parse(new FixtureLoader().LoadJson("Experimental.mcp-initialize.json"))![0]!["response"]!.AsObject();
         response["result"]!["protocolVersion"] = initialize["params"]!["protocolVersion"]!.DeepClone();
         await attached.ReplyAsync(initialize, response, cancellationToken);
-        var initialized = await attached.ReadAsync(cancellationToken);
-        await Assert.That(initialized!["method"]!.GetValue<string>()).IsEqualTo("notifications/initialized");
-        var list = await attached.ReadAsync(cancellationToken);
-        await Assert.That(list!["method"]!.GetValue<string>()).IsEqualTo("tools/list");
-        await attached.ReplyAsync(list, new JsonObject
-        {
-            ["result"] = new JsonObject { ["tools"] = new JsonArray() },
-        }, cancellationToken);
+        await attached.AssertInitializedAndListToolsAsync(cancellationToken);
 
         await AssertRefusedAsync(token.ConnectToken.Ticket, "ticketed", location, cancellationToken);
         var wrongName = await client.Experimental.CreateClientMcpConnectTokenAsync(request, cancellationToken: cancellationToken);

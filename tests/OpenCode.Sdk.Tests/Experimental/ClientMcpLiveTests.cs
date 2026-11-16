@@ -44,14 +44,7 @@ public sealed class ClientMcpLiveTests(SimulatedDriveServerFixture server)
                 ["serverInfo"] = new JsonObject { ["name"] = "live", ["version"] = "1.0.0" },
             },
         }, cancellationToken);
-        var initialized = await attached.ReadAsync(cancellationToken);
-        await Assert.That(initialized!["method"]!.GetValue<string>()).IsEqualTo("notifications/initialized");
-        var list = await attached.ReadAsync(cancellationToken);
-        await Assert.That(list!["method"]!.GetValue<string>()).IsEqualTo("tools/list");
-        await attached.ReplyAsync(list, new JsonObject
-        {
-            ["result"] = new JsonObject { ["tools"] = new JsonArray() },
-        }, cancellationToken);
+        await attached.AssertInitializedAndListToolsAsync(cancellationToken);
 
         _ = await client.ReloadLocationsAsync(cancellationToken: cancellationToken);
         // Invalidation signals shutdown but does not join borrowed scopes

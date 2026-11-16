@@ -18,16 +18,12 @@ public sealed class ClientMcpScenarioTests
         var next = EnsureServiceContext.ReserveUnguardedPort(LoopbackPortReservation.Hold);
         var ports = new Queue<int>([new Uri(prefix).Port, next]);
         using var scenario = new ClientMcpScenario(ports.Dequeue);
-        if (!OperatingSystem.IsWindows())
+        if (await IsWindowsListenerAsync(scenario))
         {
-            var propagated = await Assert.That(() => _ = scenario.Listener).ThrowsExactly<HttpListenerException>();
-            await Assert.That(propagated!.ErrorCode).IsEqualTo(400);
-            return;
+            await Assert.That(() => scenario.Listener).ThrowsNothing();
+            await Assert.That(new Uri(scenario.Listener.Prefixes.Single()).Port).IsEqualTo(next);
+            await Assert.That(scenario.Listener.IsListening).IsTrue();
         }
-
-        await Assert.That(() => scenario.Listener).ThrowsNothing();
-        await Assert.That(new Uri(scenario.Listener.Prefixes.Single()).Port).IsEqualTo(next);
-        await Assert.That(scenario.Listener.IsListening).IsTrue();
     }
 
     [Test]
@@ -48,15 +44,21 @@ public sealed class ClientMcpScenarioTests
         var b = new Uri(second.Listener.Prefixes.Single()).Port;
         var ports = new Queue<int>([a, b, a, b, a]);
         using var scenario = new ClientMcpScenario(ports.Dequeue);
+        if (await IsWindowsListenerAsync(scenario))
+        {
+            var failure = Assert.Throws<InvalidOperationException>(() => _ = scenario.Listener);
+            await Assert.That(failure.Message).IsEqualTo(string.Format(CultureInfo.InvariantCulture,
+                "No client MCP listener port could be registered: {0}, {1}, {0}, {1}, {0}.", a, b));
+        }
+    }
+
+    private static async Task<bool> IsWindowsListenerAsync(ClientMcpScenario scenario)
+    {
         if (!OperatingSystem.IsWindows())
         {
             var propagated = await Assert.That(() => _ = scenario.Listener).ThrowsExactly<HttpListenerException>();
             await Assert.That(propagated!.ErrorCode).IsEqualTo(400);
-            return;
         }
-
-        var failure = Assert.Throws<InvalidOperationException>(() => _ = scenario.Listener);
-        await Assert.That(failure.Message).IsEqualTo(string.Format(CultureInfo.InvariantCulture,
-            "No client MCP listener port could be registered: {0}, {1}, {0}, {1}, {0}.", a, b));
+        return OperatingSystem.IsWindows();
     }
 }
