@@ -53,8 +53,10 @@ public sealed class ServiceFileSystemTests
         try
         {
             directory.FileSystem.File.SetUnixFileMode(directory.Path, UnixFileMode.None);
+            await Assert.That(() => directory.FileSystem.File.GetAttributes(file)).Throws<UnauthorizedAccessException>();
 
             await Assert.That(file).Satisfies(path => path is not null && new ServiceFileSystem().Exists(path));
+            BranchReport.Print("POSIX — an entry under an unsearchable directory reads as present");
         }
         finally
         {

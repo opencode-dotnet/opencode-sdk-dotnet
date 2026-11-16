@@ -9,7 +9,7 @@ internal interface IServiceFileSystem
 {
     /// <summary>Whether any directory entry, including a directory or link, occupies the path.</summary>
     /// <param name="path">The absolute path an exclusive create would find occupied.</param>
-    /// <returns>True when an entry exists, even when its contents cannot be read.</returns>
+    /// <returns>True when an entry exists or the path cannot be inspected.</returns>
     public bool Exists(string path);
 
     /// <summary>

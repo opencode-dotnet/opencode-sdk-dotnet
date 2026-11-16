@@ -71,7 +71,7 @@ internal static class ServiceConfigReader
 
     private static Dictionary<string, string>? Read(JsonElement root, bool admitLegacyRemote)
     {
-        // Read validates the password and route by kind only; Materialize alone keeps them.
+        // Read validates the password and route and discards them; Materialize alone keeps them.
         if (root.ValueKind != JsonValueKind.Object
             || !IsValidDisabled(root)
             || !IsValidRemote(root, admitLegacyRemote)
