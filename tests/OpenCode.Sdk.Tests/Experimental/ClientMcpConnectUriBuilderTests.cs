@@ -13,7 +13,7 @@ public sealed class ClientMcpConnectUriBuilderTests
     [Arguments("wss", "wss")]
     public async Task Build_Should_Match_Upstream_Base_Query_Path_And_Schemes(string scheme, string expectedScheme)
     {
-        var connection = new ConnectionSnapshot("https://root.test", null, new LocationSelector { Directory = "ambient" }, new ManualTimeProvider());
+        var connection = new ConnectionSnapshot("https://root.test", null, new LocationSelector { Directory = "ambient" }, null, new ManualTimeProvider());
         var options = new ClientMcpOptions
         {
             Name = "app&é#\"",
@@ -37,7 +37,7 @@ public sealed class ClientMcpConnectUriBuilderTests
     [Arguments(true, "explicit", "explicit")]
     public async Task Build_Should_Merge_Ambient_Directory_Only_Without_An_Explicit_Url(bool explicitUrl, string? directory, string expected)
     {
-        var connection = new ConnectionSnapshot("http://root.test/prefix", null, new LocationSelector { Directory = "ambient" }, new ManualTimeProvider());
+        var connection = new ConnectionSnapshot("http://root.test/prefix", null, new LocationSelector { Directory = "ambient" }, null, new ManualTimeProvider());
         var uri = ClientMcpConnectUriBuilder.Build(connection, new ClientMcpOptions
         {
             Name = "app",

@@ -48,8 +48,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   | Windows loopback connect / downlevel `ServicePoint` setup | Not applied |
   | Progress window, cancellation, disposal, status walls, errors, SSE framing/reconnect, buffering, headers | SDK |
 
-  Terminal upgrades use the same handler on `net10.0` and `net11.0`, through a non-owning invoker.
-  Recorded divergence: `net472` and `netstandard2.0` keep the socket's own transport because they
+  Terminal and default client-MCP upgrades use the same handler on `net10.0` and `net11.0`, through
+  a non-owning invoker. A caller's client-MCP `WebSocketFactory` socket keeps its own transport.
+  Recorded divergence: on both sockets, `net472` and `netstandard2.0` keep their own transport because they
   cannot accept an invoker; revisit if those assets gain that API.
 - The idle timeout keeps the transport from reusing a socket the server has already closed. The
   pinned server sends `Keep-Alive: timeout=5` and closes an idle connection about six seconds after
