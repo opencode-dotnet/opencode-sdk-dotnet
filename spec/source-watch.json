@@ -975,7 +975,7 @@
       "behaviors": [
         {
           "owner": "opencode-sdk-dotnet",
-          "behavior": "resolve routes the default CLI connection to Standalone.start when --standalone is given as the command\u0027s argument or the global flag (--server likewise) or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore; with autostart false it only discovers a running service, with no version filter, and falls back to Standalone.start when none answers. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
+          "behavior": "resolve gives explicit --server precedence and probes server.info under a five-second total bound, warning and continuing on an ordinal version mismatch. Standalone or a strictly true migrated config disabled flag starts privately before managed processing. Otherwise ServiceConfig.options locates and migrates once and captures env once, excluding XDG_STATE_HOME; managed reconnect and handoff-then-ensure restart reuse those options without onStart, a version filter, migration or config reads. With autostart false, discover accepts any version and starts standalone on a miss. The SDK projects flags to ResolveAsync options, explicit warnings to a silent-by-default callback and ServerVersion, and keeps the pinned release comparand out of managed version defaults. shutdownPersistentPty discovers with no version filter and calls persistentPty.shutdown with no request bound.",
           "anchor": {
             "type": "contains",
             "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })"
@@ -989,7 +989,7 @@
       "behaviors": [
         {
           "owner": "opencode-sdk-dotnet",
-          "behavior": "The CLI reads the server password from OPENCODE_PASSWORD and falls back to the legacy OPENCODE_SERVER_PASSWORD; the session environment it hands on omits both.",
+          "behavior": "The CLI reads the server password from OPENCODE_PASSWORD and falls back to the legacy OPENCODE_SERVER_PASSWORD; the session environment it hands on omits both. The SDK explicit resolver instead takes Password as an option and reads neither variable, and its missing-password remedy names that option.",
           "anchor": {
             "type": "contains",
             "text": "Config.orElse(() =\u003E Config.Redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))"

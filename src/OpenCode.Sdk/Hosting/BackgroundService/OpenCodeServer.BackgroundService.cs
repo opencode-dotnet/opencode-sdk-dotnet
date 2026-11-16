@@ -116,11 +116,21 @@ public partial class OpenCodeServer
         new(timing, new LoopbackTransport(new LoopbackSocketConnector()), time);
 
     /// <summary>The non-owning handle over a registered service.</summary>
-    private static OpenCodeServer SharedService(ServiceRegistration registration) =>
+    internal static OpenCodeServer SharedService(ServiceRegistration registration) =>
         new(
             registration.Endpoint,
             registration.Password,
-            registration.ProcessId);
+            registration.ProcessId,
+            registration.Version);
+
+    /// <summary>Discovers an already located service without migration.</summary>
+    internal static async Task<OpenCodeServer?> DiscoverLocatedAsync(
+        ServicePaths paths, string? expectedVersion, CancellationToken cancellationToken)
+    {
+        var discovery = new ServiceDiscovery(new ServiceEnvironment(), new ServiceFileSystem(), SystemDiscoveryProbe());
+        var registration = await discovery.DiscoverAtAsync(paths, expectedVersion, cancellationToken).ConfigureAwait(false);
+        return registration is null ? null : SharedService(registration);
+    }
 
     /// <summary>
     /// The CLI's <c>shutdownPersistentPty</c>: discovers the background service and shuts down its
@@ -190,21 +200,27 @@ public partial class OpenCodeServer
     /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback, or the registered process is still running after the hard kill.</exception>
     public static Task StopAsync(
         OpenCodeServerStopOptions? options = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        SystemStopper().StopAsync(options, cancellationToken);
+
+    /// <summary>Stops an already located service without migration.</summary>
+    internal static Task StopLocatedAsync(ServicePaths paths, OpenCodeServerStopPtyMode? mode, CancellationToken cancellationToken) =>
+        SystemStopper().StopLocatedAsync(paths, mode, cancellationToken);
+
+    private static ServiceStopper SystemStopper()
     {
         var timing = ServiceTiming.Default;
 #pragma warning disable RS0030 // The stop composition root chooses the system clock; its handoff and terminator share it.
         var time = TimeProvider.System;
 #pragma warning restore RS0030
         var fileSystem = new ServiceFileSystem();
-        var stopper = new ServiceStopper(
+        return new ServiceStopper(
             new ServiceEnvironment(),
             fileSystem,
             new ServicePtyHandoff(fileSystem, time, new ServicePtyShutdown()),
             new ServiceProcessControl(new ChildExitStatusReader()),
             timing,
             time);
-        return stopper.StopAsync(options, cancellationToken);
     }
 
     /// <summary>
@@ -223,14 +239,28 @@ public partial class OpenCodeServer
     /// <returns>A non-owning handle over the ready service.</returns>
     /// <exception cref="ArgumentException">An option is blank, the registration path is relative, the command is empty, a command or environment entry contains a NUL, <c>Replace</c> or <c>Error</c> is set without <c>ExpectedVersion</c>, or the options contradict one another.</exception>
     /// <exception cref="OpenCodeServerException">No user home directory resolves, the election timed out, a contender or the registered service failed to start, the registered service speaks an incompatible health protocol at a version the call accepts, a version mismatch was refused, or a spawned command could not be resolved.</exception>
-    public static Task<OpenCodeServer> EnsureAsync(
+    public static async Task<OpenCodeServer> EnsureAsync(
         OpenCodeServerEnsureOptions? options = null,
         CancellationToken cancellationToken = default)
+    {
+        var registration = await SystemEnsurer().EnsureAsync(options, cancellationToken).ConfigureAwait(false);
+        return SharedService(registration);
+    }
+
+    /// <summary>Ensures an already located service using its captured environment.</summary>
+    internal static async Task<OpenCodeServer> EnsureLocatedAsync(
+        EnsureRequest request, ServicePaths paths, ServiceConfigEnvironment snapshot, CancellationToken cancellationToken)
+    {
+        var registration = await SystemEnsurer().EnsureLocatedAsync(request, paths, snapshot, cancellationToken).ConfigureAwait(false);
+        return SharedService(registration);
+    }
+
+    private static ServiceEnsurer SystemEnsurer()
     {
 #pragma warning disable RS0030 // The ensure composition root chooses the system clock; election collaborators and spawned contenders receive it.
         var time = TimeProvider.System;
 #pragma warning restore RS0030
-        return EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn(), time), time, cancellationToken);
+        return CreateEnsurer(ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn(), time), time);
     }
 
     /// <summary>
@@ -258,8 +288,38 @@ public partial class OpenCodeServer
         ArgumentNullException.ThrowIfNull(spawner);
         ArgumentNullException.ThrowIfNull(time);
 
+        var registration = await CreateEnsurer(timing, spawner, time).EnsureAsync(options, cancellationToken).ConfigureAwait(false);
+        return SharedService(registration);
+    }
+
+    /// <summary>The located Ensure over the same injected election boundaries as EnsureWithSeamsAsync.</summary>
+    /// <param name="snapshot">The captured request, service paths and environment overlay.</param>
+    /// <param name="timing">The lifecycle timing.</param>
+    /// <param name="spawner">The contender spawn.</param>
+    /// <param name="time">The clock shared by the election collaborators.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>A non-owning handle over the ready service.</returns>
+    internal static async Task<OpenCodeServer> EnsureLocatedWithSeamsAsync(
+        ManagedServiceSnapshot snapshot,
+        ServiceTiming timing,
+        IServiceContenderSpawner spawner,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(timing);
+        ArgumentNullException.ThrowIfNull(spawner);
+        ArgumentNullException.ThrowIfNull(time);
+
+        var registration = await CreateEnsurer(timing, spawner, time)
+            .EnsureLocatedAsync(snapshot.Request, snapshot.Paths, snapshot.Overlay, cancellationToken).ConfigureAwait(false);
+        return SharedService(registration);
+    }
+
+    private static ServiceEnsurer CreateEnsurer(ServiceTiming timing, IServiceContenderSpawner spawner, TimeProvider time)
+    {
         var fileSystem = new ServiceFileSystem();
-        var ensurer = new ServiceEnsurer(
+        return new ServiceEnsurer(
             new ServiceEnvironment(),
             fileSystem,
             PlatformProbe(timing, time),
@@ -269,7 +329,5 @@ public partial class OpenCodeServer
             time,
             new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()),
             timing);
-        var registration = await ensurer.EnsureAsync(options, cancellationToken).ConfigureAwait(false);
-        return SharedService(registration);
     }
 }

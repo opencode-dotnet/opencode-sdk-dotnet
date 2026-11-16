@@ -51,6 +51,7 @@ internal static class GeneratedSourceCompiler
     /// generated <c>LanguageModelsClient</c>, so it rides that client's emission.
     /// The typed RPC call sits above the generated <c>RpcClient</c> and reads its two RPC error models, so it rides their emissions.
     /// The typed RPC subscription sits above the Events door and the generated <c>EventRpc</c>, so it rides both.
+    /// Connection resolution adds an explicit probe over the generated server client and unauthorized error.
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
@@ -68,6 +69,21 @@ internal static class GeneratedSourceCompiler
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServerIncumbent.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/OpenCodeServer.Connection.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/OpenCodeServer.Connection.cs", "Server/ServerClient.cs"),
+        ("Hosting/Connection/OpenCodeServer.Connection.cs", "Common/Errors/UnauthorizedError.cs"),
+        ("Hosting/Connection/OpenCodeServerConnection.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/OpenCodeServerServiceOperations.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/Internal/Abstractions/IServerDoors.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/Internal/ServerDoors.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/Internal/ConnectionSeams.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/Internal/ConnectionResolver.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Connection/Internal/ConnectionResolver.cs", "Server/ServerClient.cs"),
+        ("Hosting/Connection/Internal/ConnectionResolver.cs", "Common/Errors/UnauthorizedError.cs"),
+        ("Hosting/Connection/Internal/ExplicitServerProbe.cs", "Server/ServerClient.cs"),
+        ("Hosting/Connection/Internal/ExplicitServerProbe.cs", "Common/Errors/UnauthorizedError.cs"),
+        ("Hosting/Connection/Internal/ExplicitProbeFailureClassifier.cs", "Common/Errors/UnauthorizedError.cs"),
+        ("Hosting/Internal/ClientIdentityComposer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/Launcher/OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("LanguageModels/Internal/DefaultModelWait.cs", "LanguageModels/LanguageModelsClient.cs"),

@@ -152,6 +152,7 @@ Pick the connection mode that matches where your server lives:
 
 | You want… | Use | Who stops the server |
 |---|---|---|
+| The CLI's explicit / standalone / managed precedence | `OpenCodeServer.ResolveAsync()` | Disposal ends only an owned standalone server |
 | A private server for this app only | `OpenCodeServer.StartAsync()` | The SDK, when you dispose it |
 | A server you already run | `new OpenCodeClient(options)` | You |
 | The background service the CLI shares with other clients | `OpenCodeServer.DiscoverAsync()` or `EnsureAsync()` | Nobody, unless you call `StopAsync()` |

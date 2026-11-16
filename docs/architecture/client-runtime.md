@@ -91,8 +91,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
   environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`,
-  `OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync` and
-  `OpenCodeServer.StopAsync` are the doors that read the environment, and they read exactly
+  `OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
+  `OpenCodeServer.StopAsync`, `OpenCodeServer.EnsureAsync` and the non-explicit paths of
+  `OpenCodeServer.ResolveAsync` are the doors that read the environment, and they read exactly
   `XDG_STATE_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR`, and the user profile (`USERPROFILE` on
   Windows, `HOME` elsewhere), because those roots locate the registration file. For discovery that
   file is the mode's complete endpoint-and-credential contract; `FindIncumbentAsync` takes its
@@ -430,8 +431,9 @@ resolves the message's network window from those carried traits.
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
-  `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, and
-  `StopAsync`. This identity guarantee applies when one caller token is supplied, including the
+  `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, `StopAsync`,
+  `ResolveAsync`, `ServiceOperations.ReconnectAsync` and `ServiceOperations.RestartAsync`.
+  This identity guarantee applies when one caller token is supplied, including the
   same token supplied at both enumeration entry points; two distinct cancellable entry tokens
   are both observed but have no token-identity guarantee.
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
@@ -1108,16 +1110,31 @@ user data, state, cache, and config roots as any other opencode process on the m
 caller redirects `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME`, and `XDG_CONFIG_HOME`
 through `Environment` — observed on Windows as well as on Unix.
 
-**Explicit endpoint** (CLI `--server` parity; upstream builds a plain client plus a 5-second-bounded
-status check and a version warning, `server-connection.ts:24-39`) → plain `OpenCodeClient`
-construction. There is no dedicated SDK verb or member for this door; the validation recipe
-composes two existing pieces: construct the client against the known endpoint, call
-`Server.GetInfoAsync` under a caller-owned `CancellationTokenSource(TimeSpan.FromSeconds(5))` — a
-total deadline, as upstream's `AbortSignal.timeout(5_000)` is, where `NetworkTimeout` bounds only
-the time between progress — and compare the returned `ServerInfo.Version` against the caller's own
-expectation. The SDK carries no version comparand of its own — the accepted snapshot
-(`spec/SNAPSHOT.md`) is a protocol identity, not a runtime version — so a dedicated helper would
-need a comparand the SDK does not have.
+**Explicit endpoint** (CLI `--server` parity, `server-connection.ts:34-50`) →
+`OpenCodeServer.ResolveAsync` with `Endpoint`. It probes `Server.GetInfoAsync` under a five-second
+total deadline on the probe pipeline's clock, not the inactivity-only `NetworkTimeout`. A tagged
+unauthorized response says either “requires a password; set OpenCodeServerResolveOptions.Password”
+or “rejected the password”; transport failures and the deadline say “Could not reach server”, while
+a protocol-status refusal, API error or malformed success body says “did not provide a compatible V2 health response”.
+Those failures are `OpenCodeServerException` with the original exception inside; caller cancellation
+propagates unwrapped with the caller's token and wins over the deadline. The explicit server's
+version is compared ordinally with the SDK's internal pinned-release comparand, equal to the
+receipt's release tag without `v`. A mismatch invokes the synchronous `OnServerVersionMismatch`
+callback once and resolution continues; a null callback is silent and a callback exception
+propagates. `ServerVersion` carries the probe's version. Unused `Service`, `Launch` and `Autostart`
+options are neither read nor validated. Plain `OpenCodeClient` construction remains the no-probe form.
+
+**Resolving a connection** (`ServerConnection.resolve`) → `OpenCodeServer.ResolveAsync`: explicit
+Endpoint first; otherwise validate and copy Service, then use a standalone server when `Standalone`
+is true or the channel config's `disabled` flag is true; otherwise locate the service and capture
+its saved environment overlay once. `Endpoint` plus `Standalone`, and a non-null `Password` without
+`Endpoint`, are refused before I/O. `Launch` is snapshotted only if Start is reached. With
+`Autostart = false`, discover any version and start standalone on a miss; otherwise ensure with the
+caller's policy, version and OnStart. The pin is never a managed version default. The returned
+`OpenCodeServerConnection` composes the process-backed handle (ADR-0024), rather than replacing it:
+disposal ends only its owned standalone server, and never stops an explicit server or a shared
+service. `ServerVersion` is the registration's version in Service mode, and null in Standalone mode,
+where the readiness line supplies no version. Only Service mode exposes `ServiceOperations`.
 
 **Background service** (`Service.discover/ensure/stop`, public export `@opencode/client/service`)
 → the registration-file mode. The first-party CLI's `opencode serve --service` publishes `url`,
@@ -1138,12 +1155,12 @@ is and leave the rewrite to the daemon's next read, which reads the same `env`.
 donor or repairing a legacy `remote` in place, and write it (`GetOrCreatePasswordAsync` stores a
 password). Remote access is set only through the CLI (`opencode service set remote`); the SDK's
 config repair can generate a route, and the service's remote URL reaches callers in `ServerInfo.Urls`
-while its tunnel is attached. The config's `disabled` key is read only by CLI commands: the connection-mode
-selector (`resolve` starts a standalone server instead of reaching the service when it is true) and
-the pairing command's guard (`opencode pair` needs the service); the pinned client's
-`Service.discover`, `ensure`, and `stop` do not read it, and neither do `DiscoverAsync`,
-`FindIncumbentAsync`, `EnsureAsync`, and `StopAsync` — a caller that honors a disabled service
-chooses `StartAsync`, as `resolve` does.
+while its tunnel is attached. The CLI's pairing command also reads the `disabled` key
+(`opencode pair` needs the service). `ResolveAsync` reads the config's `disabled` key after the config migration and
+before the registration migration, as `resolve` does. The pinned client's `Service.discover`,
+`ensure` and `stop` do not read it; neither do `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `StopAsync` or
+`ShutdownPersistentPtyAsync`. A direct registration path has no config file and is never disabled.
+Resolution reads the service configuration through the config store, as the CLI does; a refused document reads as absent, as for Discovery, Ensure and Stop.
 The registration and service-config files are read the way libuv opens files, sharing read, write,
 and delete, so a poll never makes the daemon's remove-on-exit fail on Windows, and a UTF-8
 byte-order mark is skipped as the CLI's decoder skips it. A daemon bound to every interface
@@ -1318,11 +1335,15 @@ when the POSIX-semantics rename proves unsound on a volume the SDK supports.
 The daemon side of the lifecycle is the spawned CLI's, not the SDK's: the incumbent check, the
 exit-0 loser on a port another daemon holds, the `chdir` into the user home, and the registration
 write all run inside `opencode serve --service` (`server-process.ts`), and the election reads a
-loser's exit 0 the way upstream's does. The CLI's `reconnect` is `EnsureAsync`. `StopAsync` then
-`EnsureAsync` is the CLI's `service restart`, where persistent terminals end. With
-`Pty = OpenCodeServerStopPtyMode.Handoff`, the same pair is the managed
-connection's restart: `EnsureAsync` adopts the published ticket to keep the terminals, best-effort
-and only when preparation and adoption precede its expiry.
+loser's exit 0 the way upstream's does. `ServiceOperations.ReconnectAsync` and `RestartAsync` are
+the managed connection's `reconnect` and `restart`: paths and the overlay (including captured
+absence) were read once at resolve, so neither operation locates, migrates or reads config again.
+Both ensure with Ignore and without OnStart; restart first stops with
+`Pty = OpenCodeServerStopPtyMode.Handoff`, then ensures only if Stop succeeded. Ticket preparation
+and adoption before expiry preserve terminals best-effort. Both return a new non-owning handle;
+the connection's Endpoint, Server and ServerVersion still describe the resolve. Plain `StopAsync`
+then `EnsureAsync` remains the CLI's `service restart`, where persistent terminals end. Unlike the
+resolver snapshot, public Ensure reads the config anew at every spawn.
 
 Each background-service door chooses `TimeProvider.System` once at its composition root:
 Discover supplies its probe, from one factory that `ShutdownPersistentPtyAsync` and
@@ -1335,11 +1356,32 @@ deadline comparisons and spawn stamps read UTC, and handoff expiry reads UTC epo
 neither is a monotonic elapsed-time policy. Each request deadline arms after probe headers, after
 ticket pipeline construction, or at entry to the separate shutdown fallback, respectively.
 
+Resolve reuses the launcher's clock for config repair; the explicit bound uses the probe pipeline's clock; located discovery
+shares Discover's factory, and located Stop and Ensure share their respective doors' roots.
+
 `BannedSymbols.Clock.txt` bans the system clock in shipped src outside the five counted
 composition roots: launcher, client pipeline, Discover, Stop and Ensure.
 
 Where the SDK deliberately differs from the pinned chain, it differs here, each for a recorded
 reason (ADR-0031):
+
+- **CLI flags become options.** A library has no command line; the options preserve the same
+  precedence. Reversal: upstream exposes resolution in a client package with different inputs.
+- **Explicit Password is an option, not an environment read.** Its first unauthorized message
+  names `OpenCodeServerResolveOptions.Password`, not upstream's `OPENCODE_PASSWORD`, because a
+  remedy naming an unread variable would mislead. Reversal: the maintainer reverses the no-env-var
+  rule, or upstream's client package reads those variables for an explicit endpoint.
+- **Version warnings use a silent-by-default callback, not stderr.** A library owns no console;
+  the callback follows OnStart's shape, and ServerVersion exposes the same fact. Reversal: the SDK
+  adopts a general diagnostics channel.
+- **The explicit comparand is the pinned release, not a compiled CLI identity.** The SDK has no
+  such identity. Reversal: it ships or pins the CLI binary it starts, or upstream publishes a
+  version the SDK can carry.
+- **Managed Replace/Error require the caller's ExpectedVersion.** The pin is never a default:
+  the SDK spawns PATH `opencode`, not itself. Reversal: the same binary/version condition as the
+  explicit-comparand divergence.
+- **Probe failures use OpenCodeServerException with InnerException.** This is the idiomatic .NET
+  form of upstream's `Error(message, { cause })`. Reversal: upstream exports typed connect errors.
 
 - **Stricter readers than upstream's `JSON.parse`.** The registration and service-config readers
   refuse a repeated member. The registration reader also refuses a pid that is not a positive

@@ -39,6 +39,20 @@ internal sealed class ServiceEnsurer(
             .LocateAsync(request.Selection, cancellationToken)
             .ConfigureAwait(false);
 
+        return await EnsureLocatedAsync(request, paths, snapshot: null, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs the same election against already located paths and an optional captured overlay.</summary>
+    /// <param name="request">The validated and copied request.</param>
+    /// <param name="paths">The already located paths.</param>
+    /// <param name="snapshot">A captured overlay, or null for a dynamic read at every spawn.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The ready service's registration.</returns>
+    public async Task<ServiceRegistration> EnsureLocatedAsync(
+        EnsureRequest request, ServicePaths paths, ServiceConfigEnvironment? snapshot, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (request.Policy == OpenCodeServerVersionPolicy.Error)
         {
             // resolveManaged: a service at the expected version is reused, a service at
@@ -64,6 +78,6 @@ internal sealed class ServiceEnsurer(
             time,
             executableResolver,
             timing);
-        return await new ServiceElection(seams, request, paths).RunAsync(cancellationToken).ConfigureAwait(false);
+        return await new ServiceElection(seams, request, paths, snapshot).RunAsync(cancellationToken).ConfigureAwait(false);
     }
 }

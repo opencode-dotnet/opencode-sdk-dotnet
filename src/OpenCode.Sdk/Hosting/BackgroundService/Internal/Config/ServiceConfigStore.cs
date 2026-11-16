@@ -21,28 +21,41 @@ internal sealed class ServiceConfigStore(
     /// <returns>The decoded or repaired document, or empty when the CLI has no readable config.</returns>
     public async Task<ServiceConfigDocument> ReadForWriteAsync(ServiceSelection selection, CancellationToken cancellationToken)
     {
+        var result = await ReadAsync(selection, cancellationToken).ConfigureAwait(false);
+        return result.RefusedPath is { } path ? throw Refusal(path) : result.Document ?? new ServiceConfigDocument();
+    }
+
+    /// <summary>Reads, migrates and repairs, distinguishing absence from a strict-reader refusal.</summary>
+    /// <param name="selection">The entry-time validated selection.</param>
+    /// <param name="cancellationToken">The caller's token, forwarded unchanged to every read.</param>
+    /// <returns>The document, a refused path, or absence when the CLI has no readable config.</returns>
+    internal async Task<ServiceConfigReadResult> ReadAsync(ServiceSelection selection, CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         var paths = ResolvePaths(selection);
-        // Config operations never select direct-file mode, so they always have a config path.
-        var configFile = paths.ConfigFile!;
+        if (paths.ConfigFile is not { } configFile)
+        {
+            return ServiceConfigReadResult.Absent;
+        }
+
         var bytes = await fileSystem.TryReadAllBytesAsync(configFile, cancellationToken).ConfigureAwait(false);
         if (bytes is null)
         {
             if (fileSystem.Exists(configFile) || paths.LegacyConfigFile is not { } donor)
             {
-                return new ServiceConfigDocument();
+                return ServiceConfigReadResult.Absent;
             }
 
             var donorBytes = await fileSystem.TryReadAllBytesAsync(donor, cancellationToken).ConfigureAwait(false);
             if (donorBytes is null)
             {
-                return new ServiceConfigDocument();
+                return ServiceConfigReadResult.Absent;
             }
 
             var decodedBytes = ServiceConfigReader.DecodeCliDonor(donorBytes);
             if (decodedBytes is null)
             {
-                return new ServiceConfigDocument();
+                return ServiceConfigReadResult.Absent;
             }
 
             var donorDocument = ServiceConfigReader.TryReadDocument(decodedBytes);
@@ -50,10 +63,10 @@ internal sealed class ServiceConfigStore(
             {
                 if (!ServiceConfigReader.IsProvenUnreadableByCliAsCurrent(decodedBytes))
                 {
-                    throw Refusal(donor);
+                    return new ServiceConfigReadResult(Document: null, RefusedPath: donor);
                 }
 
-                return new ServiceConfigDocument();
+                return ServiceConfigReadResult.Absent;
             }
 
             await new ServiceMigration(fileSystem).ApplyConfigAsync(configFile, decodedBytes, cancellationToken).ConfigureAwait(false);
@@ -62,13 +75,14 @@ internal sealed class ServiceConfigStore(
 
         if (bytes is null)
         {
-            return new ServiceConfigDocument();
+            return ServiceConfigReadResult.Absent;
         }
 
         var document = ServiceConfigReader.TryReadDocument(bytes);
         if (document is null)
         {
-            return ServiceConfigReader.IsProvenUnreadableByCli(bytes) ? new ServiceConfigDocument() : throw Refusal(configFile);
+            return ServiceConfigReader.IsProvenUnreadableByCli(bytes)
+                ? ServiceConfigReadResult.Absent : new ServiceConfigReadResult(Document: null, RefusedPath: configFile);
         }
 
         if (document.LegacyRemote is { } enabled)
@@ -77,7 +91,7 @@ internal sealed class ServiceConfigStore(
             await WriteAsync(paths, document, cancellationToken).ConfigureAwait(false);
         }
 
-        return document;
+        return new ServiceConfigReadResult(document, RefusedPath: null);
     }
 
     /// <summary>Publishes the CLI's written bytes through its overwriting PID temporary file and bounded rename retry.</summary>

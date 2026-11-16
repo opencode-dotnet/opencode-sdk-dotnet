@@ -13,7 +13,7 @@ public sealed class OpenCodeServerContractTests
 
     private static OpenCodeServer CreateStartedDoor() => new(DoorEndpoint, DoorPassword);
 
-    private static OpenCodeServer CreateDiscoveredDoor() => new(DoorEndpoint, DoorPassword, processId: 48213);
+    private static OpenCodeServer CreateDiscoveredDoor() => new(DoorEndpoint, DoorPassword, processId: 48213, version: null);
 
     [Test]
     public async Task CreateClient_Should_Copy_And_Snapshot_Configured_Headers_On_The_Wire()
@@ -91,7 +91,7 @@ public sealed class OpenCodeServerContractTests
     [Test]
     public async Task CreateClient_Should_Send_No_Credential_For_A_Passwordless_Registered_Handle()
     {
-        var server = new OpenCodeServer(DoorEndpoint, password: null, processId: 48213);
+        var server = new OpenCodeServer(DoorEndpoint, password: null, processId: 48213, version: null);
 
         await Assert.That(server.Password).IsNull();
         using var client = server.CreateClient();
@@ -331,12 +331,25 @@ public sealed class OpenCodeServerContractTests
     [Test]
     public async Task Exited_Should_Throw_When_The_Handle_Owns_No_Process()
     {
-        var shared = new OpenCodeServer(new Uri("http://127.0.0.1:4096"), "pw", processId: 4242);
+        var shared = new OpenCodeServer(new Uri("http://127.0.0.1:4096"), "pw", processId: 4242, version: null);
 
         var failure = await Assert.That(() => { _ = shared.Exited; }).Throws<InvalidOperationException>();
 
         await Assert.That(shared.OwnsProcess).IsFalse();
         await Assert.That(failure!.Message).Contains("owns no process");
+    }
+
+    [Test]
+    [Arguments("2.2.7")]
+    [Arguments(null)]
+    public async Task SharedService_Should_Carry_The_Registration_Version(string? version)
+    {
+        var registration = new ServiceRegistration("srv_version", version, DoorEndpoint.AbsoluteUri, DoorEndpoint, 48213, DoorPassword);
+        var server = OpenCodeServer.SharedService(registration);
+
+        await Assert.That(server.RegisteredVersion).IsEqualTo(version);
+        await Assert.That(server.Endpoint).IsEqualTo(DoorEndpoint);
+        await Assert.That(server.ProcessId).IsEqualTo(48213);
     }
 
     private sealed class MockableServer : OpenCodeServer

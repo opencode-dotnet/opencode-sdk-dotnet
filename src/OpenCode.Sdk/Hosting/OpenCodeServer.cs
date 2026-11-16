@@ -58,12 +58,16 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// Initializes a handle over a server another process runs: the identity a registration
     /// published, no child, no ownership. Disposal is a no-op.
     /// </summary>
-    internal OpenCodeServer(Uri endpoint, string? password, int processId)
+    internal OpenCodeServer(Uri endpoint, string? password, int processId, string? version)
     {
         _endpoint = endpoint;
         _password = password;
         _processId = processId;
+        RegisteredVersion = version;
     }
+
+    /// <summary>Gets the version carried by the registration, if any.</summary>
+    internal string? RegisteredVersion { get; }
 
     /// <summary>
     /// Initializes a mocking instance; members invoked without an override throw an instructive failure.
@@ -129,40 +133,8 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// <param name="configure">Optional behavior configuration; identity members must stay unset.</param>
     /// <returns>A new client bound to this server's endpoint and credential: a started server's lease, a registration's password, or none.</returns>
     /// <exception cref="InvalidOperationException">The delegate set an identity member.</exception>
-    public virtual OpenCodeClient CreateClient(Action<OpenCodeClientOptions>? configure = null)
-    {
-        var endpoint = Endpoint;
-        var password = Password;
-        var options = new OpenCodeClientOptions();
-        configure?.Invoke(options);
-        if (options.Endpoint is not null ||
-            options.Password is not null ||
-            !string.Equals(options.Username, "opencode", StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "CreateClient owns the connection identity: leave Endpoint, Username, and Password unset — the started server supplies them. Configure behavior members such as Location only.");
-        }
-
-        // A distinct instance carries the door's identity into the client: the object the
-        // delegate received stays identity-unset for as long as the caller keeps a reference to
-        // it, rather than being mutated out from under them after the delegate returns.
-        var clientOptions = new OpenCodeClientOptions
-        {
-            Endpoint = endpoint,
-            Username = options.Username,
-            Password = password,
-            Location = options.Location,
-            HttpHandler = options.HttpHandler,
-            NetworkTimeout = options.NetworkTimeout,
-            EventStreamIdleTimeout = options.EventStreamIdleTimeout,
-        };
-        foreach (var header in options.Headers)
-        {
-            clientOptions.Headers.Add(header);
-        }
-
-        return new OpenCodeClient(clientOptions);
-    }
+    public virtual OpenCodeClient CreateClient(Action<OpenCodeClientOptions>? configure = null) =>
+        ClientIdentityComposer.CreateClient(Endpoint, Password, configure);
 
     /// <summary>
     /// Ends the owned child, bounded at every step, quiet for a child that is already gone, and

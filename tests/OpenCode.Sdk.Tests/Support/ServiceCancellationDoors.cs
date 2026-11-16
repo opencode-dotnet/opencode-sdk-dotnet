@@ -1,8 +1,10 @@
 using System.IO.Abstractions;
 using System.Net;
 using System.Text;
+using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Support;
@@ -14,6 +16,30 @@ internal sealed class ServiceCancellationDoors(
     private const string HandoffPath = "/api/experimental/persistent-pty/handoff";
     private const string ShutdownPath = "/api/experimental/persistent-pty/shutdown";
     private const string ServicePassword = "synthetic-identity-password";
+
+    internal async Task<OperationCanceledException> AtResolveConfigStoreReadAsync(CancellationTokenSource caller)
+    {
+        var scenario = new ServiceConfigScenario();
+        var forwarded = default(CancellationToken);
+        scenario.FileSystem.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                forwarded = call.Arg<CancellationToken>();
+                await caller.CancelOnWorkerAsync();
+                forwarded.ThrowIfCancellationRequested();
+                return null;
+            });
+        var seams = new ConnectionSeams(
+            Substitute.For<IServerDoors>(), scenario.Environment, scenario.FileSystem, ProbeTime: scenario.Time);
+        var failure = await observeCancellation(async () =>
+        {
+            await using var connection = await OpenCodeServer.ResolveWithSeamsAsync(
+                new() { Service = new OpenCodeServerEnsureOptions { Channel = "local" } }, seams, caller.Token);
+        });
+
+        await Assert.That(forwarded).IsEqualTo(caller.Token);
+        return failure;
+    }
 
     internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
@@ -58,6 +84,7 @@ internal sealed class ServiceCancellationDoors(
         var heldPath = (row, stage) switch
         {
             ("discover" or "incumbent", _) => "/api/info",
+            ("resolve" or "reconnect", _) => "/api/info",
             (_, "ticket") => HandoffPath,
             _ => ShutdownPath,
         };
@@ -103,6 +130,8 @@ internal sealed class ServiceCancellationDoors(
             string[] expectedPaths = (row, stage) switch
             {
                 ("discover" or "incumbent", _) => ["/api/info"],
+                ("resolve" or "reconnect", _) => ["/api/info"],
+                ("restart", _) => [heldPath],
                 (_, "fallback") => ["/api/info", HandoffPath, ShutdownPath],
                 _ => ["/api/info", heldPath],
             };
@@ -159,6 +188,10 @@ internal sealed class ServiceCancellationDoors(
             await OpenCodeServer.ShutdownPersistentPtyAsync(
                 new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
         }
+        else if (row is "resolve" or "reconnect" or "restart")
+        {
+            await InvokeConnectionAsync(row, registrationPath, endpoint, caller);
+        }
         else
         {
             await using var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
@@ -169,5 +202,27 @@ internal sealed class ServiceCancellationDoors(
                 Command = ["bun", "--version"],
             }, caller);
         }
+    }
+
+    private static async Task InvokeConnectionAsync(string row, string registrationPath, Uri endpoint, CancellationToken caller)
+    {
+        if (row == "resolve")
+        {
+            await using var connection = await OpenCodeServer.ResolveAsync(new OpenCodeServerResolveOptions
+            {
+                Endpoint = endpoint,
+                Password = ServicePassword,
+            }, caller);
+            return;
+        }
+
+        var snapshot = new ManagedServiceSnapshot(
+            EnsureRequest.Snapshot(new OpenCodeServerEnsureOptions { RegistrationFilePath = registrationPath }),
+            new ServicePaths(registrationPath, ConfigFile: null, LegacyRegistrationFiles: [], LegacyConfigFile: null),
+            new ServiceConfigEnvironment(Entries: null));
+        var operations = new OpenCodeServerServiceOperations(snapshot, new ServerDoors());
+        await using var server = row == "reconnect"
+            ? await operations.ReconnectAsync(caller)
+            : await operations.RestartAsync(caller);
     }
 }

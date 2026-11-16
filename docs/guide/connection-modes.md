@@ -7,6 +7,7 @@ There are three ways to get a client bound to a running opencode server: **let t
 for every client on the machine**. Dependency injection is not a fourth way in — it is how you
 register any of them with a container.
 
+- [🧭 Resolving a connection as the CLI does](#-resolving-a-connection-as-the-cli-does)
 - [🚀 The SDK starts the server](#-the-sdk-starts-the-server)
 - [🔗 A server you already run](#-a-server-you-already-run)
 - [🛰️ Discovering the background service](#️-discovering-the-background-service)
@@ -16,6 +17,138 @@ register any of them with a container.
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
 - [🔌 Supplying a handler](#-supplying-a-handler)
 - [🧩 Registering with dependency injection](#-registering-with-dependency-injection)
+
+## 🧭 Resolving a connection as the CLI does
+
+Use one door when you want the CLI's connection selection rather than a specific lifecycle door:
+
+```csharp
+await using var connection = await OpenCodeServer.ResolveAsync();
+using var client = connection.CreateClient();
+var info = await client.Server.GetInfoAsync();
+Console.WriteLine($"{connection.Mode}: opencode {info.ServerInfo.Version}");
+```
+
+| In precedence order | Result |
+|---|---|
+| `Endpoint` is set | Probe the explicit server; ignore `Service`, `Launch` and `Autostart`, including their validation |
+| `Standalone = true` | Start privately with `Launch`, without reading service config |
+| The selected channel config has `disabled: true` | Start privately with `Launch` |
+| `Autostart = false` | Discover any ready compatible version; start privately on a miss |
+| Otherwise | Ensure the selected managed service with `Service` options |
+
+`Endpoint` with `Standalone`, and a non-null `Password` without `Endpoint`, are refused with
+`ArgumentException`. Managed options are validated before managed I/O; `Replace` and `Error` still
+need your `ExpectedVersion`. The SDK's pinned release is never a managed default.
+Direct registration-file selection has no config file and cannot be disabled.
+
+The connection's `Mode` makes disposal explicit: **Standalone** owns its `Server` and ends it on
+disposal; **Service** carries a shared handle whose disposal does not stop it; **Explicit** has
+no `Server` handle and nothing to release. `CreateClient` returns a caller-owned client in every
+mode. Its configuration delegate can set behavior, not Endpoint, Username or Password.
+
+`ServerVersion` describes the resolve: the probe's version in Explicit mode, the registration's
+version in Service mode (possibly null), and null in Standalone mode, whose readiness line carries
+no version. In explicit mode, `OnServerVersionMismatch` optionally receives Endpoint, ServerVersion
+and ClientVersion (the pinned release). Comparison is ordinal; the synchronous callback fires once,
+resolution continues after it, and a null callback is silent. A callback exception propagates.
+
+Only Service mode has `ServiceOperations`. `ReconnectAsync` ensures with Ignore and no OnStart;
+`RestartAsync` first stops with best-effort persistent-terminal handoff, then reconnects. Both reuse
+the paths, copied command/environment and saved overlay captured at resolve, including an absent
+overlay. Neither re-locates, migrates or re-reads config. They return new non-owning handles without
+changing the connection's Endpoint, Server or ServerVersion.
+
+Explicit probes have a five-second **total** deadline. A tagged authentication refusal reports a
+missing Password option or a rejected password; transport and deadline failures say “Could not
+reach”; protocol-status refusals, malformed bodies and other API errors say “did not provide a compatible V2 health response”.
+These are `OpenCodeServerException` with the original `InnerException`. Your cancellation is an
+unwrapped `OperationCanceledException`. Standalone and managed failures retain their doors'
+[failure contracts](errors-and-responses.md#-when-a-local-server-door-fails).
+
+### Re-resolving beside an active event subscription
+
+The application owns re-resolution; it is one of the facilities deliberately omitted from the
+shared-feed contract ([ADR-0041](../adr/0041-one-shared-event-feed-per-client.md)). A
+`WatchConnectionAsync` watcher opens no source and keeps none alive: hold an active
+`SubscribeAsync` enumeration beside it. States coalesce, so react to the latest **yielded**
+`Reconnecting` state, not an assumed log of every transition. Reconnect, cancel and dispose the old
+subscription and watcher, dispose the old client, then create a new client from the returned handle
+and attach **both** enumerations again. This example takes the application's cancellation token:
+
+```csharp
+static async Task RunManagedEventsAsync(CancellationToken cancellationToken)
+{
+    await using var connection = await OpenCodeServer.ResolveAsync(cancellationToken: cancellationToken);
+    var operations = connection.ServiceOperations
+        ?? throw new InvalidOperationException("This recipe requires a managed service connection.");
+    var client = connection.CreateClient();
+    try
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            OpenCodeServer? replacement = null;
+            using (var cycle = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+            {
+                await using var events = client.Events.SubscribeAsync(cancellationToken: cycle.Token)
+                    .GetAsyncEnumerator();
+                await using var states = client.Events.WatchConnectionAsync(cycle.Token).GetAsyncEnumerator();
+                var eventMove = events.MoveNextAsync().AsTask(); // Starts and keeps an active source.
+                var stateMove = states.MoveNextAsync().AsTask();
+                try
+                {
+                    while (true)
+                    {
+                        var completed = await Task.WhenAny(stateMove, eventMove);
+                        if (completed == stateMove)
+                        {
+                            if (!await stateMove)
+                                break;
+                            if (states.Current.Status == EventConnectionStatus.Reconnecting)
+                            {
+                                replacement = await operations.ReconnectAsync(cancellationToken);
+                                break;
+                            }
+                            stateMove = states.MoveNextAsync().AsTask();
+                        }
+                        else
+                        {
+                            if (!await eventMove)
+                                break;
+                            Console.WriteLine(events.Current.Type);
+                            eventMove = events.MoveNextAsync().AsTask();
+                        }
+                    }
+                }
+                finally
+                {
+                    cycle.Cancel();
+                    try
+                    {
+                        await Task.WhenAll(eventMove, stateMove);
+                    }
+                    catch (OperationCanceledException) when (cycle.IsCancellationRequested)
+                    {
+                        // Observe the cancelled pending moves before disposing their enumerators.
+                    }
+                }
+            }
+            client.Dispose();
+            if (replacement is null)
+                return;
+            await using (replacement)
+                client = replacement.CreateClient();
+        }
+    }
+    finally
+    {
+        client.Dispose();
+    }
+}
+```
+
+Replacing the client also replaces its source and connection-state watch. It is not a history
+replay or a transactional resync: reconcile any event gap in your application's projections.
 
 ## 🚀 The SDK starts the server
 
@@ -264,29 +397,28 @@ See it running: [Worker](../../playground/worker/README.md) and
 
 ## 🔗 A server you already run
 
-If you already know an endpoint, construct the client directly. There is no separate verb for this
-door: the endpoint and the credential *are* the connection.
+If you already know an endpoint, use the resolver for its bounded info probe and optional version
+notification:
 
 ```csharp
 var endpoint = new Uri("http://127.0.0.1:4096");
 
-using var client = new OpenCodeClient(new OpenCodeClientOptions
+await using var connection = await OpenCodeServer.ResolveAsync(new OpenCodeServerResolveOptions
 {
     Endpoint = endpoint,
     Password = Environment.GetEnvironmentVariable("OPENCODE_PASSWORD"),
 });
 
-using var probe = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-var info = await client.Server.GetInfoAsync(cancellationToken: probe.Token);
+using var client = connection.CreateClient();
+var info = await client.Server.GetInfoAsync();
 
 Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid})");
 ```
 
-That bounded info call is the whole validation recipe for *reaching* the server, and it is
-deliberately yours to write: the SDK carries no version comparand of its own, and its `NetworkTimeout`
-bounds a call that stops making progress (no response headers, or no new body bytes), not the whole
-call, so a `CancellationTokenSource` is the honest deadline and your own expectation is the honest
-version check. It is liveness only — a server answering status can still have an empty model catalog
+The resolver compares the explicit version with the pinned release; its callback is silent by
+default. Plain `new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint })` remains the
+no-probe form when you do not want validation. `NetworkTimeout` is an inactivity window, not the
+resolver's total probe deadline. The probe establishes liveness only — a server answering status can still have an empty model catalog
 for a second or two while its plugins activate, which
 [choosing a model](getting-started.md#choosing-a-model) covers.
 
@@ -303,7 +435,8 @@ working. The client never reads either one, or any other environment variable, f
 in the snippet above is your application's choice; a configuration section or a secret store works
 exactly as well. The canonical
 [construction contract](../architecture/client-runtime.md#construction-and-transport-ownership)
-names the background-service doors that read the environment and the path variables they use.
+names the background-service doors, including Ensure and the resolver's non-explicit paths, that
+read path variables, never a credential variable.
 
 ### An app-owned server on a fixed endpoint
 
@@ -633,8 +766,9 @@ shared release registration.
 | `InstalledVersion` | The migration comparand, as for discovery. A stop never filters by version. |
 | `Pty` | Governs persistent terminals (`OpenCodeClient.PersistentPtys`) only; ordinary terminals (`OpenCodeClient.Ptys`) end with the service either way. Null or `OpenCodeServerStopPtyMode.Clear` removes any handoff ticket; persistent terminals end with the service. `Handoff` attempts a best-effort handoff for the next service. |
 
-To restart as the managed connection does and attempt to keep persistent terminals, stop with
-`Handoff`, then ensure with the same registration selection (the same channel or direct path).
+For a resolved managed connection, call `connection.ServiceOperations.RestartAsync()` to attempt
+to keep persistent terminals. The plain-door equivalent is to stop with `Handoff`, then ensure with
+the same registration selection (the same channel or direct path).
 Preservation is best-effort: the ticket must be prepared and adopted by the next service before
 it expires.
 
@@ -685,6 +819,8 @@ It needs the [opt-in](experimental.md#opencode002) (`OPENCODE002`), as the persi
 `OpenCodeServer.EnsureAsync` is what the CLI does before it connects: reuse the registered service
 when one is ready, and start one when nothing usable is registered. It is the same election every
 opencode client runs, so ten callers starting at once end up sharing one daemon.
+For the CLI's complete mode selection, including the saved `disabled` flag and standalone fallback,
+use [ResolveAsync](#-resolving-a-connection-as-the-cli-does).
 
 ```csharp
 await using var server = await OpenCodeServer.EnsureAsync();

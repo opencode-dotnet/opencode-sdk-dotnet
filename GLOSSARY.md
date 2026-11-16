@@ -249,6 +249,14 @@ was typed at.
 
 #### Connection modes
 
+**Explicit server**:
+A server addressed by the caller's Endpoint and optional Password, without ownership of its process.
+
+**Server connection**:
+The result of `OpenCodeServer.ResolveAsync`: the selected connection mode, endpoint, credential and
+resolve-time version, composing an owned Standalone server or a shared Background service handle
+where applicable. Only a Background service connection exposes reconnect and restart operations.
+
 **Launcher**:
 The in-core component that starts, monitors and stops a local `opencode serve` process for the
 Standalone server mode.

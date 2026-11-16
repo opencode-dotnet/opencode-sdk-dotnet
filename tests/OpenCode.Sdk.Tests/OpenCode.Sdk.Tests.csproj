@@ -82,6 +82,7 @@
     <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/turn-2-coding-read-write.jsonl" Link="Fixtures/Benchmarks/turn-2-coding-read-write.jsonl" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.turn-2-coding-read-write.jsonl" />
     <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/turn-3-multi-step.jsonl" Link="Fixtures/Benchmarks/turn-3-multi-step.jsonl" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.turn-3-multi-step.jsonl" />
     <EmbeddedResource Include="../../spec/openapi.json" Link="Fixtures/Pinned/openapi.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Pinned.openapi.json" />
+    <EmbeddedResource Include="../../spec/receipt.json" Link="Fixtures/Pinned/receipt.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Pinned.receipt.json" />
     <EmbeddedResource Include="Fixtures/**/*.json" />
     <EmbeddedResource Include="Fixtures/**/*.js" />
     <EmbeddedResource Include="Fixtures/**/*.md" />
