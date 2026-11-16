@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -304,6 +304,15 @@ public sealed record GoalState
     [JsonPropertyName("status")]
     public required string Status { get; init; }
 }
+
+public sealed record GoalChanged
+{
+    [JsonPropertyName("sessionID")]
+    public required string SessionId { get; init; }
+
+    [JsonPropertyName("goal")]
+    public GoalState? Goal { get; init; }
+}
 ```
 
 The JSON metadata comes from a source-generated context, so the definition works under native AOT
@@ -314,6 +323,7 @@ using System.Text.Json.Serialization;
 
 [JsonSerializable(typeof(GoalQuery))]
 [JsonSerializable(typeof(GoalState))]
+[JsonSerializable(typeof(GoalChanged))]
 internal sealed partial class GoalJson : JsonSerializerContext;
 
 public static class GoalRpc
@@ -322,6 +332,9 @@ public static class GoalRpc
 
     public static readonly RpcMethod<GoalQuery, GoalState> Get =
         Definition.Method("get", GoalJson.Default.GoalQuery, GoalJson.Default.GoalState);
+
+    public static readonly RpcEventDefinition<GoalChanged> Changed =
+        Definition.Event("changed", GoalJson.Default.GoalChanged);
 }
 ```
 
@@ -354,6 +367,29 @@ catch (OpenCodeRpcException failure) when (failure.ErrorType == "rpc.unavailable
     Console.WriteLine("The goal plugin is not loaded at this location.");
 }
 ```
+
+### 📨 A definition's events
+
+A plugin's events arrive on the live event stream as `EventRpc`.
+`client.Events.SubscribeAsync(GoalRpc.Changed, ...)` yields only that event with typed data:
+
+```csharp
+await foreach (var changed in client.Events.SubscribeAsync(GoalRpc.Changed, cancellationToken))
+{
+    Console.WriteLine($"{changed.Data.SessionId}: {changed.Data.Goal?.Status ?? "no goal"} ({changed.Event.Location.Directory})");
+}
+```
+
+This is a subscription on the client's [shared feed](streaming.md#-the-live-event-stream) like any
+other. It sees every event and keeps its own, so queued unrelated events count against its
+4,096-event queue too. It skips `server.connected`: to refresh after a gap, read the markers on a
+second subscription and read the goal again with `GoalRpc.Get` on each later marker
+([A live bus that reconnects](streaming.md#-a-live-bus-that-reconnects)). Connection state coalesces,
+so watching it can miss a reconnect.
+
+Data that does not match your type, or that your metadata reads as null, throws
+`OpenCodeTransportException` and ends the loop. Cancelling the token throws
+`OperationCanceledException`. There is no callback form: run the loop in a task of your own.
 
 To call a definition by name, wrap it in a class of your own:
 

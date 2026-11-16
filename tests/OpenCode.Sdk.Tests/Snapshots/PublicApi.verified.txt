@@ -173,6 +173,10 @@ namespace OpenCode.Sdk
         public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.IEvent> SubscribeAsync(OpenCode.Sdk.EventSubscribeRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.EventConnectionState> WatchConnectionAsync(System.Threading.CancellationToken cancellationToken = default) { }
     }
+    public static class EventsClientRpcExtensions
+    {
+        public static System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.RpcEventPayload<TData>> SubscribeAsync<TData>(this OpenCode.Sdk.EventsClient client, OpenCode.Sdk.RpcEventDefinition<TData> rpcEvent, System.Threading.CancellationToken cancellationToken = default) { }
+    }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
     public sealed class ExperimentalArtifactsCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalArtifactsCreateResponse>
@@ -1685,6 +1689,12 @@ namespace OpenCode.Sdk
         public OpenCode.Sdk.RpcDefinition Definition { get; }
         public string Name { get; }
         public string Type { get; }
+    }
+    public sealed class RpcEventPayload<TData> : System.IEquatable<OpenCode.Sdk.RpcEventPayload<TData>>
+    {
+        public RpcEventPayload() { }
+        public required TData Data { get; init; }
+        public required OpenCode.Sdk.Models.EventRpc Event { get; init; }
     }
     public sealed class RpcMethod<TInput, TOutput>
     {
