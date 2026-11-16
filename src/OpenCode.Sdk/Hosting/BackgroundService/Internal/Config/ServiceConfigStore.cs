@@ -39,7 +39,14 @@ internal sealed class ServiceConfigStore(
                 return new ServiceConfigDocument();
             }
 
-            var decodedBytes = System.Text.Encoding.UTF8.GetBytes(ServiceConfigReader.DecodeCliText(donorBytes));
+            var decodedText = ServiceConfigReader.DecodeCliText(donorBytes);
+            // TextDecoder strips one BOM; JSON.parse rejects a mark that remains after that decode.
+            if (decodedText.Length > 0 && decodedText[0] == '\uFEFF')
+            {
+                return new ServiceConfigDocument();
+            }
+
+            var decodedBytes = System.Text.Encoding.UTF8.GetBytes(decodedText);
             var donorDocument = ServiceConfigReader.TryReadDocument(decodedBytes);
             if (donorDocument is not { LegacyRemote: null })
             {
@@ -51,7 +58,7 @@ internal sealed class ServiceConfigStore(
                 return new ServiceConfigDocument();
             }
 
-            await new ServiceMigration(fileSystem).ApplyConfigAsync(configFile, donorBytes, cancellationToken).ConfigureAwait(false);
+            await new ServiceMigration(fileSystem).ApplyConfigAsync(configFile, decodedBytes, cancellationToken).ConfigureAwait(false);
             bytes = await fileSystem.TryReadAllBytesAsync(configFile, cancellationToken).ConfigureAwait(false);
         }
 

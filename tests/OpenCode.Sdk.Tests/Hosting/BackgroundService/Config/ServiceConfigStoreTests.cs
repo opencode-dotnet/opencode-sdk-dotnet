@@ -9,6 +9,54 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Config;
 public sealed class ServiceConfigStoreTests
 {
     [Test]
+    public async Task ReadForWriteAsync_Should_Leave_A_Double_Bom_Donor_Uncopied_Without_Refusing()
+    {
+        var scenario = new ServiceConfigScenario("beta");
+        var donor = scenario.Paths.LegacyConfigFile!;
+        var bytes = ServiceConfigWriteData.DoubleBomDonor;
+        await scenario.SeedAsync(donor, bytes);
+        scenario.ClearCalls();
+        var inventory = scenario.Inventory();
+
+        var document = await scenario.Store.ReadForWriteAsync(ServiceSelection.Snapshot(scenario.Options), CancellationToken.None);
+
+        await Assert.That(document.MemberNames).IsEmpty();
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None)).IsNull();
+        await AssertDonorUnchangedAsync(scenario, bytes, inventory);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ReadForWriteAsync_Should_Copy_A_Donor_With_Invalid_Utf8_In_A_String_As_Decoded_Text(bool environment)
+    {
+        var scenario = new ServiceConfigScenario("beta");
+        var donor = scenario.Paths.LegacyConfigFile!;
+        var bytes = environment ? ServiceConfigWriteData.InvalidEnvironmentValue : ServiceConfigWriteData.InvalidHostname;
+        await scenario.SeedAsync(donor, bytes);
+        scenario.ClearCalls();
+
+        var document = await scenario.Store.ReadForWriteAsync(ServiceSelection.Snapshot(scenario.Options), CancellationToken.None);
+
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None))
+            .IsEquivalentTo(Encoding.UTF8.GetBytes(environment
+                ? ServiceConfigWriteData.DecodedEnvironmentValue : ServiceConfigWriteData.DecodedHostname), CollectionOrdering.Matching);
+        await Assert.That(document.Hostname).IsEqualTo(environment ? null : "�");
+        if (environment)
+        {
+            await Assert.That(document.Environment).IsNotNull();
+            await Assert.That(document.Environment).IsEquivalentTo([new KeyValuePair<string, string>("A", "�")], CollectionOrdering.Matching);
+        }
+        else
+        {
+            await Assert.That(document.Environment).IsNull();
+        }
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(donor, CancellationToken.None))
+            .IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        await Assert.That(scenario.Calls).IsEquivalentTo(scenario.MigrationCalls, CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task ReadForWriteAsync_Should_Refuse_Donor_Names_That_Collide_After_Decoding_Before_Copying()
     {
         var scenario = new ServiceConfigScenario("beta");
@@ -24,10 +72,7 @@ public sealed class ServiceConfigStoreTests
 
         await Assert.That(failure).IsNotNull();
         await Assert.That(failure.Message).Contains(donor);
-        await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
-        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(donor, CancellationToken.None))
-            .IsEquivalentTo(bytes, CollectionOrdering.Matching);
-        await AssertDonorCallsAsync(scenario.Calls, scenario.Paths);
+        await AssertDonorUnchangedAsync(scenario, bytes, inventory);
     }
 
     [Test]
@@ -151,6 +196,14 @@ public sealed class ServiceConfigStoreTests
         await Assert.That(scenario.Calls).IsEquivalentTo(scenario.MigrationCalls, CollectionOrdering.Matching);
         await Assert.That(await scenario.ReadTextAsync(scenario.Paths.ConfigFile!)).IsEqualTo(initial);
         await Assert.That(await scenario.ReadTextAsync(scenario.Paths.LegacyConfigFile!)).IsEqualTo(initial);
+    }
+
+    private static async Task AssertDonorUnchangedAsync(ServiceConfigScenario scenario, byte[] bytes, IReadOnlyList<string> inventory)
+    {
+        await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.LegacyConfigFile!, CancellationToken.None))
+            .IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        await AssertDonorCallsAsync(scenario.Calls, scenario.Paths);
     }
 
     private static async Task AssertDonorCallsAsync(IReadOnlyList<string> calls, ServicePaths paths) =>

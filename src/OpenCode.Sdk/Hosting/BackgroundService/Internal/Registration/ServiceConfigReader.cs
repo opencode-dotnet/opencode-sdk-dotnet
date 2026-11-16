@@ -17,7 +17,7 @@ namespace OpenCode.Sdk.Internal;
 /// in place; the SDK's config store does the same for every service-configuration operation that
 /// reads through it, ReadAsync included, and Discovery, Ensure and Stop read the document as it is.
 /// The CLI's <c>migrateConfig</c> copies only the current shape. Discovery, Ensure and Stop treat
-/// any other document as absent config. The config store refuses a Q2-a document the strict reader
+/// any other document as absent config. The config store refuses a document the strict reader
 /// cannot decode but the CLI may read; a document proven unreadable by the CLI is empty config.
 /// </summary>
 internal static class ServiceConfigReader

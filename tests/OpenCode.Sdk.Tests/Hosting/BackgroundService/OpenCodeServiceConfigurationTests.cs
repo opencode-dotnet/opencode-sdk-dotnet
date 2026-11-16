@@ -22,7 +22,10 @@ public sealed class OpenCodeServiceConfigurationTests
     [Test]
     public async Task ReadAsync_Should_Validate_Options_At_The_Public_Door()
     {
-        await AssertBlankOptionsAsync(() => OpenCodeServiceConfiguration.ReadAsync(new OpenCodeServiceConfigOptions { Channel = " " }));
+        using var caller = new CancellationTokenSource();
+        await caller.CancelOnWorkerAsync();
+        await AssertBlankOptionsAsync(() =>
+            OpenCodeServiceConfiguration.ReadAsync(new OpenCodeServiceConfigOptions { Channel = " " }, caller.Token));
     }
 
     private static async Task AssertBlankOptionsAsync(Func<Task> operation)

@@ -17,10 +17,40 @@ internal sealed class ServiceCancellationDoors(
 
     internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
-        await caller.CancelOnWorkerAsync();
-        return await observeCancellation(() => row == "service-config-read"
-            ? OpenCodeServiceConfiguration.ReadAsync(cancellationToken: caller.Token)
-            : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(cancellationToken: caller.Token));
+        using var root = new TestRunRoot(fileSystem);
+        var isolated = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["XDG_CONFIG_HOME"] = fileSystem.Path.Combine(root.Path, "config"),
+            ["XDG_STATE_HOME"] = fileSystem.Path.Combine(root.Path, "state"),
+            ["OPENCODE_CONFIG_DIR"] = fileSystem.Path.Combine(root.Path, "config", "opencode"),
+        };
+        var original = isolated.Keys.ToDictionary(static name => name, Environment.GetEnvironmentVariable, StringComparer.Ordinal);
+        // The cancellation table already runs nonparallel; only these per-row roots replace the session's roots.
+        try
+        {
+            foreach (var pair in isolated)
+            {
+                Environment.SetEnvironmentVariable(pair.Key, pair.Value);
+            }
+
+            var options = new OpenCodeServiceConfigOptions();
+            var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(options));
+            await Assert.That(paths.ConfigFile!).StartsWith(root.Path + fileSystem.Path.DirectorySeparatorChar);
+            await Assert.That(paths.RegistrationFile).StartsWith(root.Path + fileSystem.Path.DirectorySeparatorChar);
+            await caller.CancelOnWorkerAsync();
+            return await observeCancellation(() => row == "service-config-read"
+                ? OpenCodeServiceConfiguration.ReadAsync(options, caller.Token)
+                : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(options, caller.Token));
+        }
+        finally
+        {
+            foreach (var pair in original)
+            {
+                Environment.SetEnvironmentVariable(pair.Key, pair.Value);
+            }
+
+            await Assert.That(fileSystem.Directory.GetFiles(root.Path, "*", SearchOption.AllDirectories)).IsEmpty();
+        }
     }
 
     internal async Task<OperationCanceledException> AtStopPreCancelledAsync(CancellationTokenSource caller)
