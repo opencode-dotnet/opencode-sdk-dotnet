@@ -41,7 +41,7 @@ public sealed class ResolveRequestTests
 
         await Assert.That(failure!.ParamName).IsEqualTo("options");
         await Assert.That(failure.Message).IsEqualTo(
-            "OpenCodeServerResolveOptions.Endpoint and Standalone cannot be combined. (Parameter 'options')");
+            new ArgumentException("OpenCodeServerResolveOptions.Endpoint and Standalone cannot be combined.", failure.ParamName).Message);
     }
 
     [Test]
@@ -56,7 +56,7 @@ public sealed class ResolveRequestTests
 
         await Assert.That(failure!.ParamName).IsEqualTo("options");
         await Assert.That(failure.Message).IsEqualTo(
-            "Password applies only to an explicit Endpoint; a standalone or service connection carries its own credentials. (Parameter 'options')");
+            new ArgumentException("Password applies only to an explicit Endpoint; a standalone or service connection carries its own credentials.", failure.ParamName).Message);
         await Assert.That(_doors.ReceivedCalls()).IsEmpty();
         await Assert.That(_files.ReceivedCalls()).IsEmpty();
         await Assert.That(_environment.ReceivedCalls()).IsEmpty();
@@ -83,8 +83,9 @@ public sealed class ResolveRequestTests
             new OpenCodeServerResolveOptions { Service = new OpenCodeServerEnsureOptions { VersionPolicy = OpenCodeServerVersionPolicy.Replace } },
             new ConnectionSeams(_doors, _environment, _files), CancellationToken.None)).Throws<ArgumentException>();
 
-        await Assert.That(failure!.Message).IsEqualTo(
-            "OpenCodeServerEnsureOptions.VersionPolicy Replace needs ExpectedVersion; without it there is nothing to mismatch. (Parameter 'options')");
+        await Assert.That(failure!.ParamName).IsEqualTo("options");
+        await Assert.That(failure.Message).IsEqualTo(
+            new ArgumentException("OpenCodeServerEnsureOptions.VersionPolicy Replace needs ExpectedVersion; without it there is nothing to mismatch.", failure.ParamName).Message);
         await Assert.That(_files.ReceivedCalls()).IsEmpty();
         await Assert.That(_environment.ReceivedCalls()).IsEmpty();
         await Assert.That(_doors.ReceivedCalls()).IsEmpty();
