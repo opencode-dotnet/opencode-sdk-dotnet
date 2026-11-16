@@ -159,6 +159,11 @@ resources, with its own connection status. The SDK names upstream's `mcp` client
 _Avoid_: MCP alone (the protocol); the MCP server built on this SDK (a sibling project, not an
 opencode capability)
 
+**Client-hosted MCP connection**:
+An application-owned WebSocket over which the application is the MCP server and opencode is the MCP
+client, calling the application's tools. It is not the sibling MCP server product built on this SDK,
+which exposes opencode capabilities to MCP clients (ADR-0030).
+
 #### Servers and addressing
 
 **Server process**:
