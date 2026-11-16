@@ -289,6 +289,7 @@ public sealed class SpecBinderTests
         ("half-parameter", ClientGroup("Widgets", null, "id"), [new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
         ("blank-parameter", ClientGroup("Widgets", "WidgetClient", " "), [new(BindingErrorCategory.Curation, "widget", "handleParameter cannot be blank")]),
         ("emission", RootGroup() with { Emission = (EmissionMode)99 }, [new(BindingErrorCategory.Curation, "widget", "emission value '99' is not a recognized group emission")]),
+        ("emission-root-accessor", RootGroup() with { Emission = (EmissionMode)99, RootAccessor = false }, [new(BindingErrorCategory.Curation, "widget", "emission value '99' is not a recognized group emission")]),
         ("root-raw", RootGroup() with { Emission = EmissionMode.InternalRaw }, [new(BindingErrorCategory.Curation, "widget", "root group cannot declare internalRaw emission")]),
         ("unselected-raw", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw), [new(BindingErrorCategory.Curation, "idle", "curated group is not selected by the current profile"),
             new(BindingErrorCategory.Curation, "idle", "internalRaw emission requires at least one selected operation")]),

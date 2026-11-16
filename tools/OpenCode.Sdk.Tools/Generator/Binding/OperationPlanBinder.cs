@@ -93,8 +93,9 @@ internal static class OperationPlanBinder
 
     /// <summary>
     /// Builds a family's clients. An internal-raw family takes raw type names throughout
-    /// (ADR-0021): the public family name belongs to the hand-written door the root client
-    /// keeps pointing at, so nothing generated may claim it.
+    /// (ADR-0021): the public family name belongs to the hand-written door, which the root
+    /// client's accessor returns unless the family opts out of it, so nothing generated may
+    /// claim it.
     /// </summary>
     private static IEnumerable<ClientPlan> CreateGroupClients(IReadOnlyList<BoundOperation> group, GroupCuration row, string collectionName)
     {

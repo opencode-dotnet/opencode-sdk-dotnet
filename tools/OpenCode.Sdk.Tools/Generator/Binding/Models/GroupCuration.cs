@@ -22,7 +22,8 @@ internal sealed record GroupCuration : IReasonedRow
 
     /// <summary>
     /// Gets whether the family keeps its root accessor; absent or true keeps it. False is valid only
-    /// with internalRaw emission and emits no accessor, so a hand-written owner constructs the raw clients.
+    /// with internalRaw emission: the root client then declares no accessor for the family, and its
+    /// hand-written owner constructs the raw clients.
     /// </summary>
     [JsonPropertyName("rootAccessor")]
     public bool RootAccessor { get; init; } = true;

@@ -382,16 +382,12 @@ internal static class CurationValidator
     /// <summary>
     /// The internal-raw mode hands a family's public surface to hand-written code (ADR-0021),
     /// so it only means something on a client-placed group that actually emits operations;
-    /// every other spelling would be a silently inert row.
+    /// every other spelling would be a silently inert row. The root-accessor opt-out belongs to
+    /// that mode alone.
     /// </summary>
     private static void ValidateGroupEmission(string wireName, GroupCuration group, IReadOnlyList<SpecOperation> selected,
         BindingErrorCollector errors)
     {
-        if (!group.RootAccessor && group.Emission is not EmissionMode.InternalRaw)
-        {
-            errors.Add(BindingErrorCategory.Curation, wireName, "rootAccessor false requires internalRaw emission");
-        }
-
         if (group.Emission is not (EmissionMode.Public or EmissionMode.InternalRaw))
         {
             // System.Text.Json admits numeric enum spellings even under the string
@@ -405,6 +401,11 @@ internal static class CurationValidator
 
         if (group.Emission is not EmissionMode.InternalRaw)
         {
+            if (!group.RootAccessor)
+            {
+                errors.Add(BindingErrorCategory.Curation, wireName, "rootAccessor false requires internalRaw emission");
+            }
+
             return;
         }
 
