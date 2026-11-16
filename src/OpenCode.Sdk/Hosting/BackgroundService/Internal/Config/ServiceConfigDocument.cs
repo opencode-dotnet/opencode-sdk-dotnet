@@ -10,6 +10,17 @@ internal sealed class ServiceConfigDocument
     private static readonly string[] SchemaOrder = ["disabled", "remote", "remoteAccepted", "hostname", "port", "password", "cors", "env"];
     private List<string>? _members;
 
+    /// <summary>Initializes private settings before member order is first materialized in schema order.</summary>
+    /// <param name="remoteRoute">The current remote route, or null when unset.</param>
+    /// <param name="legacyRemote">The earlier boolean remote setting, or null for the current shape.</param>
+    /// <param name="password">The stored password, or null when unset.</param>
+    internal ServiceConfigDocument(string? remoteRoute = null, bool? legacyRemote = null, string? password = null)
+    {
+        RemoteRoute = remoteRoute;
+        LegacyRemote = legacyRemote;
+        Password = password;
+    }
+
     /// <summary>Gets present members in the decode's schema order, or the subsequent merge's order.</summary>
     public IReadOnlyList<string> MemberNames => Members;
     private List<string> Members => _members ??= [.. SchemaOrder.Where(IsPresent)];
@@ -58,10 +69,10 @@ internal sealed class ServiceConfigDocument
     public bool? Disabled { get; init; }
 
     /// <summary>Gets the current remote route, retained only inside the SDK.</summary>
-    public string? RemoteRoute { get; set; }
+    public string? RemoteRoute { get; private set; }
 
     /// <summary>Gets the earlier boolean remote setting, or null for a current-shape document.</summary>
-    public bool? LegacyRemote { get; set; }
+    public bool? LegacyRemote { get; private set; }
 
     /// <summary>Gets the acceptance marker, true when present and null otherwise.</summary>
     public bool? RemoteAccepted { get; init; }
@@ -73,7 +84,7 @@ internal sealed class ServiceConfigDocument
     public int? Port { get; init; }
 
     /// <summary>Gets the stored password, retained only inside the SDK.</summary>
-    public string? Password { get; set; }
+    public string? Password { get; private set; }
 
     /// <summary>Gets the saved origins in stored order, or null when unset.</summary>
     public IReadOnlyList<string>? CorsOrigins { get; init; }

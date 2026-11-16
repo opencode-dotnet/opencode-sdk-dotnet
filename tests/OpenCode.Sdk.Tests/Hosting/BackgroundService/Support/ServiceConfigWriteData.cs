@@ -21,4 +21,5 @@ internal static class ServiceConfigWriteData
         : [.. "{\"url\":\"http://localhost:4096\",\"pid\":123,\"version\":\"0.0.0-beta-1\",\"note\":\"a"u8.ToArray(),
             0xef, 0xbf, 0xbd, .. "b\"}"u8.ToArray()];
     public static byte[] InvalidHostname => [.. "{\"hostname\":\""u8.ToArray(), 0xff, .. "\"}"u8.ToArray()];
+    public static byte[] CollidingDonorNames => [.. "{\"a"u8.ToArray(), 0xff, .. "\":1,\"a"u8.ToArray(), 0xfe, .. "\":2}"u8.ToArray()];
 }

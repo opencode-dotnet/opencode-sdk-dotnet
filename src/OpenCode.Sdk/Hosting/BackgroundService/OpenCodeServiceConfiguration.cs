@@ -26,10 +26,8 @@ public static class OpenCodeServiceConfiguration
     public static async Task<OpenCodeServiceConfig> ReadAsync(
         OpenCodeServiceConfigOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var selection = ServiceSelection.Snapshot(options);
-        cancellationToken.ThrowIfCancellationRequested();
         using var random = RandomNumberGenerator.Create();
-        return await ReadSelectedAsync(selection, CreateStore(random), cancellationToken).ConfigureAwait(false);
+        return await ReadWithSeamsAsync(options, CreateStore(random), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The CLI's <c>opencode service get password</c>: returns the stored password, creating and storing one when absent or empty.</summary>
@@ -43,10 +41,9 @@ public static class OpenCodeServiceConfiguration
     public static async Task<string> GetOrCreatePasswordAsync(
         OpenCodeServiceConfigOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var selection = ServiceSelection.Snapshot(options);
-        cancellationToken.ThrowIfCancellationRequested();
         using var random = RandomNumberGenerator.Create();
-        return await new ServiceConfigEditor(CreateStore(random)).GetOrCreatePasswordAsync(selection, cancellationToken).ConfigureAwait(false);
+        return await GetOrCreatePasswordWithSeamsAsync(
+            options, new ServiceConfigEditor(CreateStore(random)), cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The password door over an injected editor, retaining entry-time option validation.</summary>

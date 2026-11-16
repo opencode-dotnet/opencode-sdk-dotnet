@@ -15,9 +15,10 @@ namespace OpenCode.Sdk.Internal;
 /// Ensure and migration. Earlier builds stored
 /// <c>remote</c> as a boolean: the CLI's <c>read()</c> still accepts that legacy shape and rewrites it
 /// in place; the SDK's config store does the same for every service-configuration operation that
-/// reads through it, ReadAsync included, and Discovery, Ensure and Stop read the document as it is,
-/// while its <c>migrateConfig</c> copies only the current shape. Any other document is absent
-/// config, as the CLI's own read turns a document that fails both decodes into an empty config.
+/// reads through it, ReadAsync included, and Discovery, Ensure and Stop read the document as it is.
+/// The CLI's <c>migrateConfig</c> copies only the current shape. Discovery, Ensure and Stop treat
+/// any other document as absent config. The config store refuses a Q2-a document the strict reader
+/// cannot decode but the CLI may read; a document proven unreadable by the CLI is empty config.
 /// </summary>
 internal static class ServiceConfigReader
 {
@@ -129,15 +130,15 @@ internal static class ServiceConfigReader
         _ = StrictJson.TryGetOptionalString(root, "hostname", out var hostname);
         _ = StrictJson.TryGetOptionalString(root, "password", out var password);
         _ = root.TryGetProperty("remote", out var remote);
-        return new ServiceConfigDocument
+        return new ServiceConfigDocument(
+            remoteRoute: remote.ValueKind == JsonValueKind.Object ? remote.GetProperty("route").GetString() : null,
+            legacyRemote: remote.ValueKind is JsonValueKind.True or JsonValueKind.False ? remote.GetBoolean() : null,
+            password: password)
         {
             Disabled = root.TryGetProperty("disabled", out var disabled) ? disabled.GetBoolean() : null,
-            RemoteRoute = remote.ValueKind == JsonValueKind.Object ? remote.GetProperty("route").GetString() : null,
-            LegacyRemote = remote.ValueKind is JsonValueKind.True or JsonValueKind.False ? remote.GetBoolean() : null,
             RemoteAccepted = root.TryGetProperty("remoteAccepted", out _) ? true : null,
             Hostname = hostname,
             Port = root.TryGetProperty("port", out var port) ? (int)port.GetDouble() : null,
-            Password = password,
             // The shape has proved these strings non-null; GetString also forces strict decoding.
             CorsOrigins = root.TryGetProperty("cors", out var cors)
                 ? cors.EnumerateArray().Select(static origin => origin.GetString()!).ToArray() : null,
@@ -147,7 +148,7 @@ internal static class ServiceConfigReader
 
     private static Dictionary<string, string>? Read(JsonElement root, bool admitLegacyRemote)
     {
-        // Read validates the password and route and discards them; Materialize alone keeps them.
+        // Read decodes the password but checks the route by kind only; Materialize alone keeps them.
         if (root.ValueKind != JsonValueKind.Object
             || !IsValidDisabled(root)
             || !IsValidRemote(root, admitLegacyRemote)

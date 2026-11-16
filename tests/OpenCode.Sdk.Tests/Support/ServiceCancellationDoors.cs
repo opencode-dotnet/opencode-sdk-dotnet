@@ -15,6 +15,14 @@ internal sealed class ServiceCancellationDoors(
     private const string ShutdownPath = "/api/experimental/persistent-pty/shutdown";
     private const string ServicePassword = "synthetic-identity-password";
 
+    internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
+    {
+        await caller.CancelOnWorkerAsync();
+        return await observeCancellation(() => row == "service-config-read"
+            ? OpenCodeServiceConfiguration.ReadAsync(cancellationToken: caller.Token)
+            : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(cancellationToken: caller.Token));
+    }
+
     internal async Task<OperationCanceledException> AtStopPreCancelledAsync(CancellationTokenSource caller)
     {
         using var root = new TestRunRoot(fileSystem);

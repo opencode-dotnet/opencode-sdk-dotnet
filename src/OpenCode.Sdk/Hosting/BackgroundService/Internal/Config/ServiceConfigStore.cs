@@ -39,10 +39,11 @@ internal sealed class ServiceConfigStore(
                 return new ServiceConfigDocument();
             }
 
-            var donorDocument = ServiceConfigReader.TryReadDocument(donorBytes);
+            var decodedBytes = System.Text.Encoding.UTF8.GetBytes(ServiceConfigReader.DecodeCliText(donorBytes));
+            var donorDocument = ServiceConfigReader.TryReadDocument(decodedBytes);
             if (donorDocument is not { LegacyRemote: null })
             {
-                if (!ServiceConfigReader.IsProvenUnreadableByCliAsCurrent(donorBytes))
+                if (!ServiceConfigReader.IsProvenUnreadableByCliAsCurrent(decodedBytes))
                 {
                     throw Refusal(donor);
                 }

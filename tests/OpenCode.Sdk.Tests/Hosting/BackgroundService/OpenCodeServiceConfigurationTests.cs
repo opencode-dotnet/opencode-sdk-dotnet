@@ -11,12 +11,23 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 public sealed class OpenCodeServiceConfigurationTests
 {
     [Test]
+    public async Task GetOrCreatePasswordAsync_Should_Validate_Options_At_The_Public_Door()
+    {
+        using var caller = new CancellationTokenSource();
+        await caller.CancelOnWorkerAsync();
+        await AssertBlankOptionsAsync(() =>
+            OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(new OpenCodeServiceConfigOptions { Channel = " " }, caller.Token));
+    }
+
+    [Test]
     public async Task ReadAsync_Should_Validate_Options_At_The_Public_Door()
     {
-        var failure = await Assert.That(async () =>
-        {
-            _ = await OpenCodeServiceConfiguration.ReadAsync(new OpenCodeServiceConfigOptions { Channel = " " });
-        }).Throws<ArgumentException>();
+        await AssertBlankOptionsAsync(() => OpenCodeServiceConfiguration.ReadAsync(new OpenCodeServiceConfigOptions { Channel = " " }));
+    }
+
+    private static async Task AssertBlankOptionsAsync(Func<Task> operation)
+    {
+        var failure = await Assert.That(operation).Throws<ArgumentException>();
 
         await Assert.That(failure).IsNotNull();
         await Assert.That(failure).IsTypeOf<ArgumentException>();

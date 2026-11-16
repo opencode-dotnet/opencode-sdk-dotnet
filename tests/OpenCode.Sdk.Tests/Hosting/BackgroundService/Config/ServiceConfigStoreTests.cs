@@ -9,6 +9,28 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Config;
 public sealed class ServiceConfigStoreTests
 {
     [Test]
+    public async Task ReadForWriteAsync_Should_Refuse_Donor_Names_That_Collide_After_Decoding_Before_Copying()
+    {
+        var scenario = new ServiceConfigScenario("beta");
+        var donor = scenario.Paths.LegacyConfigFile!;
+        var bytes = ServiceConfigWriteData.CollidingDonorNames;
+        await scenario.SeedAsync(donor, bytes);
+        scenario.ClearCalls();
+        var inventory = scenario.Inventory();
+
+        var failure = await Assert.That(async () =>
+            await scenario.Store.ReadForWriteAsync(ServiceSelection.Snapshot(scenario.Options), CancellationToken.None))
+            .Throws<OpenCodeServerException>();
+
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure.Message).Contains(donor);
+        await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(donor, CancellationToken.None))
+            .IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        await AssertDonorCallsAsync(scenario.Calls, scenario.Paths);
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task ReadForWriteAsync_Should_Copy_A_Current_Donor_As_Decoded_Text_And_Return_Its_Password(bool bom)

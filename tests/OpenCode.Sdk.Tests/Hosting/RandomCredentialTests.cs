@@ -23,6 +23,8 @@ public sealed class RandomCredentialTests
         var credential = new RandomCredential(random);
         await Assert.That(credential.Password()).IsEqualTo("ABEiM0RVZneImaq7zN3u_xAhMkNUZXaHmKm6y9zt_g8");
         await Assert.That(credential.Password()).IsEqualTo("IDFCU2R1hpeoucrb7P0OHzBBUmN0hZanuMna6_wNHi8");
-        await Assert.That(random.Requests).IsEquivalentTo([32, 32], CollectionOrdering.Matching);
+        await Assert.That(credential.Password()).IsEqualTo("QFFic4SVprfI2er7DB0uP1BhcoOUpbbH2On6CxwtPk8");
+        await Assert.That(credential.Password()).IsEqualTo("YHGCk6S1xtfo-QobLD1OX3CBkqO0xdbn-AkaKzxNXm8");
+        await Assert.That(random.Requests).IsEquivalentTo([32, 32, 32, 32], CollectionOrdering.Matching);
     }
 }
