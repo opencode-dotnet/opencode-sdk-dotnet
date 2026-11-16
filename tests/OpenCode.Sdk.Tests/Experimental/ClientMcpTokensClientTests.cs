@@ -35,10 +35,7 @@ public sealed class ClientMcpTokensClientTests
         await Assert.That(response.ConnectToken.Ticket).IsEqualTo(nonce);
         await Assert.That(response.ConnectToken.ExpiresIn).IsEqualTo(60);
         await Assert.That(response.Location.Directory).IsEqualTo("/repo");
-        await Assert.That(response.Status).IsEqualTo(200);
-        await Assert.That(response.IsError).IsFalse();
-        await Assert.That(response.Error).IsNull();
-        await Assert.That(response.RawBody).IsNull();
+        await ContractScenario.AssertSuccessSpineAsync(response, 200);
     }
 
     [Test]
