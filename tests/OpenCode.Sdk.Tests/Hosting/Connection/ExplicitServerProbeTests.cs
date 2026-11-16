@@ -37,6 +37,41 @@ public sealed class ExplicitServerProbeTests
     public async Task ResolveAsync_Should_Propagate_The_Callers_Cancellation_Unwrapped(bool alsoCancelBound) =>
         await AssertHeldProbeAsync(cancelCaller: true, cancelBound: alsoCancelBound);
 
+    [Test]
+    public async Task GetInfoAsync_Should_Report_An_Undeclared_Success_As_An_Incompatible_Response()
+    {
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+        using var transport = new HttpClient(handler);
+
+        await AssertProbeFailureAsync(new ExplicitServerProbe(transport, new ManualTimeProvider()),
+            "Server at http://127.0.0.1:4096/ did not provide a compatible V2 health response: The opencode API returned undeclared success status 204.");
+        await Assert.That(handler.Requests.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    [Arguments("null", ResponseAdapter<OpenCodeResponse>.NullSuccessBodyMessage)]
+    [Arguments("{", "The opencode API returned a malformed success body.")]
+    public async Task GetInfoAsync_Should_Classify_The_Actual_Decoder_Failure(string body, string expected)
+    {
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json"),
+        });
+        using var transport = new HttpClient(handler);
+
+        await AssertProbeFailureAsync(new ExplicitServerProbe(transport, new ManualTimeProvider()),
+            "Server at http://127.0.0.1:4096/ did not provide a compatible V2 health response: " + expected);
+        await Assert.That(handler.Requests.Count).IsEqualTo(1);
+    }
+
+    private static async Task AssertProbeFailureAsync(ExplicitServerProbe probe, string expected)
+    {
+        var failure = await Assert.That(probe.GetInfoAsync(Endpoint, password: null, CancellationToken.None))
+            .Throws<OpenCodeServerException>();
+        await Assert.That(failure!.Message).IsEqualTo(expected);
+        await Assert.That(failure.InnerException).IsTypeOf<OpenCodeTransportException>();
+    }
+
     private static async Task AssertHeldProbeAsync(bool cancelCaller, bool cancelBound)
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -50,14 +85,19 @@ public sealed class ExplicitServerProbeTests
         using var transport = new HttpClient(handler);
         using var caller = new CancellationTokenSource();
         var time = new ManualTimeProvider();
+        var boundInstant = time.GetUtcNow() + TimeSpan.FromSeconds(5);
         var probe = new ExplicitServerProbe(transport, time);
         // RecordingHttpHandler's responder is synchronous: only this dedicated thread waits for release.
         var pending = Task.Factory.StartNew(() => probe.GetInfoAsync(Endpoint, password: null, caller.Token),
             CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         try
         {
-            await entered.Task.WaitAsync(HangGuard.Bound);
+            // A zero-length mutant can finish before entering the handler; that is an early
+            // completion verdict, not a hang while waiting for a request that will never arrive.
+            _ = await Task.WhenAny(entered.Task, pending).WaitAsync(HangGuard.Bound);
+            await Assert.That(pending.IsCompleted).IsFalse();
             time.Advance(TimeSpan.FromMilliseconds(4_999));
+            await Assert.That(handler.CancellationTokens[0].IsCancellationRequested).IsFalse();
             await Assert.That(pending.IsCompleted).IsFalse();
             if (cancelCaller)
             {
@@ -66,6 +106,7 @@ public sealed class ExplicitServerProbeTests
             if (cancelBound)
             {
                 time.Advance(TimeSpan.FromMilliseconds(1));
+                await Assert.That(handler.CancellationTokens[0].IsCancellationRequested).IsTrue();
             }
             release.Set();
 
@@ -86,6 +127,7 @@ public sealed class ExplicitServerProbeTests
         {
             release.Set();
             await new OperationDeadlineScenario().DrainAsync(pending);
+            await Assert.That(time.ArmedIn(boundInstant - time.GetUtcNow())).IsEqualTo(0);
         }
     }
 

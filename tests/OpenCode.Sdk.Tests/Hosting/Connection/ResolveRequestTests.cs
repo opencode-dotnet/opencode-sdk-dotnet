@@ -10,6 +10,27 @@ public sealed class ResolveRequestTests
     private readonly IServiceEnvironment _environment = Substitute.For<IServiceEnvironment>();
 
     [Test]
+    [Arguments("conflict")]
+    [Arguments("password")]
+    [Arguments("service")]
+    public async Task ResolveAsync_Should_Return_Argument_Failures_Through_The_Task(string invalid)
+    {
+        var options = invalid switch
+        {
+            "conflict" => new OpenCodeServerResolveOptions { Endpoint = new Uri("http://127.0.0.1:4096"), Standalone = true },
+            "password" => new OpenCodeServerResolveOptions { Password = "pw" },
+            _ => new OpenCodeServerResolveOptions { Service = new OpenCodeServerEnsureOptions { VersionPolicy = OpenCodeServerVersionPolicy.Replace } },
+        };
+        List<Task<OpenCodeServerConnection>> resolving = [];
+        void Invoke() => resolving.Add(OpenCodeServer.ResolveAsync(options));
+
+        await Assert.That(Invoke).ThrowsNothing();
+        await Assert.That(resolving.Count).IsEqualTo(1);
+        var failure = await Assert.That(resolving[0]).Throws<ArgumentException>();
+        await Assert.That(failure!.ParamName).IsEqualTo("options");
+    }
+
+    [Test]
     public async Task Snapshot_Should_Refuse_An_Endpoint_With_Standalone()
     {
         var failure = await Assert.That(() => ResolveRequest.Snapshot(new OpenCodeServerResolveOptions

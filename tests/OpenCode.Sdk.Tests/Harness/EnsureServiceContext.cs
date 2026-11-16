@@ -26,6 +26,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     private const int LegacyWindowsReleasePort = 45278;
     private const int LogTailLines = 40;
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(15);
+    private static readonly TimeProvider Clock = TimeProvider.System;
 
     /// <summary>
     /// Bounds <see cref="ReserveUnguardedPort"/>: three guarded ports and the caller's own port can be
@@ -110,12 +111,38 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     /// <returns>The non-owning handle Ensure returns.</returns>
     public async Task<OpenCodeServer> EnsureAsync(OpenCodeServerEnsureOptions options, ServiceTiming timing, CancellationToken cancellationToken)
     {
-        var server = await OpenCodeServer.EnsureWithSeamsAsync(options, timing, Ledger, TimeProvider.System, cancellationToken).ConfigureAwait(false);
+        var server = await OpenCodeServer.EnsureWithSeamsAsync(options, timing, Ledger, Clock, cancellationToken).ConfigureAwait(false);
 
         // The handle does not own the elected service; a service that fails the check is ended by
         // this context's teardown like every other one it recorded.
         Isolation.ConfirmHonored("The service the election chose");
         return server;
+    }
+
+    /// <summary>Runs the located election through the same owned contender ledger.</summary>
+    /// <param name="request">The captured service request.</param>
+    /// <param name="paths">The already located paths.</param>
+    /// <param name="snapshot">The captured environment overlay.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The non-owning handle returned by the located core.</returns>
+    public async Task<OpenCodeServer> EnsureLocatedAsync(
+        EnsureRequest request, ServicePaths paths, ServiceConfigEnvironment snapshot, CancellationToken cancellationToken)
+    {
+        var server = await OpenCodeServer.EnsureLocatedWithSeamsAsync(
+            new ManagedServiceSnapshot(request, paths, snapshot), ServiceTiming.Default, Ledger, Clock, cancellationToken).ConfigureAwait(false);
+        Isolation.ConfirmHonored("The service the located election chose");
+        return server;
+    }
+
+    /// <summary>Reads the service's configuration directories at this context's isolated location.</summary>
+    /// <param name="server">The service to query.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The normalized directory paths, in the server's order.</returns>
+    public async Task<IReadOnlyList<string>> ReadConfigDirectoriesAsync(OpenCodeServer server, CancellationToken cancellationToken)
+    {
+        using var client = server.CreateClient(options => options.Location = new LocationSelector { Directory = RunRoot });
+        var response = await client.Config.GetConfigAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        return [.. response.Config.OfType<Models.ConfigDirectory>().Select(directory => _fileSystem.Path.GetFullPath(directory.Path))];
     }
 
     /// <summary>Reads every recorded contender still running, identified by this process.</summary>

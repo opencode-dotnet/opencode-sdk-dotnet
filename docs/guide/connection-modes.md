@@ -61,7 +61,7 @@ changing the connection's Endpoint, Server or ServerVersion.
 
 Explicit probes have a five-second **total** deadline. A tagged authentication refusal reports a
 missing Password option or a rejected password; transport and deadline failures say “Could not
-reach”; malformed bodies and other API errors say “did not provide a compatible V2 health response”.
+reach”; protocol-status refusals, malformed bodies and other API errors say “did not provide a compatible V2 health response”.
 These are `OpenCodeServerException` with the original `InnerException`. Your cancellation is an
 unwrapped `OperationCanceledException`. Standalone and managed failures retain their doors'
 [failure contracts](errors-and-responses.md#-when-a-local-server-door-fails).

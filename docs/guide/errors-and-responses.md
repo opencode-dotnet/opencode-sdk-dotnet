@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Every one-shot call of a client family answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -63,7 +63,7 @@ OpenCodeException
 │   └── OpenCodeRpcException      a typed plugin RPC call's failure (adds ErrorType and the error's data)
 ├── OpenCodeTransportException    the call never produced a usable response
 │   └── OpenCodeStreamFailureException   a stream ended with a declared failure frame
-└── OpenCodeServerException       a local-server door failed, or an explicit server the resolver could not reach or read
+└── OpenCodeServerException       a local-server door failed, or an explicit server the resolver could not reach, authenticate with, or read
 ```
 
 ## 🤝 Ask for the failure as data instead
@@ -345,7 +345,7 @@ the registered owner's state, stop, the persistent-terminal shutdown, and ensure
 `ResolveAsync` also reports an explicit server it could not reach, authenticate with or read as
 `OpenCodeServerException`, retaining the original probe exception in `InnerException`. A tagged
 unauthorized response names the missing Password option or reports a rejected password; the
-five-second total probe bound is a “Could not reach” failure; a malformed body or other API error
+five-second total probe bound is a “Could not reach” failure; a protocol-status refusal, malformed body or other API error
 is an incompatible V2 health response. Caller cancellation remains `OperationCanceledException`
 with the caller's token, never a wrapped server failure. Managed and standalone paths retain their
 underlying doors' failure contracts. See [resolving a connection](connection-modes.md#-resolving-a-connection-as-the-cli-does).

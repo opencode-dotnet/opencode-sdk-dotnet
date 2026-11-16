@@ -76,7 +76,6 @@ public class OpenCodeServerConnection : IAsyncDisposable
     /// <returns>A task completing after any owned server has ended.</returns>
     public virtual async ValueTask DisposeAsync()
     {
-        _ = Read(_mode);
         if (Interlocked.Exchange(ref _disposed, 1) == 1)
         {
             return;

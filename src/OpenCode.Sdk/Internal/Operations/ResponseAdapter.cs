@@ -9,6 +9,8 @@ namespace OpenCode.Sdk.Internal;
 internal abstract class ResponseAdapter<TResponse>
     where TResponse : OpenCodeResponse
 {
+    internal const string NullSuccessBodyMessage = "The opencode API returned a null success body.";
+
     /// <summary>
     /// Classifies a status under the operation's pinned contract. Generated from the status
     /// table; the single authority the planes and the materializer switch on.
@@ -51,7 +53,7 @@ internal abstract class ResponseAdapter<TResponse>
         try
         {
             return JsonSerializer.Deserialize(rawBody, typeInfo)
-                   ?? throw new OpenCodeTransportException("The opencode API returned a null success body.");
+                   ?? throw new OpenCodeTransportException(NullSuccessBodyMessage);
         }
         catch (JsonException exception)
         {
@@ -67,7 +69,7 @@ internal abstract class ResponseAdapter<TResponse>
         try
         {
             return JsonSerializer.Deserialize(utf8Body, typeInfo)
-                   ?? throw new OpenCodeTransportException("The opencode API returned a null success body.");
+                   ?? throw new OpenCodeTransportException(NullSuccessBodyMessage);
         }
         catch (JsonException exception)
         {

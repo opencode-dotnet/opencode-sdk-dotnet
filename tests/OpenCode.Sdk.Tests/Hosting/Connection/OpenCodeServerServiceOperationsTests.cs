@@ -21,6 +21,21 @@ public sealed class OpenCodeServerServiceOperationsTests
         new ServiceConfigEnvironment(Entries: null));
 
     [Test]
+    public async Task ReconnectAsync_Should_Return_Pre_Cancellation_Through_The_Task()
+    {
+        var token = new CancellationToken(canceled: true);
+        var operations = new OpenCodeServerServiceOperations(_snapshot, _doors);
+        List<Task<OpenCodeServer>> reconnecting = [];
+        void Invoke() => reconnecting.Add(operations.ReconnectAsync(token));
+
+        await Assert.That(Invoke).ThrowsNothing();
+        await Assert.That(reconnecting.Count).IsEqualTo(1);
+        var failure = await Assert.That(reconnecting[0]).Throws<OperationCanceledException>();
+        await Assert.That(failure!.CancellationToken).IsEqualTo(token);
+        await Assert.That(_doors.ReceivedCalls()).IsEmpty();
+    }
+
+    [Test]
     public async Task ReconnectAsync_Should_Ensure_The_Snapshot_With_Ignore_And_No_OnStart()
     {
         await using var replacement = Replacement();

@@ -300,6 +300,90 @@ public sealed class ConnectionResolverTests : IDisposable
         await Assert.That(_reads).IsEmpty();
     }
 
+    [Test]
+    [Arguments("standalone")]
+    [Arguments("discovery-hit")]
+    [Arguments("discovery-miss")]
+    [Arguments("managed")]
+    public async Task ResolveAsync_Should_Forward_The_Callers_Token_To_Every_Door_And_Read(string arm)
+    {
+        using var caller = new CancellationTokenSource();
+        var options = TokenOptions(arm);
+        // TokenOptions always supplies the selected channel.
+        var paths = Paths(options.Service!);
+        Seed(paths.ConfigFile!, new FixtureLoader().LoadJson("BackgroundService.service-config-env-state-home.json"));
+        _doors.DiscoverLocatedAsync(Arg.Any<ServicePaths>(), expectedVersion: null, Arg.Any<CancellationToken>())
+            .Returns(_ => arm == "discovery-hit" ? Shared("2.2.7") : null);
+
+        await using var connection = await OpenCodeServer.ResolveWithSeamsAsync(options, _seams, caller.Token);
+
+        if (options.Standalone || arm == "discovery-miss")
+        {
+            _ = _doors.Received(1).StartAsync(options.Launch, caller.Token);
+            await Assert.That(connection.Mode).IsEqualTo(OpenCodeServerConnectionMode.Standalone);
+        }
+        if (!options.Standalone && !options.Autostart)
+        {
+            _ = _doors.Received(1).DiscoverLocatedAsync(Arg.Any<ServicePaths>(), expectedVersion: null, caller.Token);
+        }
+        if (!options.Standalone && options.Autostart)
+        {
+            _ = _doors.Received(1).EnsureLocatedAsync(
+                Arg.Any<EnsureRequest>(), Arg.Any<ServicePaths>(), Arg.Any<ServiceConfigEnvironment>(), caller.Token);
+        }
+        if (options.Standalone)
+        {
+            await AssertCallsAsync("StartAsync");
+            await Assert.That(_reads).IsEmpty();
+        }
+        else
+        {
+            string[] expectedDoors = arm switch
+            {
+                "discovery-hit" => ["DiscoverLocatedAsync"],
+                "discovery-miss" => ["DiscoverLocatedAsync", "StartAsync"],
+                _ => ["EnsureLocatedAsync"],
+            };
+            await AssertCallsAsync(expectedDoors);
+            await Assert.That(_reads).IsEquivalentTo(
+                [paths.LegacyConfigFile!, paths.ConfigFile!, .. paths.LegacyRegistrationFiles, paths.LegacyConfigFile!, paths.ConfigFile!],
+                CollectionOrdering.Matching);
+        }
+        foreach (var read in _files.ReceivedCalls().Where(call =>
+            call.GetMethodInfo().Name == nameof(IServiceFileSystem.TryReadAllBytesAsync)))
+        {
+            await Assert.That(read.GetArguments()[1]).IsEqualTo(caller.Token);
+        }
+    }
+
+    [Test]
+    [Arguments("standalone")]
+    [Arguments("discovery-hit")]
+    [Arguments("discovery-miss")]
+    [Arguments("managed")]
+    public async Task ResolveAsync_Should_Refuse_A_Cancelled_Call_Before_Any_Door_Or_Read(string arm)
+    {
+        using var caller = new CancellationTokenSource();
+        await caller.CancelOnWorkerAsync();
+
+        var failure = await Assert.That(OpenCodeServer.ResolveWithSeamsAsync(TokenOptions(arm), _seams, caller.Token))
+            .Throws<OperationCanceledException>();
+
+        await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
+        await Assert.That(_doors.ReceivedCalls()).IsEmpty();
+        await Assert.That(_reads).IsEmpty();
+        await Assert.That(_files.ReceivedCalls()).IsEmpty();
+        await Assert.That(_environment.ReceivedCalls()).IsEmpty();
+    }
+
+    private static OpenCodeServerResolveOptions TokenOptions(string arm) => new()
+    {
+        Standalone = arm == "standalone",
+        Autostart = arm is "standalone" or "managed",
+        Launch = new OpenCodeServerOptions(),
+        Service = new OpenCodeServerEnsureOptions { Channel = "dev" },
+    };
+
     private Task<OpenCodeServerConnection> ResolveAsync(OpenCodeServerResolveOptions? options) =>
         OpenCodeServer.ResolveWithSeamsAsync(options, _seams, CancellationToken.None);
 

@@ -23,12 +23,12 @@ public class OpenCodeServerServiceOperations
     /// <summary>Ensures the captured service without a version requirement or start announcement.</summary>
     /// <param name="cancellationToken">The caller's token.</param>
     /// <returns>A new non-owning handle, without changing the resolved connection.</returns>
-    public virtual Task<OpenCodeServer> ReconnectAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<OpenCodeServer> ReconnectAsync(CancellationToken cancellationToken = default)
     {
         var snapshot = _snapshot ?? throw MockSeam.CreateError(nameof(OpenCodeServerServiceOperations), nameof(ReconnectAsync));
         cancellationToken.ThrowIfCancellationRequested();
         // A real instance initializes both collaborators together.
-        return _doors!.EnsureLocatedAsync(snapshot.ReconnectRequest, snapshot.Paths, snapshot.Overlay, cancellationToken);
+        return await _doors!.EnsureLocatedAsync(snapshot.ReconnectRequest, snapshot.Paths, snapshot.Overlay, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Stops with best-effort persistent-terminal handoff, then reconnects to the captured service.</summary>

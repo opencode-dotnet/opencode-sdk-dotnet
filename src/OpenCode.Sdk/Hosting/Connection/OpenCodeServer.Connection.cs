@@ -10,9 +10,10 @@ public partial class OpenCodeServer
     /// <returns>A connection whose mode describes ownership and available service operations.</returns>
     /// <exception cref="ArgumentException">Options contradict one another, the endpoint is refused, or managed options are invalid.</exception>
     /// <exception cref="OpenCodeServerException">An explicit probe failed or a launcher or service door failed.</exception>
-    public static Task<OpenCodeServerConnection> ResolveAsync(
+    public static async Task<OpenCodeServerConnection> ResolveAsync(
         OpenCodeServerResolveOptions? options = null, CancellationToken cancellationToken = default) =>
-        ResolveWithSeamsAsync(options, new ConnectionSeams(new ServerDoors(), new ServiceEnvironment(), new ServiceFileSystem()), cancellationToken);
+        await ResolveWithSeamsAsync(options, new ConnectionSeams(new ServerDoors(), new ServiceEnvironment(), new ServiceFileSystem()), cancellationToken)
+            .ConfigureAwait(false);
 
     /// <summary>The same resolver over injected external boundaries.</summary>
     internal static Task<OpenCodeServerConnection> ResolveWithSeamsAsync(

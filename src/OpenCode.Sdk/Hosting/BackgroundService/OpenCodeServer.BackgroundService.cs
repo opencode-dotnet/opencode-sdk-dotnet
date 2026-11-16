@@ -292,6 +292,30 @@ public partial class OpenCodeServer
         return SharedService(registration);
     }
 
+    /// <summary>The located Ensure over the same injected election boundaries as EnsureWithSeamsAsync.</summary>
+    /// <param name="snapshot">The captured request, service paths and environment overlay.</param>
+    /// <param name="timing">The lifecycle timing.</param>
+    /// <param name="spawner">The contender spawn.</param>
+    /// <param name="time">The clock shared by the election collaborators.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>A non-owning handle over the ready service.</returns>
+    internal static async Task<OpenCodeServer> EnsureLocatedWithSeamsAsync(
+        ManagedServiceSnapshot snapshot,
+        ServiceTiming timing,
+        IServiceContenderSpawner spawner,
+        TimeProvider time,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(timing);
+        ArgumentNullException.ThrowIfNull(spawner);
+        ArgumentNullException.ThrowIfNull(time);
+
+        var registration = await CreateEnsurer(timing, spawner, time)
+            .EnsureLocatedAsync(snapshot.Request, snapshot.Paths, snapshot.Overlay, cancellationToken).ConfigureAwait(false);
+        return SharedService(registration);
+    }
+
     private static ServiceEnsurer CreateEnsurer(ServiceTiming timing, IServiceContenderSpawner spawner, TimeProvider time)
     {
         var fileSystem = new ServiceFileSystem();

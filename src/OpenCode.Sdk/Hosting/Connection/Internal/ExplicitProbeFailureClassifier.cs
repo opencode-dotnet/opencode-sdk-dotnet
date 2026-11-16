@@ -4,6 +4,10 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>The explicit connection's ordered error policy, independent of transport and clocks.</summary>
+/// <remarks>
+/// Pipeline status refusals and <see cref="ResponseAdapter{OpenCodeResponse}.NullSuccessBodyMessage"/>
+/// carry no inner transport cause. Decoder failures carry JsonException; network failures retain their transport cause.
+/// </remarks>
 internal static class ExplicitProbeFailureClassifier
 {
     public static Exception Map(Exception failure, Uri endpoint, bool hasPassword, CancellationToken caller, CancellationToken bound)
@@ -25,11 +29,9 @@ internal static class ExplicitProbeFailureClassifier
             return new OpenCodeServerException($"Could not reach server at {endpoint}: {failure.Message}", failure);
         }
 
-        if (failure is OpenCodeTransportException &&
-            failure is not OpenCodeTransportException { InnerException: JsonException } &&
-            !string.Equals(failure.Message, "The opencode API returned a null success body.", StringComparison.Ordinal))
+        if (failure is OpenCodeTransportException { InnerException: { } cause } && cause is not JsonException)
         {
-            return new OpenCodeServerException($"Could not reach server at {endpoint}: {failure.InnerException?.Message ?? failure.Message}", failure);
+            return new OpenCodeServerException($"Could not reach server at {endpoint}: {cause.Message}", failure);
         }
 
         return new OpenCodeServerException($"Server at {endpoint} did not provide a compatible V2 health response: {failure.Message}", failure);

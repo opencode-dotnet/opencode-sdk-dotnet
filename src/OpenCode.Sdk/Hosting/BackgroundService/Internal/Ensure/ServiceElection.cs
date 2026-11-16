@@ -13,6 +13,10 @@ namespace OpenCode.Sdk.Internal;
 /// Its fields are upstream's loop locals and its contender pool's state; one instance serves one
 /// call.
 /// </summary>
+/// <param name="seams">The election's process, filesystem, network and clock boundaries.</param>
+/// <param name="request">The validated service request.</param>
+/// <param name="paths">The already located service paths.</param>
+/// <param name="snapshot">The captured overlay, or null to read config dynamically at every spawn.</param>
 internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest request, ServicePaths paths, ServiceConfigEnvironment? snapshot)
 {
     private static readonly ServiceProbeResult NoService = new(State: null, Version: null, TimedOut: false, Compatible: true);
@@ -264,8 +268,8 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     }
 
     /// <summary>
-    /// The channel's service-config <c>env</c> (the CLI's <c>ServiceConfig.options()</c>), with the
-    /// caller's entries winning at spawn for a key spelled the same.
+    /// Uses the captured overlay, or reads service config at every spawn when no snapshot was
+    /// supplied, with the caller's entries winning for a key spelled the same.
     /// </summary>
     /// <remarks>
     /// The saved map never supplies <c>XDG_STATE_HOME</c>: clients find the service at its registration

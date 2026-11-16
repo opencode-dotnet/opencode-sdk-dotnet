@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
@@ -200,11 +199,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
         // The service config is selected before the saved environment is applied.
         await Assert.That(server.Endpoint.Port).IsEqualTo(context.Port);
 
-        using var client = server.CreateClient(options =>
-            options.Location = new LocationSelector { Directory = context.RunRoot });
-        var response = await client.Config.GetConfigAsync(cancellationToken: cancellationToken);
-        var directories = response.Config.OfType<ConfigDirectory>()
-            .Select(directory => _fileSystem.Path.GetFullPath(directory.Path)).ToList();
+        var directories = await context.ReadConfigDirectoriesAsync(server, cancellationToken);
 
         // Application config discovery reads the saved environment after startup.
         await Assert.That(directories).Contains(_fileSystem.Path.GetFullPath(savedDirectory));

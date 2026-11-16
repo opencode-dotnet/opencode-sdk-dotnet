@@ -431,8 +431,9 @@ resolves the message's network window from those carried traits.
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
-  `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, and
-  `StopAsync`. This identity guarantee applies when one caller token is supplied, including the
+  `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, `StopAsync`,
+  `ResolveAsync`, `ServiceOperations.ReconnectAsync` and `ServiceOperations.RestartAsync`.
+  This identity guarantee applies when one caller token is supplied, including the
   same token supplied at both enumeration entry points; two distinct cancellable entry tokens
   are both observed but have no token-identity guarantee.
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
@@ -1114,7 +1115,7 @@ through `Environment` — observed on Windows as well as on Unix.
 total deadline on the probe pipeline's clock, not the inactivity-only `NetworkTimeout`. A tagged
 unauthorized response says either “requires a password; set OpenCodeServerResolveOptions.Password”
 or “rejected the password”; transport failures and the deadline say “Could not reach server”, while
-an API error or malformed success body says “did not provide a compatible V2 health response”.
+a protocol-status refusal, API error or malformed success body says “did not provide a compatible V2 health response”.
 Those failures are `OpenCodeServerException` with the original exception inside; caller cancellation
 propagates unwrapped with the caller's token and wins over the deadline. The explicit server's
 version is compared ordinally with the SDK's internal pinned-release comparand, equal to the

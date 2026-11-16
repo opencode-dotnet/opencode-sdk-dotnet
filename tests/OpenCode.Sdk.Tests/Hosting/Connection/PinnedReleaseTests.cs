@@ -13,6 +13,7 @@ public sealed class PinnedReleaseTests
         var releaseTag = receipt.RootElement.GetProperty("releaseTag").GetString();
 
         await Assert.That(releaseTag).IsNotNull();
+        await Assert.That(releaseTag).StartsWith("v");
         await Assert.That(PinnedRelease.Version).IsEqualTo(releaseTag[1..]);
     }
 }

@@ -53,7 +53,7 @@ public sealed class ExplicitProbeFailureClassifierTests
     public async Task Map_Should_Report_An_Incompatible_Health_Response_For_A_Malformed_Body(bool nullBody)
     {
         var cause = nullBody
-            ? new OpenCodeTransportException("The opencode API returned a null success body.")
+            ? new OpenCodeTransportException(ResponseAdapter<OpenCodeResponse>.NullSuccessBodyMessage)
             : new OpenCodeTransportException("malformed body", new JsonException("bad JSON"));
 
         var mapped = ExplicitProbeFailureClassifier.Map(cause, Endpoint, hasPassword: false, default, default);

@@ -9,6 +9,15 @@ public sealed class OpenCodeServerConnectionTests
     private static readonly Uri Endpoint = new("http://127.0.0.1:4096");
 
     [Test]
+    public async Task DisposeAsync_Should_Quietly_Dispose_A_Mock_Connection()
+    {
+        var mock = Substitute.ForPartsOf<OpenCodeServerConnection>();
+
+        await Assert.That(async () => await mock.DisposeAsync()).ThrowsNothing();
+        await Assert.That(async () => await mock.DisposeAsync()).ThrowsNothing();
+    }
+
+    [Test]
     [Arguments(OpenCodeServerConnectionMode.Explicit)]
     [Arguments(OpenCodeServerConnectionMode.Standalone)]
     [Arguments(OpenCodeServerConnectionMode.Service)]
