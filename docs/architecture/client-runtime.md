@@ -107,8 +107,8 @@ resolves the message's network window from those carried traits.
 - `OpenCodeClientOptions.Headers` is a pre-created, empty, ordinal case-insensitive dictionary,
   copied and validated once at construction. `OpenCodeRequestOptions.Headers` is an optional
   read-only dictionary, validated and copied at the call's start before sending; each cursor page
-  is a separate call with its own snapshot. The event subscription refuses a per-call set (Event
-  feed, below).
+  is a separate call with its own snapshot (ADR-0040). The event subscription refuses a per-call set
+  (Event feed, below).
   Case-equivalent names within a per-call set join in insertion order with `", "`.
 - Later steps replace a name: (1) SDK `User-Agent`; (2) client-wide headers; (3) SDK `Authorization`
   from credentials, `x-opencode-directory` from merged location, and operation-declared headers;

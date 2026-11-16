@@ -1,12 +1,11 @@
 # Error model: typed exception spine carrying tagged error data
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 API failures throw through a typed exception spine (`OpenCodeException` →
 `OpenCodeApiException`) by default; per-call `NoThrow` returns them on the response spine.
-The per-call options type carries that choice plus the typed `LocationSelector` location —
-no arbitrary header dictionary (sealed 2026-08-26; internal research, 2026-08-25, "What did the
-coverage-program grilling seal?").
+The per-call options type carries that choice, the typed `LocationSelector` location and caller
+`Headers` (ADR-0040).
 
 Streams and automatic cursor traversals take the shared `OpenCodeRequestOptions`.
 `Location` applies to other streams' connection attempts and every page request; the shared event
