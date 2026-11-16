@@ -39,6 +39,16 @@ internal static class ServiceConfigReader
         return new string(characters, 0, written);
     }
 
+    /// <summary>Decodes a migration donor, refusing a byte-order mark left in the CLI's decoded text.</summary>
+    /// <param name="utf8">The original donor bytes.</param>
+    /// <returns>The decoded UTF-8 bytes, or null when a leading byte-order mark remains.</returns>
+    internal static byte[]? DecodeCliDonor(ReadOnlySpan<byte> utf8)
+    {
+        var text = DecodeCliText(utf8);
+        // TextDecoder strips one BOM; JSON.parse rejects a mark that remains after that decode.
+        return text.Length > 0 && text[0] == '\uFEFF' ? null : System.Text.Encoding.UTF8.GetBytes(text);
+    }
+
     /// <summary>Proves the CLI rejects both shapes; a parser limit is never proof.</summary>
     /// <param name="utf8">The original file bytes.</param>
     /// <returns>True only for a completed syntax or shape rejection.</returns>

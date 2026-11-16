@@ -18,10 +18,6 @@ internal sealed class ServiceCancellationDoors(
     internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
         var options = new OpenCodeServiceConfigOptions();
-        var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(options));
-        await Assert.That(SessionIsolation.Root).IsNotNull();
-        await Assert.That(paths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
-        await Assert.That(paths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
         var inventory = fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories);
         await caller.CancelOnWorkerAsync();
         var failure = await observeCancellation(() => row == "service-config-read"

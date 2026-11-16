@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
@@ -61,14 +59,7 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
     private async Task<byte[]?> ReadDonorAsync(string donor, CancellationToken cancellationToken)
     {
         var bytes = await fileSystem.TryReadAllBytesAsync(donor, cancellationToken).ConfigureAwait(false);
-        if (bytes is null)
-        {
-            return null;
-        }
-
-        var text = ServiceConfigReader.DecodeCliText(bytes);
-        // TextDecoder strips one BOM; JSON.parse rejects a mark that remains after that decode.
-        return text.Length > 0 && text[0] == '\uFEFF' ? null : Encoding.UTF8.GetBytes(text);
+        return bytes is null ? null : ServiceConfigReader.DecodeCliDonor(bytes);
     }
 
     /// <summary>Copies an already-read current-shape donor as the CLI's decoded text, exclusively and best-effort.</summary>

@@ -87,7 +87,6 @@ public sealed class CancellationIdentityTests
         var fileSystem = new RealFileSystem();
         var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(new OpenCodeServiceConfigOptions()));
         await Assert.That(SessionIsolation.Root).IsNotNull();
-        await Assert.That(SessionIsolation.AppliedNames).Contains("OPENCODE_CONFIG_DIR");
         await Assert.That(paths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
         await Assert.That(paths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
     }

@@ -39,14 +39,12 @@ internal sealed class ServiceConfigStore(
                 return new ServiceConfigDocument();
             }
 
-            var decodedText = ServiceConfigReader.DecodeCliText(donorBytes);
-            // TextDecoder strips one BOM; JSON.parse rejects a mark that remains after that decode.
-            if (decodedText.Length > 0 && decodedText[0] == '\uFEFF')
+            var decodedBytes = ServiceConfigReader.DecodeCliDonor(donorBytes);
+            if (decodedBytes is null)
             {
                 return new ServiceConfigDocument();
             }
 
-            var decodedBytes = System.Text.Encoding.UTF8.GetBytes(decodedText);
             var donorDocument = ServiceConfigReader.TryReadDocument(decodedBytes);
             if (donorDocument is not { LegacyRemote: null })
             {

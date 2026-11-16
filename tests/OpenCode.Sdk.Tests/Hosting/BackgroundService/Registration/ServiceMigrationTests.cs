@@ -41,6 +41,14 @@ public sealed class ServiceMigrationTests
         await AssertDecodedDonorAsync(registration, bytes, expected: null);
     }
 
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ApplyAsync_Should_Not_Copy_Donor_Names_That_Collide_After_Decoding(bool registration)
+    {
+        await AssertDecodedDonorAsync(registration, ServiceConfigWriteData.CollidingDonorNames, expected: null);
+    }
+
     private async Task AssertDecodedDonorAsync(bool registration, byte[] bytes, byte[]? expected)
     {
         var paths = ChannelPaths("beta");
