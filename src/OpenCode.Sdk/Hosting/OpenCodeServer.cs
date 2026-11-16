@@ -151,6 +151,7 @@ public partial class OpenCodeServer : IAsyncDisposable
             Username = options.Username,
             Password = password,
             Location = options.Location,
+            HttpHandler = options.HttpHandler,
             NetworkTimeout = options.NetworkTimeout,
             EventStreamIdleTimeout = options.EventStreamIdleTimeout,
         };

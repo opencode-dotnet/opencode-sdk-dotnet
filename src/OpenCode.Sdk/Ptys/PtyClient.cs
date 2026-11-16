@@ -102,9 +102,9 @@ public class PtyClient
         Raw.CreateConnectTokenAsync(request, xOpencodeTicket: PtyTicketHeader.Sentinel, requestOptions, cancellationToken);
 
     /// <summary>
-    /// Opens the PTY's live WebSocket session. The upgrade is the SDK's one transport
-    /// divergence: it builds its own socket, so a caller-supplied <see cref="HttpClient"/>, its
-    /// proxy, and its handler chain do not apply. The client's Basic credential rides the upgrade
+    /// Opens the PTY's live WebSocket session. The upgrade uses
+    /// <see cref="OpenCodeClientOptions.HttpHandler"/> on modern targets, but its own transport
+    /// on downlevel targets. The client's Basic credential rides the upgrade
     /// request's <c>Authorization</c> header — the designed non-browser path — and the SDK never
     /// mints a ticket for its own connection; <see cref="CreateConnectTokenAsync"/> stays the door
     /// for handing a browser one. A missing PTY is refused before the upgrade, while an existing
@@ -131,7 +131,7 @@ public class PtyClient
         ClientTerminalWebSocket socket;
         try
         {
-            socket = new ClientTerminalWebSocket(connection.Authorization);
+            socket = new ClientTerminalWebSocket(connection.Authorization, connection.HttpHandler);
         }
         catch (PlatformNotSupportedException exception)
         {

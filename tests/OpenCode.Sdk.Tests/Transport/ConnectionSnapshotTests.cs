@@ -16,7 +16,7 @@ public sealed class ConnectionSnapshotTests
     [Test]
     public async Task ToString_Should_Not_Carry_The_Credential()
     {
-        var snapshot = new ConnectionSnapshot(EndpointBase, BasicCredential(), Location, new ManualTimeProvider());
+        var snapshot = new ConnectionSnapshot(EndpointBase, BasicCredential(), Location, httpHandler: null, new ManualTimeProvider());
 
         var rendered = Render(snapshot);
 
@@ -46,7 +46,7 @@ public sealed class ConnectionSnapshotTests
     {
         var credential = BasicCredential();
 
-        var snapshot = new ConnectionSnapshot(EndpointBase, credential, Location, new ManualTimeProvider());
+        var snapshot = new ConnectionSnapshot(EndpointBase, credential, Location, httpHandler: null, new ManualTimeProvider());
 
         // Redacting the rendering must not quietly redact the value itself.
         await Assert.That(snapshot.EndpointBase).IsEqualTo(EndpointBase);
@@ -57,7 +57,7 @@ public sealed class ConnectionSnapshotTests
     [Test]
     public async Task The_Snapshot_Should_Accept_An_Anonymous_Unlocated_Connection()
     {
-        var snapshot = new ConnectionSnapshot(EndpointBase, authorization: null, location: null, new ManualTimeProvider());
+        var snapshot = new ConnectionSnapshot(EndpointBase, authorization: null, location: null, httpHandler: null, new ManualTimeProvider());
 
         await Assert.That(snapshot.Authorization).IsNull();
         await Assert.That(snapshot.Location).IsNull();
@@ -66,7 +66,8 @@ public sealed class ConnectionSnapshotTests
     [Test]
     public async Task The_Snapshot_Should_Refuse_A_Blank_Endpoint_Base()
     {
-        _ = Assert.Throws<ArgumentException>(() => _ = new ConnectionSnapshot(" ", authorization: null, location: null, new ManualTimeProvider()));
+        _ = Assert.Throws<ArgumentException>(() => _ = new ConnectionSnapshot(" ", authorization: null, location: null,
+            httpHandler: null, new ManualTimeProvider()));
 
         await Task.CompletedTask;
     }

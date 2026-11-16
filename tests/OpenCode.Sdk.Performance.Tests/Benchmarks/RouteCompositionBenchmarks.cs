@@ -46,7 +46,7 @@ public class RouteCompositionBenchmarks : IDisposable
     [GlobalSetup]
     public void Setup()
     {
-        var connection = new ConnectionSnapshot(EndpointBase, authorization: null, AmbientLocation, TimeProvider.System);
+        var connection = new ConnectionSnapshot(EndpointBase, authorization: null, AmbientLocation, httpHandler: null, TimeProvider.System);
         _exchange = new PipelineExchange(connection, clientNetworkTimeout: null, Terminal, CancellationToken.None);
         _operation = OperationRequest.Describe<object>("session.message.get", HttpMethod.Get,
             OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId), body: null, bodyTypeInfo: null,

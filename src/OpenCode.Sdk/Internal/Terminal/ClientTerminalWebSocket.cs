@@ -5,8 +5,8 @@ namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="ITerminalWebSocket"/>: a thin adapter over <see cref="ClientWebSocket"/>.
-/// This is the SDK's one transport divergence — the upgrade builds its own socket, so a
-/// caller-supplied <see cref="HttpClient"/>, its proxy, and its handler chain do not apply. The
+/// On modern targets the upgrade uses the caller's handler when supplied; downlevel targets
+/// keep the socket's own transport because they cannot accept an invoker. The
 /// Basic credential rides the upgrade request's <c>Authorization</c> header, which is the
 /// designed non-browser path: the API's authentication middleware skips credentials only for a
 /// URL carrying a ticket, and the SDK never mints a ticket for its own connection (a single-use
@@ -15,8 +15,11 @@ namespace OpenCode.Sdk.Internal;
 internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
 {
     private readonly ClientWebSocket _socket = new();
+#if NET
+    private readonly HttpMessageInvoker? _invoker;
+#endif
 
-    public ClientTerminalWebSocket(AuthenticationHeaderValue? authorization)
+    public ClientTerminalWebSocket(AuthenticationHeaderValue? authorization, HttpMessageHandler? httpHandler)
     {
         if (authorization is not null)
         {
@@ -27,6 +30,7 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
         // The pre-upgrade refusals the server answers (404, 401, 403) are only distinguishable
         // from the response status, which the socket keeps solely when asked to.
         _socket.Options.CollectHttpResponseDetails = true;
+        _invoker = httpHandler is null ? null : new HttpMessageInvoker(httpHandler, disposeHandler: false);
 #endif
     }
 
@@ -50,7 +54,13 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
 
         try
         {
+#if NET
+            await (_invoker is null
+                ? _socket.ConnectAsync(uri, cancellationToken)
+                : _socket.ConnectAsync(uri, _invoker, cancellationToken)).ConfigureAwait(false);
+#else
             await _socket.ConnectAsync(uri, cancellationToken).ConfigureAwait(false);
+#endif
         }
         catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
         {
@@ -106,5 +116,17 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
     public Task CloseOutputAsync(CancellationToken cancellationToken) =>
         _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, statusDescription: null, cancellationToken);
 
-    public void Dispose() => _socket.Dispose();
+    public void Dispose()
+    {
+        try
+        {
+            _socket.Dispose();
+        }
+        finally
+        {
+#if NET
+            _invoker?.Dispose();
+#endif
+        }
+    }
 }

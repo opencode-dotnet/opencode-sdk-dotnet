@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Terminal;
 
@@ -18,10 +19,71 @@ public sealed class ClientTerminalWebSocketTests
     /// </summary>
     private static readonly Uri Unreachable = new("ws://127.0.0.1:1/api/pty/pty_100/connect");
 
+#if NET
+    [Test]
+    public async Task HttpHandler_Should_Release_The_Upgrade_Invoker_Without_Disposing_The_Handler()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var socket = new ClientTerminalWebSocket(authorization: null, handler);
+        var invoker = (HttpMessageInvoker)typeof(ClientTerminalWebSocket)
+            .GetField("_invoker", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(socket)!;
+        socket.Dispose();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "http://caller-handler.invalid");
+
+        _ = await Assert.That(async () => _ = await invoker.SendAsync(request, CancellationToken.None)).Throws<ObjectDisposedException>();
+        await Assert.That(handler.IsDisposed).IsFalse();
+    }
+#endif
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task HttpHandler_Should_Carry_Terminal_Upgrades_Only_On_Modern_Targets(bool persistent)
+    {
+        await using var fallback = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse
+        {
+            StatusCode = System.Net.HttpStatusCode.NotFound,
+        });
+        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden));
+        using var client = new OpenCodeClient(new OpenCodeClientOptions
+        {
+            Endpoint = fallback.Endpoint,
+            Password = "secret",
+            HttpHandler = handler,
+        });
+        var failure = await Assert.That(async () =>
+        {
+            if (persistent)
+            {
+                await using var session = await client.PersistentPtys.GetPersistentPtyClient(TerminalId).ConnectAsync();
+            }
+            else
+            {
+                await using var session = await client.Ptys.GetPtyClient(TerminalId).ConnectAsync();
+            }
+        }).Throws<OpenCodeTransportException>();
+
+#if NET
+        await Assert.That(handler.Requests.Count).IsEqualTo(1);
+        var upgrade = handler.Requests.Single();
+        await Assert.That(upgrade.RequestUri!.AbsolutePath).IsEqualTo(persistent
+            ? "/api/experimental/persistent-pty/pty_100/connect" : "/api/pty/pty_100/connect");
+        await Assert.That(upgrade.Authorization).IsEqualTo("Basic b3BlbmNvZGU6c2VjcmV0");
+        await Assert.That(failure!.Message).Contains("403");
+        await Assert.That(fallback.Requests).IsEmpty();
+#else
+        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(fallback.Requests.Single().Headers["Upgrade"]).IsEqualTo("websocket");
+        await Assert.That(failure!.InnerException).IsTypeOf<WebSocketException>();
+#endif
+        client.Dispose();
+        await Assert.That(handler.IsDisposed).IsFalse();
+    }
+
     [Test]
     public async Task ConnectAsync_Should_Refuse_A_Missing_Upgrade_Failure_Policy()
     {
-        using var socket = new ClientTerminalWebSocket(authorization: null);
+        using var socket = new ClientTerminalWebSocket(authorization: null, httpHandler: null);
 
         var failure = await Assert
             .That(async () => await socket.ConnectAsync(Unreachable, TerminalId, policy: null!, CancellationToken.None))
@@ -33,7 +95,7 @@ public sealed class ClientTerminalWebSocketTests
     [Test]
     public async Task ConnectAsync_Should_Route_A_Refused_Upgrade_Through_The_Injected_Policy()
     {
-        using var socket = new ClientTerminalWebSocket(authorization: null);
+        using var socket = new ClientTerminalWebSocket(authorization: null, httpHandler: null);
         var policy = new RecordingUpgradeFailurePolicy();
 
         var failure = await Assert

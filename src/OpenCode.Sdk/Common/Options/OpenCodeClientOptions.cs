@@ -25,6 +25,19 @@ public sealed class OpenCodeClientOptions
     public Uri? Endpoint { get; set; }
 
     /// <summary>
+    /// Gets or sets the handler read once at construction for every HTTP request and event-stream
+    /// connection. The default, <see langword="null"/>, lets the SDK build and own its handler.
+    /// A supplied handler belongs to the caller and is never disposed by the SDK.
+    /// The SDK does not apply its owned-handler settings to it: redirects disabled, a 120-second
+    /// connection lifetime, a 3-second idle timeout, Windows loopback connect, or downlevel
+    /// ServicePoint configuration. The first three settings are recommended; a 3xx response
+    /// returned by the handler is still refused.
+    /// Terminal upgrades use this handler on net10.0 and net11.0; net472 and netstandard2.0 keep
+    /// the SDK's own socket because their ClientWebSocket cannot take a handler.
+    /// </summary>
+    public HttpMessageHandler? HttpHandler { get; set; }
+
+    /// <summary>
     /// Gets or sets the HTTP basic-authentication username; the default is
     /// <c>opencode</c>, the only username the pinned server accepts.
     /// </summary>

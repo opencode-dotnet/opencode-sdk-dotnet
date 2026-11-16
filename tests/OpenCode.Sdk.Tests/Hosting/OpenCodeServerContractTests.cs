@@ -185,24 +185,28 @@ public sealed class OpenCodeServerContractTests
         // that silence loud instead of quiet. Extend both the expected list and the propagation
         // checks, including CreateClient_Should_Copy_And_Snapshot_Configured_Headers_On_The_Wire, when adding the member.
         // Member/type membership is the contract; declaration order is not asserted here.
-        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Headers", "Location", "NetworkTimeout"], CollectionOrdering.Any);
+        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Headers", "HttpHandler", "Location", "NetworkTimeout"],
+            CollectionOrdering.Any);
 
         var server = CreateStartedDoor();
         var sentinelLocation = new LocationSelector { Directory = "/sentinel-workspace" };
         var sentinelWindow = TimeSpan.FromSeconds(42);
         var sentinelIdleWindow = TimeSpan.FromSeconds(23);
+        using var sentinelHandler = new RecordingHttpHandler();
 
         using var client = server.CreateClient(options =>
         {
             options.Location = sentinelLocation;
             options.NetworkTimeout = sentinelWindow;
             options.EventStreamIdleTimeout = sentinelIdleWindow;
+            options.HttpHandler = sentinelHandler;
         });
 
         var pipeline = (Pipeline)typeof(OpenCodeClient)
             .GetField("_pipeline", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(client)!;
         await Assert.That(pipeline.Connection.Location).IsSameReferenceAs(sentinelLocation);
+        await Assert.That(pipeline.Connection.HttpHandler).IsSameReferenceAs(sentinelHandler);
         var carriedWindow = (TimeSpan?)typeof(PipelineExchange)
             .GetField("_clientNetworkTimeout", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(typeof(Pipeline)

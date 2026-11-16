@@ -17,7 +17,7 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 ## Construction and transport ownership
 
 - `OpenCodeClient(OpenCodeClientOptions)` is the only public construction path (ADR-0010).
-- The SDK owns a singleton-friendly transport and disables automatic redirects on every owned
+- By default the SDK owns a singleton-friendly transport and disables automatic redirects on every owned
   handler. A surfaced 3xx is an undeclared protocol response, never a route, authority, method, or
   credential transition the SDK follows implicitly. Modern targets use `SocketsHttpHandler` with a
   120-second pooled connection lifetime and a 3-second pooled idle timeout. Downlevel targets
@@ -27,13 +27,30 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   mutating process-global defaults. The endpoint-scoped `ServicePoint` itself is process-shared, so
   this policy also governs other process traffic to the same endpoint-and-proxy pair (ADR-0010).
   - Recorded divergence: upstream's client leaves fetch's default `redirect: "follow"`
-    (`packages/client/src/promise/generated/client.ts:370-382` at the pin), and the SDK follows no
+    (`packages/client/src/promise/generated/client.ts:370-382` at the pin), and the SDK-owned handler follows no
     redirect (`src/OpenCode.Sdk/Internal/Transport/TransportPolicy.cs:109`, `:119`). Reason: .NET's redirect handling removes `Authorization` on every redirect, a
     same-origin one included (observed on .NET 11 with `SocketsHttpHandler`), while upstream's
     reference runtime keeps it on a same-origin redirect and removes it only across origins
     (observed on Bun 1.4.4). A redirect the SDK followed would reach its target without the
     credential and surface there as a misleading 401. Reversal trigger: .NET keeps `Authorization`
     on a same-origin redirect.
+    A caller's handler decides redirects instead: following them matches upstream's fetch, but a
+    surfaced 3xx is still refused. Disabling redirects is recommended.
+- `OpenCodeClientOptions.HttpHandler` is read once at construction. Null keeps the owned transport;
+  otherwise every HTTP request and event-stream connection uses it through an SDK-owned
+  `HttpClient` with infinite `Timeout`. Disposal releases that wrapper, never the caller's handler.
+
+  | Concern | Owner with a caller's handler |
+  |---|---|
+  | Connections, pooling, proxy, TLS, certificates, HTTP version | Caller, as upstream's fetch |
+  | Redirects | Caller; surfaced 3xx responses remain refused |
+  | Connection lifetime / idle timeout | Caller; 120 s / 3 s are recommended |
+  | Windows loopback connect / downlevel `ServicePoint` setup | Not applied |
+  | Progress window, cancellation, disposal, status walls, errors, SSE framing/reconnect, buffering, headers | SDK |
+
+  Terminal upgrades use the same handler on `net10.0` and `net11.0`, through a non-owning invoker.
+  Recorded divergence: `net472` and `netstandard2.0` keep the socket's own transport because they
+  cannot accept an invoker; revisit if those assets gain that API.
 - The idle timeout keeps the transport from reusing a socket the server has already closed. The
   pinned server sends `Keep-Alive: timeout=5` and closes an idle connection about six seconds after
   its last response. Upstream's two first-party clients avoid that close by different mechanisms:
@@ -42,7 +59,7 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   - Bun's `fetch` ignores the hint and instead evicts a pooled socket as soon as the server's FIN
     arrives.
 
-  The SDK sets undici's value for this server's hint, 3 seconds, as a fixed idle timeout on every
+  The SDK sets undici's value for this server's hint, 3 seconds, on its owned transport on every
   target. A live test pins the hint, so a pin refresh that changes it names this value for
   re-derivation.
   - **.NET Framework is where the timer matters.** It ignores the hint, so without `MaxIdleTime`
@@ -60,8 +77,7 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   the container does not already hold that service type, so a consumer's earlier registration wins.
   Default sub-clients resolve from the registered root. It does not use `IHttpClientFactory` or
   depend on `Microsoft.Extensions.Http` (ADR-0010).
-- No consumer transport-composition seam is public today. An option upstream's first-party client
-  declares, a caller-supplied transport or request headers among them, is admitted as parity
+- An option upstream's first-party client declares, including transport and request headers, is admitted as parity
   without a consumer request, and lands as an option (ADR-0040). Any other seam requires a concrete
   consumer need and a deliberate design; omission is reversible because a future public seam is
   additive (ADR-0010).
@@ -200,11 +216,10 @@ resolves the message's network window from those carried traits.
   owns disposal of the session; peer closure and transport failure can also end the connection.
 - **Transport divergence.** This is one of the two public SDK doors that do not ride the HTTP
   pipeline (the persistent PTY session is the other; the background-service info probe is an
-  internal third). The upgrade builds its own `ClientWebSocket`, so a
-  caller-supplied `HttpClient`, its proxy, its handler chain, the redirect policy, the
-  pooled-connection lifetime, and the pipeline's progress window **do not apply** to a PTY session.
-  What the session does inherit is the construction-time `ConnectionSnapshot` the pipeline
-  publishes: the normalized endpoint, the Basic credential, and the ambient location.
+  internal third). The upgrade uses `HttpHandler` on modern targets, but the socket's own
+  transport downlevel, as specified under Construction and transport ownership. The pipeline's
+  progress window does not govern a PTY session. Its construction-time `ConnectionSnapshot`
+  carries the normalized endpoint, Basic credential, ambient location, and caller's handler.
 - **Authentication.** The Basic credential rides the upgrade request's `Authorization` header. The
   API's authentication middleware skips credentials only for a URL carrying a non-empty `ticket`
   query, so a header-authenticated upgrade is the designed non-browser path. The SDK never mints a

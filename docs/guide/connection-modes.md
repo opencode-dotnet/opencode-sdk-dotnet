@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -15,6 +15,7 @@ register any of them with a container.
   - [🧹 Shutting down the service's persistent terminals](#-shutting-down-the-services-persistent-terminals)
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
 - [🧩 Registering with dependency injection](#-registering-with-dependency-injection)
+- [Supplying a handler](#supplying-a-handler)
 
 ## 🚀 The SDK starts the server
 
@@ -735,6 +736,36 @@ service speaks an incompatible health protocol at a version the call accepts, `E
 at another version, or the 120-second bound expired (a contender's failure when one failed, and
 otherwise the timeout with the last failed replacement as the inner exception, when there was one);
 and `OperationCanceledException` for your own token.
+
+## Supplying a handler
+
+Set `HttpHandler` for a proxy or client certificate. The SDK reads it once and never disposes it;
+keep it alive until every client and terminal session using it has ended. Recommended settings:
+
+```csharp
+using System.Net;
+using OpenCode.Sdk;
+using var handler = new SocketsHttpHandler
+{
+    Proxy = new WebProxy("http://proxy.example:8080"),
+    AllowAutoRedirect = false,
+    PooledConnectionLifetime = TimeSpan.FromSeconds(120),
+    PooledConnectionIdleTimeout = TimeSpan.FromSeconds(3),
+};
+using var client = new OpenCodeClient(new OpenCodeClientOptions
+{
+    Endpoint = new Uri("https://opencode.example"),
+    Password = Environment.GetEnvironmentVariable("OPENCODE_PASSWORD"),
+    HttpHandler = handler,
+});
+var info = await client.Server.GetInfoAsync();
+Console.WriteLine(info.ServerInfo.Version);
+```
+
+Every HTTP call and event-stream reconnect uses it. Terminal upgrades do too on .NET 10/11;
+`net472` and `netstandard2.0` keep their own socket transport. The SDK applies none of its handler
+settings to yours. If yours follows redirects, the SDK sees only the final response; a returned
+3xx is still refused. The SDK's progress window and cancellation rules remain unchanged.
 
 ## 🧩 Registering with dependency injection
 

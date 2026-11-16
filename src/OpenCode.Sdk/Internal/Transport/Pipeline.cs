@@ -26,7 +26,7 @@ internal sealed class Pipeline : IDisposable
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
         IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null,
-        TimeProvider? time = null)
+        TimeProvider? time = null, HttpMessageHandler? httpHandler = null)
     {
         _lifetime = new ClientLifetime(_lifetimeSource.Token);
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -76,7 +76,7 @@ internal sealed class Pipeline : IDisposable
         var authorization = password is null
             ? null
             : new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}")));
-        _transport = new TransportPolicy(httpClient, ownsHttpClient);
+        _transport = new TransportPolicy(httpClient, ownsHttpClient, ownsHttpHandler: httpHandler is null);
         PipelinePolicy[] policies =
         [
             new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve(),
@@ -86,9 +86,9 @@ internal sealed class Pipeline : IDisposable
         ];
 
         // The same snapshot, published for the one door that cannot ride these policies: a PTY
-        // WebSocket upgrade builds its own socket and therefore needs the endpoint, the
-        // credential, and the ambient location the policies keep to themselves.
-        Connection = new ConnectionSnapshot(endpointBase, authorization, options.Location, time);
+        // WebSocket upgrade needs the endpoint, credential, location and caller's handler
+        // the policies keep to themselves.
+        Connection = new ConnectionSnapshot(endpointBase, authorization, options.Location, httpHandler, time);
         _exchange = new PipelineExchange(Connection, options.NetworkTimeout, policies, _lifetime.Token);
         _streamPlane = new StreamPlane(_exchange, framer, _lifetime);
     }
@@ -111,10 +111,13 @@ internal sealed class Pipeline : IDisposable
 
         // Validate before constructing the owned client so a refused endpoint leaks nothing.
         _ = EndpointPolicy.Normalize(options.Endpoint);
-        var httpClient = TransportPolicy.CreateOwnedHttpClient(options.Endpoint);
+        var httpHandler = options.HttpHandler;
+        var httpClient = httpHandler is null
+            ? TransportPolicy.CreateOwnedHttpClient(options.Endpoint)
+            : TransportPolicy.CreateHttpClient(httpHandler);
         try
         {
-            return new Pipeline(httpClient, ownsHttpClient: true, options, time: time);
+            return new Pipeline(httpClient, ownsHttpClient: true, options, time: time, httpHandler: httpHandler);
         }
         catch
         {
