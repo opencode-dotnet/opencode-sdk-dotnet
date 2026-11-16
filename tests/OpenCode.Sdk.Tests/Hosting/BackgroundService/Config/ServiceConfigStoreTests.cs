@@ -90,7 +90,7 @@ public sealed class ServiceConfigStoreTests
         await scenario.SeedAsync(scenario.Paths.LegacyConfigFile!, bytes);
         scenario.ClearCalls();
 
-        var password = await new ServiceConfigEditor(scenario.Store).GetOrCreatePasswordAsync(scenario.Options, CancellationToken.None);
+        var password = await new ServiceConfigEditor(scenario.Store, scenario.StopAsync).GetOrCreatePasswordAsync(scenario.Options, CancellationToken.None);
 
         await Assert.That(password).IsEqualTo("stored-password");
         await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None))
@@ -110,7 +110,7 @@ public sealed class ServiceConfigStoreTests
         scenario.ClearCalls();
         var inventory = scenario.Inventory();
         var error = await Assert.That(async () =>
-            await new ServiceConfigEditor(scenario.Store).GetOrCreatePasswordAsync(scenario.Options, CancellationToken.None))
+            await new ServiceConfigEditor(scenario.Store, scenario.StopAsync).GetOrCreatePasswordAsync(scenario.Options, CancellationToken.None))
             .Throws<OpenCodeServerException>();
         await Assert.That(error).IsNotNull();
         await Assert.That(error.Message).Contains(scenario.Paths.LegacyConfigFile!);
@@ -126,7 +126,7 @@ public sealed class ServiceConfigStoreTests
         var initial = await scenario.SeedDonorAsync("all-members");
         scenario.FileSystem.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, Arg.Any<CancellationToken>()).Returns((byte[]?)null);
         scenario.ClearCalls();
-        var password = await new ServiceConfigEditor(scenario.Store).GetOrCreatePasswordAsync(scenario.Options, CancellationToken.None);
+        var password = await new ServiceConfigEditor(scenario.Store, scenario.StopAsync).GetOrCreatePasswordAsync(scenario.Options, CancellationToken.None);
         await Assert.That(password).IsEqualTo("ABEiM0RVZneImaq7zN3u_xAhMkNUZXaHmKm6y9zt_g8");
         var bytes = await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None);
         var document = ServiceConfigReader.TryReadDocument(bytes!);

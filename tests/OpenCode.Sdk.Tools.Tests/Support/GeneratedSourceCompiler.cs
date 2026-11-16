@@ -69,6 +69,7 @@ internal static class GeneratedSourceCompiler
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServerIncumbent.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/BackgroundService/OpenCodeServiceConfiguration.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/Connection/OpenCodeServer.Connection.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/Connection/OpenCodeServer.Connection.cs", "Server/ServerClient.cs"),
         ("Hosting/Connection/OpenCodeServer.Connection.cs", "Common/Errors/UnauthorizedError.cs"),

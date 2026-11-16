@@ -41,6 +41,16 @@ internal sealed class ServiceCancellationDoors(
         return failure;
     }
 
+    internal async Task<OperationCanceledException> AtConfigStopPreCancelledAsync(CancellationTokenSource caller)
+    {
+        var inventory = fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories);
+        await caller.CancelOnWorkerAsync();
+        var failure = await observeCancellation(() => OpenCodeServiceConfiguration.SetHostnameAsync("localhost", cancellationToken: caller.Token));
+        await Assert.That(fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories))
+            .IsEquivalentTo(inventory, CollectionOrdering.Any);
+        return failure;
+    }
+
     internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
         var options = new OpenCodeServiceConfigOptions();

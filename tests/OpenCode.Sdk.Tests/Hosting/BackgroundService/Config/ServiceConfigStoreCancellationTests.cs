@@ -44,7 +44,7 @@ public sealed class ServiceConfigStoreCancellationTests
             }
             else
             {
-                _ = await new ServiceConfigEditor(scenario.Store).GetOrCreatePasswordAsync(scenario.Options, caller.Token);
+                _ = await new ServiceConfigEditor(scenario.Store, scenario.StopAsync).GetOrCreatePasswordAsync(scenario.Options, caller.Token);
             }
         }).Throws<OperationCanceledException>();
 

@@ -1,1 +1,326 @@
-[]
+[
+  {
+    "origin": "http://example.com",
+    "valid": true
+  },
+  {
+    "origin": "https://example.com",
+    "valid": true
+  },
+  {
+    "origin": "not-a-url",
+    "valid": false
+  },
+  {
+    "origin": "*",
+    "valid": false
+  },
+  {
+    "origin": "null",
+    "valid": false
+  },
+  {
+    "origin": "",
+    "valid": false
+  },
+  {
+    "origin": " ",
+    "valid": false
+  },
+  {
+    "origin": "ftp://example.com",
+    "valid": false
+  },
+  {
+    "origin": "https://example.com/",
+    "valid": false
+  },
+  {
+    "origin": "https://example.com/path",
+    "valid": false
+  },
+  {
+    "origin": "https://example.com?query=1",
+    "valid": false
+  },
+  {
+    "origin": "https://example.com#fragment",
+    "valid": false
+  },
+  {
+    "origin": "https://user:password@example.com",
+    "valid": false
+  },
+  {
+    "origin": "HTTP://example.com",
+    "valid": false
+  },
+  {
+    "origin": "http://EXAMPLE.com",
+    "valid": false
+  },
+  {
+    "origin": "https://Example.COM",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com:80",
+    "valid": false
+  },
+  {
+    "origin": "https://example.com:443",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com:443",
+    "valid": true
+  },
+  {
+    "origin": "https://example.com:80",
+    "valid": true
+  },
+  {
+    "origin": "http://example.com:0",
+    "valid": true
+  },
+  {
+    "origin": "http://example.com:65535",
+    "valid": true
+  },
+  {
+    "origin": "http://example.com:65536",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com:08080",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com:8080",
+    "valid": true
+  },
+  {
+    "origin": "http://example.com:",
+    "valid": false
+  },
+  {
+    "origin": "http://127.0.0.1",
+    "valid": true
+  },
+  {
+    "origin": "http://127.1",
+    "valid": false
+  },
+  {
+    "origin": "http://0x7f000001",
+    "valid": false
+  },
+  {
+    "origin": "http://0177.0.0.1",
+    "valid": false
+  },
+  {
+    "origin": "http://127.000.000.001",
+    "valid": false
+  },
+  {
+    "origin": "http://4294967295",
+    "valid": false
+  },
+  {
+    "origin": "http://255.255.255.255",
+    "valid": true
+  },
+  {
+    "origin": "http://256.0.0.1",
+    "valid": false
+  },
+  {
+    "origin": "http://[::1]",
+    "valid": true
+  },
+  {
+    "origin": "http://[0:0:0:0:0:0:0:1]",
+    "valid": false
+  },
+  {
+    "origin": "http://[2001:db8::1]",
+    "valid": true
+  },
+  {
+    "origin": "http://[2001:DB8::1]",
+    "valid": false
+  },
+  {
+    "origin": "http://[2001:0db8::1]",
+    "valid": false
+  },
+  {
+    "origin": "http://[::ffff:192.0.2.1]",
+    "valid": false
+  },
+  {
+    "origin": "http://[::ffff:c000:201]",
+    "valid": true
+  },
+  {
+    "origin": "http://[::]",
+    "valid": true
+  },
+  {
+    "origin": "http://[1:0:0:2:0:0:3:4]",
+    "valid": false
+  },
+  {
+    "origin": "http://[1::2:0:0:3:4]",
+    "valid": true
+  },
+  {
+    "origin": "http://[fe80::1%25eth0]",
+    "valid": false
+  },
+  {
+    "origin": "http://localhost",
+    "valid": true
+  },
+  {
+    "origin": "http://single",
+    "valid": true
+  },
+  {
+    "origin": "http://example.com.",
+    "valid": true
+  },
+  {
+    "origin": "http://under_score.example",
+    "valid": true
+  },
+  {
+    "origin": "http://%65xample.com",
+    "valid": false
+  },
+  {
+    "origin": "http://é.example",
+    "valid": false
+  },
+  {
+    "origin": "http://xn--9ca.example",
+    "valid": true
+  },
+  {
+    "origin": "http://xn--.example",
+    "valid": false
+  },
+  {
+    "origin": "http://xn--a.example",
+    "valid": false
+  },
+  {
+    "origin": "http://",
+    "valid": false
+  },
+  {
+    "origin": "http:/a",
+    "valid": false
+  },
+  {
+    "origin": "http:a",
+    "valid": false
+  },
+  {
+    "origin": "http://exa mple.com",
+    "valid": false
+  },
+  {
+    "origin": "http://exa\tmple.com",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com\n",
+    "valid": true
+  },
+  {
+    "origin": "http://example.42",
+    "valid": false
+  },
+  {
+    "origin": "http://example.0x10",
+    "valid": false
+  },
+  {
+    "origin": "http://example.0xg",
+    "valid": true
+  },
+  {
+    "origin": "http://09",
+    "valid": false
+  },
+  {
+    "origin": "http://a-b.example",
+    "valid": true
+  },
+  {
+    "origin": "http://-a.example",
+    "valid": true
+  },
+  {
+    "origin": "http://a-.example",
+    "valid": true
+  },
+  {
+    "origin": "https://localhost:4096",
+    "valid": true
+  },
+  {
+    "origin": "https://[::1]:4096",
+    "valid": true
+  },
+  {
+    "origin": "http://[::1]:80",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com\\",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com//",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com/?",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com/#",
+    "valid": false
+  },
+  {
+    "origin": "http://example.com:000",
+    "valid": false
+  },
+  {
+    "origin": " https://example.com ",
+    "valid": true
+  },
+  {
+    "origin": "﻿https://example.com﻿",
+    "valid": true
+  },
+  {
+    "origin": "　https://example.com　",
+    "valid": true
+  },
+  {
+    "origin": " https://example.com ",
+    "valid": true
+  },
+  {
+    "origin": "https://example.com",
+    "valid": false
+  },
+  {
+    "origin": "​https://example.com​",
+    "valid": false
+  }
+]

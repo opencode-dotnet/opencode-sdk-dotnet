@@ -11,6 +11,80 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 public sealed class OpenCodeServiceConfigurationTests
 {
     [Test]
+    [Arguments("hostname", "hostname", typeof(ArgumentNullException))]
+    [Arguments("password", "password", typeof(ArgumentNullException))]
+    [Arguments("name", "name", typeof(ArgumentNullException))]
+    [Arguments("value", "value", typeof(ArgumentNullException))]
+    [Arguments("unset-name", "name", typeof(ArgumentNullException))]
+    [Arguments("origins", "origins", typeof(ArgumentNullException))]
+    [Arguments("null-item", "origins", typeof(ArgumentNullException))]
+    [Arguments("empty", "origins", typeof(ArgumentException))]
+    [Arguments("comma", "origins", typeof(ArgumentException))]
+    [Arguments("invalid", "origins", typeof(ArgumentException))]
+    [Arguments("port-zero", "port", typeof(ArgumentOutOfRangeException))]
+    [Arguments("port-over", "port", typeof(ArgumentOutOfRangeException))]
+    [Arguments("setting-negative", "setting", typeof(ArgumentOutOfRangeException))]
+    [Arguments("setting-over", "setting", typeof(ArgumentOutOfRangeException))]
+    public async Task ServiceConfigEditor_Should_Refuse_Invalid_Arguments_Before_Using_Collaborators(
+        string guard, string parameter, Type exceptionType)
+    {
+        var scenario = new ServiceConfigScenario();
+        var editor = scenario.Editor;
+        Func<Task> operation = guard switch
+        {
+            "hostname" => () => OpenCodeServiceConfiguration.SetHostnameWithSeamsAsync(null!, scenario.Options, editor, CancellationToken.None),
+            "password" => () => OpenCodeServiceConfiguration.SetPasswordWithSeamsAsync(null!, scenario.Options, editor, CancellationToken.None),
+            "name" => () => OpenCodeServiceConfiguration.SetEnvironmentVariableWithSeamsAsync(null!, "v", scenario.Options, editor, CancellationToken.None),
+            "value" => () => OpenCodeServiceConfiguration.SetEnvironmentVariableWithSeamsAsync("k", null!, scenario.Options, editor, CancellationToken.None),
+            "unset-name" => () => OpenCodeServiceConfiguration.UnsetEnvironmentVariableWithSeamsAsync(null!, scenario.Options, editor, CancellationToken.None),
+            "origins" => () => OpenCodeServiceConfiguration.SetCorsOriginsWithSeamsAsync(null!, scenario.Options, editor, CancellationToken.None),
+            "null-item" => () => OpenCodeServiceConfiguration.SetCorsOriginsWithSeamsAsync([null!], scenario.Options, editor, CancellationToken.None),
+            "empty" => () => OpenCodeServiceConfiguration.SetCorsOriginsWithSeamsAsync([], scenario.Options, editor, CancellationToken.None),
+            "comma" => () => OpenCodeServiceConfiguration.SetCorsOriginsWithSeamsAsync(["http://a,http://b"], scenario.Options, editor, CancellationToken.None),
+            "invalid" => () => OpenCodeServiceConfiguration.SetCorsOriginsWithSeamsAsync(["http://a/"], scenario.Options, editor, CancellationToken.None),
+            "port-zero" => () => OpenCodeServiceConfiguration.SetPortWithSeamsAsync(0, scenario.Options, editor, CancellationToken.None),
+            "port-over" => () => OpenCodeServiceConfiguration.SetPortWithSeamsAsync(65536, scenario.Options, editor, CancellationToken.None),
+            "setting-negative" => () => OpenCodeServiceConfiguration.UnsetWithSeamsAsync((OpenCodeServiceSetting)(-1), scenario.Options, editor, CancellationToken.None),
+            _ => () => OpenCodeServiceConfiguration.UnsetWithSeamsAsync((OpenCodeServiceSetting)5, scenario.Options, editor, CancellationToken.None),
+        };
+        var failure = await Assert.That(operation).Throws<ArgumentException>();
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure.GetType()).IsEqualTo(exceptionType);
+        await Assert.That(failure.ParamName).IsEqualTo(parameter);
+        await AssertUncalledAsync(scenario);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ServiceConfigEditor_Should_Refuse_Blank_Options_Before_Using_Collaborators(bool channel)
+    {
+        foreach (var row in ServiceConfigEditData.Cases)
+        {
+            var scenario = new ServiceConfigScenario();
+            scenario.Options.Channel = channel ? " " : "local";
+            scenario.Options.InstalledVersion = channel ? null : " ";
+            await AssertOptionRefusalAsync(() => ServiceConfigEditData.InvokeAsync(scenario, row.Command, CancellationToken.None), scenario);
+        }
+    }
+
+    private static async Task AssertUncalledAsync(ServiceConfigScenario scenario)
+    {
+        await Assert.That(scenario.FileSystem.ReceivedCalls()).IsEmpty();
+        await Assert.That(scenario.Environment.ReceivedCalls()).IsEmpty();
+        await Assert.That(scenario.Stops).IsEmpty();
+    }
+
+    private static async Task AssertOptionRefusalAsync(Func<Task> operation, ServiceConfigScenario scenario)
+    {
+        var failure = await Assert.That(operation).Throws<ArgumentException>();
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure.ParamName).IsEqualTo("options");
+        await Assert.That(failure.Message).StartsWith("OpenCodeServiceConfigOptions.");
+        await AssertUncalledAsync(scenario);
+    }
+
+    [Test]
     public async Task GetOrCreatePasswordAsync_Should_Validate_Options_At_The_Public_Door()
     {
         using var caller = new CancellationTokenSource();
@@ -212,7 +286,6 @@ public sealed class OpenCodeServiceConfigurationTests
         {
             var name = row.GetProperty("name").GetString()!;
             var verdict = verdicts.RootElement.EnumerateArray().Single(item => item.GetProperty("name").GetString() == name);
-            await Assert.That(verdict.GetProperty("outcome").GetString()).IsEqualTo("ok");
             await AssertParityRowAsync(row, verdict);
         }
     }
@@ -228,11 +301,22 @@ public sealed class OpenCodeServiceConfigurationTests
         scenario.ClearCalls();
         var inventory = scenario.Inventory();
         var command = row.GetProperty("command").EnumerateArray().Select(static item => item.GetString()!).ToArray();
+        if (verdict.GetProperty("outcome").GetString() == "error")
+        {
+            await Assert.That(async () => await InvokeParityAsync(scenario, command, verdict)).Throws<ArgumentException>();
+            await Assert.That(scenario.Stops).IsEmpty();
+            await Assert.That(scenario.Calls).IsEmpty();
+            await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
+            await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None))
+                .IsEquivalentTo(Encoding.UTF8.GetBytes(initial!), CollectionOrdering.Matching);
+            return;
+        }
         if (row.TryGetProperty("divergence", out _))
         {
             var failure = await Assert.That(async () => await InvokeParityAsync(scenario, command, verdict)).Throws<OpenCodeServerException>();
             await Assert.That(failure).IsNotNull();
             await Assert.That(failure.Message).Contains(scenario.Paths.ConfigFile!);
+            await Assert.That(scenario.Stops).IsEmpty();
             await scenario.AssertUnchangedAsync(scenario.Paths.ConfigFile!, initial!, inventory);
             await Assert.That(scenario.Calls).IsEquivalentTo(["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile], CollectionOrdering.Matching);
             return;
@@ -258,7 +342,13 @@ public sealed class OpenCodeServiceConfigurationTests
             actual = MaskGenerated(actual!, "\n  \"password\": ", password, "@password");
         }
         await Assert.That(actual).IsEqualTo(expected).Because(row.GetProperty("name").GetString()!);
-        if (expected == initial)
+        if (command[0] is "set" or "unset")
+        {
+            var remote = Member(original.RootElement, "remote").ValueKind;
+            await Assert.That(scenario.Events.Count(static item => item == "rename"))
+                .IsEqualTo(remote is JsonValueKind.True or JsonValueKind.False ? 2 : 1);
+        }
+        else if (expected == initial)
         {
             await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
             string[] calls = initial is null
@@ -278,14 +368,18 @@ public sealed class OpenCodeServiceConfigurationTests
 
     private static async Task InvokeParityAsync(ServiceConfigScenario scenario, string[] command, JsonElement verdict)
     {
-        if (command[0] == "read")
+        if (command[0] is "set" or "unset")
+        {
+            await ServiceConfigEditData.InvokeAsync(scenario, command, CancellationToken.None);
+        }
+        else if (command[0] == "read")
         {
             _ = await scenario.Store.ReadForWriteAsync(ServiceSelection.Snapshot(scenario.Options), CancellationToken.None);
         }
         else if (command.Length == 2)
         {
             var password = await OpenCodeServiceConfiguration.GetOrCreatePasswordWithSeamsAsync(
-                scenario.Options, new ServiceConfigEditor(scenario.Store), CancellationToken.None);
+                scenario.Options, new ServiceConfigEditor(scenario.Store, scenario.StopAsync), CancellationToken.None);
             var expected = verdict.GetProperty("output").GetString();
             if (expected == "@password")
             {
@@ -316,16 +410,8 @@ public sealed class OpenCodeServiceConfigurationTests
         scenario.Options.Channel = channel ? " " : null;
         scenario.Options.InstalledVersion = channel ? null : "\t";
 
-        var failure = await Assert.That(async () =>
-        {
-            _ = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, CancellationToken.None);
-        }).Throws<ArgumentException>();
-
-        await Assert.That(failure).IsNotNull();
-        await Assert.That(failure.ParamName).IsEqualTo("options");
-        await Assert.That(failure.Message).StartsWith("OpenCodeServiceConfigOptions.");
-        await Assert.That(scenario.FileSystem.ReceivedCalls()).IsEmpty();
-        await Assert.That(scenario.Environment.ReceivedCalls()).IsEmpty();
+        await AssertOptionRefusalAsync(() => OpenCodeServiceConfiguration.ReadWithSeamsAsync(
+            scenario.Options, scenario.Store, CancellationToken.None), scenario);
     }
 
     [Test]

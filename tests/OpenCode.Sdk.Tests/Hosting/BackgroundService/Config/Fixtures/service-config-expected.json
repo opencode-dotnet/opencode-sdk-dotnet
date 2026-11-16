@@ -215,5 +215,488 @@
     "message": null,
     "output": "{\n  \"cors\": [\n    \"\\ud800\"\n  ],\n  \"env\": {\n    \"A\": \"1\"\n  }\n}",
     "file": "{\"cors\":[\"\\ud800\"],\"env\":{\"A\":\"1\"}}"
+  },
+  {
+    "name": "set-disabled-on",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096,\n  \"disabled\": true\n}\n"
+  },
+  {
+    "name": "set-disabled-off",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"disabled\": false,\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "set-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"hostname\": \"after\",\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "set-port",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4097,\n  \"password\": \"kept\"\n}\n"
+  },
+  {
+    "name": "set-password",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096,\n  \"password\": \"after\"\n}\n"
+  },
+  {
+    "name": "set-cors",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"hostname\": \"127.0.0.1\",\n  \"port\": 4321,\n  \"password\": \"test-secret\",\n  \"env\": {\n    \"TEST\": \"value\"\n  },\n  \"cors\": [\n    \"http://192.0.2.10:3001\",\n    \"https://app.example.com\"\n  ]\n}\n"
+  },
+  {
+    "name": "set-env-present",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096,\n  \"env\": {\n    \"B\": \"b\",\n    \"A\": \"after\",\n    \"C\": \"c\"\n  }\n}\n"
+  },
+  {
+    "name": "set-env-new",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"env\": {\n    \"2\": \"two\",\n    \"B\": \"b\",\n    \"01\": \"one\",\n    \"A\": \"after\"\n  }\n}\n"
+  },
+  {
+    "name": "set-remote-route",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096,\n  \"remoteAccepted\": true\n}\n"
+  },
+  {
+    "name": "set-remote-route-accepted",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"remoteAccepted\": true\n}\n"
+  },
+  {
+    "name": "set-remote-absent",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "set-remote-absent-accepted",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"remoteAccepted\": true\n}\n"
+  },
+  {
+    "name": "unset-remote-route",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"password\": \"kept\",\n  \"remoteAccepted\": true\n}\n"
+  },
+  {
+    "name": "unset-remote-route-accepted",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"remoteAccepted\": true\n}\n"
+  },
+  {
+    "name": "unset-remote-absent",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "unset-remote-absent-accepted",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"remoteAccepted\": true\n}\n"
+  },
+  {
+    "name": "unset-disabled",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "unset-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "unset-port",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"password\": \"kept\"\n}\n"
+  },
+  {
+    "name": "unset-password",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "unset-cors",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "unset-env-last",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "unset-env-absent-name",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"env\": {\n    \"B\": \"b\",\n    \"A\": \"a\"\n  }\n}\n"
+  },
+  {
+    "name": "unset-env-remaining",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096,\n  \"env\": {\n    \"B\": \"b\",\n    \"C\": \"c\"\n  }\n}\n"
+  },
+  {
+    "name": "absent-set-disabled-on",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"disabled\": true\n}\n"
+  },
+  {
+    "name": "absent-set-disabled-off",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"disabled\": false\n}\n"
+  },
+  {
+    "name": "absent-set-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"hostname\": \"localhost\"\n}\n"
+  },
+  {
+    "name": "absent-set-port",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "absent-set-password",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"password\": \"saved\"\n}\n"
+  },
+  {
+    "name": "absent-set-cors",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"cors\": [\n    \"https://a.example\"\n  ]\n}\n"
+  },
+  {
+    "name": "absent-set-env",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"env\": {\n    \"A\": \"a\"\n  }\n}\n"
+  },
+  {
+    "name": "absent-set-remote",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-disabled",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-port",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-password",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-cors",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-env",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "absent-unset-remote",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "legacy-set-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"remote\": {\n    \"route\": \"@route\"\n  },\n  \"hostname\": \"after\",\n  \"env\": {\n    \"A\": \"a\"\n  }\n}\n"
+  },
+  {
+    "name": "legacy-set-disabled-off",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"hostname\": \"before\",\n  \"env\": {\n    \"A\": \"a\"\n  },\n  \"remote\": {\n    \"route\": \"@route\"\n  },\n  \"disabled\": false\n}\n"
+  },
+  {
+    "name": "empty-set-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096,\n  \"hostname\": \"\"\n}\n"
+  },
+  {
+    "name": "empty-set-password",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"password\": \"\"\n}\n"
+  },
+  {
+    "name": "empty-name-set-env",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"env\": {\n    \"\": \"v\"\n  }\n}\n"
+  },
+  {
+    "name": "empty-value-set-env",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"env\": {\n    \"k\": \"\"\n  }\n}\n"
+  },
+  {
+    "name": "cors-duplicates",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"cors\": [\n    \"https://b.example\",\n    \"https://a.example\",\n    \"https://b.example\"\n  ]\n}\n"
+  },
+  {
+    "name": "cors-nbsp",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"cors\": [\n    \"https://a.example\"\n  ]\n}\n"
+  },
+  {
+    "name": "cors-bom",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"cors\": [\n    \"https://a.example\"\n  ]\n}\n"
+  },
+  {
+    "name": "cors-ideographic",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"cors\": [\n    \"https://a.example\"\n  ]\n}\n"
+  },
+  {
+    "name": "cors-line-separator",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"cors\": [\n    \"https://a.example\"\n  ]\n}\n"
+  },
+  {
+    "name": "cors-next-line",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{}"
+  },
+  {
+    "name": "cors-zero-width",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{}"
+  },
+  {
+    "name": "cors-empty",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-blank",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-comma",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-trailing-comma",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-leading-comma",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-double-comma",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-default-port",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "cors-path",
+    "outcome": "error",
+    "message": "CORS must be a comma-separated list of HTTP(S) origins without paths or trailing slashes",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "port-zero",
+    "outcome": "error",
+    "message": "Port must be between 1 and 65535",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "port-negative",
+    "outcome": "error",
+    "message": "Port must be between 1 and 65535",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "port-over",
+    "outcome": "error",
+    "message": "Port must be between 1 and 65535",
+    "output": null,
+    "file": "{\"port\":4096}"
+  },
+  {
+    "name": "port-first",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 1\n}\n"
+  },
+  {
+    "name": "port-last",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 65535\n}\n"
+  },
+  {
+    "name": "same-set-port",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4096\n}\n"
+  },
+  {
+    "name": "same-unset-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
+  },
+  {
+    "name": "q2-set",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"port\": 4097,\n  \"hostname\": \"after\"\n}\n"
+  },
+  {
+    "name": "q2-unset",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{}\n"
   }
 ]

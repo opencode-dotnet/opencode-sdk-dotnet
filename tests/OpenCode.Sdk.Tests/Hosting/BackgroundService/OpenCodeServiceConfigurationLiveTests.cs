@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
@@ -13,12 +14,10 @@ public sealed class OpenCodeServiceConfigurationLiveTests(PinnedManagedServiceFi
     [Test]
     public async Task GetOrCreatePasswordAsync_Should_Return_The_Managed_Service_Password_Without_Writing()
     {
-        var environment = Substitute.For<IServiceEnvironment>();
-        environment.GetEnvironmentVariable(Arg.Any<string>()).Returns(call =>
-            service.Environment.TryGetValue(call.Arg<string>(), out var value) ? value : null);
-        environment.UserProfile.Returns(service.Environment.TryGetValue("HOME", out var home) ? home : service.Environment["USERPROFILE"]);
+        var scenario = new ServiceConfigLiveScenario(service);
+        var environment = scenario.Environment;
         using var random = RandomNumberGenerator.Create();
-        var actual = new ServiceFileSystem();
+        var actual = scenario.Files;
         var files = Substitute.For<IServiceFileSystem>();
         files.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call =>
             actual.TryReadAllBytesAsync(call.ArgAt<string>(0), call.ArgAt<CancellationToken>(1)));
@@ -28,11 +27,14 @@ public sealed class OpenCodeServiceConfigurationLiveTests(PinnedManagedServiceFi
         await Assert.That(before).IsNotNull();
         var registration = await ServiceRegistrationReader.TryReadAsync(actual, service.RegistrationFile, CancellationToken.None);
         await Assert.That(registration).IsNotNull();
-        var editor = new ServiceConfigEditor(new ServiceConfigStore(environment, files, TimeProvider.System, new RandomCredential(random)));
+        var stops = 0;
+        var editor = new ServiceConfigEditor(new ServiceConfigStore(environment, files, TimeProvider.System, new RandomCredential(random)),
+            (options, token) => { stops++; return Task.CompletedTask; });
 
         var password = await editor.GetOrCreatePasswordAsync(options, CancellationToken.None);
 
         await Assert.That(password).IsEqualTo(registration.Password);
+        await Assert.That(stops).IsEqualTo(0);
         await Assert.That(files.ReceivedCalls().Select(static call => call.GetMethodInfo().Name))
             .IsEquivalentTo(["TryReadAllBytesAsync"], CollectionOrdering.Matching);
         var read = files.ReceivedCalls().Single();
