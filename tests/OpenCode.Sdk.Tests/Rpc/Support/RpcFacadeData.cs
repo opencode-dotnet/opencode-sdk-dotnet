@@ -10,9 +10,6 @@ internal static class RpcFacadeData
     public const string ObservedName = "observed";
     public const string ObservedType = "rpc.opencode.sdk.test.rpc.observed";
     public const string EventId = "evt_rpc";
-    public const string ObservedEventFrame =
-        "{\"id\":\"" + EventId + "\",\"created\":0,\"type\":\"" + ObservedType
-        + "\",\"location\":{\"directory\":\"" + Directory + "\"},\"data\":{\"nonce\":\"" + Nonce + "\"}}";
     public const string OtherEventFrame =
         "{\"id\":\"evt_other\",\"created\":0,\"type\":\"rpc.other\",\"location\":{\"directory\":\"/repo\"},\"data\":{}}";
     public const string RejectedType = "sdk.test.rejected";

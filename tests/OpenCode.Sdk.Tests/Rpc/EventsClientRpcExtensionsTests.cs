@@ -4,6 +4,7 @@ using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Events.Support;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Rpc.Support;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -158,20 +159,42 @@ public sealed class EventsClientRpcExtensionsTests
     [Test]
     public async Task SubscribeAsync_Should_Read_The_Real_Door_Without_A_Type_Query_And_Preserve_Cancellation()
     {
-        using var server = new ScriptedEventServer(static _ => ScriptedEventServer.StreamOf(
-            WireBodyData.Frames(ScriptedEventServer.Connected, RpcFacadeData.OtherEventFrame, RpcFacadeData.ObservedEventFrame)));
+        var observedEventFrame = new FixtureLoader().LoadJson("Rpc.observed-event.json");
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(
+            WireBodyData.Frames(ScriptedEventServer.Connected, RpcFacadeData.OtherEventFrame, observedEventFrame)));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(RpcFacadeData.Observed, caller.Token).GetAsyncEnumerator();
-
-        await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current.Event.Id).IsEqualTo(RpcFacadeData.EventId);
-        await Assert.That(events.Current.Event.Location.Directory).IsEqualTo(RpcFacadeData.Directory);
-        await Assert.That(events.Current.Data.Nonce).IsEqualTo(RpcFacadeData.Nonce);
-        await Assert.That(server.LastRequest.Address?.Query).IsEqualTo(string.Empty);
-        var pending = EventStreamSteps.PendingCancellationAsync(events);
-        await caller.CancelOnWorkerAsync();
-        var failure = await pending.WaitAsync(HangGuard.Bound, CancellationToken.None);
-        await Assert.That(failure?.CancellationToken).IsEqualTo(caller.Token);
+        var events = server.Events.SubscribeAsync(RpcFacadeData.Observed, caller.Token).GetAsyncEnumerator();
+        var pending = Task.CompletedTask;
+        try
+        {
+            var next = EventStreamSteps.PendingNext(events);
+            pending = next;
+            await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
+            await Assert.That(events.Current.Event.Id).IsEqualTo(RpcFacadeData.EventId);
+            await Assert.That(events.Current.Event.Location.Directory).IsEqualTo(RpcFacadeData.Directory);
+            await Assert.That(events.Current.Data.Nonce).IsEqualTo(RpcFacadeData.Nonce);
+            await Assert.That(server.LastRequest.Address?.Query).IsEqualTo(string.Empty);
+            var cancellation = EventStreamSteps.PendingCancellationAsync(events);
+            pending = cancellation;
+            await caller.CancelOnWorkerAsync();
+            var failure = await cancellation.WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await Assert.That(failure?.CancellationToken).IsEqualTo(caller.Token);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            try
+            {
+                // Observe completion without replacing a failed wait with cancellation.
+                _ = await pending.ContinueWith(static completed => completed.Status,
+                    CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default)
+                    .WaitAsync(HangGuard.Bound, CancellationToken.None);
+            }
+            finally
+            {
+                await events.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            }
+        }
     }
 
     [Test]
