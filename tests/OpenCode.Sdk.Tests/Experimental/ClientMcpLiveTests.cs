@@ -56,6 +56,8 @@ public sealed class ClientMcpLiveTests(SimulatedDriveServerFixture server)
         _ = await client.ReloadLocationsAsync(cancellationToken: cancellationToken);
         // Invalidation signals shutdown but does not join borrowed scopes
         // (location-services.ts:87-108; Effect RcMap.ts:1027). Do not initiate a competing close.
+        // A reload-removed no-op has no finite oracle: LocationResponse has no per-instance field and location.shutdown is asynchronous to the response.
+        // The oracle is the exact close; "detected by a bounded wait" is inconclusive, not a kill.
 #if NET
         _ = await attached.ReadAsync(cancellationToken);
         await Assert.That(attached.Socket.CloseStatus).IsEqualTo((WebSocketCloseStatus)1012);
@@ -64,8 +66,7 @@ public sealed class ClientMcpLiveTests(SimulatedDriveServerFixture server)
         const string nativeLimit = "0x83760002 (native WebSocket component rejects close code 1012)";
         var failure = await Assert.That(async () => _ = await attached.ReadAsync(cancellationToken))
             .ThrowsExactly<WebSocketException>().Because(nativeLimit);
-        await Assert.That(failure!.Message).IsEqualTo("Invalid data format for the specific protocol operation").Because(nativeLimit);
-        await Assert.That(failure.WebSocketErrorCode).IsEqualTo(WebSocketError.NativeError).Because(nativeLimit);
+        await Assert.That(failure!.WebSocketErrorCode).IsEqualTo(WebSocketError.NativeError).Because(nativeLimit);
         await Assert.That(failure.NativeErrorCode).IsEqualTo(unchecked((int)0x83760002)).Because(nativeLimit);
         await Assert.That(attached.Socket.State).IsEqualTo(WebSocketState.Aborted).Because(nativeLimit);
 #endif

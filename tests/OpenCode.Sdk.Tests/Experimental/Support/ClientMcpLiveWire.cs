@@ -9,14 +9,23 @@ internal sealed class ClientMcpLiveWire(SimulatedDriveServerFixture server, Loca
 {
     public ClientWebSocket Socket { get; } = new();
 
-    public async Task ConnectAsync(CancellationToken cancellationToken)
+    public Task ConnectAsync(CancellationToken cancellationToken)
     {
         var authorization = Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:" + server.Server.Password));
         Socket.Options.SetRequestHeader("Authorization", "Basic " + authorization);
+        return ConnectAsync("live", null, cancellationToken);
+    }
+
+    public async Task ConnectAsync(string name, string? ticket, CancellationToken cancellationToken)
+    {
+#if NET
+        Socket.Options.CollectHttpResponseDetails = true;
+#endif
         var endpoint = new UriBuilder(new Uri(server.Endpoint, "api/experimental/client-mcp"))
         {
             Scheme = "ws",
-            Query = "name=live&location%5Bdirectory%5D=" + Uri.EscapeDataString(location.Directory!),
+            Query = "name=" + Uri.EscapeDataString(name) + "&location%5Bdirectory%5D=" + Uri.EscapeDataString(location.Directory!)
+                + (ticket is null ? "" : "&ticket=" + Uri.EscapeDataString(ticket)),
         };
         await Socket.ConnectAsync(endpoint.Uri, cancellationToken);
     }
