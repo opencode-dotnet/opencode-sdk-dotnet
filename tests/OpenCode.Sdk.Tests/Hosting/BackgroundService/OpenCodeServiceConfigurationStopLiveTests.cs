@@ -39,7 +39,7 @@ public sealed class OpenCodeServiceConfigurationStopLiveTests(PinnedManagedServi
             new Dictionary<string, string>(StringComparer.Ordinal) { [Name] = Value }, CollectionOrdering.Any);
         await Assert.That(config.Port).IsEqualTo(original.Port);
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(service.ProcessId, ExitBound, cancellationToken)).IsTrue();
-        await Assert.That(files.File.Exists(service.RegistrationFile)).IsFalse();
+        await Assert.That(service.RegistrationFile).Satisfies(path => !files.File.Exists(path));
     }
 
     [Test]
