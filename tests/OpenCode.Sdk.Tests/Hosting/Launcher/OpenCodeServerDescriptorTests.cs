@@ -39,6 +39,9 @@ public sealed class OpenCodeServerDescriptorTests
     /// actions do not name in the child: each server holds its three pipes and nothing else. A
     /// <c>Process</c> child there can still inherit a pipe created at the instant it forks, which
     /// nothing in managed code can prevent, so only the servers are checked on macOS.
+    /// The ready line comes from the server's final image, so the snapshot never races a new
+    /// image's loader opening the root and Cryptex directories, the executable, the dynamic loader,
+    /// shared libraries, or POSIX shared memory.
     /// </summary>
     [Test]
     [Timeout(180_000)]
@@ -51,7 +54,7 @@ public sealed class OpenCodeServerDescriptorTests
         }
 
         var starts = Enumerable.Range(0, Servers).Select(_ => OpenCodeServer.StartAsync(
-            new OpenCodeServerOptions { Command = ["/bin/sh", "-c", "printf '%s\\n' '" + ReadyLine + "'; exec sleep 60"] },
+            new OpenCodeServerOptions { Command = ["/bin/sh", "-c", "printf '%s\\n' '" + ReadyLine + "'; read _ || exit 0"] },
             cancellationToken)).ToArray();
         var children = Enumerable.Range(0, ProcessChildren).Select(_ => Task.Run(StartSleepingChild, cancellationToken)).ToArray();
         var servers = new List<OpenCodeServer>();
