@@ -1374,12 +1374,17 @@ The write creates the config directory, writes to the config path followed by a 
 pid and `.tmp`, then renames that file over the config. A new temporary file is owner-only where
 the platform supports mode 0600; Windows inherits the parent directory's DACL. An existing
 temporary file is truncated and overwritten without changing its access mode. The rename has one
-initial attempt and up to 20 retries, 10 ms apart, on the injected clock. Nothing serializes
-writers. Separate processes use separate temporary names; writes in one process share a name and
-can interfere, and the last successful rename determines the published file. A failed write or
-exhausted rename leaves any temporary file in place. Filesystem failures at directory creation,
-temporary writing or final rename become `OpenCodeServerException` naming the config and temporary
-file, with the filesystem exception inside.
+initial attempt and up to 20 retries, 10 ms apart, on the injected clock.
+`ServiceConfigStore.WriteAsync` calls `ServiceFileSystem.Rename` through `RenameAsync`; on Windows,
+that is a POSIX-semantics rename with the platform replace as a fallback. Upstream's
+`service-config.ts` `write` uses a plain `fs.rename` with the same 20 retries 10 ms apart; whether
+to record this difference as a divergence is open
+([#939](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/939)).
+Nothing serializes writers. Separate processes use separate temporary names; writes in one process
+share a name and can interfere, and the last successful rename determines the published file. A
+failed write or exhausted rename leaves any temporary file in place. Filesystem failures at
+directory creation, temporary writing or final rename become `OpenCodeServerException` naming the
+config and temporary file, with the filesystem exception inside.
 
 The nine changing operations are `SetDisabledAsync`, `SetHostnameAsync`, `SetPortAsync`,
 `SetPasswordAsync`, `SetCorsOriginsAsync`, `SetEnvironmentVariableAsync`, `DisableRemoteAsync`,
@@ -1460,9 +1465,6 @@ The background service's recorded divergences from upstream on Windows (ADR-0031
 
 The divergence is reversed when upstream changes its publish to one that survives such holders, or
 when the POSIX-semantics rename proves unsound on a volume the SDK supports.
-
-Service-config publication uses the same POSIX-semantics rename and platform fallback, retaining
-the CLI's 20 retries 10 ms apart for failures the rename still encounters.
 
 The daemon side of the lifecycle is the spawned CLI's, not the SDK's: the incumbent check, the
 exit-0 loser on a port another daemon holds, the `chdir` into the user home, and the registration
