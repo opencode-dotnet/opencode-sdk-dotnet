@@ -88,9 +88,10 @@ internal sealed class ClientMcpResponder(ClientMcpOptions options)
         }
 
         var arguments = Get(parameters, "arguments");
-        using var empty = JsonDocument.Parse("{}");
+        using var empty = arguments.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? JsonDocument.Parse("{}") : null;
+        var args = empty is null ? arguments.Clone() : empty.RootElement.Clone();
         var session = Get(Get(parameters, "_meta"), "ai.opencode/sessionID");
-        var result = await InvokeAsync(arguments.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null ? empty.RootElement.Clone() : arguments.Clone(),
+        var result = await InvokeAsync(args,
             new ClientMcpToolContext(session.ValueKind is JsonValueKind.String ? session.GetString() : null), tool).ConfigureAwait(false);
         var content = new JsonArray();
         foreach (var part in result.Content)
