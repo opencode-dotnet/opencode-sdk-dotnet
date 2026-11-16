@@ -7,7 +7,8 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 
 /// <summary>
 /// Pure, read-only probes over an OpenAPI document's bytes: the operation set, its digest, the
-/// component count, the <c>contentSchema</c> signal, and the patch predicates' keyword and style checks.
+/// component count, the <c>contentSchema</c> signal, and the patch predicates' keyword, style and
+/// component-presence checks.
 /// The synchronizer never interprets documents beyond these invariants — semantic understanding
 /// stays with ingestion.
 /// </summary>
@@ -85,6 +86,11 @@ internal static class DocumentInspector
 
         return schema.TryGetProperty(keyword, out _) ? KeywordPresence.Carries : KeywordPresence.Lacks;
     }
+
+    public static KeywordPresence CheckComponentPresence(byte[] documentBytes, string component) =>
+        // Either keyword answer establishes an object-valued schema; only the lookup matters here.
+        CheckComponentKeyword(documentBytes, component, "type") is KeywordPresence.ComponentMissing
+            ? KeywordPresence.Lacks : KeywordPresence.Carries;
 
     public static KeywordPresence CheckParameterStyle(byte[] documentBytes, string operationId, string parameter, string style)
     {

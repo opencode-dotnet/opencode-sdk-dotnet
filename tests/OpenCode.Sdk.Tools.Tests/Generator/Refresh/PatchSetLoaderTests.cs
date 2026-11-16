@@ -167,6 +167,58 @@ public sealed class PatchSetLoaderTests
         }
     }
 
+    [Test]
+    [Arguments("omitted", true)]
+    [Arguments("null", true)]
+    [Arguments("components", false)]
+    [Arguments("empty components", false)]
+    [Arguments("blank component", false)]
+    [Arguments("keyword", false)]
+    [Arguments("operations", false)]
+    [Arguments("parameter", false)]
+    [Arguments("style", false)]
+    public async Task LoadAsync_Should_Validate_A_ComponentAbsent_Predicate(string variation, bool valid)
+    {
+        ArgumentNullException.ThrowIfNull(variation);
+        var manifest = RefreshScenarioData.Manifest(sha256: PatchSha());
+        var json = JsonNode.Parse(RefreshScenarioData.Serialize(manifest))!;
+        var predicate = json["repairPredicate"]!.AsObject();
+        predicate.Clear();
+        predicate["type"] = "componentAbsent";
+        predicate["components"] = new JsonArray("Prompt.FileRef", "Prompt.Other");
+        if (variation == "null")
+        {
+            foreach (var member in new[] { "keyword", "operations", "parameter", "style" })
+            {
+                predicate[member] = null;
+            }
+        }
+        else if (!valid)
+        {
+            var member = variation.EndsWith("components", StringComparison.Ordinal) ? "components" : variation;
+            predicate[member == "blank component" ? "components" : member] = variation switch
+            {
+                "components" => null,
+                "empty components" or "operations" => new JsonArray(),
+                "blank component" => new JsonArray("Prompt.FileRef", " "),
+                _ => JsonValue.Create(string.Empty),
+            };
+        }
+        var loader = new PatchSetLoader(await CreatePatchSetAsync(manifest, json.ToJsonString()));
+        if (valid)
+        {
+            var patches = await loader.LoadAsync(CancellationToken.None);
+            await Assert.That(patches.Single().Manifest.RepairPredicate.Type).IsEqualTo("componentAbsent");
+            await Assert.That(patches.Single().Manifest.RepairPredicate.Components)
+                .IsEquivalentTo(["Prompt.FileRef", "Prompt.Other"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        }
+        else
+        {
+            var exception = await Assert.That(async () => _ = await loader.LoadAsync(CancellationToken.None)).Throws<SnapshotRefreshException>();
+            await Assert.That(exception!.Message).IsEqualTo("patch manifest '001-test.json' declares an incomplete repair predicate");
+        }
+    }
+
     private static async Task<MockFileSystem> CreatePatchSetAsync(PatchManifest manifest, string? json = null)
     {
         var fileSystem = new MockFileSystem();

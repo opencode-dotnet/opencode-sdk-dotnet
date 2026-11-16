@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenCode.Sdk.Tools.Generator.Refresh;
+using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Infrastructure.Logging;
 using OpenCode.Sdk.Tools.Tests.Generator.Refresh.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -10,6 +11,58 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 
 public sealed class SnapshotGeneratorTests
 {
+    [Test]
+    [Arguments("all", "all", "upstream's generator already satisfies patch '001-test.json' (component 'Prompt.FileRef' carries a schema); retire the patch with an empty-patch refresh")]
+    [Arguments("partial", "all", "upstream's generator satisfies patch '001-test.json' for only some components (component 'Prompt.FileRef' carries a schema, component 'Prompt.Other' lacks it); the patch needs human review")]
+    [Arguments("none", "partial", "patch '001-test.json' did not repair component 'Prompt.Other' (it still lacks a schema after the patched generator run); the patch needs human review")]
+    [Arguments("none", "all", null)]
+    [Arguments("boolean", "all", null)]
+    public async Task GenerateAsync_Should_Apply_ComponentAbsent_Repair_Rules(string presence, string repaired, string? diagnostic)
+    {
+        using var scenario = await RefreshScenario.CreateAsync();
+        _ = await scenario.AddPatchAsync("001-test.json", 1);
+        var fs = scenario.FileSystem;
+        var manifest = RefreshScenarioData.Manifest(sha256: DocumentInspector.Sha256Hex(RefreshScenario.Document)) with
+        {
+            RepairPredicate = new PatchPredicate { Type = "componentAbsent", Components = ["Prompt.FileRef", "Prompt.Other"] },
+        };
+        await fs.File.WriteAllTextAsync("spec/patches/001-test.json", RefreshScenarioData.Serialize(manifest));
+        var patches = await scenario.Services.GetRequiredService<PatchSetLoader>().LoadAsync(CancellationToken.None);
+        var worktree = fs.Path.GetFullPath(".scratchpad/generation/worktree");
+        var submodule = fs.Path.GetFullPath(SnapshotPaths.Submodule);
+        var protocol = fs.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage);
+        var artifact = fs.Path.Combine(worktree, SnapshotPaths.UpstreamArtifact);
+        scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], submodule);
+        scenario.Runner.Expect("bun", ["install", "--frozen-lockfile", "--ignore-scripts"], worktree, sideEffect: () =>
+        {
+            _ = fs.Directory.CreateDirectory(protocol);
+            return Task.CompletedTask;
+        });
+        scenario.Runner.Expect("bun", ["run", "generate"], protocol,
+            sideEffect: () => fs.File.WriteAllBytesAsync(artifact, RefreshScenarioData.ComponentPresenceDocument(presence)));
+        if (presence is "none" or "boolean")
+        {
+            scenario.Runner.Expect("git", ["show", $"{RefreshScenarioData.Commit}:{manifest.Touches[0]}"], submodule, ScriptedProcessRunner.Ok("before"));
+            scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "apply", fs.Path.GetFullPath("spec/patches/001-test.patch")], worktree);
+            scenario.Runner.Expect("bun", ["run", "generate"], protocol,
+                sideEffect: () => fs.File.WriteAllBytesAsync(artifact, RefreshScenarioData.ComponentPresenceDocument(repaired)));
+        }
+        scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "remove", "--force", worktree], submodule);
+        var generator = scenario.Services.GetRequiredService<SnapshotGenerator>();
+        if (diagnostic is null)
+        {
+            var result = await generator.GenerateAsync(RefreshScenarioData.Commit, ".scratchpad/generation", patches, CancellationToken.None);
+            await Assert.That(System.Text.Json.Nodes.JsonNode.Parse(result.NormalizedBytes)!["components"]!["schemas"]!.AsObject()
+                .Select(static schema => schema.Key)).IsEquivalentTo(["Prompt.FileRef", "Prompt.Other"], CollectionOrdering.Matching);
+        }
+        else
+        {
+            var exception = await Assert.That(async () => _ = await generator.GenerateAsync(
+                RefreshScenarioData.Commit, ".scratchpad/generation", patches, CancellationToken.None)).Throws<SnapshotRefreshException>();
+            await Assert.That(exception!.Message).IsEqualTo(diagnostic);
+        }
+    }
+
     [Test]
     [Arguments("success", false)]
     [Arguments("primary failure", false)]

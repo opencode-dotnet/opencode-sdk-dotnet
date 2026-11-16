@@ -4,13 +4,18 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 
 /// <summary>
 /// A machine-checkable repair predicate: <c>componentLacksKeyword</c> names components and a
-/// keyword; <c>parameterLacksStyle</c> names operations, a parameter and a style. Every target
-/// satisfying the repair retires the patch; a partial repair or missing target demands human review.
+/// keyword; <c>parameterLacksStyle</c> names operations, a parameter and a style;
+/// <c>componentAbsent</c> names components whose presence is the repair. Every target
+/// satisfying the repair retires the patch; a partial repair, or a missing target of a keyword or
+/// style predicate, demands human review.
 /// </summary>
 internal sealed record PatchPredicate
 {
     /// <summary>A repair over component schemas and a keyword.</summary>
     public const string ComponentLacksKeyword = "componentLacksKeyword";
+
+    /// <summary>A repair that adds absent component schemas.</summary>
+    public const string ComponentAbsent = "componentAbsent";
 
     /// <summary>A repair over operation parameters and a style.</summary>
     public const string ParameterLacksStyle = "parameterLacksStyle";

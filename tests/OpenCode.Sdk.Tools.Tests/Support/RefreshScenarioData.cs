@@ -46,6 +46,21 @@ internal static class RefreshScenarioData
         return Encoding.UTF8.GetBytes(builder.BuildJson());
     }
 
+    public static byte[] ComponentPresenceDocument(string presence)
+    {
+        var document = JsonNode.Parse(DocumentBytes(spec => spec.WithOperation("test.get")))!;
+        var schemas = document["components"]!["schemas"]!.AsObject();
+        if (presence != "none")
+        {
+            schemas["Prompt.FileRef"] = presence == "boolean" ? JsonValue.Create(true) : new JsonObject();
+        }
+        if (presence == "all")
+        {
+            schemas["Prompt.Other"] = new JsonObject();
+        }
+        return Encoding.UTF8.GetBytes(document.ToJsonString());
+    }
+
     public static PatchManifest Manifest(string patch = "001-test.patch", string sha256 = "", int order = 1,
         string keyword = "contentSchema", params string[] components) =>
         new()
