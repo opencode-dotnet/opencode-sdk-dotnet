@@ -1143,6 +1143,27 @@ namespace OpenCode.Sdk
         Replace = 1,
         Error = 2,
     }
+    public sealed class OpenCodeServiceConfig
+    {
+        public System.Collections.Generic.IReadOnlyList<string> CorsOrigins { get; }
+        public bool Disabled { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string> Environment { get; }
+        public string? Hostname { get; }
+        public int? Port { get; }
+        public bool RemoteAccepted { get; }
+        public bool RemoteEnabled { get; }
+    }
+    public sealed class OpenCodeServiceConfigOptions
+    {
+        public OpenCodeServiceConfigOptions() { }
+        public string? Channel { get; set; }
+        public string? InstalledVersion { get; set; }
+    }
+    public static class OpenCodeServiceConfiguration
+    {
+        public static System.Threading.Tasks.Task<string> GetOrCreatePasswordAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServiceConfig> ReadAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
     public sealed class OpenCodeStreamFailureException : OpenCode.Sdk.OpenCodeTransportException
     {
         public OpenCodeStreamFailureException() { }

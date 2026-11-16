@@ -3,7 +3,9 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 
@@ -18,6 +20,95 @@ public sealed class ServiceMigrationTests
     private const string CustomChannel = "preview/a";
 
     private readonly MockFileSystem _fileSystem = new();
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ApplyAsync_Should_Copy_Invalid_Utf8_In_A_Known_String_As_Decoded_Text(bool registration)
+    {
+        await AssertDecodedDonorAsync(registration,
+            registration ? ServiceConfigWriteData.InvalidRegistrationId : ServiceConfigWriteData.InvalidHostname,
+            Encoding.UTF8.GetBytes(registration ? ServiceConfigWriteData.DecodedRegistrationId : ServiceConfigWriteData.DecodedHostname));
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ApplyAsync_Should_Not_Copy_A_Double_Bom_Donor(bool registration)
+    {
+        var bytes = registration
+            ? ServiceConfigWriteData.DoubleBomRegistration : ServiceConfigWriteData.DoubleBomDonor;
+        await AssertDecodedDonorAsync(registration, bytes, expected: null);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ApplyAsync_Should_Not_Copy_Donor_Names_That_Collide_After_Decoding(bool registration)
+    {
+        var bytes = registration
+            ? ServiceConfigWriteData.CollidingRegistrationNames : ServiceConfigWriteData.CollidingDonorNames;
+        await AssertDecodedDonorAsync(registration, bytes, expected: null);
+    }
+
+    private async Task AssertDecodedDonorAsync(bool registration, byte[] bytes, byte[]? expected)
+    {
+        var paths = ChannelPaths("beta");
+        var donor = registration ? paths.LegacyRegistrationFiles[0] : paths.LegacyConfigFile!;
+        var target = registration ? paths.RegistrationFile : paths.ConfigFile!;
+        _ = _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(donor)!);
+        var files = new TestablyServiceFileSystem(_fileSystem);
+        _ = await files.TryCreateExclusiveAsync(donor, bytes, CancellationToken.None);
+
+        await Migration().ApplyAsync(Select("beta"), paths, CancellationToken.None);
+
+        var copied = await files.TryReadAllBytesAsync(target, CancellationToken.None);
+        if (expected is null)
+        {
+            await Assert.That(copied).IsNull();
+        }
+        else
+        {
+            await Assert.That(copied).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        }
+
+        await Assert.That(await files.TryReadAllBytesAsync(donor, CancellationToken.None))
+            .IsEquivalentTo(bytes, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ApplyAsync_Should_Write_A_Legacy_Config_As_The_Text_The_Cli_Decodes(bool bom)
+    {
+        var paths = ChannelPaths("beta");
+        _ = _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(paths.LegacyConfigFile!)!);
+        var files = new TestablyServiceFileSystem(_fileSystem);
+        _ = await files.TryCreateExclusiveAsync(paths.LegacyConfigFile!,
+            ServiceConfigWriteData.Donor(ServiceConfigWriteData.Config, bom), CancellationToken.None);
+
+        await Migration().ApplyAsync(Select("beta"), paths, CancellationToken.None);
+
+        await Assert.That(await files.TryReadAllBytesAsync(paths.ConfigFile!, CancellationToken.None))
+            .IsEquivalentTo(ServiceConfigWriteData.ConfigDecoded(bom), CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ApplyAsync_Should_Write_A_Legacy_Registration_As_The_Text_The_Cli_Decodes(bool bom)
+    {
+        var paths = ChannelPaths("beta");
+        _ = _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(paths.LegacyRegistrationFiles[0])!);
+        var files = new TestablyServiceFileSystem(_fileSystem);
+        _ = await files.TryCreateExclusiveAsync(paths.LegacyRegistrationFiles[0],
+            ServiceConfigWriteData.Donor(ServiceConfigWriteData.Registration, bom), CancellationToken.None);
+
+        await Migration().ApplyAsync(Select("beta"), paths, CancellationToken.None);
+
+        await Assert.That(await files.TryReadAllBytesAsync(paths.RegistrationFile, CancellationToken.None))
+            .IsEquivalentTo(ServiceConfigWriteData.RegistrationDecoded(bom), CollectionOrdering.Matching);
+    }
 
     [Test]
     [Arguments("BackgroundService.registration-dev-prerelease.json")]

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Unicode;
 
 namespace OpenCode.Sdk.Internal;
 
@@ -7,19 +8,105 @@ namespace OpenCode.Sdk.Internal;
 /// optional <c>disabled</c> boolean, <c>remote</c> object with a string <c>route</c>,
 /// <c>remoteAccepted</c> literal <c>true</c>, <c>hostname</c> string, <c>port</c> integer 1..65535,
 /// <c>password</c> string, <c>cors</c> string array, <c>env</c> string map). The daemon persists its
-/// generated password here and the CLI's remote-access commands persist the remote route, so the
-/// reader validates those members and never exposes them; only the environment map, the one member
-/// the SDK consumes, comes out. <c>disabled</c> is read only by CLI commands — the connection-mode
-/// choice between a standalone server and the managed service, and the pairing command's guard; the
-/// CLI's service operations ignore it, so it is validated and never read. Earlier builds stored
+/// generated password here and the CLI's remote-access commands persist the remote route.
+/// <see cref="TryReadDocument"/> materializes every member for service-configuration operations,
+/// which keep the password and route inside the SDK: the public config view exposes neither.
+/// <see cref="TryReadEnvironment"/> and <see cref="IsCurrent"/> keep their narrower projection for
+/// Ensure and migration. Earlier builds stored
 /// <c>remote</c> as a boolean: the CLI's <c>read()</c> still accepts that legacy shape and rewrites it
-/// in place, which the SDK, never authoring the config's contents, leaves to the daemon's next read,
-/// while its <c>migrateConfig</c> copies only the current shape. Any other document is absent
-/// config, as the CLI's own read turns a document that fails both decodes into an empty config.
+/// in place; the SDK's config store does the same for every service-configuration operation that
+/// reads through it, ReadAsync included, and Discovery, Ensure and Stop read the document as it is.
+/// The CLI's <c>migrateConfig</c> copies only the current shape. Discovery, Ensure and Stop treat
+/// any other document as absent config. The config store refuses a document the strict reader
+/// cannot decode but the CLI may read; a document proven unreadable by the CLI is empty config.
 /// </summary>
 internal static class ServiceConfigReader
 {
     private const int MaxPort = 65_535;
+
+    /// <summary>The text produced by the CLI's TextDecoder, including maximal-subpart replacement on downlevel targets.</summary>
+    /// <param name="utf8">The original file bytes.</param>
+    /// <returns>The decoded text without one leading UTF-8 byte-order mark.</returns>
+    internal static string DecodeCliText(ReadOnlySpan<byte> utf8)
+    {
+        if (utf8.StartsWith("\uFEFF"u8))
+        {
+            utf8 = utf8[3..];
+        }
+
+        var characters = new char[utf8.Length];
+        _ = Utf8.ToUtf16(utf8, characters, out _, out var written, replaceInvalidSequences: true, isFinalBlock: true);
+        return new string(characters, 0, written);
+    }
+
+    /// <summary>Decodes a migration donor, refusing a byte-order mark left in the CLI's decoded text.</summary>
+    /// <param name="utf8">The original donor bytes.</param>
+    /// <returns>The decoded UTF-8 bytes, or null when a leading byte-order mark remains.</returns>
+    internal static byte[]? DecodeCliDonor(ReadOnlySpan<byte> utf8)
+    {
+        var text = DecodeCliText(utf8);
+        // TextDecoder strips one BOM; JSON.parse rejects a mark that remains after that decode.
+        return text.Length > 0 && text[0] == '\uFEFF' ? null : System.Text.Encoding.UTF8.GetBytes(text);
+    }
+
+    /// <summary>Proves the CLI rejects both shapes; a parser limit is never proof.</summary>
+    /// <param name="utf8">The original file bytes.</param>
+    /// <returns>True only for a completed syntax or shape rejection.</returns>
+    public static bool IsProvenUnreadableByCli(ReadOnlySpan<byte> utf8) =>
+        IsProvenUnreadable(utf8, static root => IsCliShape(root, admitLegacy: true));
+
+    /// <summary>Proves the CLI's migration rejects the current shape alone.</summary>
+    /// <param name="utf8">The original donor bytes.</param>
+    /// <returns>True only for a completed current-shape rejection.</returns>
+    public static bool IsProvenUnreadableByCliAsCurrent(ReadOnlySpan<byte> utf8) =>
+        IsProvenUnreadable(utf8, static root => IsCliShape(root, admitLegacy: false));
+
+    private static bool IsProvenUnreadable(ReadOnlySpan<byte> utf8, Func<JsonElement, bool> accepts)
+    {
+        var text = DecodeCliText(utf8);
+        try
+        {
+            if (ReachedCliReadLimit(System.Text.Encoding.UTF8.GetBytes(text)))
+            {
+                return false;
+            }
+
+            using var document = JsonDocument.Parse(text);
+            return !accepts(document.RootElement);
+        }
+        catch (JsonException)
+        {
+            // The scan stops explicitly before depth can throw; this is syntax before that limit.
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            // An undecodable property name gives the SDK no verdict about the CLI's object keys.
+            return false;
+        }
+    }
+
+    private static bool ReachedCliReadLimit(ReadOnlySpan<byte> utf8)
+    {
+        var reader = new Utf8JsonReader(utf8, new JsonReaderOptions { MaxDepth = int.MaxValue });
+        while (reader.Read())
+        {
+            if (reader.CurrentDepth >= 64 && reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsCliShape(JsonElement root, bool admitLegacy) =>
+        root.ValueKind == JsonValueKind.Object && IsValidDisabled(root) && IsValidRemote(root, admitLegacy)
+        && IsValidRemoteAccepted(root) && IsValidPort(root) && IsValidCors(root)
+        && (!root.TryGetProperty("hostname", out var hostname) || hostname.ValueKind == JsonValueKind.String)
+        && (!root.TryGetProperty("password", out var password) || password.ValueKind == JsonValueKind.String)
+        && (!root.TryGetProperty("env", out var env) || (env.ValueKind == JsonValueKind.Object
+            && env.EnumerateObject().All(entry => env.GetProperty(entry.Name).ValueKind == JsonValueKind.String)));
 
     /// <summary>Validates a config document and extracts its environment map.</summary>
     /// <param name="utf8">The file's bytes.</param>
@@ -36,9 +123,42 @@ internal static class ServiceConfigReader
     public static bool IsCurrent(ReadOnlySpan<byte> utf8) =>
         StrictJson.TryRead(utf8, static root => Read(root, admitLegacyRemote: false)) is not null;
 
+    /// <summary>Materializes every declared member in the current or legacy configuration shape.</summary>
+    /// <param name="utf8">The file's bytes.</param>
+    /// <returns>The decoded document, or null when its shape or a declared string cannot be decoded.</returns>
+    public static ServiceConfigDocument? TryReadDocument(ReadOnlySpan<byte> utf8) =>
+        StrictJson.TryRead(utf8, Materialize);
+
+    private static ServiceConfigDocument? Materialize(JsonElement root)
+    {
+        var environment = Read(root, admitLegacyRemote: true);
+        if (environment is null)
+        {
+            return null;
+        }
+
+        _ = StrictJson.TryGetOptionalString(root, "hostname", out var hostname);
+        _ = StrictJson.TryGetOptionalString(root, "password", out var password);
+        _ = root.TryGetProperty("remote", out var remote);
+        return new ServiceConfigDocument(
+            remoteRoute: remote.ValueKind == JsonValueKind.Object ? remote.GetProperty("route").GetString() : null,
+            legacyRemote: remote.ValueKind is JsonValueKind.True or JsonValueKind.False ? remote.GetBoolean() : null,
+            password: password)
+        {
+            Disabled = root.TryGetProperty("disabled", out var disabled) ? disabled.GetBoolean() : null,
+            RemoteAccepted = root.TryGetProperty("remoteAccepted", out _) ? true : null,
+            Hostname = hostname,
+            Port = root.TryGetProperty("port", out var port) ? (int)port.GetDouble() : null,
+            // The shape has proved these strings non-null; GetString also forces strict decoding.
+            CorsOrigins = root.TryGetProperty("cors", out var cors)
+                ? cors.EnumerateArray().Select(static origin => origin.GetString()!).ToArray() : null,
+            Environment = root.TryGetProperty("env", out _) ? environment : null,
+        };
+    }
+
     private static Dictionary<string, string>? Read(JsonElement root, bool admitLegacyRemote)
     {
-        // The password and the remote route are accepted as the shape declares them; never retained, never returned.
+        // Read decodes the password but checks the route by kind only; Materialize alone keeps them.
         if (root.ValueKind != JsonValueKind.Object
             || !IsValidDisabled(root)
             || !IsValidRemote(root, admitLegacyRemote)

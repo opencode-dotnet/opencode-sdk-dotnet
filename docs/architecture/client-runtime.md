@@ -1132,11 +1132,13 @@ The channel's service config is read the CLI's way: a document whose members do 
 `disabled` must be a boolean, `remote` an object holding a string `route` (or, in the legacy
 shape, a boolean), and `remoteAccepted` the literal `true` when present — is no config at all, so its `env` overlay and the legacy migration
 it gates do not apply; a legacy-shape document still reads, and only the current shape is migrated.
-The CLI's read rewrites a legacy-shape document in place; the SDK, which never authors the config's
-contents, reads it as it is and leaves the rewrite to the daemon's next read, which reads the same
-`env`. Remote access is set only through the CLI (`opencode service set remote`): the SDK reads the
-key and never writes it, and the service's remote URL reaches callers in `ServerInfo.Urls` while its
-tunnel is attached. The config's `disabled` key is read only by CLI commands: the connection-mode
+The CLI's read rewrites a legacy-shape document in place; Discovery, Ensure and Stop read it as it
+is and leave the rewrite to the daemon's next read, which reads the same `env`.
+`OpenCodeServiceConfiguration` operations read and repair it the CLI's way, copying a current-shape
+donor or repairing a legacy `remote` in place, and write it (`GetOrCreatePasswordAsync` stores a
+password). Remote access is set only through the CLI (`opencode service set remote`); the SDK's
+config repair can generate a route, and the service's remote URL reaches callers in `ServerInfo.Urls`
+while its tunnel is attached. The config's `disabled` key is read only by CLI commands: the connection-mode
 selector (`resolve` starts a standalone server instead of reaching the service when it is true) and
 the pairing command's guard (`opencode pair` needs the service); the pinned client's
 `Service.discover`, `ensure`, and `stop` do not read it, and neither do `DiscoverAsync`,

@@ -54,6 +54,8 @@ public sealed class CancellationIdentityTests
         // Since upstream v2.3.0 stop has no cancellable network wait: entry is its first cancellation point.
         // Mid-poll cancellation is proven by StopAsync_Should_Leave_The_Registration_When_Cancelled_After_The_Terminate_Signal.
         yield return new("stop", "pre-cancelled", ServiceDoors.AtStopPreCancelledAsync);
+        yield return new("service-config-read", "pre-cancelled", caller => ServiceDoors.AtConfigPreCancelledAsync("service-config-read", caller));
+        yield return new("service-config-write", "pre-cancelled", caller => ServiceDoors.AtConfigPreCancelledAsync("service-config-write", caller));
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -82,6 +84,17 @@ public sealed class CancellationIdentityTests
     }
 
     [Test]
+    public async Task Service_Config_Doors_Should_Use_The_Session_Isolation()
+    {
+        var fileSystem = new RealFileSystem();
+        var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(new OpenCodeServiceConfigOptions()));
+        await Assert.That(SessionIsolation.Root).IsNotNull();
+        await Assert.That(paths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+        await Assert.That(paths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+    }
+
+    [Test]
+    [DependsOn(nameof(Service_Config_Doors_Should_Use_The_Session_Isolation))]
     [MethodDataSource(nameof(CancellationCases))]
     public async Task PublicDoor_Should_Preserve_The_Caller_Token_When_Canceled_Mid_Call(string row, string variant)
     {
@@ -560,7 +573,8 @@ public sealed class CancellationIdentityTests
 
         public bool Is(Type owner, string name, Type result, params Type[] parameters) =>
             DeclaringType == owner && Name == name && ReturnType == result &&
-            IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(LanguageModelsClientExtensions) || owner == typeof(PluginsClientExtensions)) &&
+            IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(OpenCodeServiceConfiguration) ||
+                owner == typeof(LanguageModelsClientExtensions) || owner == typeof(PluginsClientExtensions)) &&
             Parameters.SequenceEqual(parameters);
 
         public override string ToString() =>
@@ -609,6 +623,10 @@ public sealed class CancellationIdentityTests
                 typeof(OpenCodeServerStopOptions), typeof(CancellationToken)) => "stop",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.ShutdownPersistentPtyAsync), typeof(Task),
                 typeof(OpenCodeServerDiscoverOptions), typeof(CancellationToken)) => "shutdown-persistent-pty",
+            _ when member.Is(typeof(OpenCodeServiceConfiguration), nameof(OpenCodeServiceConfiguration.ReadAsync), typeof(Task<OpenCodeServiceConfig>),
+                typeof(OpenCodeServiceConfigOptions), typeof(CancellationToken)) => "service-config-read",
+            _ when member.Is(typeof(OpenCodeServiceConfiguration), nameof(OpenCodeServiceConfiguration.GetOrCreatePasswordAsync), typeof(Task<string>),
+                typeof(OpenCodeServiceConfigOptions), typeof(CancellationToken)) => "service-config-write",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.ConnectAsync), typeof(Task<PtySession>),
                 typeof(PtyConnectOptions), typeof(CancellationToken)) => "pty-connect",
             _ when member.Is(typeof(PersistentPtyClient), nameof(PersistentPtyClient.ConnectAsync), typeof(Task<PersistentPtySession>),

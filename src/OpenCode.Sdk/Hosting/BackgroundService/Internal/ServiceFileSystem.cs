@@ -28,6 +28,58 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
 
     internal ServiceFileSystem(IFileRenameKernel? renameKernel) => _renameKernel = renameKernel;
 
+    public void CreateDirectory(string path) => Directory.CreateDirectory(path);
+
+#if NET
+    public async Task WriteOwnerOnlyAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+#else
+    /// <summary>Downlevel FileStream has no IAsyncDisposable; the started write still runs synchronously to completion.</summary>
+    public Task WriteOwnerOnlyAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+#endif
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+#if !NET
+        // Downlevel FileStream has no UnixCreateMode; preserve existing access and chmod only new files.
+        var existed = File.Exists(path);
+#endif
+        var stream = OpenOwnerOnly(path, FileMode.Create);
+#if NET
+        await using (stream.ConfigureAwait(false))
+#else
+        using (stream)
+#endif
+        {
+#if !NET
+            if (!existed)
+            {
+                SetOwnerOnlyMode(path);
+            }
+#endif
+            stream.Write(bytes.Span);
+        }
+#if !NET
+        return Task.CompletedTask;
+#endif
+    }
+
+    public bool Exists(string path)
+    {
+        try
+        {
+            _ = File.GetAttributes(path);
+            return true;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // An entry may exist that cannot be inspected; an exclusive create there fails too.
+            return true;
+        }
+    }
+
     public async Task<byte[]?> TryReadAllBytesAsync(string path, CancellationToken cancellationToken)
     {
         try
@@ -172,7 +224,7 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
         var created = false;
         try
         {
-            using var stream = OpenExclusive(path);
+            using var stream = OpenOwnerOnly(path, FileMode.CreateNew);
             created = true;
 #if !NET
             SetOwnerOnlyMode(path);
@@ -195,11 +247,11 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
     }
 
 #if NET
-    private static FileStream OpenExclusive(string path)
+    private static FileStream OpenOwnerOnly(string path, FileMode mode)
     {
         var options = new FileStreamOptions
         {
-            Mode = FileMode.CreateNew,
+            Mode = mode,
             Access = FileAccess.Write,
             Share = FileShare.None,
         };
@@ -211,8 +263,8 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
         return new FileStream(path, options);
     }
 #else
-    private static FileStream OpenExclusive(string path) =>
-        new(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+    private static FileStream OpenOwnerOnly(string path, FileMode mode) =>
+        new(path, mode, FileAccess.Write, FileShare.None);
 
     private static void SetOwnerOnlyMode(string path)
     {

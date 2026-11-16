@@ -1,6 +1,9 @@
 using System.Text;
+using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 
@@ -11,6 +14,103 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 /// </summary>
 public sealed class ServiceConfigReaderTests
 {
+    [Test]
+    [Arguments("repeated-member")]
+    [Arguments("surrogate-route")]
+    [Arguments("surrogate-cors")]
+    public async Task IsProvenUnreadableByCli_Should_Protect_A_Document_The_Cli_Reads(string name)
+    {
+        var json = new ServiceConfigScenario().Initial(name)!;
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(json))).IsFalse();
+    }
+
+    [Test]
+    public async Task IsProvenUnreadableByCli_Should_Distinguish_Syntax_And_Shape_From_A_Parser_Limit()
+    {
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigData.Malformed))).IsTrue();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigData.DisabledAsString))).IsTrue();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.Deep(false)))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.Deep(true)))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.LegacyRepeated))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.SurrogateHostname))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.RepeatedEnvironment))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCliAsCurrent(Bytes(ServiceConfigWriteData.LegacyRepeated))).IsTrue();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(ServiceConfigWriteData.InvalidHostname)).IsFalse();
+    }
+
+    [Test]
+    [Arguments(new byte[] { 0xc3, 0x28 }, "\ufffd(")]
+    [Arguments(new byte[] { 0xed, 0xa0, 0x80 }, "\ufffd\ufffd\ufffd")]
+    [Arguments(new byte[] { 0xe2, 0x82 }, "\ufffd")]
+    [Arguments(new byte[] { 0xc0, 0xaf }, "\ufffd\ufffd")]
+    public async Task DecodeCliText_Should_Replace_Maximal_Invalid_Subparts(byte[] bytes, string expected)
+    {
+        await Assert.That(ServiceConfigReader.DecodeCliText(bytes)).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task TryReadDocument_Should_Retain_Every_Declared_Value()
+    {
+        var document = ServiceConfigReader.TryReadDocument(Encoding.UTF8.GetBytes(new ServiceConfigScenario().Initial("all-members")!));
+
+        await Assert.That(document).IsNotNull();
+        await Assert.That(document.Disabled).IsTrue();
+        await Assert.That(document.RemoteAccepted).IsTrue();
+        await Assert.That(document.RemoteRoute).IsEqualTo("stored-route");
+        await Assert.That(document.LegacyRemote).IsNull();
+        await Assert.That(document.Hostname).IsEqualTo("127.0.0.2");
+        await Assert.That(document.Port).IsEqualTo(5123);
+        await Assert.That(document.Password).IsEqualTo("stored-password");
+        await Assert.That(document.CorsOrigins).IsEquivalentTo(["https://b.example", "https://a.example"], CollectionOrdering.Matching);
+        await Assert.That(document.Environment).IsEquivalentTo(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["B"] = "two",
+            ["10"] = "ten",
+            ["XDG_STATE_HOME"] = "saved-state",
+        }, CollectionOrdering.Any);
+    }
+
+    [Test]
+    [Arguments(ServiceConfigData.RemoteRoute, null)]
+    [Arguments(ServiceConfigData.LegacyRemoteTrue, true)]
+    [Arguments(ServiceConfigData.LegacyRemoteFalse, false)]
+    public async Task TryReadDocument_Should_Retain_The_Current_And_Legacy_Remote_Values(string json, bool? legacy)
+    {
+        var document = ServiceConfigReader.TryReadDocument(Bytes(json));
+
+        await Assert.That(document).IsNotNull();
+        await Assert.That(document.LegacyRemote).IsEqualTo(legacy);
+        await Assert.That(document.RemoteRoute).IsEqualTo(legacy is null ? "0123456789abcdef" : null);
+        await Assert.That(document.Environment!["A"]).IsEqualTo("1");
+        await Assert.That(ServiceConfigReader.IsCurrent(Bytes(json))).IsEqualTo(legacy is null);
+    }
+
+    [Test]
+    [Arguments("surrogate-route")]
+    [Arguments("surrogate-cors")]
+    [Arguments("repeated-member")]
+    public async Task TryReadDocument_Should_Refuse_Undecodable_Strings_Without_Changing_The_Existing_Projections(string name)
+    {
+        using var corpus = JsonDocument.Parse(new FixtureLoader().LoadJson("BackgroundService.service-config-corpus.json"));
+        var json = corpus.RootElement.EnumerateArray().Single(row => row.GetProperty("name").GetString() == name)
+            .GetProperty("initial").GetString()!;
+        var bytes = Bytes(json);
+
+        await Assert.That(ServiceConfigReader.TryReadDocument(bytes)).IsNull();
+        if (name == "repeated-member")
+        {
+            await Assert.That(ServiceConfigReader.TryReadEnvironment(bytes)).IsNull();
+            await Assert.That(ServiceConfigReader.IsCurrent(bytes)).IsFalse();
+        }
+        else
+        {
+            var environment = ServiceConfigReader.TryReadEnvironment(bytes);
+            await Assert.That(environment).IsNotNull();
+            await Assert.That(environment["A"]).IsEqualTo("1");
+            await Assert.That(ServiceConfigReader.IsCurrent(bytes)).IsTrue();
+        }
+    }
+
     [Test]
     public async Task TryReadEnvironment_Should_Return_The_Environment_Map_Of_The_Pinned_Config()
     {

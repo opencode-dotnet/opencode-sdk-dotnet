@@ -14,6 +14,28 @@ internal sealed class TestablyServiceFileSystem(IFileSystem fileSystem) : IServi
 {
     private const int CopyBufferSize = 4096;
 
+    public void CreateDirectory(string path) => fileSystem.Directory.CreateDirectory(path);
+
+    public async Task WriteOwnerOnlyAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var stream = fileSystem.FileStream.New(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+
+    public bool Exists(string path)
+    {
+        try
+        {
+            _ = fileSystem.File.GetAttributes(path);
+            return true;
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
+    }
+
     public async Task<byte[]?> TryReadAllBytesAsync(string path, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

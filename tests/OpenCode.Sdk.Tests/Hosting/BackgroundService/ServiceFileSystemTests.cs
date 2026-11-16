@@ -4,6 +4,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
+#if NET
+using OpenCode.Sdk.Tests.Support;
+#endif
 using Testably.Abstractions;
 using TUnit.Assertions.Enums;
 
@@ -18,6 +21,87 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 public sealed class ServiceFileSystemTests
 {
     private static readonly byte[] Content = Encoding.UTF8.GetBytes("{\"url\":\"http://127.0.0.1:1\"}");
+
+    [Test]
+    public async Task CreateDirectory_Should_Create_Parents_And_Accept_An_Existing_Directory()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var nested = directory.File("one", "two");
+        var files = new ServiceFileSystem();
+        files.CreateDirectory(nested);
+        files.CreateDirectory(nested);
+        await Assert.That(nested).Satisfies(directory.FileSystem.Directory.Exists);
+    }
+
+    [Test]
+    public async Task WriteOwnerOnlyAsync_Should_Create_And_Truncate_With_The_Required_Access()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var path = directory.File("overwrite.json");
+        var files = new ServiceFileSystem();
+        await files.WriteOwnerOnlyAsync(path, Content, CancellationToken.None);
+        await Assert.That(directory.FileSystem.File.ReadAllBytes(path)).IsEquivalentTo(Content, CollectionOrdering.Matching);
+#if NET
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(directory.FileSystem.File.GetUnixFileMode(path))
+                .IsEqualTo(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            directory.FileSystem.File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+        }
+#endif
+        await files.WriteOwnerOnlyAsync(path, "short"u8.ToArray(), CancellationToken.None);
+        await Assert.That(directory.FileSystem.File.ReadAllText(path)).IsEqualTo("short");
+#if NET
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(directory.FileSystem.File.GetUnixFileMode(path))
+                .IsEqualTo(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+        }
+#endif
+    }
+
+    [Test]
+    public async Task Exists_Should_Report_Files_And_Directories_And_Reject_Missing_Entries()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var file = directory.File("exists.json");
+        _ = await new ServiceFileSystem().TryCreateExclusiveAsync(file, Content, CancellationToken.None);
+        var fileSystem = new ServiceFileSystem();
+
+        await Assert.That(file).Satisfies(path => path is not null && fileSystem.Exists(path));
+        await Assert.That(directory.Path).Satisfies(path => path is not null && fileSystem.Exists(path));
+        await Assert.That(directory.File("absent.json")).Satisfies(path => path is not null && !fileSystem.Exists(path));
+        await Assert.That(directory.File("missing", "absent.json")).Satisfies(path => path is not null && !fileSystem.Exists(path));
+    }
+
+#if NET
+    [Test]
+    public async Task Exists_Should_Report_A_File_Inside_A_Directory_That_Cannot_Be_Searched()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("Windows — Unix directory modes do not apply");
+            return;
+        }
+
+        using var directory = new OwnedTemporaryDirectory();
+        var file = directory.File("inaccessible.json");
+        directory.FileSystem.File.WriteAllBytes(file, Content);
+        var mode = directory.FileSystem.File.GetUnixFileMode(directory.Path);
+        try
+        {
+            directory.FileSystem.File.SetUnixFileMode(directory.Path, UnixFileMode.None);
+            await Assert.That(() => directory.FileSystem.File.GetAttributes(file)).Throws<UnauthorizedAccessException>();
+
+            await Assert.That(file).Satisfies(path => path is not null && new ServiceFileSystem().Exists(path));
+            BranchReport.Print("POSIX — an entry under an unsearchable directory reads as present");
+        }
+        finally
+        {
+            directory.FileSystem.File.SetUnixFileMode(directory.Path, mode);
+        }
+    }
+#endif
 
     private static class ServiceFileSystemData
     {

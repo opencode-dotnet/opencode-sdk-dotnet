@@ -89,6 +89,10 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Config/Fixtures/shells.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Config.shells.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Config/Fixtures/service-config-corpus.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-corpus.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Config/Fixtures/service-config-expected.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-expected.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Config/Fixtures/cors-origin-corpus.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.cors-origin-corpus.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Config/Fixtures/cors-origin-expected.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.cors-origin-expected.json" />
     <EmbeddedResource Include="Events/Fixtures/unknown-reason-interrupted.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Events.unknown-reason-interrupted.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/registration-dev-prerelease.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.registration-dev-prerelease.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Registration/Fixtures/registration-passworded-twin.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.registration-passworded-twin.json" />
