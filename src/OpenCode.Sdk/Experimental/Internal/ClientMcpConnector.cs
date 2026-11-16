@@ -23,19 +23,15 @@ internal sealed class ClientMcpConnector(ConnectionSnapshot connection, ClientMc
 
     public async Task<ITerminalWebSocket> UpgradeAsync(ClientTerminalWebSocket socket, CancellationToken token)
     {
-        var transferred = false;
         try
         {
             await socket.ConnectAsync(_uri, options.Name, new ClientMcpUpgradeFailurePolicy(), token).ConfigureAwait(false);
-            transferred = true;
             return socket;
         }
-        finally
+        catch
         {
-            if (!transferred)
-            {
-                socket.Dispose();
-            }
+            socket.Dispose();
+            throw;
         }
     }
 

@@ -1,0 +1,7 @@
+{
+"ping":{"jsonrpc":"2.0","id":7,"result":{}},
+"schema":{"properties":{"id":{"type":"string"}},"required":["id"]},
+"manual":{"jsonrpc":"2.0","id":7,"result":{"tools":[{"name":"lookup","inputSchema":{"type":"object","properties":{"id":{"type":"string"}},"required":["id"]}}]}},
+"new":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"new"}]}},
+"reset":[{"jsonrpc":"2.0","id":7,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"app","version":"1.0.0"}}},{"jsonrpc":"2.0","id":7,"result":{"tools":[]}}]
+}

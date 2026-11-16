@@ -32,6 +32,12 @@ namespace OpenCode.Sdk
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public sealed class ClientMcpConnection : System.IAsyncDisposable
+    {
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ClientMcpContent
     {
         public string? Data { get; }
@@ -374,6 +380,12 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionWaitResponse> WaitForSessionAsync(string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalFsWatchResponse> WatchFileAsync(OpenCode.Sdk.Models.ExperimentalFsWatchRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalFsWriteResponse> WriteFileAsync(OpenCode.Sdk.ExperimentalFsWriteRequest request, System.IO.Stream content, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public static class ExperimentalClientMcpExtensions
+    {
+        public static OpenCode.Sdk.ClientMcpConnection ConnectClientMcp(this OpenCode.Sdk.ExperimentalClient client, OpenCode.Sdk.ClientMcpOptions options) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]

@@ -24,22 +24,23 @@ internal sealed class ClientMcpDispatch(TerminalSocketCore<ClientMcpMessage> cor
             return Task.CompletedTask;
         }
 
-        var observed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         lock (_gate)
         {
             if (_retired)
             {
                 return Task.CompletedTask;
             }
-
-            _responses.Add(observed.Task);
         }
 
-        _ = SendResponseAsync(message).ContinueWith(completed =>
+        var observed = SendResponseAsync(message).ContinueWith(static completed =>
         {
             _ = completed.Exception;
-            _ = observed.TrySetResult(true);
         }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        lock (_gate)
+        {
+            _responses.Add(observed);
+        }
+
         return Task.CompletedTask;
     }
 
