@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -40,6 +40,9 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: win
 `IEvent` carries exactly one common member, `Type` — the wire discriminator. Every concrete event
 type adds its own payload, so a `switch` on the type is the way in; `@event.Type` is there for
 connection markers, logging, and the frames you have not written a case for.
+
+A plugin's RPC events arrive as `EventRpc`. To read one definition's events with typed data, see
+[A definition's events](requests.md#-a-definitions-events).
 
 ### 🧭 Routing by session
 

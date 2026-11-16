@@ -131,6 +131,7 @@
     <EmbeddedResource Include="FileSystem/Fixtures/wildcard-path-corpus.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Routes.wildcard-path-corpus.json" />
     <EmbeddedResource Include="FileSystem/Fixtures/wildcard-path-expected.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Routes.wildcard-path-expected.json" />
     <EmbeddedResource Include="Rpc/Fixtures/rpc-call-input.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Rpc.rpc-call-input.json" />
+    <EmbeddedResource Include="Rpc/Fixtures/observed-event.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Rpc.observed-event.json" />
     <EmbeddedResource Include="Serialization/Fixtures/duplicate-known-session-message-marker.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.duplicate-known-session-message-marker.json" />
     <EmbeddedResource Include="Serialization/Fixtures/duplicate-unknown-session-message-marker.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.duplicate-unknown-session-message-marker.json" />
     <EmbeddedResource Include="Serialization/Fixtures/empty-assistant-marker.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.empty-assistant-marker.json" />

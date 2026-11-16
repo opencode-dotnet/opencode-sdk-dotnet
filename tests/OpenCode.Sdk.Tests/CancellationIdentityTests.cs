@@ -61,6 +61,8 @@ public sealed class CancellationIdentityTests
             yield return new("events", "live-read/" + entry, caller => AtStreamReadAsync(events: true, entry, caller));
             yield return new("events", "reconnect-delay/" + entry, caller => AtEventWaitAsync("delay", entry, caller));
             yield return new("event-state", "pending/" + entry, caller => AtEventStateAsync(entry, caller));
+            yield return new("rpc-events", "headers/" + entry, caller => AtHeadersAsync((client, token) => PullAsync(
+                client.Events.SubscribeAsync(RpcFacadeData.Observed, MethodToken(entry, token)), EnumerationToken(entry, token)), caller));
             yield return new("other-sse", "headers/" + entry, caller => AtHeadersAsync(
                 (client, token) => PullAsync(client.Experimental.ReadSessionLogAsync(
                     SessionId, cancellationToken: MethodToken(entry, token)), EnumerationToken(entry, token)), caller));
@@ -637,6 +639,10 @@ public sealed class CancellationIdentityTests
                 && IsGeneric(member.ReturnType, typeof(Task<>)) && member.Parameters.Count == 6 && member.Parameters[0] == typeof(RpcClient)
                 && IsGeneric(member.Parameters[1], typeof(RpcMethod<,>)) && member.Parameters[2].IsGenericParameter
                 && member.Parameters.Skip(3).SequenceEqual([typeof(LocationSelector), typeof(OpenCodeRequestOptions), typeof(CancellationToken)]) => "rpc-call",
+            _ when member.IsStatic && member.DeclaringType == typeof(EventsClientRpcExtensions)
+                && member.Name == nameof(EventsClientRpcExtensions.SubscribeAsync) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>))
+                && member.Parameters.Count == 3 && member.Parameters[0] == typeof(EventsClient)
+                && IsGeneric(member.Parameters[1], typeof(RpcEventDefinition<>)) && member.Parameters[2] == typeof(CancellationToken) => "rpc-events",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.UpdateAsync), typeof(Task<PtyUpdateResponse>),
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(Task<>)) &&

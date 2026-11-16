@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 
 namespace OpenCode.Sdk.Tests.Rpc.Support;
@@ -8,6 +9,9 @@ internal static class RpcFacadeData
     public const string EchoName = "echo";
     public const string ObservedName = "observed";
     public const string ObservedType = "rpc.opencode.sdk.test.rpc.observed";
+    public const string EventId = "evt_rpc";
+    public const string OtherEventFrame =
+        "{\"id\":\"evt_other\",\"created\":0,\"type\":\"rpc.other\",\"location\":{\"directory\":\"/repo\"},\"data\":{}}";
     public const string RejectedType = "sdk.test.rejected";
     public const string RejectedMessage = "SDK test RPC rejected the request.";
     public const string RejectedCode = "sdk-test-rejected";
@@ -59,6 +63,11 @@ internal static class RpcFacadeData
         Definition.Method(EchoName, RpcFacadeTestJson.Default.RpcEcho, RpcFacadeTestJson.Default.Int32);
     public static readonly RpcMethod<RpcNonce, RpcNonce> Emit =
         Definition.Method("emit", RpcFacadeTestJson.Default.RpcNonce, RpcFacadeTestJson.Default.RpcNonce);
+    public static readonly RpcEventDefinition<RpcNonce> Observed = Definition.Event(ObservedName, RpcFacadeTestJson.Default.RpcNonce);
+    public static readonly RpcEventDefinition<RpcNonce> NullObserved = Definition.Event(ObservedName,
+        new RpcFacadeTestJson(new JsonSerializerOptions { Converters = { new RpcNullNonceConverter() } }).RpcNonce);
+    public static readonly RpcEventDefinition<RpcNonce> FailingObserved = Definition.Event(ObservedName,
+        new RpcFacadeTestJson(new JsonSerializerOptions { Converters = { new RpcFailingNonceConverter() } }).RpcNonce);
     public static readonly RpcMethod<RpcEcho, RpcEcho> WireEcho = Definition.Method(EchoName,
         new RpcFacadeTestJson(new JsonSerializerOptions { Converters = { new RpcEchoWireConverter() } }).RpcEcho,
         RpcFacadeTestJson.Default.RpcEcho);
@@ -69,6 +78,18 @@ internal static class RpcFacadeData
 
     public static RpcMethod<RpcNonce, RpcEcho> NonceToEcho(string method) =>
         Definition.Method(method, RpcFacadeTestJson.Default.RpcNonce, RpcFacadeTestJson.Default.RpcEcho);
+
+    public static EventRpc ObservedEvent(string type, string nonce) => new()
+    {
+        Id = nonce,
+        Created = 0,
+        Type = type,
+        Location = new LocationPublicRef { Directory = Directory },
+        Data = new Dictionary<string, JsonElement>(StringComparer.Ordinal) { ["nonce"] = JsonSerializer.SerializeToElement(nonce, RpcFacadeTestJson.Default.String) },
+    };
+
+    public static EventRpc UnreadableEvent(string nonce) =>
+        ObservedEvent(ObservedType, nonce) with { Data = new Dictionary<string, JsonElement>(StringComparer.Ordinal) { ["nonce"] = Element("7") } };
 
     public static JsonElement Element(string json)
     {

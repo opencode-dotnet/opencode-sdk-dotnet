@@ -680,14 +680,47 @@ resolves the message's network window from those carried traits.
   (`packages/client/src/promise/generated/types.ts:3250-3260`); the raw door reads tags by
   status ([Error channels](#error-channels)), so an RPC-tagged body on another declared status
   arrives as `UnknownOpenCodeError` and propagates as an `OpenCodeApiException`.
+- `client.Events.SubscribeAsync(rpcEvent, cancellationToken)` is one more subscription on the
+  shared feed ([Server-sent events](#server-sent-events); ADR-0041), entered on its first move as
+  upstream subscribes inside its generator. It selects nothing at the feed, as upstream's facade
+  passes no types (`promise/rpc.ts:70`), so queued unrelated events count against its queue
+  bound ([Server-sent events](#server-sent-events)) and a slow consumer can overflow on
+  unrelated traffic, as upstream's can. It yields only `EventRpc` events whose type is
+  ordinally `rpc.{id}.{name}` and skips every other event, `server.connected` markers included
+  (`promise/rpc.ts:72`). A consumer that needs every gap marker reads `server.connected` on a
+  separate subscription and applies the feed's admission and refresh rules above; connection
+  state coalesces and is not a transition log, so watching it can miss a reconnect. Each item
+  is an `RpcEventPayload` whose `Data` is the definition's data type, the .NET projection of
+  upstream's payload, which is the envelope itself with typed `data` (`promise/rpc.ts:36-47`):
+  the feed's shared `EventRpc`, read-only, beside its data read with the event's metadata.
+  Cancellation, overflow, source faults and root disposal end the enumeration as the door ends
+  it; leaving the enumeration disposes its subscription.
 - An output the consumer's metadata cannot read faults the call with
-  `OpenCodeTransportException`, the `JsonException` as its inner exception; any other exception
-  from that metadata propagates unchanged.
+  `OpenCodeTransportException`, the `JsonException` as its inner exception. Event data
+  the metadata cannot read, or reads as null, throws the same exception from the subscription's
+  enumeration and ends that subscription, so `RpcEventPayload<TData>.Data` is never null. Any
+  other exception from that metadata propagates unchanged.
 - Recorded divergences (ADR-0031):
-  - Upstream's promise facade returns the output undecoded (`promise/rpc.ts:113`); a typed .NET
-    result must decode, and the SDK follows the Effect facade, which decodes and fails on a
-    decode failure (`packages/client/src/effect/rpc.ts:57`). Reason: the idiomatic form of a
-    typed result. Reversal: consumers ask to receive unreadable data instead of a failure.
+  - Upstream's promise facade returns the output and event data undecoded (`promise/rpc.ts:113`,
+    `:73-75`); a typed .NET result must decode, and the SDK follows the Effect facade, which decodes
+    and fails its call or stream on a decode failure (`packages/client/src/effect/rpc.ts:57`,
+    `:79`). Reason: the idiomatic form of a typed result. Reversal: consumers ask to receive
+    unreadable data instead of a failure.
+  - No `on(name, handler)` callback. Upstream's promise helper has one
+    (`promise/rpc.ts:126-138`); its Effect helper does not (`effect/rpc.ts:27-31`). A background
+    loop that reports failures only to the console hides them; a consumer runs `await foreach`
+    in its own task instead. Reason: the idiomatic .NET form (maintainer's decision,
+    2026-11-15, #846). Reversal: a consumer need that `await foreach` cannot meet.
+  - Cancellation throws `OperationCanceledException` carrying the caller's token, where
+    upstream's subscription ends quietly on abort (`promise/rpc.ts:71`, `:77-78`). Reason: the
+    SDK-wide cancellation contract ([Error channels](#error-channels)). Reversal: a change to
+    that contract.
+  - No `Unknown RPC event` refusal. Upstream looks an event name up in its local definition's
+    event map and refuses a missing one (`promise/rpc.ts:62`). The SDK has no name-based
+    lookup: building a descriptor with `RpcDefinition.Event` is the consumer's declaration, and
+    nothing checks it against the events the plugin registers on the server. Reason: the
+    descriptor is the definition, so there is no map to look a name up in. Reversal: an SDK
+    surface that names an event by string.
 
 ## Pagination
 

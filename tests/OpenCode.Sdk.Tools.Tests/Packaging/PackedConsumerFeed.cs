@@ -251,6 +251,11 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         $$"""
         using System;
         using System.Collections.Generic;
+        using System.Runtime.CompilerServices;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Threading;
+        using System.Threading.Tasks;
         using Microsoft.Extensions.DependencyInjection;
         using OpenCode.Sdk;
         using OpenCode.Sdk.Models;
@@ -304,6 +309,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         Equal(((ToolFileContent)error.Content[1]).Name, "error.txt");
         {{MessageArmsProgram}}
         {{PromptEventsProgram}}
+        {{RpcFacadeProgram}}
         Console.Out.WriteLine("{{AotConsumerData.Marker}}");
         return 0;
 
@@ -312,6 +318,55 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
             if (!EqualityComparer<T>.Default.Equals(actual, expected))
             {
                 throw new InvalidOperationException($"Expected {expected}, received {actual}.");
+            }
+        }
+        {{RpcFacadeTypes}}
+        """;
+
+    private const string RpcFacadeProgram =
+        """
+        Equal((await new EchoRpcClient().CallAsync(SmokeRpc.Echo, new SmokeNonce("aot-call")))?.Nonce, "aot-call");
+        var count = 0;
+        await foreach (var payload in new ObservedEventsClient().SubscribeAsync(SmokeRpc.Observed))
+        {
+            count++;
+            Equal(payload.Event.Type, "rpc.aot.smoke.observed");
+            Equal(payload.Data.Nonce, "aot-event");
+        }
+        Equal(count, 1);
+        """;
+
+    private const string RpcFacadeTypes =
+        """
+        internal sealed record SmokeNonce([property: JsonPropertyName("nonce")] string Nonce);
+        [JsonSerializable(typeof(SmokeNonce))]
+        internal sealed partial class SmokeJson : JsonSerializerContext;
+        internal static class SmokeRpc
+        {
+            public static readonly RpcDefinition Definition = new("aot.smoke");
+            public static readonly RpcMethod<SmokeNonce, SmokeNonce> Echo =
+                Definition.Method("echo", SmokeJson.Default.SmokeNonce, SmokeJson.Default.SmokeNonce);
+            public static readonly RpcEventDefinition<SmokeNonce> Observed = Definition.Event("observed", SmokeJson.Default.SmokeNonce);
+        }
+        internal sealed class EchoRpcClient : RpcClient
+        {
+            public override Task<RpcCallResponse> CallAsync(string rpcId, string method, RpcCallRequest? request = null,
+                OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
+                Task.FromResult(new RpcCallResponse { Status = 200, Call = new RpcOutput { Output = request?.Input } });
+        }
+        internal sealed class ObservedEventsClient : EventsClient
+        {
+            public override async IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null,
+                OpenCodeRequestOptions? requestOptions = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+            {
+                await Task.CompletedTask;
+                using var data = JsonDocument.Parse("{\"nonce\":\"aot-event\"}");
+                yield return new EventRpc
+                {
+                    Id = "aot", Created = 0, Type = "rpc.aot.smoke.observed",
+                    Location = new LocationPublicRef { Directory = "/aot" },
+                    Data = new Dictionary<string, JsonElement> { ["nonce"] = data.RootElement.GetProperty("nonce").Clone() },
+                };
             }
         }
         """;

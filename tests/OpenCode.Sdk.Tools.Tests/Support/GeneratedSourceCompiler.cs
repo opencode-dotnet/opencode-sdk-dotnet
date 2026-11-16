@@ -50,6 +50,7 @@ internal static class GeneratedSourceCompiler
     /// family is emitted, so it rides the same raw twin. The default-model wait sits above the
     /// generated <c>LanguageModelsClient</c>, so it rides that client's emission.
     /// The typed RPC call sits above the generated <c>RpcClient</c> and reads its two RPC error models, so it rides their emissions.
+    /// The typed RPC subscription sits above the Events door and the generated <c>EventRpc</c>, so it rides both.
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
@@ -83,10 +84,15 @@ internal static class GeneratedSourceCompiler
         ("Plugins/PluginsClientExtensions.cs", "Plugins/PluginsClient.cs"),
         ("Ptys/PtyClient.cs", "Ptys/Internal/PtyRawClient.cs"),
         ("Ptys/PtysClient.cs", "Ptys/Internal/PtysRawClient.cs"),
+        ("Rpc/EventsClientRpcExtensions.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Rpc/EventsClientRpcExtensions.cs", "Events/Models/EventRpc.cs"),
+        ("Rpc/Internal/RpcEventReader.cs", "Events/Internal/EventsRawClient.cs"),
+        ("Rpc/Internal/RpcEventReader.cs", "Events/Models/EventRpc.cs"),
         ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/Models/RpcError.cs"),
         ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/Models/RpcInternalError.cs"),
         ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/RpcClient.cs"),
         ("Rpc/RpcClientExtensions.cs", "Rpc/RpcClient.cs"),
+        ("Rpc/RpcEventPayload.cs", "Events/Models/EventRpc.cs"),
     ];
 
     /// <summary>
