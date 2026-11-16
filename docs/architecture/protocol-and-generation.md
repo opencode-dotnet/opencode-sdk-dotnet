@@ -73,8 +73,10 @@ evidence and may contain superseded positions.
   touched files, repair predicate, and retirement condition — run through the exact pinned
   upstream generator after the unpatched baseline run, and prepare refuses a patch whose repair
   predicate that baseline already satisfies, forcing an empty-patch retirement refresh. A
-  predicate is satisfied only when every target carries the repair; a target that carries it
-  beside one that lacks it, or an absent target, refuses the patch for human review.
+  predicate (`componentLacksKeyword`, `parameterLacksStyle`, or `componentAbsent`) is satisfied only
+  when every target carries the repair; mixed repaired and unrepaired targets refuse the patch for
+  human review, as does a missing target, except that `componentAbsent` treats an absent component
+  as the defect to repair.
 - The committed receipt records the exact inputs, hashes, blob-based patch preimages,
   operation-set digest, and operation delta of the accepted snapshot, together with the named
   release tag used to render its identity. Apply renders the date from the injected

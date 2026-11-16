@@ -116,7 +116,7 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
             var lacking = targets.FirstOrDefault(static target => target.Presence is KeywordPresence.Lacks).Target;
             if (lacking is not null)
             {
-                var kind = predicate.Type == PatchPredicate.ComponentLacksKeyword ? "components" : "targets";
+                var kind = predicate.Type is PatchPredicate.ComponentLacksKeyword or PatchPredicate.ComponentAbsent ? "components" : "targets";
                 throw new SnapshotRefreshException(
                     $"upstream's generator satisfies patch '{patch.ManifestName}' for only some {kind} "
                     + $"({carrying} carries {DescribeRequirement(predicate)}, {lacking} lacks it); the patch needs human review");
@@ -145,16 +145,24 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
     }
 
     private static string DescribeRequirement(PatchPredicate predicate) =>
-        predicate.Type == PatchPredicate.ParameterLacksStyle ? $"style '{predicate.Style}'" : $"'{predicate.Keyword}'";
+        predicate.Type switch
+        {
+            PatchPredicate.ComponentAbsent => "a schema",
+            PatchPredicate.ParameterLacksStyle => $"style '{predicate.Style}'",
+            _ => $"'{predicate.Keyword}'",
+        };
 
     private static IEnumerable<(string Target, KeywordPresence Presence)> CheckTargets(byte[] documentBytes, PatchPredicate predicate)
     {
-        if (predicate.Type == PatchPredicate.ComponentLacksKeyword)
+        if (predicate.Type is PatchPredicate.ComponentLacksKeyword or PatchPredicate.ComponentAbsent)
         {
-            Debug.Assert(predicate.Components is not null && predicate.Keyword is not null, "PatchSetLoader validates component predicate fields.");
+            Debug.Assert(predicate.Components is not null && (predicate.Type == PatchPredicate.ComponentAbsent || predicate.Keyword is not null),
+                "PatchSetLoader validates component predicate fields.");
             foreach (var component in predicate.Components)
             {
-                yield return ($"component '{component}'", DocumentInspector.CheckComponentKeyword(documentBytes, component, predicate.Keyword));
+                yield return ($"component '{component}'", predicate.Type == PatchPredicate.ComponentAbsent
+                    ? DocumentInspector.CheckComponentPresence(documentBytes, component)
+                    : DocumentInspector.CheckComponentKeyword(documentBytes, component, predicate.Keyword!));
             }
         }
         else

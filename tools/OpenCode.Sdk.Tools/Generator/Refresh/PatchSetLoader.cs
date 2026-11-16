@@ -111,6 +111,10 @@ internal sealed class PatchSetLoader(IFileSystem fileSystem)
         var predicate = manifest.RepairPredicate;
         var complete = predicate.Type switch
         {
+            PatchPredicate.ComponentAbsent => predicate.Components is { Count: > 0 }
+                && !predicate.Components.Any(string.IsNullOrWhiteSpace)
+                && predicate.Keyword is null && predicate.Operations is null
+                && predicate.Parameter is null && predicate.Style is null,
             PatchPredicate.ComponentLacksKeyword => predicate.Components is { Count: > 0 }
                 && !predicate.Components.Any(string.IsNullOrWhiteSpace)
                 && !string.IsNullOrWhiteSpace(predicate.Keyword),
