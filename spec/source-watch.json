@@ -328,6 +328,14 @@
             "type": "contains",
             "text": "String(input.cursor)"
           }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Terminal sockets open through options.openSocket when given and authenticate with a ticket in the URL; the SDK\u0027s terminals route through the caller\u0027s handler on modern targets instead.",
+          "anchor": {
+            "type": "contains",
+            "text": "const socket = options.openSocket?.(url) ?? new WebSocket(url)"
+          }
         }
       ]
     },
@@ -1395,6 +1403,14 @@
           "anchor": {
             "type": "contains",
             "text": "for (const [key, value] of new Headers(requestOptions?.headers)) headers.set(key, value)"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "make sends every request through options.fetch, or the global fetch, with no timeout of its own; the SDK\u0027s caller-supplied handler follows it.",
+          "anchor": {
+            "type": "contains",
+            "text": "const fetch = options.fetch ?? globalThis.fetch"
           }
         }
       ]

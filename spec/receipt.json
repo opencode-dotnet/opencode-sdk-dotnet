@@ -256,6 +256,10 @@
         {
           "text": "String(input.cursor)",
           "matched": true
+        },
+        {
+          "text": "const socket = options.openSocket?.(url) ?? new WebSocket(url)",
+          "matched": true
         }
       ]
     },
@@ -1011,6 +1015,10 @@
       "anchors": [
         {
           "text": "for (const [key, value] of new Headers(requestOptions?.headers)) headers.set(key, value)",
+          "matched": true
+        },
+        {
+          "text": "const fetch = options.fetch ?? globalThis.fetch",
           "matched": true
         }
       ]
