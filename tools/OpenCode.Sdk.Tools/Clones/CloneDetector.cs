@@ -15,7 +15,7 @@ namespace OpenCode.Sdk.Tools.Clones;
 /// analyses no file. jscpd's own defaults stay: it honours .gitignore, follows no symbolic link, and
 /// skips files above 1 MiB.
 /// </summary>
-internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner processRunner)
+internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner processRunner, TimeProvider timeProvider)
 {
     internal const string RunnerPath = CloneScopes.DetectorFolder + "/node_modules/jscpd/run-jscpd.js";
     internal const string ReportFileName = "jscpd-report.json";
@@ -24,10 +24,12 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
     /// <summary>jscpd otherwise writes an empty report and exits 0 when nothing was analysed, which would read as a clean scope.</summary>
     private const string FailOnEmpty = "--fail-on-empty";
     private const int MinimumTokens = 50;
+    private const int ScopeTimeoutMinutes = 10;
     private static readonly string[] CommonIgnore = ["**/bin/**", "**/obj/**", "**/node_modules/**"];
 
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     private readonly IProcessRunner _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
+    private readonly TimeProvider _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
 
     /// <summary>Refuses unless the pinned detector is installed under the repository root.</summary>
     public void EnsureInstalled(string root)
@@ -78,7 +80,19 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
         var config = _fileSystem.Path.Combine(workDirectory, scope.Name + ".json");
         await WriteConfigAsync(config, output, Ignore(scope, split), cancellationToken).ConfigureAwait(false);
 
-        var result = await _processRunner.RunAsync("bun", Arguments(scope, config, updateBaseline), root, cancellationToken).ConfigureAwait(false);
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(ScopeTimeoutMinutes), _timeProvider);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+        ProcessResult result;
+        try
+        {
+            result = await _processRunner.RunAsync("bun", Arguments(scope, config, updateBaseline), root, linked.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception) when (deadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            throw new CloneDetectorException(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"jscpd did not finish scope '{scope.Name}' within {ScopeTimeoutMinutes} minutes."), exception);
+        }
+
         var report = _fileSystem.Path.Combine(output, ReportFileName);
         if (!_fileSystem.File.Exists(report))
         {

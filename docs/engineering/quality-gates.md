@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -299,6 +299,9 @@ test listing to `test-results/main/listed-tests.txt`, and the rows in flight are
 but not recorded.
 
 ## Clone gate
+
+Each scope's jscpd run is bounded to 10 minutes and fails the gate naming the scope if exceeded;
+cancelling the tool cancels that run.
 
 The detector ignores using directives and three anchored argument-guard lines: the one-field
 constructor assignment `_name = name ?? throw new ArgumentNullException(nameof(name));`,

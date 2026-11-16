@@ -106,7 +106,16 @@ public static class ToolApp
             .WithDescription("Run the pinned clone detector: hand-written src/ and tools/ against their baselines, tests and generated output reported.");
     }
 
-    /// <summary>Entry point used by tools/opencode-tool.cs.</summary>
+    /// <summary>Runs the tool and cancels it when an interrupt signal arrives.</summary>
+    public static async Task<int> RunUntilInterruptedAsync(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+
+        using var interrupts = new ToolInterrupts();
+        return await interrupts.RunAsync(token => RunAsync(args, token)).ConfigureAwait(false);
+    }
+
+    /// <summary>Runs the tool with the caller's cancellation token.</summary>
     public static Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default) =>
         RunAsync(args, cancellationToken, null);
 

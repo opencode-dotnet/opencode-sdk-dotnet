@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-11-03
+Date: 2026-11-16
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -100,8 +100,9 @@ for a pile of static steps.
   they never reproduce the registration list in a parallel test-only root.
 - **Cross-cutting CLI options ride an interceptor** (logging verbosity, global options), never
   copy-pasted per command. The composition root registers one exception handler for refusal output
-  and exit mapping; commands do not catch refusals. The file-based entry owns Ctrl+C subscription
-  and forwards its cancellation token through the composition root to the CLI framework.
+  and exit mapping; commands do not catch refusals. The Tools library's interrupt type owns Ctrl+C
+  subscription, and SIGTERM subscription on Linux and macOS; the file-based entry reaches it through
+  `ToolApp.RunUntilInterruptedAsync`.
 - **Statics never perform outside-world operations.** The composition root may instantiate
   and register adapters; actual filesystem, console, time, environment, process, and network
   work occurs only through injected seams. The TestableIO analyzer enforces the filesystem

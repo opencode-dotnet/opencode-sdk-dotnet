@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tools.Clones;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -20,6 +21,75 @@ public sealed class CloneDetectorTests
     private const string NullGuard = "ArgumentNullException.ThrowIfNull(node);";
     private const string TextGuard = "ArgumentException.ThrowIfNullOrWhiteSpace(name);";
     private readonly RealFileSystem _guardFiles = new();
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task RunAsync_Should_Bound_A_Scope_Without_Reclassifying_Caller_Cancellation(bool callerCancels)
+    {
+        var scenario = await new CloneScenario().BuildAsync();
+        var clock = new ManualTimeProvider();
+        using var caller = new CancellationTokenSource();
+        var entered = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // The double throws only when the test releases it, so the detector sees both cancellations.
+        using var release = new SemaphoreSlim(0);
+        var work = scenario.FileSystem.Path.Combine(scenario.FileSystem.Path.GetTempPath(), "bounded-scope");
+        scenario.FileSystem.Directory.CreateDirectory(work);
+        var config = scenario.FileSystem.Path.Combine(work, "generated.json");
+        scenario.Runner.Expect("bun", [CloneDetector.RunnerPath, "src", "--config", config, FailOnEmpty], scenario.Root,
+            sideEffect: async () =>
+            {
+                var token = scenario.Runner.CancellationTokens[^1];
+                entered.SetResult(token);
+                var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                using var registration = token.Register(() => tcs.TrySetResult());
+                await tcs.Task;
+                await release.WaitAsync();
+                token.ThrowIfCancellationRequested();
+            });
+        var detector = new CloneDetector(scenario.FileSystem, scenario.Runner, clock);
+        var operation = detector.RunAsync(scenario.Root, Scope("generated"), new CloneSourceSplit([], []), work,
+            updateBaseline: false, caller.Token);
+        try
+        {
+            var received = await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assert.That(clock.ArmedIn(TimeSpan.FromMinutes(10))).IsEqualTo(1);
+            await clock.WaitForTimerAsync(TimeSpan.FromSeconds(10));
+            clock.Advance(TimeSpan.FromMinutes(10) - TimeSpan.FromTicks(1));
+            await Assert.That(received.IsCancellationRequested).IsFalse();
+            await Assert.That(operation.IsCompleted).IsFalse();
+
+            if (callerCancels)
+            {
+                await caller.CancelAsync();
+            }
+
+            clock.Advance(TimeSpan.FromTicks(2));
+            await Assert.That(received.IsCancellationRequested).IsTrue();
+            _ = release.Release();
+            if (callerCancels)
+            {
+                _ = await Assert.That(async () => _ = await operation.WaitAsync(TimeSpan.FromSeconds(10)))
+                    .Throws<OperationCanceledException>();
+            }
+            else
+            {
+                var exception = await Assert.That(async () => _ = await operation.WaitAsync(TimeSpan.FromSeconds(10)))
+                    .Throws<CloneDetectorException>();
+                await Assert.That(exception!.Message).IsEqualTo("jscpd did not finish scope 'generated' within 10 minutes.");
+            }
+        }
+        finally
+        {
+            if (!operation.IsCompleted)
+            {
+                _ = release.Release();
+                await caller.CancelAsync();
+                _ = await Assert.That(async () => _ = await operation.WaitAsync(TimeSpan.FromSeconds(10)))
+                    .Throws<OperationCanceledException>();
+            }
+        }
+    }
 
     [Test]
     public async Task ReadSourceSplitAsync_Should_Refuse_A_Null_Files_Member()
@@ -256,7 +326,7 @@ public sealed class CloneDetectorTests
             }
 
             var runner = new CliWrapProcessRunner();
-            var detector = new CloneDetector(files, runner);
+            var detector = new CloneDetector(files, runner, TimeProvider.System);
             var scope = new CloneScope("guard-pair", sources, CloneScopeFilter.None, [], Baseline: null, Threshold: null);
             var result = await detector.RunAsync(root, scope, new CloneSourceSplit([], []), work, updateBaseline: false, CancellationToken.None);
             await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
@@ -281,7 +351,7 @@ public sealed class CloneDetectorTests
         }
     }
 
-    private static CloneDetector Detector(CloneScenario scenario) => new(scenario.FileSystem, scenario.Runner);
+    private static CloneDetector Detector(CloneScenario scenario) => new(scenario.FileSystem, scenario.Runner, TimeProvider.System);
 
     private static async Task<CloneScopeResult> RunAsync(CloneScenario scenario, string scope)
     {
