@@ -141,19 +141,17 @@ internal static class ServiceConfigReader
         _ = StrictJson.TryGetOptionalString(root, "password", out var password);
         _ = root.TryGetProperty("remote", out var remote);
         return new ServiceConfigDocument(
+            disabled: root.TryGetProperty("disabled", out var disabled) ? disabled.GetBoolean() : null,
             remoteRoute: remote.ValueKind == JsonValueKind.Object ? remote.GetProperty("route").GetString() : null,
             legacyRemote: remote.ValueKind is JsonValueKind.True or JsonValueKind.False ? remote.GetBoolean() : null,
-            password: password)
-        {
-            Disabled = root.TryGetProperty("disabled", out var disabled) ? disabled.GetBoolean() : null,
-            RemoteAccepted = root.TryGetProperty("remoteAccepted", out _) ? true : null,
-            Hostname = hostname,
-            Port = root.TryGetProperty("port", out var port) ? (int)port.GetDouble() : null,
+            remoteAccepted: root.TryGetProperty("remoteAccepted", out _) ? true : null,
+            hostname: hostname,
+            port: root.TryGetProperty("port", out var port) ? (int)port.GetDouble() : null,
+            password: password,
             // The shape has proved these strings non-null; GetString also forces strict decoding.
-            CorsOrigins = root.TryGetProperty("cors", out var cors)
+            corsOrigins: root.TryGetProperty("cors", out var cors)
                 ? cors.EnumerateArray().Select(static origin => origin.GetString()!).ToArray() : null,
-            Environment = root.TryGetProperty("env", out _) ? environment : null,
-        };
+            environment: root.TryGetProperty("env", out _) ? environment : null);
     }
 
     private static Dictionary<string, string>? Read(JsonElement root, bool admitLegacyRemote)

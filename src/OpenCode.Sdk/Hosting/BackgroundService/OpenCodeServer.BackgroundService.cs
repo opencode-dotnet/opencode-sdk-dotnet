@@ -209,19 +209,25 @@ public partial class OpenCodeServer
 
     private static ServiceStopper SystemStopper()
     {
-        var timing = ServiceTiming.Default;
 #pragma warning disable RS0030 // The stop composition root chooses the system clock; its handoff and terminator share it.
         var time = TimeProvider.System;
 #pragma warning restore RS0030
-        var fileSystem = new ServiceFileSystem();
-        return new ServiceStopper(
-            new ServiceEnvironment(),
+        return SystemStopper(new ServiceEnvironment(), new ServiceFileSystem(), time);
+    }
+
+    /// <summary>Composes Stop's platform collaborators over the supplied environment, files and clock.</summary>
+    /// <param name="environment">The operation's environment.</param>
+    /// <param name="fileSystem">The operation's file access.</param>
+    /// <param name="time">The existing composition root's clock.</param>
+    /// <returns>The platform stopper.</returns>
+    internal static ServiceStopper SystemStopper(IServiceEnvironment environment, IServiceFileSystem fileSystem, TimeProvider time) =>
+        new(
+            environment,
             fileSystem,
             new ServicePtyHandoff(fileSystem, time, new ServicePtyShutdown()),
             new ServiceProcessControl(new ChildExitStatusReader()),
-            timing,
+            ServiceTiming.Default,
             time);
-    }
 
     /// <summary>
     /// Ensures a healthy compatible background service is running: reuses a ready daemon,

@@ -1204,8 +1204,25 @@ namespace OpenCode.Sdk
     }
     public static class OpenCodeServiceConfiguration
     {
+        public static System.Threading.Tasks.Task DisableRemoteAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<string> GetOrCreatePasswordAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServiceConfig> ReadAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SetCorsOriginsAsync(System.Collections.Generic.IReadOnlyList<string> origins, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SetDisabledAsync(bool disabled, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SetEnvironmentVariableAsync(string name, string value, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SetHostnameAsync(string hostname, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SetPasswordAsync(string password, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task SetPortAsync(int port, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task UnsetAsync(OpenCode.Sdk.OpenCodeServiceSetting setting, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task UnsetEnvironmentVariableAsync(string name, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public enum OpenCodeServiceSetting
+    {
+        Disabled = 0,
+        Hostname = 1,
+        Port = 2,
+        Password = 3,
+        CorsOrigins = 4,
     }
     public sealed class OpenCodeStreamFailureException : OpenCode.Sdk.OpenCodeTransportException
     {

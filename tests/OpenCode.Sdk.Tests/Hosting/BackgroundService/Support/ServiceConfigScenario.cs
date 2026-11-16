@@ -22,7 +22,11 @@ internal sealed class ServiceConfigScenario
         Environment.GetEnvironmentVariable("XDG_STATE_HOME").Returns(Files.Path.Combine(Root, "state"));
         Adapter = new TestablyServiceFileSystem(Files);
         FileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(call => Adapter.TryReadAllBytesAsync(call.ArgAt<string>(0), call.ArgAt<CancellationToken>(1)));
+            .Returns(call =>
+            {
+                Events.Add("read");
+                return Adapter.TryReadAllBytesAsync(call.ArgAt<string>(0), call.ArgAt<CancellationToken>(1));
+            });
         FileSystem.Exists(Arg.Any<string>()).Returns(call => Adapter.Exists(call.Arg<string>()));
         FileSystem.When(files => files.CreateDirectory(Arg.Any<string>()))
             .Do(call => Adapter.CreateDirectory(call.Arg<string>()));
@@ -33,7 +37,11 @@ internal sealed class ServiceConfigScenario
             .Returns(call => Adapter.TryCreateExclusiveAsync(call.ArgAt<string>(0), call.ArgAt<ReadOnlyMemory<byte>>(1), call.ArgAt<CancellationToken>(2)));
         FileSystem.TryDelete(Arg.Any<string>()).Returns(call => Adapter.TryDelete(call.Arg<string>()));
         FileSystem.When(files => files.Rename(Arg.Any<string>(), Arg.Any<string>()))
-            .Do(call => (Rename ?? Adapter.Rename)(call.ArgAt<string>(0), call.ArgAt<string>(1)));
+            .Do(call =>
+            {
+                Events.Add("rename");
+                (Rename ?? Adapter.Rename)(call.ArgAt<string>(0), call.ArgAt<string>(1));
+            });
         Options = new OpenCodeServiceConfigOptions { Channel = channel };
         Paths = new ServicePathResolver(Environment).Resolve(ServiceSelection.Snapshot(Options));
         ClearCalls();
@@ -50,6 +58,18 @@ internal sealed class ServiceConfigScenario
     public RandomCredential Credentials { get; set; } = new(new ScriptedRandomNumberGenerator());
     public Action<string, string>? Rename { get; set; }
     public ServiceConfigStore Store => new(Environment, FileSystem, Time, Credentials);
+    public ServiceConfigEditor Editor => new(Store, StopAsync);
+    public List<string> Events { get; } = [];
+    public List<OpenCodeServerStopOptions> Stops { get; } = [];
+    public List<CancellationToken> StopTokens { get; } = [];
+    public Func<OpenCodeServerStopOptions, CancellationToken, Task>? Stop { get; set; }
+    public Task StopAsync(OpenCodeServerStopOptions options, CancellationToken cancellationToken)
+    {
+        Events.Add("stop");
+        Stops.Add(options);
+        StopTokens.Add(cancellationToken);
+        return Stop?.Invoke(options, cancellationToken) ?? Task.CompletedTask;
+    }
 
     public IReadOnlyList<string> WriteCalls =>
         ["CreateDirectory:" + Files.Path.GetDirectoryName(Paths.ConfigFile),
@@ -108,5 +128,8 @@ internal sealed class ServiceConfigScenario
     {
         FileSystem.ClearReceivedCalls();
         Environment.ClearReceivedCalls();
+        Events.Clear();
+        Stops.Clear();
+        StopTokens.Clear();
     }
 }

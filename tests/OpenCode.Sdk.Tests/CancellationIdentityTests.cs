@@ -60,6 +60,7 @@ public sealed class CancellationIdentityTests
         yield return new("stop", "pre-cancelled", ServiceDoors.AtStopPreCancelledAsync);
         yield return new("service-config-read", "pre-cancelled", caller => ServiceDoors.AtConfigPreCancelledAsync("service-config-read", caller));
         yield return new("service-config-write", "pre-cancelled", caller => ServiceDoors.AtConfigPreCancelledAsync("service-config-write", caller));
+        yield return new("service-config-stop", "pre-cancelled", ServiceDoors.AtConfigStopPreCancelledAsync);
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -615,6 +616,12 @@ public sealed class CancellationIdentityTests
 
         private static string? Map(MemberSignature member) => member switch
         {
+            _ when member.IsStatic && member.DeclaringType == typeof(OpenCodeServiceConfiguration) &&
+                member.Name is nameof(OpenCodeServiceConfiguration.DisableRemoteAsync) or nameof(OpenCodeServiceConfiguration.SetCorsOriginsAsync)
+                    or nameof(OpenCodeServiceConfiguration.SetDisabledAsync) or nameof(OpenCodeServiceConfiguration.SetEnvironmentVariableAsync)
+                    or nameof(OpenCodeServiceConfiguration.SetHostnameAsync) or nameof(OpenCodeServiceConfiguration.SetPasswordAsync)
+                    or nameof(OpenCodeServiceConfiguration.SetPortAsync) or nameof(OpenCodeServiceConfiguration.UnsetAsync)
+                    or nameof(OpenCodeServiceConfiguration.UnsetEnvironmentVariableAsync) => "service-config-stop",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StartAsync), typeof(Task<OpenCodeServer>),
                 typeof(OpenCodeServerOptions), typeof(CancellationToken)) => "start",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.DiscoverAsync), typeof(Task<OpenCodeServer>),

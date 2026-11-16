@@ -44,7 +44,7 @@ public sealed class ServiceConfigStoreWriteTests
         }
         scenario.ClearCalls();
 
-        await scenario.Store.WriteAsync(scenario.Paths, new ServiceConfigDocument { Port = 4096 }, CancellationToken.None);
+        await scenario.Store.WriteAsync(scenario.Paths, new ServiceConfigDocument(port: 4096), CancellationToken.None);
 
         await Assert.That(scenario.Calls).IsEquivalentTo([
             "CreateDirectory:" + scenario.Files.Path.GetDirectoryName(scenario.Paths.ConfigFile),
