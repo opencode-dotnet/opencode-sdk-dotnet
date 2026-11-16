@@ -59,11 +59,14 @@ internal static class OperationPlanBinder
             var members = group.ToArray();
             var row = members[0].Row;
             var collectionName = $"{row.ClientName}Client";
-            subClients.Add(new ClientReferencePlan
+            if (row.RootAccessor)
             {
-                PropertyName = row.ClientName!,
-                TypeName = collectionName,
-            });
+                subClients.Add(new ClientReferencePlan
+                {
+                    PropertyName = row.ClientName!,
+                    TypeName = collectionName,
+                });
+            }
             clients.AddRange(CreateGroupClients(members, row, collectionName));
         }
 
@@ -90,8 +93,9 @@ internal static class OperationPlanBinder
 
     /// <summary>
     /// Builds a family's clients. An internal-raw family takes raw type names throughout
-    /// (ADR-0021): the public family name belongs to the hand-written door the root client
-    /// keeps pointing at, so nothing generated may claim it.
+    /// (ADR-0021): the public family name belongs to the hand-written door, which the root
+    /// client's accessor returns unless the family opts out of it, so nothing generated may
+    /// claim it.
     /// </summary>
     private static IEnumerable<ClientPlan> CreateGroupClients(IReadOnlyList<BoundOperation> group, GroupCuration row, string collectionName)
     {

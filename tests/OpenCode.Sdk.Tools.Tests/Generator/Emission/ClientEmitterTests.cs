@@ -55,6 +55,17 @@ public sealed class ClientEmitterTests
     }
 
     [Test]
+    [Arguments("Ptys/Internal/PtyRawClient.cs")]
+    [Arguments("Ptys/Internal/PtysRawClient.cs")]
+    public async Task Emit_Should_Omit_The_Mocking_Seam_On_An_Internal_Raw_Client(string relativePath)
+    {
+        var source = EmitInternalRawSource(relativePath);
+
+        await Assert.That(source).DoesNotContain("PipelineOrNull");
+        await Assert.That(source).DoesNotContain("MockSeam");
+    }
+
+    [Test]
     public async Task Emit_Should_Keep_An_Internal_Raw_Handle_Factory_Internal()
     {
         var source = EmitInternalRawSource("Ptys/Internal/PtysRawClient.cs");

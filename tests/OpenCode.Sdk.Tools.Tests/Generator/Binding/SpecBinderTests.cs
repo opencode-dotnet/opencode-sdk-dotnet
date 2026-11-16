@@ -270,6 +270,7 @@ public sealed class SpecBinderTests
         ("unselected", RootGroup(), [new(BindingErrorCategory.Curation, "idle", "curated group is not selected by the current profile")]),
         ("merge-handle", ClientGroup("Widgets", "WidgetClient", "id"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("merge-emission", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
+        ("merge-root-accessor", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false }, [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("merge-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("shared-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "OPENCODE001", "experimentalDiagnostic 'OPENCODE001' is shared by groups that are not one merged family")]),
         ("experimental", RootGroup(), [new(BindingErrorCategory.Curation, "widget", "selected experimental route requires experimentalDiagnostic")]),
@@ -288,6 +289,7 @@ public sealed class SpecBinderTests
         ("half-parameter", ClientGroup("Widgets", null, "id"), [new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
         ("blank-parameter", ClientGroup("Widgets", "WidgetClient", " "), [new(BindingErrorCategory.Curation, "widget", "handleParameter cannot be blank")]),
         ("emission", RootGroup() with { Emission = (EmissionMode)99 }, [new(BindingErrorCategory.Curation, "widget", "emission value '99' is not a recognized group emission")]),
+        ("emission-root-accessor", RootGroup() with { Emission = (EmissionMode)99, RootAccessor = false }, [new(BindingErrorCategory.Curation, "widget", "emission value '99' is not a recognized group emission")]),
         ("root-raw", RootGroup() with { Emission = EmissionMode.InternalRaw }, [new(BindingErrorCategory.Curation, "widget", "root group cannot declare internalRaw emission")]),
         ("unselected-raw", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw), [new(BindingErrorCategory.Curation, "idle", "curated group is not selected by the current profile"),
             new(BindingErrorCategory.Curation, "idle", "internalRaw emission requires at least one selected operation")]),
@@ -320,6 +322,7 @@ public sealed class SpecBinderTests
         if (selected.Length == 2)
         {
             groups["other"] = ClientGroup(fault == "shared-diagnostic" ? "Others" : "Widgets", null, null,
+                emission: fault == "merge-root-accessor" ? EmissionMode.InternalRaw : EmissionMode.Public,
                 experimentalDiagnostic: fault == "shared-diagnostic" ? "OPENCODE001" : null);
         }
         var errors = new BindingErrorCollector();

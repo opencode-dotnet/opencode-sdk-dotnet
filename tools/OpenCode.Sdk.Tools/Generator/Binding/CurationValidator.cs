@@ -271,7 +271,8 @@ internal static class CurationValidator
                      .Where(static pair => pair.Value is { Placement: GroupPlacement.Client, ClientName: not null })
                      .GroupBy(static pair => pair.Value.ClientName!, StringComparer.Ordinal)
                      .Where(static family => family
-                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission, pair.Value.ExperimentalDiagnostic))
+                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission,
+                             pair.Value.RootAccessor, pair.Value.ExperimentalDiagnostic))
                          .Distinct()
                          .Skip(1)
                          .Any())
@@ -381,7 +382,8 @@ internal static class CurationValidator
     /// <summary>
     /// The internal-raw mode hands a family's public surface to hand-written code (ADR-0021),
     /// so it only means something on a client-placed group that actually emits operations;
-    /// every other spelling would be a silently inert row.
+    /// every other spelling would be a silently inert row. The root-accessor opt-out belongs to
+    /// that mode alone.
     /// </summary>
     private static void ValidateGroupEmission(string wireName, GroupCuration group, IReadOnlyList<SpecOperation> selected,
         BindingErrorCollector errors)
@@ -399,6 +401,11 @@ internal static class CurationValidator
 
         if (group.Emission is not EmissionMode.InternalRaw)
         {
+            if (!group.RootAccessor)
+            {
+                errors.Add(BindingErrorCategory.Curation, wireName, "rootAccessor false requires internalRaw emission");
+            }
+
             return;
         }
 
