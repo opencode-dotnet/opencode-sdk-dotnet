@@ -727,8 +727,8 @@ URL that cannot be a base address: a relative one, or one such as `mailto:owner@
 `OpenCodeServer.StopAsync` is `opencode service stop` for your code: it ends the daemon the
 registration names and removes the registration. Disposing a discovered handle is still a no-op.
 Configuration changes and managed restart operations can also stop the shared service; call this
-door when the stop itself is your intention, such as before an uninstall or to end a daemon that
-no longer answers.
+door when the stop itself is your intention, such as when replacing a version, before an uninstall,
+or to end a daemon that no longer answers.
 
 ```csharp
 await OpenCodeServer.StopAsync();

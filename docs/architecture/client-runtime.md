@@ -1163,8 +1163,9 @@ Legacy config and registration donors are written as the CLI's decoded UTF-8 tex
 byte-order mark is dropped and each invalid sequence is replaced by U+FFFD. A donor whose decoded
 text still begins with U+FEFF is not migrated.
 The CLI's read rewrites a legacy-shape document in place. Discovery, Ensure and Stop leave that
-repair to the CLI or a later shared config-store read. `OpenCodeServiceConfiguration` reads and
-changes the config through that store, as described below. Remote access is turned on through the
+repair to the CLI or a later shared config-store read. The daemon's next read sees the same `env`
+overlay Ensure reads. `OpenCodeServiceConfiguration` reads and changes the config through that
+store, as described below. Remote access is turned on through the
 installed CLI by `OpenCodeServiceConfiguration.EnableRemoteAsync` and turned off by
 `DisableRemoteAsync`; legacy config repair can also generate a route. The service's remote URL
 reaches callers in `ServerInfo.Urls` while its tunnel is attached. The CLI's pairing command also

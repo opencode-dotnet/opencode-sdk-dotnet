@@ -43,14 +43,15 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
   `UnsetEnvironmentVariableAsync` remove settings, and `DisableRemoteAsync` turns remote access
   off. Sets and unsets stop the registered service first except `SetDisabledAsync(false)` and
   unsetting Disabled; nothing restarts it. `OpenCodeServiceConfigOptions` selects the channel and
-  installed-version comparand. Reads and SDK-managed writes refuse a config or donor the CLI may
-  read but the strict materializer cannot represent, rather than returning empty settings or
-  erasing them.
+  installed-version comparand. `ReadAsync`, `GetOrCreatePasswordAsync`, and the set and unset
+  operations refuse a config or donor the CLI may read but the SDK's JSON reader rejects, rather
+  than returning empty settings or erasing them.
 - `OpenCodeServiceConfiguration.EnableRemoteAsync` turns remote access on through the installed
-  `opencode service set remote true`, using `CliCommand` and `Environment`, then reads and returns
-  the selected config's secret route through the shared migrating and repairing read. The SDK does
-  not check that the command, channel and environment agree. Cancellation after CLI success can
-  leave remote access enabled.
+  `opencode service set remote true`, using the `CliCommand` and `Environment` members of
+  `OpenCodeServiceConfigOptions`. Only `EnableRemoteAsync` reads those two members. After CLI
+  success, the SDK reads and returns the selected config's secret route through the shared
+  migrating and repairing read. The SDK does not check that the command, channel and environment
+  agree. Cancellation after CLI success can leave remote access enabled.
 
 ### 🔧 Changes
 
