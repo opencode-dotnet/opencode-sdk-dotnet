@@ -156,7 +156,7 @@ FileSystemWrite owner=FileSystem reached-by=Experimental
 FilesystemChanged owner=FileSystem reached-by=Events
 FilesystemChangedData owner=FileSystem reached-by=Events
 FilesystemChangedDataEvent owner=FileSystem reached-by=Events
-ForbiddenError owner=Common reached-by=Experimental,PersistentPtys,Ptys
+ForbiddenError owner=Common reached-by=ClientMcpTokens,Experimental,PersistentPtys,Ptys
 FormAlreadySettledError owner=Forms reached-by=Sessions
 FormBooleanField owner=Forms reached-by=Events,Forms,Integrations,Sessions
 FormCancelled owner=Forms reached-by=Events
@@ -229,7 +229,7 @@ IJobInfo owner=Experimental reached-by=Experimental
 IMcpServerConfig owner=McpServers reached-by=Config,Experimental
 IMcpStatus owner=McpServers reached-by=McpServers
 IMcpTimeout owner=McpServers reached-by=Config,Experimental
-IOpenCodeError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
+IOpenCodeError owner=Common reached-by=Agents,ClientMcpTokens,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
 IPluginSource owner=Plugins reached-by=Plugins
 IPluginState owner=Plugins reached-by=Plugins
 IPromptFileSource owner=Sessions reached-by=Events,Experimental,Sessions
@@ -298,17 +298,17 @@ IntegrationOAuthConnectRequest owner=Integrations reached-by=Integrations
 IntegrationOAuthMethod owner=Integrations reached-by=Integrations
 IntegrationUpdated owner=Integrations reached-by=Events
 InvalidCursorError owner=Sessions reached-by=Sessions
-InvalidRequestError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
+InvalidRequestError owner=Common reached-by=Agents,ClientMcpTokens,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
 JobImage owner=Experimental reached-by=Experimental
 JobKind owner=Experimental reached-by=Experimental
 JobShell owner=Experimental reached-by=Experimental
 JobStatus owner=Experimental reached-by=Experimental
 JobSubagent owner=Experimental reached-by=Experimental
 JobTime owner=Experimental reached-by=Experimental
-LocationNotFoundError owner=Location reached-by=Agents,Commands,Config,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,Plugins,Providers,Ptys,References,Rpc,Sessions,Shells,Skills,Vcs,Websearch
+LocationNotFoundError owner=Location reached-by=Agents,ClientMcpTokens,Commands,Config,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,Plugins,Providers,Ptys,References,Rpc,Sessions,Shells,Skills,Vcs,Websearch
 LocationPublicInfo owner=Location reached-by=Location
 LocationPublicInfoProject owner=Location reached-by=Location
-LocationPublicRef owner=Location reached-by=Agents,Commands,Config,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,Plugins,Providers,Ptys,References,Rpc,Sessions,Shells,Skills,Vcs,Websearch
+LocationPublicRef owner=Location reached-by=Agents,ClientMcpTokens,Commands,Config,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,Plugins,Providers,Ptys,References,Rpc,Sessions,Shells,Skills,Vcs,Websearch
 LocationRef owner=Location reached-by=Events,Experimental
 LocationShutdown owner=Location reached-by=Events
 McpLocalConfig owner=McpServers reached-by=Config,Experimental
@@ -457,7 +457,7 @@ PtyFeatureUnsupportedError owner=Ptys reached-by=PersistentPtys
 PtyNotFoundError owner=Ptys reached-by=PersistentPtys,Ptys
 PtySize owner=Ptys reached-by=PersistentPtys,Ptys
 PtyStatus owner=Ptys reached-by=Events,Ptys
-PtyTicketConnectToken owner=Ptys reached-by=PersistentPtys,Ptys
+PtyTicketConnectToken owner=Ptys reached-by=ClientMcpTokens,PersistentPtys,Ptys
 PtyUpdateRequest owner=Ptys reached-by=Ptys
 PtyUpdated owner=Ptys reached-by=Events
 PtyUpdatedData owner=Ptys reached-by=Events
@@ -810,7 +810,7 @@ TuiSessionSelectData owner=Events reached-by=Events
 TuiToastShow owner=Events reached-by=Events
 TuiToastShowData owner=Events reached-by=Events
 TuiToastShowDataVariant owner=Events reached-by=Events
-UnauthorizedError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
+UnauthorizedError owner=Common reached-by=Agents,ClientMcpTokens,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
 UnknownConfigEntry owner=Config reached-by=Config
 UnknownConfigModelReasoning owner=Config reached-by=Config
 UnknownConnectionInfo owner=Integrations reached-by=Integrations
@@ -828,7 +828,7 @@ UnknownIntegrationMethod owner=Integrations reached-by=Integrations
 UnknownJobInfo owner=Experimental reached-by=Experimental
 UnknownMcpServerConfig owner=McpServers reached-by=Config,Experimental
 UnknownMcpStatus owner=McpServers reached-by=McpServers
-UnknownOpenCodeError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
+UnknownOpenCodeError owner=Common reached-by=Agents,ClientMcpTokens,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
 UnknownPluginSource owner=Plugins reached-by=Plugins
 UnknownPluginState owner=Plugins reached-by=Plugins
 UnknownPromptFileSource owner=Sessions reached-by=Events,Experimental,Sessions

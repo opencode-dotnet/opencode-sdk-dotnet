@@ -16,6 +16,12 @@
 /Agents/Models/AgentInfoMode.cs linguist-generated
 /Agents/Models/AgentNotFoundError.cs linguist-generated
 /Agents/Models/AgentUpdated.cs linguist-generated
+/ClientMcpTokens/ExperimentalMcpClientTokenRequest.cs linguist-generated
+/ClientMcpTokens/ExperimentalMcpClientTokenResponse.cs linguist-generated
+/ClientMcpTokens/Internal/ClientMcpTokensRawClient.cs linguist-generated
+/ClientMcpTokens/Internal/ExperimentalMcpClientTokenResponseAdapter.cs linguist-generated
+/ClientMcpTokens/Internal/ExperimentalMcpClientTokenResponseEnvelope.cs linguist-generated
+/ClientMcpTokens/Internal/OpenCodeRoutes.ClientMcpTokens.cs linguist-generated
 /Commands/CommandListRequest.cs linguist-generated
 /Commands/CommandListResponse.cs linguist-generated
 /Commands/CommandsClient.cs linguist-generated

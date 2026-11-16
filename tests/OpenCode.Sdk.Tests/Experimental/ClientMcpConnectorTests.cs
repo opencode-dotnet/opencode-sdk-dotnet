@@ -11,38 +11,40 @@ public sealed class ClientMcpConnectorTests
     [Test]
     public async Task UpgradeAsync_Should_Use_The_Client_HttpHandler_For_A_Default_Socket()
     {
-        await using var fallback = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse { StatusCode = System.Net.HttpStatusCode.NotFound });
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden));
-        using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = fallback.Endpoint, HttpHandler = handler });
-        var connector = new ClientMcpConnector(client.Experimental.PipelineOrNull!.Connection, new ClientMcpOptions { Name = "app", Tools = [] });
-        using var socket = connector.Create();
-        _ = await Assert.That(async () => _ = await connector.UpgradeAsync(socket, CancellationToken.None)).Throws<OpenCodeTransportException>();
+        var result = await UpgradeThroughClientHandlerAsync(webSocketFactory: null);
 
-        await Assert.That(handler.Requests.Count).IsEqualTo(1);
-        var upgrade = handler.Requests.Single();
+        await Assert.That(result.Handled.Count).IsEqualTo(1);
+        var upgrade = result.Handled.Single();
         await Assert.That(upgrade.Method).IsEqualTo(HttpMethod.Get);
         await Assert.That(upgrade.RequestUri!.AbsolutePath).IsEqualTo("/api/experimental/client-mcp");
         await Assert.That(upgrade.Headers["Upgrade"]).IsEqualTo("websocket");
-        await Assert.That(fallback.Requests).IsEmpty();
-        await Assert.That(handler.IsDisposed).IsFalse();
+        await Assert.That(result.Fallback).IsEmpty();
+        await Assert.That(result.HandlerDisposed).IsFalse();
     }
 
     [Test]
     public async Task UpgradeAsync_Should_Leave_A_Factory_Sockets_HttpHandler_Untouched()
     {
+        var result = await UpgradeThroughClientHandlerAsync(static () => new ClientWebSocket());
+
+        await Assert.That(result.Handled).IsEmpty();
+        var upgrade = result.Fallback.Single();
+        await Assert.That(upgrade.Method).IsEqualTo("GET");
+        await Assert.That(upgrade.Path).IsEqualTo("/api/experimental/client-mcp?name=app");
+        await Assert.That(upgrade.Headers["Upgrade"]).IsEqualTo("websocket");
+    }
+
+    private static async Task<(IReadOnlyList<RecordedRequest> Handled, IReadOnlyList<LoopbackRequest> Fallback, bool HandlerDisposed)>
+        UpgradeThroughClientHandlerAsync(Func<ClientWebSocket>? webSocketFactory)
+    {
         await using var fallback = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse { StatusCode = System.Net.HttpStatusCode.NotFound });
         using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden));
         using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = fallback.Endpoint, HttpHandler = handler });
         var connector = new ClientMcpConnector(client.Experimental.PipelineOrNull!.Connection,
-            new ClientMcpOptions { Name = "app", Tools = [], WebSocketFactory = static () => new ClientWebSocket() });
+            new ClientMcpOptions { Name = "app", Tools = [], WebSocketFactory = webSocketFactory });
         using var socket = connector.Create();
         _ = await Assert.That(async () => _ = await connector.UpgradeAsync(socket, CancellationToken.None)).Throws<OpenCodeTransportException>();
-
-        await Assert.That(handler.Requests).IsEmpty();
-        var upgrade = fallback.Requests.Single();
-        await Assert.That(upgrade.Method).IsEqualTo("GET");
-        await Assert.That(upgrade.Path).IsEqualTo("/api/experimental/client-mcp?name=app");
-        await Assert.That(upgrade.Headers["Upgrade"]).IsEqualTo("websocket");
+        return ([.. handler.Requests], [.. fallback.Requests], handler.IsDisposed);
     }
 #endif
 

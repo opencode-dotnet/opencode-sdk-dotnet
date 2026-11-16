@@ -658,6 +658,7 @@ public sealed class OperationPlanBinderTests
     [
         "OpenCodeClient",
         "AgentsClient",
+        "ClientMcpTokensRawClient",
         "CommandsClient",
         "ConfigClient",
         "CredentialsClient",
@@ -861,32 +862,94 @@ public sealed class OperationPlanBinderTests
         await Assert.That((list.OperationId, list.RouteTemplate)).IsEqualTo(("widget.list", "/api/widget"));
     }
 
+    [Test]
+    public async Task Bind_Should_Select_The_Client_Mcp_Token_Into_The_Internal_Raw_Subgroup()
+    {
+        var plan = await new BindingTestHost().BindPinnedAsync();
+        await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Select(static operation => operation.OperationId))
+            .Contains("experimental.mcp.client.token");
+        var owner = plan.Clients.Single(static client => client.Name == "ClientMcpTokensRawClient");
+        var token = owner.Operations.Single(static operation => operation.OperationId == "experimental.mcp.client.token");
+        await Assert.That(owner.Emission).IsEqualTo(EmissionMode.InternalRaw);
+        await Assert.That(token.ExperimentalDiagnostic).IsEqualTo("OPENCODE001");
+        await Assert.That(token.RouteContainerName).IsEqualTo("ClientMcpTokens");
+        await Assert.That(token.MethodName).IsEqualTo("CreateConnectTokenAsync");
+        await Assert.That(token.QueryRequest!.TypeName).IsEqualTo("ExperimentalMcpClientTokenRequest");
+        await Assert.That(token.QueryRequest.Properties.Select(static property => $"{property.WireName}:{property.PropertyName}:{property.Kind}:{property.IsRequired}"))
+            .IsEquivalentTo(["location:Location:Location:False", "name:Name:Text:True"], CollectionOrdering.Matching);
+        await Assert.That(token.DeclaredHeaders)
+            .IsEquivalentTo([new DeclaredHeaderPlan { WireName = "x-opencode-ticket", Name = "xOpencodeTicket" }], CollectionOrdering.Matching);
+        await Assert.That(token.Envelope!.Kind).IsEqualTo(EnvelopeKind.DataLocation);
+        await Assert.That(token.Envelope.ResponseTypeName).IsEqualTo("ExperimentalMcpClientTokenResponse");
+        await Assert.That(token.Envelope.PayloadName).IsEqualTo("ConnectToken");
+        await Assert.That(((NamedTypeReferencePlan)token.Envelope.PayloadType!).Name).IsEqualTo("PtyTicketConnectToken");
+        await Assert.That(token.Envelope.LocationTypeName).IsEqualTo("LocationPublicRef");
+        await Assert.That(plan.Clients.Single(static client => client.Role == ClientRole.Root).SubClients.Select(static client => client.PropertyName))
+            .DoesNotContain("ClientMcpTokens");
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_Drift_In_The_Client_Mcp_Attach_Fingerprint()
+    {
+        var (document, selection, curation) = await BindingTestHost.LoadPinnedInputsAsync();
+        const string declared = "4a3e911341d39b1ce67d313d05ce87eb862f7f9bda4dc2a9b7d8e794fe2e86d6";
+        const string drift = "de7981951ff32f7622ceb063b67d9bcaa8cce026362021051e2a084f084cf69f";
+        var attach = document.Operations.Single(static operation => operation.OperationId == "experimental.mcp.client");
+        await Assert.That(TransportOwnedFingerprint.ComputeSha256(attach)).IsEqualTo(declared);
+        var changed = document with
+        {
+            Operations = [.. document.Operations.Select(operation => operation == attach ? operation with { Path = operation.Path + "/drift" } : operation)],
+        };
+        var failure = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(changed, selection, curation));
+        await Assert.That(failure.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Curation, "experimental.mcp.client",
+                "transport-owned operation subtree no longer matches the committed subtreeSha256 "
+                + $"(declared '{declared}', computed '{drift}'); review the reshaped operation and repin"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_An_Unclassified_Client_Mcp_Token_Name_Query()
+    {
+        var (document, selection, curation) = await BindingTestHost.LoadPinnedInputsAsync();
+        curation = curation with
+        {
+            StringQueryParameters = [.. curation.StringQueryParameters.Where(static row => row.OperationId != "experimental.mcp.client.token" || row.Parameter != "name")],
+        };
+        var failure = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, selection, curation));
+        await Assert.That(failure.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Curation, "experimental.mcp.client.token:name",
+                "the query parameter is a plain string that no curation row classifies: add a queryParameterTypes row when upstream "
+                + "decodes it as a number, or a stringQueryParameters row that says why it stays a string") { Kind = BindingErrorKind.MissingRow },
+        ], CollectionOrdering.Matching);
+    }
+
     /// <summary>
-    /// Both WebSocket connect operations (ADR-0021's hand-written session doors) are pinned by
+    /// All three WebSocket operations (the hand-written session doors) are pinned by
     /// fingerprint rather than selected, ordinal-sorted; a spec refresh or a curation edit that
-    /// drops either row, or reorders them, must fail this test rather than drift silently.
+    /// drops a row, or reorders them, must fail this test rather than drift silently.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Report_Both_WebSocket_Operations_As_Transport_Owned()
+    public async Task Bind_Should_Report_The_Three_WebSocket_Operations_As_Transport_Owned()
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         await Assert.That(plan.TransportOwnedOperationIds)
-            .IsEquivalentTo(["experimental.persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["experimental.mcp.client", "experimental.persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     /// <summary>
     /// The committed curation against the pinned spec: every operation outside the transport-owned
-    /// pair, the deferred client MCP pair and the upstream-omitted legacy text generation binds;
+    /// operations and the upstream-omitted legacy text generation binds;
     /// nothing remains pending.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Decline_The_Client_Mcp_Pair_And_Legacy_Text_Generation_At_The_Pin()
+    public async Task Bind_Should_Decline_Only_Legacy_Text_Generation_At_The_Pin()
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         await Assert.That(plan.DeclinedOperations.Select(static operation => operation.OperationId))
-            .IsEquivalentTo(["experimental.generate.textLegacy", "experimental.mcp.client", "experimental.mcp.client.token"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["experimental.generate.textLegacy"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(plan.PendingOperations).IsEmpty();
     }
 

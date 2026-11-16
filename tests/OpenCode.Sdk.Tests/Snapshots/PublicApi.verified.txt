@@ -478,6 +478,23 @@ namespace OpenCode.Sdk
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public sealed class ExperimentalMcpClientTokenRequest : System.IEquatable<OpenCode.Sdk.ExperimentalMcpClientTokenRequest>
+    {
+        public ExperimentalMcpClientTokenRequest() { }
+        public OpenCode.Sdk.LocationSelector? Location { get; init; }
+        public required string Name { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalMcpClientTokenResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpClientTokenResponse>
+    {
+        public ExperimentalMcpClientTokenResponse() { }
+        public required OpenCode.Sdk.Models.PtyTicketConnectToken ConnectToken { get; init; }
+        public required OpenCode.Sdk.Models.LocationPublicRef Location { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpConnectRequest : System.IEquatable<OpenCode.Sdk.ExperimentalMcpConnectRequest>
     {
         public ExperimentalMcpConnectRequest() { }
