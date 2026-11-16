@@ -1,5 +1,6 @@
 using NSubstitute;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Transport.Support;
 
 namespace OpenCode.Sdk.Tests.Hosting.Connection;
 
@@ -39,9 +40,7 @@ public sealed class ResolveRequestTests
             Standalone = true,
         })).Throws<ArgumentException>();
 
-        await Assert.That(failure!.ParamName).IsEqualTo("options");
-        await Assert.That(failure.Message).IsEqualTo(
-            new ArgumentException("OpenCodeServerResolveOptions.Endpoint and Standalone cannot be combined.", failure.ParamName).Message);
+        await RouteRefusal.AssertAsync(failure, "OpenCodeServerResolveOptions.Endpoint and Standalone cannot be combined.", "options");
     }
 
     [Test]
@@ -54,9 +53,7 @@ public sealed class ResolveRequestTests
             new OpenCodeServerResolveOptions { Password = "pw", Standalone = standalone, Autostart = autostart },
             new ConnectionSeams(_doors, _environment, _files), CancellationToken.None)).Throws<ArgumentException>();
 
-        await Assert.That(failure!.ParamName).IsEqualTo("options");
-        await Assert.That(failure.Message).IsEqualTo(
-            new ArgumentException("Password applies only to an explicit Endpoint; a standalone or service connection carries its own credentials.", failure.ParamName).Message);
+        await RouteRefusal.AssertAsync(failure, "Password applies only to an explicit Endpoint; a standalone or service connection carries its own credentials.", "options");
         await Assert.That(_doors.ReceivedCalls()).IsEmpty();
         await Assert.That(_files.ReceivedCalls()).IsEmpty();
         await Assert.That(_environment.ReceivedCalls()).IsEmpty();
@@ -83,9 +80,7 @@ public sealed class ResolveRequestTests
             new OpenCodeServerResolveOptions { Service = new OpenCodeServerEnsureOptions { VersionPolicy = OpenCodeServerVersionPolicy.Replace } },
             new ConnectionSeams(_doors, _environment, _files), CancellationToken.None)).Throws<ArgumentException>();
 
-        await Assert.That(failure!.ParamName).IsEqualTo("options");
-        await Assert.That(failure.Message).IsEqualTo(
-            new ArgumentException("OpenCodeServerEnsureOptions.VersionPolicy Replace needs ExpectedVersion; without it there is nothing to mismatch.", failure.ParamName).Message);
+        await RouteRefusal.AssertAsync(failure, "OpenCodeServerEnsureOptions.VersionPolicy Replace needs ExpectedVersion; without it there is nothing to mismatch.", "options");
         await Assert.That(_files.ReceivedCalls()).IsEmpty();
         await Assert.That(_environment.ReceivedCalls()).IsEmpty();
         await Assert.That(_doors.ReceivedCalls()).IsEmpty();
