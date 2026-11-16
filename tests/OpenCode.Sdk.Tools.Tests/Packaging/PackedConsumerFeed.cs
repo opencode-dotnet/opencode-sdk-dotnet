@@ -347,6 +347,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
 
     private const string ClientMcpSchemaTypes =
         """
+        #nullable enable
         internal sealed record LookupArguments
         {
             [JsonPropertyName("id")]
@@ -355,6 +356,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         }
         [JsonSerializable(typeof(LookupArguments))]
         internal sealed partial class LookupJsonContext : JsonSerializerContext;
+        #nullable restore
         """;
 
     private const string RpcFacadeProgram =
