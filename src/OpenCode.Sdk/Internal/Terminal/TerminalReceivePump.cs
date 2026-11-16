@@ -21,7 +21,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
     private readonly ArrayPool<byte> _pool;
     private bool _abandoned;
     private TerminalConnectionOutcome? _outcome;
-    private readonly WebSocketFailureContext? _context;
+    private readonly string _label;
 
     public TerminalReceivePump(
         ITerminalWebSocket socket,
@@ -29,10 +29,10 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         ITerminalClosePolicy closePolicy,
         Func<Task> onEnded,
         ArrayPool<byte> pool,
-        WebSocketFailureContext? context = null)
+        string label = "PTY")
     {
         _pool = pool;
-        _context = context;
+        _label = label;
         _completion = ReceiveAsync(socket, decoder, closePolicy, onEnded);
     }
 
@@ -85,7 +85,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
                 return;
             }
 
-            _outcome = new TerminalConnectionOutcome(failure, _context);
+            _outcome = new TerminalConnectionOutcome(failure, _label);
             _ = _frames.Writer.TryComplete();
         }
     }
@@ -96,7 +96,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         lock (_sync)
         {
             _abandoned = true;
-            _outcome = new TerminalConnectionOutcome(null, _context);
+            _outcome = new TerminalConnectionOutcome(null, _label);
             _ = _frames.Writer.TryComplete();
             while (_frames.Reader.TryRead(out _))
             {
@@ -134,7 +134,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.PtyWebSocketRead))
         {
-            Complete(FailureClassification.Map(exception, FailurePhase.PtyWebSocketRead, _context, CancellationToken.None));
+            Complete(FailureClassification.Map(exception, FailurePhase.PtyWebSocketRead, _label, CancellationToken.None));
         }
         catch (OpenCodeTransportException exception)
         {

@@ -20,7 +20,7 @@ public sealed class FailureClassificationTests
     [Arguments(false, false, "could not be read.")]
     [Arguments(true, false, "could not be written to.")]
     [Arguments(false, true, "read was canceled.")]
-    [Arguments(true, true, "send was canceled.")]
+    [Arguments(true, true, "write was canceled.")]
     public async Task Map_Should_Keep_Terminal_Text_And_Name_Client_Mcp(bool write, bool cancel, string suffix)
     {
         using var caller = new CancellationTokenSource();
@@ -31,11 +31,11 @@ public sealed class FailureClassificationTests
 
         var cause = new WebSocketException("wire-failure");
         var failure = FailureClassification.Map(cause, write ? FailurePhase.PtyWebSocketWrite : FailurePhase.PtyWebSocketRead,
-            new WebSocketFailureContext("client MCP 'app'"), caller.Token);
-        await Assert.That(failure.Message).IsEqualTo($"The opencode client MCP 'app' WebSocket {suffix}");
+            "MCP", caller.Token);
+        await Assert.That(failure.Message).IsEqualTo($"The opencode MCP WebSocket {suffix}");
         await Assert.That(failure.InnerException).IsSameReferenceAs(cause);
-        await Assert.That(new TerminalConnectionOutcome(null, new WebSocketFailureContext("client MCP 'app'")).SendFailure.Message)
-            .IsEqualTo("The opencode client MCP 'app' WebSocket connection has ended.");
+        await Assert.That(new TerminalConnectionOutcome(null, "MCP").SendFailure.Message)
+            .IsEqualTo("The opencode MCP WebSocket connection has ended.");
         if (cancel)
         {
             await Assert.That(failure).IsTypeOf<OperationCanceledException>();

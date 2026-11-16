@@ -437,7 +437,6 @@ internal static class ReservedNamePolicy
             "UnionVariantRead",
             "UserAgentPolicy",
             "VersionMismatchNotifier",
-            "WebSocketFailureContext",
             "WebSocketSchemePolicy",
             "WindowsChildExit",
             "WindowsCommand",

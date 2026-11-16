@@ -53,21 +53,30 @@ internal static class FailureClassification
 
     /// <summary>Maps a handled exception onto the one the phase throws.</summary>
     public static Exception Map(Exception exception, FailurePhase phase, CancellationToken cancellationToken,
-        CancellationToken lifetimeToken = default) => Map(exception, phase, context: null, cancellationToken, lifetimeToken);
-
-    /// <summary>Maps a WebSocket fault with its product's diagnostic context.</summary>
-    public static Exception Map(Exception exception, FailurePhase phase, WebSocketFailureContext? context,
-        CancellationToken cancellationToken, CancellationToken lifetimeToken = default)
+        CancellationToken lifetimeToken = default)
     {
         Debug.Assert(Handles(exception, phase), "Only exceptions the phase handles are classified.");
 
         if (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested && !lifetimeToken.IsCancellationRequested)
         {
             // Neither the caller nor the client asked for this cancellation: the transport timed out.
-            return new OpenCodeTransportException(TimeoutMessage(phase, context), exception);
+            return new OpenCodeTransportException(TimeoutMessage(phase), exception);
         }
 
-        return MapFault(exception, phase, context, cancellationToken, lifetimeToken);
+        return MapFault(exception, phase, cancellationToken, lifetimeToken);
+    }
+
+    /// <summary>Classifies a shared-core WebSocket failure using only its product label.</summary>
+    public static Exception Map(Exception exception, FailurePhase phase, string label, CancellationToken cancellationToken)
+    {
+        Debug.Assert(phase is FailurePhase.PtyWebSocketRead or FailurePhase.PtyWebSocketWrite);
+        var read = phase is FailurePhase.PtyWebSocketRead;
+        var operation = read ? "read" : "write";
+        var action = read ? "read" : "written to";
+        var prefix = $"The opencode {label} WebSocket";
+        return cancellationToken.IsCancellationRequested
+            ? CallerCancellation(exception, $"{prefix} {operation} was canceled.", cancellationToken)
+            : new OpenCodeTransportException($"{prefix} could not be {action}.", exception);
     }
 
     /// <summary>
@@ -78,22 +87,18 @@ internal static class FailureClassification
     /// interruption, not a new fault, and needs no place in <see cref="Handles"/>.
     /// </summary>
     public static Exception MapFault(Exception exception, FailurePhase phase, CancellationToken cancellationToken,
-        CancellationToken lifetimeToken = default) => MapFault(exception, phase, context: null, cancellationToken, lifetimeToken);
-
-    /// <summary>Classifies a fault with the owning WebSocket product's diagnostic context.</summary>
-    public static Exception MapFault(Exception exception, FailurePhase phase, WebSocketFailureContext? context,
-        CancellationToken cancellationToken, CancellationToken lifetimeToken = default)
+        CancellationToken lifetimeToken = default)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
         if (cancellationToken.IsCancellationRequested)
         {
-            return CallerCancellation(exception, CanceledMessage(phase, context), cancellationToken);
+            return CallerCancellation(exception, CanceledMessage(phase), cancellationToken);
         }
 
         return lifetimeToken.IsCancellationRequested
             ? DisposedClient()
-            : new OpenCodeTransportException(FaultMessage(phase, context), exception);
+            : new OpenCodeTransportException(FaultMessage(phase), exception);
     }
 
     /// <summary>Retains the cause while reporting the cancellation identity of the caller at this boundary.</summary>
@@ -130,30 +135,28 @@ internal static class FailureClassification
     private static string Seconds(TimeSpan window) =>
         window.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture);
 
-    private static string FaultMessage(FailurePhase phase, WebSocketFailureContext? context) => phase switch
+    private static string FaultMessage(FailurePhase phase) => phase switch
     {
         FailurePhase.Send => "The opencode server could not be reached.",
         FailurePhase.ResponseBodyRead => "The opencode response body could not be read.",
         FailurePhase.EventStreamRead => "The opencode event stream could not be read.",
-        FailurePhase.PtyWebSocketRead => $"{(context ?? WebSocketFailureContext.Terminal).Prefix} could not be read.",
-        FailurePhase.PtyWebSocketWrite => $"{(context ?? WebSocketFailureContext.Terminal).Prefix} could not be written to.",
+        FailurePhase.PtyWebSocketRead => "The opencode PTY WebSocket could not be read.",
+        FailurePhase.PtyWebSocketWrite => "The opencode PTY WebSocket could not be written to.",
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown failure phase."),
     };
 
-    private static string TimeoutMessage(FailurePhase phase, WebSocketFailureContext? context) =>
+    private static string TimeoutMessage(FailurePhase phase) =>
         phase is FailurePhase.Send
             ? "The opencode server did not respond within the transport timeout."
-            : FaultMessage(phase, context);
+            : FaultMessage(phase);
 
-    public static string CanceledMessage(FailurePhase phase) => CanceledMessage(phase, context: null);
-
-    private static string CanceledMessage(FailurePhase phase, WebSocketFailureContext? context) => phase switch
+    public static string CanceledMessage(FailurePhase phase) => phase switch
     {
         FailurePhase.Send => "The opencode request was canceled.",
         FailurePhase.ResponseBodyRead => "The opencode response body read was canceled.",
         FailurePhase.EventStreamRead => "The opencode event stream read was canceled.",
-        FailurePhase.PtyWebSocketRead => $"{(context ?? WebSocketFailureContext.Terminal).Prefix} read was canceled.",
-        FailurePhase.PtyWebSocketWrite => context is null ? "The opencode PTY WebSocket write was canceled." : $"{context.Prefix} send was canceled.",
+        FailurePhase.PtyWebSocketRead => "The opencode PTY WebSocket read was canceled.",
+        FailurePhase.PtyWebSocketWrite => "The opencode PTY WebSocket write was canceled.",
         _ => throw new ArgumentOutOfRangeException(nameof(phase), phase, "Unknown failure phase."),
     };
 }

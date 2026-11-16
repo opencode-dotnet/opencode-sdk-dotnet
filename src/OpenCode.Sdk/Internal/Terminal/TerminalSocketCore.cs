@@ -24,7 +24,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     private readonly ITerminalWebSocket _socket;
     private readonly TimeProvider _time;
     private readonly Action<Task>? _onSendJoin;
-    private readonly WebSocketFailureContext? _context;
+    private readonly string _label;
     private int _disposed;
     private int _reading;
     private int _socketDisposed;
@@ -40,7 +40,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     /// <param name="time">The clock for send and close deadlines.</param>
     /// <param name="pool">The buffer pool; null uses the shared pool.</param>
     /// <param name="onSendJoin">An optional observer of disposal's join task for active sends.</param>
-    /// <param name="context">The product's failure text; null retains every terminal default.</param>
+    /// <param name="label">The product label; the terminal default is PTY.</param>
     public TerminalSocketCore(
         ITerminalWebSocket socket,
         ITerminalFrameDecoder<TFrame> decoder,
@@ -49,7 +49,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         TimeProvider time,
         ArrayPool<byte>? pool = null,
         Action<Task>? onSendJoin = null,
-        WebSocketFailureContext? context = null)
+        string label = "PTY")
     {
         ArgumentNullException.ThrowIfNull(socket);
         ArgumentNullException.ThrowIfNull(decoder);
@@ -59,12 +59,12 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         _socket = socket;
         _time = time;
         _onSendJoin = onSendJoin;
-        _context = context;
+        _label = label;
         _sendGate = new TerminalSendQueue(socket, time);
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
         SendPool = pool ?? ArrayPool<byte>.Shared;
-        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync, SendPool, context);
+        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync, SendPool, label);
         _getOutcome = () => _receiver.Outcome;
     }
 
@@ -148,7 +148,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         CancellationToken cancellationToken)
     {
 
-        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, _time, _getOutcome, _context, cancellationToken);
+        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, _time, _getOutcome, _label, cancellationToken);
         var payload = createPayload(state);
         try
         {
@@ -293,7 +293,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     private async Task FailSendAsync(Exception failure)
     {
         var terminalFailure = failure as OpenCodeTransportException ?? new OpenCodeTransportException(
-            $"{(_context ?? WebSocketFailureContext.Terminal).Prefix} was interrupted during a send; delivery is uncertain.", failure);
+            $"The opencode {_label} WebSocket was interrupted during a send; delivery is uncertain.", failure);
         _receiver.Complete(terminalFailure);
         await _sendEnded.CancelOnWorkerAsync().ConfigureAwait(false);
         DisposeSocket();

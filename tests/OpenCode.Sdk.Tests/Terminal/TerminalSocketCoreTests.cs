@@ -22,7 +22,7 @@ public sealed class TerminalSocketCoreTests
         var cause = new WebSocketException("wire");
         using var socket = write ? new ScriptedTerminalWebSocket().FailingNextSendWith(cause) : new ScriptedTerminalWebSocket().Faulting(cause);
         await using var core = new TerminalSocketCore<PtyFrame>(socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance,
-            typeof(ClientMcpOptions), new ManualTimeProvider(), context: new WebSocketFailureContext("client MCP 'app'"));
+            typeof(ClientMcpOptions), new ManualTimeProvider(), label: "MCP");
         var failure = await Assert.That(async () =>
         {
             if (write)
@@ -35,7 +35,7 @@ public sealed class TerminalSocketCoreTests
                 _ = await frames.MoveNextAsync();
             }
         }).Throws<OpenCodeTransportException>();
-        await Assert.That(failure!.Message).IsEqualTo($"The opencode client MCP 'app' WebSocket {suffix}");
+        await Assert.That(failure!.Message).IsEqualTo($"The opencode MCP WebSocket {suffix}");
         await Assert.That(failure.InnerException).IsSameReferenceAs(cause);
     }
 
