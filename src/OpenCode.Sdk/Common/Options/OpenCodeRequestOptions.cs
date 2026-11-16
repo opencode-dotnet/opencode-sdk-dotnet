@@ -18,7 +18,10 @@ public sealed class OpenCodeRequestOptions
     /// Gets the headers validated and copied when this call starts; each cursor page is a separate
     /// call. The event subscription refuses them. Later values replace
     /// earlier ones: SDK User-Agent, <see cref="OpenCodeClientOptions.Headers"/>, SDK authentication,
-    /// merged location and operation-declared headers, then these headers. Case-equivalent names
+    /// merged location and operation-declared headers, then these headers; with
+    /// <see cref="OpenCodeClientOptions.MediaReferences"/> on and <see cref="InlineMedia"/> off, the
+    /// SDK's X-OpenCode-Capabilities then replaces this set's value on session.message.list,
+    /// session.message.get and session.inbox.list. Case-equivalent names
     /// in this set join in insertion order with ", ". Client construction refuses Authorization
     /// with a non-null <see cref="OpenCodeClientOptions.Password"/>, or x-opencode-directory with a
     /// non-null <see cref="OpenCodeClientOptions.Location"/>; these per-call headers allow both names.

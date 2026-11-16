@@ -7,9 +7,10 @@ using OpenCode.Sdk.Tests.Transport.Support;
 namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
-/// Caller request headers through the pipeline: the refusals at construction and call start, the
-/// per-call copy a stream call takes when it starts, and the terminal upgrades they never reach.
-/// The decoration order itself is the decoration policy's tests.
+/// Request headers through the pipeline: the experimental media capability on the three message and
+/// inbox reads, the caller headers' refusals at construction and call start, the per-call copy a
+/// stream call takes when it starts, and the terminal upgrades they never reach. The decoration
+/// order itself is the decoration policy's tests.
 /// </summary>
 public sealed class PipelineRequestHeadersTests
 {
@@ -29,11 +30,10 @@ public sealed class PipelineRequestHeadersTests
     private const string DeleteValue = "ok\u007fvalue";
     private const string ClientValue = "client";
     private const string BeforeValue = "before";
-
-    private static readonly Uri Endpoint = new("http://localhost:4096");
-
     private const string CapabilitiesHeader = "X-OpenCode-Capabilities";
     private const string MediaCapability = "experimental-media-uri";
+
+    private static readonly Uri Endpoint = new("http://localhost:4096");
 
     [Test]
     [Arguments("session.message.list")]
@@ -129,35 +129,6 @@ public sealed class PipelineRequestHeadersTests
             await Assert.That(request.Headers).ContainsKey(CapabilitiesHeader);
             await Assert.That(request.Headers[CapabilitiesHeader]).IsEqualTo(MediaCapability);
         }
-    }
-
-    private static OpenCodeRequestOptions MediaCall(bool perCall, bool inline) => new()
-    {
-        InlineMedia = inline,
-        ErrorBehavior = ErrorBehavior.NoThrow,
-        Headers = perCall ? new Dictionary<string, string>(StringComparer.Ordinal) { ["x-opencode-capabilities"] = CallerValue } : null,
-    };
-
-    private static async Task<RecordedRequest> ReadMediaAsync(OpenCodeClientOptions options, string operationId,
-        OpenCodeRequestOptions? call = null)
-    {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
-        {
-            Content = new StringContent(WireBodyData.UnauthorizedError),
-        });
-        using var http = new HttpClient(handler);
-        using var client = new OpenCodeClient(http, options);
-        var session = client.Sessions.GetSessionClient("ses_media");
-        call ??= OpenCodeRequestOptions.NoThrow;
-        _ = operationId switch
-        {
-            "session.message.list" => (OpenCodeResponse)await session.ListMessagesAsync(requestOptions: call),
-            "session.message.get" => await session.GetMessageAsync("msg_media", requestOptions: call),
-            "session.inbox.list" => await session.ListInboxAsync(requestOptions: call),
-            _ => await client.Server.GetInfoAsync(requestOptions: call),
-        };
-
-        return handler.Requests.Single();
     }
 
     [Test]
@@ -392,5 +363,34 @@ public sealed class PipelineRequestHeadersTests
         await Assert.That(sent.Headers["X-Client"]).IsEqualTo(ClientValue);
         await Assert.That(sent.Headers.TryGetValue("X-Probe", out var probe) ? probe : "absent")
             .IsEqualTo(initiallyEmpty ? "absent" : BeforeValue);
+    }
+
+    private static OpenCodeRequestOptions MediaCall(bool perCall, bool inline) => new()
+    {
+        InlineMedia = inline,
+        ErrorBehavior = ErrorBehavior.NoThrow,
+        Headers = perCall ? new Dictionary<string, string>(StringComparer.Ordinal) { ["x-opencode-capabilities"] = CallerValue } : null,
+    };
+
+    private static async Task<RecordedRequest> ReadMediaAsync(OpenCodeClientOptions options, string operationId,
+        OpenCodeRequestOptions? call = null)
+    {
+        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent(WireBodyData.UnauthorizedError),
+        });
+        using var http = new HttpClient(handler);
+        using var client = new OpenCodeClient(http, options);
+        var session = client.Sessions.GetSessionClient("ses_media");
+        call ??= OpenCodeRequestOptions.NoThrow;
+        _ = operationId switch
+        {
+            "session.message.list" => (OpenCodeResponse)await session.ListMessagesAsync(requestOptions: call),
+            "session.message.get" => await session.GetMessageAsync("msg_media", requestOptions: call),
+            "session.inbox.list" => await session.ListInboxAsync(requestOptions: call),
+            _ => await client.Server.GetInfoAsync(requestOptions: call),
+        };
+
+        return handler.Requests.Single();
     }
 }

@@ -50,9 +50,10 @@ watching, the v1 migration status, and the config update. The
 
 Set `MediaReferences = true` when constructing the client to request `media:<hash>` references on
 `ListMessagesAsync` (and every `EnumerateMessagesAsync` page), `GetMessageAsync` and `ListInboxAsync`.
-The session location's `experimental.media_blob` setting decides whether stored media stays a ref.
-`HashFromUri` returns its 64 lowercase-hex hash, or null for any other value; `GetMediaAsync` fetches
-the bytes. For self-contained exports, `InlineMedia = true` omits the automatic capability header:
+The session location's `experimental.media_blob` setting decides whether stored media stays a ref:
+such a user file reads as a `PromptAttachment` whose `Kind` is `PromptMediaFileAttachment`, and
+`HashFromUri` returns its `Uri`'s 64 lowercase-hex hash, or null for any other value; `GetMediaAsync`
+fetches the bytes. For self-contained exports, `InlineMedia = true` omits the automatic capability header:
 stored media then comes back inline unless you send that header yourself.
 
 ```csharp
@@ -71,7 +72,8 @@ if (message.Message is SessionMessageUser { Files: { } files })
 {
     foreach (var file in files)
     {
-        if (MediaReference.HashFromUri(file.Data) is { } hash)
+        if (file.Kind == PromptAttachmentKind.PromptMediaFileAttachment
+            && MediaReference.HashFromUri(file.PromptMediaFileAttachment.Uri) is { } hash)
         {
             var blob = await client.Experimental.GetMediaAsync(hash);
             Console.WriteLine($"Referenced attachment: {blob.Content.Length} bytes");

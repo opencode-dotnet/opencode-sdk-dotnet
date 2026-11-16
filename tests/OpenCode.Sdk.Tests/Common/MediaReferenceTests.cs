@@ -11,18 +11,17 @@ public sealed class MediaReferenceTests
     }
 
     [Test]
-    public async Task HashFromUri_Should_Refuse_Any_Other_Value()
+    [Arguments(null)]
+    [Arguments("")]
+    [Arguments("MEDIA:" + Hash)]
+    [Arguments("https:" + Hash)]
+    [Arguments("media:0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef")]
+    [Arguments("media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdeg")]
+    [Arguments("media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde")]
+    [Arguments("media:" + Hash + "0")]
+    [Arguments("media:" + Hash + "\n")]
+    public async Task HashFromUri_Should_Refuse_Any_Other_Value(string? value)
     {
-        string?[] values =
-        [
-            null, "", "MEDIA:" + Hash, "https:" + Hash,
-            "media:0123456789ABCDEF0123456789abcdef0123456789abcdef0123456789abcdef",
-            "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcde",
-            "media:" + Hash + "0", "media:" + Hash + "\n",
-        ];
-        foreach (var uri in values)
-        {
-            await Assert.That(MediaReference.HashFromUri(uri)).IsNull();
-        }
+        await Assert.That(MediaReference.HashFromUri(value)).IsNull();
     }
 }
