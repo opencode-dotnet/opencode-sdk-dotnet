@@ -123,7 +123,8 @@ public partial class OpenCodeServer : IAsyncDisposable
     /// Builds a client for this server. The door owns the connection identity: the delegate
     /// receives identity-unset options, and setting Endpoint, Username, or Password there is
     /// refused. Behavior members such as <see cref="OpenCodeClientOptions.Location"/> configure
-    /// freely. Every call builds a new client owning its transport; the caller disposes it.
+    /// freely. Every call builds a new client the caller disposes; a configured HttpHandler stays
+    /// the caller's.
     /// </summary>
     /// <param name="configure">Optional behavior configuration; identity members must stay unset.</param>
     /// <returns>A new client bound to this server's endpoint and credential: a started server's lease, a registration's password, or none.</returns>

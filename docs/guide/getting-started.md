@@ -81,7 +81,7 @@ the rest have defaults:
 | `NetworkTimeout` | `TimeSpan?` | The ordinary call's no-progress window; `null` means 100 seconds. See [call windows](requests.md#️-how-long-a-call-may-wait) for exceptions and per-call overrides. |
 | `EventStreamIdleTimeout` | `TimeSpan?` | The live event stream's idle window; `null` means 45 seconds. Keep it above the server's 15-second keepalive; see [reconnection](streaming.md#-a-live-bus-that-reconnects). |
 | `Headers` | `IDictionary<string, string>` | Headers every HTTP request and event stream sends, copied when the client is built; a per-call `OpenCodeRequestOptions.Headers` value replaces one by name. Terminal upgrades do not send them. See [request headers](requests.md#-request-headers). |
-| `HttpHandler` | `HttpMessageHandler?` | Your HTTP transport, or `null` for the SDK-owned default. See [supplying a handler](connection-modes.md#supplying-a-handler). |
+| `HttpHandler` | `HttpMessageHandler?` | Your HTTP transport, or `null` for the SDK-owned default. See [supplying a handler](connection-modes.md#-supplying-a-handler). |
 
 Session creation selects its location from `SessionCreateRequest.Location`; leaving it unset uses
 the server's working directory. Session listing filters with `SessionListRequest.Directory` or

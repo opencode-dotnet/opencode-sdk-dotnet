@@ -28,7 +28,7 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   this policy also governs other process traffic to the same endpoint-and-proxy pair (ADR-0010).
   - Recorded divergence: upstream's client leaves fetch's default `redirect: "follow"`
     (`packages/client/src/promise/generated/client.ts:370-382` at the pin), and the SDK-owned handler follows no
-    redirect (`src/OpenCode.Sdk/Internal/Transport/TransportPolicy.cs:109`, `:119`). Reason: .NET's redirect handling removes `Authorization` on every redirect, a
+    redirect (`src/OpenCode.Sdk/Internal/Transport/TransportPolicy.cs:119`, `:129`). Reason: .NET's redirect handling removes `Authorization` on every redirect, a
     same-origin one included (observed on .NET 11 with `SocketsHttpHandler`), while upstream's
     reference runtime keeps it on a same-origin redirect and removes it only across origins
     (observed on Bun 1.4.4). A redirect the SDK followed would reach its target without the
@@ -216,7 +216,7 @@ resolves the message's network window from those carried traits.
   owns disposal of the session; peer closure and transport failure can also end the connection.
 - **Transport divergence.** This is one of the two public SDK doors that do not ride the HTTP
   pipeline (the persistent PTY session is the other; the background-service info probe is an
-  internal third). The upgrade uses `HttpHandler` on modern targets, but the socket's own
+  internal third). The upgrade uses `HttpHandler`, when set, on modern targets, but the socket's own
   transport downlevel, as specified under Construction and transport ownership. The pipeline's
   progress window does not govern a PTY session. Its construction-time `ConnectionSnapshot`
   carries the normalized endpoint, Basic credential, ambient location, and caller's handler.
@@ -230,7 +230,7 @@ resolves the message's network window from those carried traits.
     every socket and sends it in the URL (`packages/client/src/solid/pty.ts:65-73` at the pin),
     because the browser `WebSocket` API cannot set request headers. Reason:
     `ClientWebSocket.Options.SetRequestHeader` exists on every shipped target
-    (`src/OpenCode.Sdk/Internal/Terminal/ClientTerminalWebSocket.cs:23`), so the SDK sends the
+    (`src/OpenCode.Sdk/Internal/Terminal/ClientTerminalWebSocket.cs:26`), so the SDK sends the
     header and keeps the credential out of URLs; the ticket door stays public for browser callers.
     Reversal trigger: the server stops accepting header authentication on an upgrade.
 - **Address.** `http`/`https` become `ws`/`wss`; the path is `/api/pty/{ptyID}/connect`. The query

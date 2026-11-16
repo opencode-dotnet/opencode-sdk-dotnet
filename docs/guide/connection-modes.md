@@ -14,8 +14,8 @@ register any of them with a container.
   - [🛑 Stopping the background service](#-stopping-the-background-service)
   - [🧹 Shutting down the service's persistent terminals](#-shutting-down-the-services-persistent-terminals)
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
+- [🔌 Supplying a handler](#-supplying-a-handler)
 - [🧩 Registering with dependency injection](#-registering-with-dependency-injection)
-- [Supplying a handler](#supplying-a-handler)
 
 ## 🚀 The SDK starts the server
 
@@ -508,8 +508,9 @@ ready service; a 404 identifies a registered daemon that speaks another protocol
 is a daemon that failed to boot, and anything else is a daemon still starting — and only the
 first becomes a handle. The probe follows no redirects. The doors that discover send the
 credential to the registered origin only, except `FindIncumbentAsync`, which sends it to the
-URL you pass. Discovery uses the same proxy as the client, so a loopback service behind an
-environment proxy needs `NO_PROXY` (for example `NO_PROXY=127.0.0.1,localhost`), as with opencode's
+URL you pass. Discovery uses the environment's default proxy, not a caller's `HttpHandler`, so a
+loopback service behind an environment proxy needs `NO_PROXY` (for example
+`NO_PROXY=127.0.0.1,localhost`), as with opencode's
 own CLI. On .NET Framework the runtime bypasses the proxy for loopback. With a direct
 connection, a registration whose daemon is gone answers null in milliseconds on every operating
 system, including Windows: its refused port answers at once, while a proxy in the way can take
@@ -737,7 +738,7 @@ at another version, or the 120-second bound expired (a contender's failure when 
 otherwise the timeout with the last failed replacement as the inner exception, when there was one);
 and `OperationCanceledException` for your own token.
 
-## Supplying a handler
+## 🔌 Supplying a handler
 
 Set `HttpHandler` for a proxy or client certificate. The SDK reads it once and never disposes it;
 keep it alive until every client and terminal session using it has ended. Recommended settings:
@@ -765,7 +766,12 @@ Console.WriteLine(info.ServerInfo.Version);
 Every HTTP call and event-stream reconnect uses it. Terminal upgrades do too on .NET 10/11;
 `net472` and `netstandard2.0` keep their own socket transport. The SDK applies none of its handler
 settings to yours. If yours follows redirects, the SDK sees only the final response; a returned
-3xx is still refused. The SDK's progress window and cancellation rules remain unchanged.
+3xx is still refused. The SDK's progress window and cancellation rules remain unchanged. On .NET
+Framework, also raise the endpoint's connection limit: a desktop or console app's default of 2 per
+server lets the event stream and one more stream hold every connection. Set
+`ServicePointManager.DefaultConnectionLimit` before the first request to the endpoint, or raise
+`ServicePointManager.FindServicePoint(endpoint, proxy).ConnectionLimit` afterwards, with the proxy
+your handler uses.
 
 ## 🧩 Registering with dependency injection
 

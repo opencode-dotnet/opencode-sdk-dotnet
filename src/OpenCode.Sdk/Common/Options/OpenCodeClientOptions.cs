@@ -32,8 +32,9 @@ public sealed class OpenCodeClientOptions
     /// connection lifetime, a 3-second idle timeout, Windows loopback connect, or downlevel
     /// ServicePoint configuration. The first three settings are recommended; a 3xx response
     /// returned by the handler is still refused.
-    /// Terminal upgrades use this handler on net10.0 and net11.0; net472 and netstandard2.0 keep
-    /// the SDK's own socket because their ClientWebSocket cannot take a handler.
+    /// Terminal upgrades use this handler in the net10.0 and net11.0 builds; the net472 and
+    /// netstandard2.0 builds keep the SDK's own socket, since the handler-taking connect is not in
+    /// their compile surface, including when a newer runtime loads the netstandard2.0 build.
     /// </summary>
     public HttpMessageHandler? HttpHandler { get; set; }
 

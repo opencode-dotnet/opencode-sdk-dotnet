@@ -123,8 +123,8 @@ public class PersistentPtyClient
 
     /// <summary>
     /// Opens the terminal's live WebSocket session and returns once the server has attached this
-    /// connection. The upgrade uses <see cref="OpenCodeClientOptions.HttpHandler"/> on modern
-    /// targets, but its own transport on downlevel targets.
+    /// connection. The upgrade uses <see cref="OpenCodeClientOptions.HttpHandler"/>, when set, on
+    /// modern targets, but its own transport on downlevel targets.
     /// The client's Basic credential rides the upgrade request's <c>Authorization</c> header — the
     /// designed non-browser path — and the SDK never mints a ticket for its own connection;
     /// <see cref="CreateConnectTokenAsync"/> stays the door for handing a browser one. Unlike the
