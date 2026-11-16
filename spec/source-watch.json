@@ -63,7 +63,7 @@
       "behaviors": [
         {
           "owner": "opencode-sdk-dotnet",
-          "behavior": "The ticket-issuing request carries the x-opencode-ticket header and the connect URL carries the ticket query.",
+          "behavior": "The PTY ticket routes and the client MCP token route accept a ticket-issuing request only with the x-opencode-ticket header set to 1, both defined here, and the PTY connect URL carries the ticket query.",
           "anchor": {
             "type": "contains",
             "text": "x-opencode-ticket"
@@ -95,6 +95,14 @@
           "anchor": {
             "type": "contains",
             "text": "const DEFAULT_TTL = Duration.seconds(60)"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A connect ticket authorizes one upgrade to one target, a PTY by id or a client-hosted MCP connection by client name, in the directory and workspace it was issued for; a consume with another target or location fails and leaves the ticket in place.",
+          "anchor": {
+            "type": "contains",
+            "text": "record.target === input.target \u0026\u0026 record.directory === input.directory \u0026\u0026 record.workspaceID === input.workspaceID"
           }
         }
       ]
@@ -585,6 +593,34 @@
           "anchor": {
             "type": "contains",
             "text": "const reconnectDelay = 1_000"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/client/src/shared-events.ts",
+      "sha256": "3445c46d26144f823647369f6526724bfc2fc958646ffadc8ae552974955b8b1",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The first-party shared event feed opens one source per client lazily and fans it out to independent subscriptions: a subscription opens nothing until its first read, and a pre-aborted one opens no source; a types filter is matched locally and always lets server.connected through; a late subscriber receives the latest cached server.connected but no earlier business event; each subscription queues at most 4,096 selected events, and the next one ends only that subscription with an overflow error and drops its backlog; a source failure or completion ends every subscription after the events it already queued; and the last subscription to leave aborts the source. SubscribeOptions takes types, signal and onActivity, no headers. EventsClient\u0027s shared feed mirrors this model, with the divergences ADR-0041 records.",
+          "anchor": {
+            "type": "contains",
+            "text": "const capacity = 4_096"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/client/test/shared-events.test.ts",
+      "sha256": "108248386a581a4687071f2f2bf5437033686c906cd0d84fd8f4f647f523a07c",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Behavioral oracle: upstream\u0027s own checks of the shared feed: creation, subscription and idle iterators are lazy; a pre-aborted subscriber opens no source; consumers share one source; a types filter delivers only the requested types plus server.connected; a slow or idle consumer does not stall another; an idle consumer fails at its capacity instead of buffering without bound; source completion preserves buffered events; a late consumer receives the latest connection marker but no business replay; and the last return closes the source. SharedEventFeedTests, EventSubscriptionTests, EventsClientTests and EventsClientIdleWindowTests re-prove them. Its EOF, failure, abort and activity expectations meet the divergences and the omitted onActivity that ADR-0041 records.",
+          "anchor": {
+            "type": "contains",
+            "text": "late consumers receive the latest connection marker but no business event replay"
           }
         }
       ]
@@ -1359,6 +1395,108 @@
           "anchor": {
             "type": "contains",
             "text": "for (const [key, value] of new Headers(requestOptions?.headers)) headers.set(key, value)"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/client/src/mcp.ts",
+      "sha256": "c6c2eb2f43e2f3c7e73c06e82adaf3459d20f44e38c4829e0b35959f751f270f",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The first-party client-hosted MCP connection opens its WebSocket at api/experimental/client-mcp under the base URL, keeping the base URL\u0027s query, setting location[directory] when a directory is given and name to the client name, and switching the scheme to wss for an https or wss base and to ws otherwise.",
+          "anchor": {
+            "type": "contains",
+            "text": "const url = new URL(\u0022api/experimental/client-mcp\u0022, base)"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The responder answers one JSON-RPC message per text frame and ignores binary, unparsable, notification and response frames: initialize echoes the server\u0027s protocolVersion (2025-11-25 when it sends none) with a tools capability and serverInfo naming the client at version 1.0.0; ping answers an empty result; tools/list lists every tool with its inputSchema spread over type object; tools/call passes the arguments and the ai.opencode/sessionID meta to the handler and turns a handler failure into an isError text result carrying the error\u0027s message; an unknown tool answers -32602 and any other method -32601.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (!tool) return { error: { code: -32602, message: \u0060Unknown tool: ${String(params?.name)}\u0060 } }"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "After every close the connection reconnects, first after 500 ms and then after a delay that doubles up to 10 seconds; the delay returns to 500 ms only when the server sends notifications/initialized, so a failing attach keeps backing off. close() stops reconnecting and closes the open socket with 1000.",
+          "anchor": {
+            "type": "contains",
+            "text": "state.delay = Math.min(state.delay * 2, RECONNECT_MAX)"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/server/src/handlers/mcp.ts",
+      "sha256": "e89bb87bb69916aaef42a0948ec063a519ffa71c992513af8e8f0a8287e5fee3",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "mcp.clientToken refuses with ForbiddenError (403) unless the request carries the x-opencode-ticket header with the value 1 and an allowed origin (a request without an Origin passes), and otherwise issues a connect ticket scoped to the name query and the request\u0027s location directory and workspace.",
+          "anchor": {
+            "type": "contains",
+            "text": "mcpClient: ctx.query.name,"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "Before the WebSocket upgrade, the client MCP attach answers an empty 403 to a disallowed origin and, when the request carries a ticket query, to a ticket that does not match the client name and the request\u0027s canonical location. After the upgrade it attaches the connection under the client name for the socket\u0027s lifetime, decodes binary frames as UTF-8, closes 1011 \u0022attach failed\u0022 when the attach fails while the socket is open, and passes on the attached transport\u0027s own close.",
+          "anchor": {
+            "type": "contains",
+            "text": "new Socket.CloseEvent(1011, \u0022attach failed\u0022)"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/mcp/index.ts",
+      "sha256": "263a70c9bc1d374a83830fca79601c7016dac2090909ddbca87a84ba17fd4ab2",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "An attached client-hosted MCP server lives as long as its connection and is never listed or reconciled with config. Attaching a name again stacks the new connection: the most recent live one serves the name\u0027s tools, and when it closes the next most recent takes over at once with its stored tools, then lists its tools again within 5 seconds and keeps the stored ones when that fails or times out. ToolsChanged is published for the name on attach, when the last connection closes, and on a takeover that changes the visible tools.",
+          "anchor": {
+            "type": "contains",
+            "text": "const FALLBACK_LIST_TIMEOUT = \u00225 seconds\u0022"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "An attached client\u0027s tool shadows a configured server\u0027s tool with the same server and tool name in the tool list, and a tool call goes to the attached client when it lists the tool or when no configured server has that name.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (client \u0026\u0026 (client.tools.some((tool) =\u003E tool.name === input.name) || !entries.has(server)))"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/mcp/socket-client.ts",
+      "sha256": "9d041b64ffcb6b55d4d2bfdd4c842295d75d9754b9c6d7e1840276f13b3f3629",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "The server\u0027s side of the client MCP socket carries one JSON-RPC 2.0 message per text frame without batching; a frame that is not a JSON-RPC message is reported and the connection stays open; frames that arrive before start are delivered in order on start; the server\u0027s close() closes the socket with 1000; and nothing is replayed after a disconnect, so a reconnecting client starts a fresh MCP session.",
+          "anchor": {
+            "type": "contains",
+            "text": "const closed = Result.try(() =\u003E socket.close(1000))"
+          }
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/tool/runtime.ts",
+      "sha256": "adbaf4adafb9b5a60fa6c1680f58aacdea9d0db65d6d36b77d808374fb4f166a",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "A tool\u0027s model-facing name replaces each character outside [a-zA-Z0-9_-] with an underscore and, for a namespaced tool, puts the namespace with its dots replaced by underscores and an underscore before it, so a client-hosted MCP tool reaches the model as \u003Cclient name\u003E_\u003Ctool name\u003E.",
+          "anchor": {
+            "type": "contains",
+            "text": "export const normalizedName = (tool: Pick\u003CTool.Info, \u0022name\u0022\u003E) =\u003E tool.name.replace("
           }
         }
       ]

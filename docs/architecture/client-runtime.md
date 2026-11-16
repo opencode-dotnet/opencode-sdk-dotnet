@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -568,7 +568,9 @@ resolves the message's network window from those carried traits.
   tail buffers, then apply that tail idempotently. Restart at admission if the replacement overflows;
   refresh again on a later marker. This assumes ordinary reads reflect a change no later than its event
   is published. There is no verified cross-operation snapshot or exactly-once merge guarantee.
-- Recorded divergences and omissions (ADR-0041):
+- The [source watch](protocol-and-generation.md#snapshot-production) pins
+  `packages/client/src/shared-events.ts` and its upstream test, so a refresh that changes the
+  shared-feed model is reviewed before the pin moves. Recorded divergences and omissions (ADR-0041):
   - Upstream's shared layer ends subscribers on a source failure and Solid retries above it; the SDK
     composes retry inside its one shared source. Revisit if upstream changes those layer boundaries.
   - Upstream abort ends with done and, after source completion or subscriber overflow, no longer
