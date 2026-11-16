@@ -15,6 +15,28 @@ public sealed class CurationValidatorTests
     private const string Union = "Integration.Event";
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Validate_Should_Allow_Root_Accessor_Opt_Out_Only_For_Internal_Raw_Emission(bool internalRaw)
+    {
+        var scenario = SpecScenario.Define(static spec => spec.WithOperation("widget.get",
+            configure: static operation => operation.WithoutResponse(200).Response(204)));
+        var emission = internalRaw ? EmissionMode.InternalRaw : EmissionMode.Public;
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null, emission: emission) with { RootAccessor = false }));
+        if (emission is EmissionMode.Public)
+        {
+            var exception = await BindRefusalsAsync(scenario, curation, "widget.get");
+            await Assert.That(exception.Errors).IsEquivalentTo([new BindingError(BindingErrorCategory.Curation, "widget",
+                "rootAccessor false requires internalRaw emission")], CollectionOrdering.Matching);
+            return;
+        }
+
+        var document = await BindingTestHost.IngestAsync(scenario);
+        var plan = new BindingTestHost().Bind(document, Selection("widget.get"), curation);
+        await Assert.That(plan.Clients.Single(static client => client.Emission == EmissionMode.InternalRaw).Name).IsEqualTo("WidgetsRawClient");
+    }
+
+    [Test]
     [Arguments("IntegrationFoo")]
     [Arguments("XWidgetFoo")]
     [Arguments("I")]

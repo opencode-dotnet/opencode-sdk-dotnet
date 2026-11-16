@@ -20,6 +20,13 @@ internal sealed record GroupCuration : IReasonedRow
     [JsonPropertyName("emission")]
     public EmissionMode Emission { get; init; }
 
+    /// <summary>
+    /// Gets whether the family keeps its root accessor; absent or true keeps it. False is valid only
+    /// with internalRaw emission and emits no accessor, so a hand-written owner constructs the raw clients.
+    /// </summary>
+    [JsonPropertyName("rootAccessor")]
+    public bool RootAccessor { get; init; } = true;
+
     /// <summary>Gets the diagnostic id the group's experimental-routed operations carry; the group's reason covers it.</summary>
     [JsonPropertyName("experimentalDiagnostic")]
     public string? ExperimentalDiagnostic { get; init; }

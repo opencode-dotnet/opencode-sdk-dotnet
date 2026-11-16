@@ -59,11 +59,14 @@ internal static class OperationPlanBinder
             var members = group.ToArray();
             var row = members[0].Row;
             var collectionName = $"{row.ClientName}Client";
-            subClients.Add(new ClientReferencePlan
+            if (row.RootAccessor)
             {
-                PropertyName = row.ClientName!,
-                TypeName = collectionName,
-            });
+                subClients.Add(new ClientReferencePlan
+                {
+                    PropertyName = row.ClientName!,
+                    TypeName = collectionName,
+                });
+            }
             clients.AddRange(CreateGroupClients(members, row, collectionName));
         }
 

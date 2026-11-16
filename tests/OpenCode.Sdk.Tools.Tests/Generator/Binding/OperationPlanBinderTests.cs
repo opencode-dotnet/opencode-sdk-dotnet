@@ -1,7 +1,9 @@
+using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
+using OpenCode.Sdk.Tools.Serialization;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
@@ -2481,6 +2483,21 @@ public sealed class OperationPlanBinderTests
                 .DeclaredHeaders.Single()
                 .Name)
             .IsEqualTo("xOpencodeTicket");
+    }
+
+    [Test]
+    public async Task Bind_Should_Omit_An_Opted_Out_Internal_Raw_Family_Accessor()
+    {
+        var document = await BindingTestHost.IngestAsync(PtyScenario());
+        var curation = JsonSerializer.Deserialize(new FixtureLoader().Load("Binding.internal-raw-without-root-accessor-curation.json"),
+            ToolJsonContext.Default.GenerationCuration)!;
+        var plan = new BindingTestHost().Bind(document, Selection("pty.get", "pty.connect.token"),
+            curation with { OperationNames = [OperationName("pty.connect.token", "CreateConnectTokenAsync")] });
+
+        await Assert.That(plan.Clients.Single(static client => client.Role == ClientRole.Root).SubClients).IsEmpty();
+        await Assert.That(plan.Clients.Select(static client => (client.Name, client.Emission)))
+            .IsEquivalentTo([("OpenCodeClient", EmissionMode.Public), ("PtyRawClient", EmissionMode.InternalRaw),
+                ("PtysRawClient", EmissionMode.InternalRaw)], CollectionOrdering.Matching);
     }
 
     [Test]

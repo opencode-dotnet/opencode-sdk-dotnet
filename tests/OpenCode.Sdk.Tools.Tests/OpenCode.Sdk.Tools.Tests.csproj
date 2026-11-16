@@ -107,6 +107,7 @@
     <EmbeddedResource Include="Generator/Binding/Fixtures/duplicate-row-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.duplicate-row-curation.json" />
     <EmbeddedResource Include="Generator/Binding/Fixtures/duplicate-section-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.duplicate-section-curation.json" />
     <EmbeddedResource Include="Generator/Binding/Fixtures/internal-raw-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.internal-raw-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/internal-raw-without-root-accessor-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.internal-raw-without-root-accessor-curation.json" />
     <EmbeddedResource Include="Generator/Binding/Fixtures/mutually-exclusive-queries-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.mutually-exclusive-queries-curation.json" />
     <EmbeddedResource Include="Generator/Binding/Fixtures/null-member-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.null-member-curation.json" />
     <EmbeddedResource Include="Generator/Binding/Fixtures/operation-name-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.operation-name-curation.json" />

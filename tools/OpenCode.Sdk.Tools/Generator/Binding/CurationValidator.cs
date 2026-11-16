@@ -271,7 +271,8 @@ internal static class CurationValidator
                      .Where(static pair => pair.Value is { Placement: GroupPlacement.Client, ClientName: not null })
                      .GroupBy(static pair => pair.Value.ClientName!, StringComparer.Ordinal)
                      .Where(static family => family
-                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission, pair.Value.ExperimentalDiagnostic))
+                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission,
+                             pair.Value.RootAccessor, pair.Value.ExperimentalDiagnostic))
                          .Distinct()
                          .Skip(1)
                          .Any())
@@ -386,6 +387,11 @@ internal static class CurationValidator
     private static void ValidateGroupEmission(string wireName, GroupCuration group, IReadOnlyList<SpecOperation> selected,
         BindingErrorCollector errors)
     {
+        if (!group.RootAccessor && group.Emission is not EmissionMode.InternalRaw)
+        {
+            errors.Add(BindingErrorCategory.Curation, wireName, "rootAccessor false requires internalRaw emission");
+        }
+
         if (group.Emission is not (EmissionMode.Public or EmissionMode.InternalRaw))
         {
             // System.Text.Json admits numeric enum spellings even under the string

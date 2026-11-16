@@ -270,6 +270,7 @@ public sealed class SpecBinderTests
         ("unselected", RootGroup(), [new(BindingErrorCategory.Curation, "idle", "curated group is not selected by the current profile")]),
         ("merge-handle", ClientGroup("Widgets", "WidgetClient", "id"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("merge-emission", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
+        ("merge-root-accessor", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false }, [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("merge-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("shared-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "OPENCODE001", "experimentalDiagnostic 'OPENCODE001' is shared by groups that are not one merged family")]),
         ("experimental", RootGroup(), [new(BindingErrorCategory.Curation, "widget", "selected experimental route requires experimentalDiagnostic")]),
@@ -320,6 +321,7 @@ public sealed class SpecBinderTests
         if (selected.Length == 2)
         {
             groups["other"] = ClientGroup(fault == "shared-diagnostic" ? "Others" : "Widgets", null, null,
+                emission: fault == "merge-root-accessor" ? EmissionMode.InternalRaw : EmissionMode.Public,
                 experimentalDiagnostic: fault == "shared-diagnostic" ? "OPENCODE001" : null);
         }
         var errors = new BindingErrorCollector();
