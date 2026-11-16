@@ -12,6 +12,7 @@ some members can say *"leave this alone"* and *"clear this"* as two different th
 - [🔗 Query members](#-query-members)
 - [📍 Per-call location](#-per-call-location)
 - [📨 Request headers](#-request-headers)
+- [🔌 Calling a plugin's RPC](#-calling-a-plugins-rpc)
 - [🧾 Members the schema does not explain](#-members-the-schema-does-not-explain)
 
 ## 🧱 The request record
@@ -279,6 +280,90 @@ A shell command keeps running on the server when your call gives up, so retrying
 
 Both members take a value above zero and at most `int.MaxValue` milliseconds, or
 `Timeout.InfiniteTimeSpan` for no window; anything else is refused when you set it.
+
+## 🔌 Calling a plugin's RPC
+
+A plugin can register an RPC, a method surface under an RPC id, and publish events.
+`client.Rpc.CallAsync(rpcId, method, request)` is the raw call with JSON in and out. A definition
+declares the plugin's methods once with your own types, as opencode's own client binds one. This
+example is opencode's own goal plugin: `opencode.goal`, method `get`.
+
+```csharp
+using System.Text.Json.Serialization;
+
+public sealed record GoalQuery([property: JsonPropertyName("sessionID")] string SessionId);
+
+public sealed record GoalState
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; init; }
+
+    [JsonPropertyName("objective")]
+    public required string Objective { get; init; }
+
+    [JsonPropertyName("status")]
+    public required string Status { get; init; }
+}
+```
+
+The JSON metadata comes from a source-generated context, so the definition works under native AOT
+and on .NET Framework:
+
+```csharp
+using System.Text.Json.Serialization;
+
+[JsonSerializable(typeof(GoalQuery))]
+[JsonSerializable(typeof(GoalState))]
+internal sealed partial class GoalJson : JsonSerializerContext;
+
+public static class GoalRpc
+{
+    public static readonly RpcDefinition Definition = new("opencode.goal");
+
+    public static readonly RpcMethod<GoalQuery, GoalState> Get =
+        Definition.Method("get", GoalJson.Default.GoalQuery, GoalJson.Default.GoalState);
+}
+```
+
+```csharp
+GoalState? goal = await client.Rpc.CallAsync(GoalRpc.Get, new GoalQuery(sessionId), cancellationToken: cancellationToken);
+Console.WriteLine(goal is null ? "no goal" : $"{goal.Status}: {goal.Objective}");
+```
+
+`location` selects the location whose plugin answers, through the `location[directory]` query;
+without it the server's default applies. The input goes through your metadata, so a null input is
+sent as JSON null, as opencode's own client sends it. The result is null when the plugin returns
+null or nothing, as the goal plugin does for a session without a goal. Your metadata decides whether
+null is accepted: a value-type output refuses it unless its converter accepts null. The call waits
+for the plugin's method like the raw call (see "How long a call may wait" above). `NoThrow` is refused.
+
+A failure the RPC registry or the plugin reports throws `OpenCodeRpcException`, an
+`OpenCodeApiException`, so an existing catch still sees it. `ErrorType` is `rpc.unavailable`,
+`rpc.method_not_found`, `rpc.invalid_input`, `rpc.invalid_output`, `rpc.internal`, or the plugin's own
+declared error type. `ErrorData` carries a declared error's data as a `JsonElement` that you read with
+`Deserialize` and your context. An output that does not match your type throws
+`OpenCodeTransportException`:
+
+```csharp
+try
+{
+    _ = await client.Rpc.CallAsync(GoalRpc.Get, new GoalQuery(sessionId), cancellationToken: cancellationToken);
+}
+catch (OpenCodeRpcException failure) when (failure.ErrorType == "rpc.unavailable")
+{
+    Console.WriteLine("The goal plugin is not loaded at this location.");
+}
+```
+
+To call a definition by name, wrap it in a class of your own:
+
+```csharp
+public sealed class GoalClient(OpenCodeClient client)
+{
+    public Task<GoalState?> GetAsync(string sessionId, CancellationToken cancellationToken = default) =>
+        client.Rpc.CallAsync(GoalRpc.Get, new GoalQuery(sessionId), cancellationToken: cancellationToken);
+}
+```
 
 ## 🧾 Members the schema does not explain
 

@@ -911,7 +911,7 @@ namespace OpenCode.Sdk
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ModelInfo> Models { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
-    public sealed class OpenCodeApiException : OpenCode.Sdk.OpenCodeException
+    public class OpenCodeApiException : OpenCode.Sdk.OpenCodeException
     {
         public OpenCodeApiException() { }
         public OpenCodeApiException(string message) { }
@@ -1002,6 +1002,15 @@ namespace OpenCode.Sdk
         public string? RawBody { get; init; }
         public required int Status { get; init; }
         protected virtual bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    public sealed class OpenCodeRpcException : OpenCode.Sdk.OpenCodeApiException
+    {
+        public OpenCodeRpcException() { }
+        public OpenCodeRpcException(string message) { }
+        public OpenCodeRpcException(string message, System.Exception innerException) { }
+        public OpenCodeRpcException(string type, string message, System.Text.Json.JsonElement? data, int status, OpenCode.Sdk.Models.IOpenCodeError? error, string? rawBody) { }
+        public System.Text.Json.JsonElement? ErrorData { get; }
+        public string ErrorType { get; }
     }
     public class OpenCodeServer : System.IAsyncDisposable
     {
@@ -1658,6 +1667,31 @@ namespace OpenCode.Sdk
     {
         protected RpcClient() { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.RpcCallResponse> CallAsync(string rpcId, string method, OpenCode.Sdk.Models.RpcCallRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public static class RpcClientExtensions
+    {
+        public static System.Threading.Tasks.Task<TOutput?> CallAsync<TInput, TOutput>(this OpenCode.Sdk.RpcClient client, OpenCode.Sdk.RpcMethod<TInput, TOutput> method, TInput input, OpenCode.Sdk.LocationSelector? location = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public sealed class RpcDefinition
+    {
+        public RpcDefinition(string id) { }
+        public string Id { get; }
+        public OpenCode.Sdk.RpcEventDefinition<TData> Event<TData>(string name, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TData> data) { }
+        public OpenCode.Sdk.RpcMethod<TInput, TOutput> Method<TInput, TOutput>(string name, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TInput> input, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TOutput> output) { }
+    }
+    public sealed class RpcEventDefinition<TData>
+    {
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<TData> Data { get; }
+        public OpenCode.Sdk.RpcDefinition Definition { get; }
+        public string Name { get; }
+        public string Type { get; }
+    }
+    public sealed class RpcMethod<TInput, TOutput>
+    {
+        public OpenCode.Sdk.RpcDefinition Definition { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<TInput> Input { get; }
+        public string Name { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<TOutput> Output { get; }
     }
     public class ServerClient
     {

@@ -71,7 +71,8 @@ The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ran
 | Configuration, projects, references | `client.Config`, `client.Projects`, `client.References` | — |
 | Server info and pairing | `client.Server` | [Connection modes](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md) |
 | Locations | `client.GetLocationAsync`, `client.ReloadLocationsAsync`, `client.Debug` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
-| Web search and RPC | `client.Websearch`, `client.Rpc` | — |
+| Web search | `client.Websearch` | — |
+| Plugin RPC, raw or through a typed definition | `client.Rpc` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
 | Operations upstream marks experimental | `client.Experimental` | [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) |
 
 The two terminal connections (`pty.connect`, `experimental.persistentPty.connect`) are WebSocket

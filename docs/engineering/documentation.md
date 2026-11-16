@@ -84,7 +84,8 @@ live Git and GitHub, then deleted when the follow-up ships or a newer handoff su
 
 - A change that alters what a consumer sees updates the guide or README section that describes it,
   in the same pull request.
-- Every `csharp` fence in `README.md` and `docs/guide/` compiles in CI (`SnippetCompileGuard`), except
+- Every `csharp` fence in `README.md` and `docs/guide/` compiles in CI (`SnippetCompileGuard`, which
+  also runs the System.Text.Json source generator, so a page can declare a serializer context), except
   a deliberate fragment, which carries `<!-- snippet: fragment -->` on the line directly above its
   fence; use it only where no complete form exists.
 - Every install instruction (`npm install -g @opencode/cli@<version>`) and every

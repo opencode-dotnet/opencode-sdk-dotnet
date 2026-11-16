@@ -389,10 +389,12 @@ resolves the message's network window from those carried traits.
 ## Error channels
 
 - API failures throw through `OpenCodeException` -> `OpenCodeApiException` by default. Tagged
-  protocol error payloads remain generated, typed data on the exception (ADR-0007).
+  protocol error payloads remain generated, typed data on the exception (ADR-0007). A typed plugin
+  RPC call throws its RPC failures as the subtype `OpenCodeRpcException`
+  ([Typed plugin RPC](#typed-plugin-rpc)).
 - A one-shot call may select per-call `NoThrow`, returning the same typed error data on its response
-  spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals and
-  both waits refuse it at the call.
+  spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals,
+  both waits and the typed RPC call refuse it at the call.
 - `Plugins.WaitForPluginsAsync` follows the CLI's one-shot wait (`plugin-startup.ts:6-13`): it
   lists the location's plugins until non-empty, waiting 25 ms after each empty answer for about five
   seconds. The schedule limit is checked after each answer, not a deadline that interrupts
@@ -619,6 +621,56 @@ resolves the message's network window from those carried traits.
   valid JSON value is representable by the SDK.
 - A body cut in the middle of an event is reported as a transport failure rather than dispatched
   as malformed payload data.
+
+## Typed plugin RPC
+
+- A consumer declares a plugin's RPC definition once as descriptor objects, upstream's
+  `makeRpc` over a definition (`packages/client/src/promise/rpc.ts:53-143`,
+  `packages/schema/src/rpc.ts:43-47` at the pin). `RpcDefinition` holds the RPC id;
+  `Method(name, input, output)` makes an `RpcMethod<TInput, TOutput>` and `Event(name, data)` an
+  `RpcEventDefinition<TData>`, each carrying the consumer's source-generated `JsonTypeInfo<T>`.
+  No member takes a reflection-based serializer path, so the API is the same on every target and
+  under native AOT. An id or name that is null, empty or whitespace is refused where it is
+  declared; a dot-segment id or name is refused by the route at the call.
+- `client.Rpc.CallAsync(method, input, location, requestOptions, cancellationToken)` is an
+  extension over the generated `RpcClient.CallAsync`, so a mocking `RpcClient` drives it. The
+  input is serialized with the method's input metadata, null included: a null input sends
+  `"input": null`, as upstream's `JSON.stringify` keeps a null input
+  (`packages/client/src/promise/generated/client.ts:2273`, `:376-381`). A typed call has no
+  omitted input; upstream omits only an `undefined` input, which a typed .NET call cannot
+  express. `location` is the operation's `location[directory]` query, upstream's
+  `options.location`; `OpenCodeRequestOptions.Location` stays the header channel. `NoThrow` is
+  refused at the call, because the call returns the output rather than a response envelope.
+- The output is read with the method's output metadata and returned as `TOutput?`. An absent
+  output (the server's `{}`, `packages/server/src/handlers/rpc.ts:12`) reads as JSON null, like
+  an output of JSON null. Whether null is accepted follows that metadata: a reference or
+  nullable type reads it as null, a value type's built-in converter refuses it, and a custom
+  converter can accept null for a value type. Upstream's goal plugin declares a nullable output
+  (`packages/schema/src/goal.ts:38`).
+- An `RpcError` (400) or `RpcInternalError` (500) failure throws `OpenCodeRpcException`, an
+  `OpenCodeApiException` subtype: its `ErrorType` is the failure's type (an internal error's as its
+  wire string), its message is the failure's message, its `ErrorData` the
+  failure's data, and `Status`, `Error` and `RawBody` are the response's. Upstream's fields
+  are `type` and `data`; .NET names them `ErrorType`, because `Type` trips CA1721 against
+  `Exception.GetType()`, and `ErrorData`, because `Data` would hide `Exception.Data` (CS0114)
+  (maintainer's decision, 2026-11-15). These are the two RPC
+  error models the raw door admits for `rpc.call`, unwrapped into upstream's shape
+  (`promise/rpc.ts:114-119`). Canon states it as: the facade recognises upstream's error
+  model and, additionally, the second RPC error model the raw door already admits; it refuses
+  nothing upstream accepts, so it is not a divergence (the lead's ruling, 2026-11-15). Every other failure propagates unchanged, as the same instance:
+  other declared errors, an error body that did not parse, transport failures and
+  cancellation. Upstream's facade tests only the body's `_tag`
+  (`packages/client/src/promise/generated/types.ts:3250-3260`); the raw door reads tags by
+  status ([Error channels](#error-channels)), so an RPC-tagged body on another declared status
+  arrives as `UnknownOpenCodeError` and propagates as an `OpenCodeApiException`.
+- An output the consumer's metadata cannot read faults the call with
+  `OpenCodeTransportException`, the `JsonException` as its inner exception; any other exception
+  from that metadata propagates unchanged.
+- Recorded divergences (ADR-0031):
+  - Upstream's promise facade returns the output undecoded (`promise/rpc.ts:113`); a typed .NET
+    result must decode, and the SDK follows the Effect facade, which decodes and fails on a
+    decode failure (`packages/client/src/effect/rpc.ts:57`). Reason: the idiomatic form of a
+    typed result. Reversal: consumers ask to receive unreadable data instead of a failure.
 
 ## Pagination
 
