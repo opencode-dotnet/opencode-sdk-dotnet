@@ -140,8 +140,9 @@ await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
 ```
 
 `ConnectClientMcp` returns immediately, not after upgrade or tool registration. There is no public
-ready task or connection-state API. Client and tool names use letters, digits, `_` and `-`; the
-helper adds no name validator. A tool is exposed as `<client name>_<tool name>`. Tools retain
+ready task or connection-state API. The server refuses a client name with characters other than
+letters, digits, `_` and `-`, and replaces those characters in a tool name with `_`; the SDK adds no
+name validator. A tool is exposed as `<client name>_<tool name>`. Tools retain
 declaration order, and the first duplicate name answers a call.
 
 `ClientMcpSchema.FromType` exports an independently owned object-root schema from object or
