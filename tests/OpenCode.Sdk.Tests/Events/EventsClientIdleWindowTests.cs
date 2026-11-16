@@ -127,6 +127,7 @@ public sealed class EventsClientIdleWindowTests
 
         var next = PendingNext(events);
         await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
+        await server.WaitForRequestAsync(1, HangGuard.Bound);
         server.Time.Advance(TimeSpan.FromSeconds(1.5));
         first.Append(ScriptedEventServer.Heartbeat);
         server.Time.Advance(ConnectBound - TimeSpan.FromSeconds(1.5) - OneTick);
