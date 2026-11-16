@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a prompt media file attachment value.
+/// An attachment whose bytes stay on the server, sent to clients that opt in with the experimental experimental-media-uri capability.
 /// </summary>
 public sealed record PromptMediaFileAttachment
 {
@@ -42,27 +42,27 @@ public sealed record PromptMediaFileAttachment
     public PromptMention? Mention { get; init; }
 
     /// <summary>
-    /// Gets the uri value.
+    /// A media: prefix followed by the lowercase hex SHA-256 of a stored blob&apos;s bytes; it names no server route.
     /// </summary>
     [JsonPropertyName("uri")]
     public required string Uri { get; init; }
 
     /// <summary>
-    /// Gets the bytes value.
+    /// The stored blob&apos;s size in bytes.
     /// </summary>
     [JsonPropertyName("bytes")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Bytes { get; init; }
 
     /// <summary>
-    /// Gets the width value.
+    /// The stored blob&apos;s width; width and height are present only when the stored blob records them.
     /// </summary>
     [JsonPropertyName("width")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Width { get; init; }
 
     /// <summary>
-    /// Gets the height value.
+    /// The stored blob&apos;s height; width and height are present only when the stored blob records them.
     /// </summary>
     [JsonPropertyName("height")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

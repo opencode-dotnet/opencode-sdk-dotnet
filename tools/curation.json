@@ -2364,6 +2364,57 @@
       "sources": [
         { "location": "packages/schema/src/schedule.ts:185", "excerpt": "    description: \"Wake when exit is 0 and stdout differs from the previous check.\"," }
       ]
+    },
+    {
+      "type": "PromptMediaFileAttachment",
+      "summary": "An attachment whose bytes stay on the server, sent to clients that opt in with the experimental experimental-media-uri capability.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/prompt.ts:63", "excerpt": " * An attachment whose bytes stay on the server, sent to clients that opt in with the experimental `experimental-media-uri`" },
+        { "location": "packages/schema/src/prompt.ts:64", "excerpt": " * capability. Fetch the bytes from `GET /api/experimental/media/:hash`." }
+      ]
+    },
+    {
+      "type": "PromptMediaFileAttachment",
+      "member": "Uri",
+      "summary": "A media: prefix followed by the lowercase hex SHA-256 of a stored blob's bytes; it names no server route.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/prompt.ts:54", "excerpt": "/** `media:` and the lowercase hex SHA-256 of a stored blob's bytes. Names no server route. */" },
+        { "location": "packages/schema/src/prompt.ts:55", "excerpt": "export const MediaRef = Schema.String.check(Schema.isPattern(/^media:[0-9a-f]{64}$/)).annotate({" },
+        { "location": "packages/schema/src/prompt.ts:69", "excerpt": "  uri: MediaRef," }
+      ]
+    },
+    {
+      "type": "PromptMediaFileAttachment",
+      "member": "Bytes",
+      "summary": "The stored blob's size in bytes.",
+      "reason": "Upstream documents this member in its server source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/core/src/session/blob.ts:207", "excerpt": "/** Adds each kept ref's blob size and dimensions to files decoded from {@link keepRefs} or {@link keepInboxRefs}. */" },
+        { "location": "packages/core/src/session/blob.ts:215", "excerpt": "      bytes: blob.bytes," },
+        { "location": "packages/core/src/session/blob.ts:293", "excerpt": "  if (!pending.has(hash)) pending.set(hash, { hash, mime, bytes: raw.byteLength, data: raw })" }
+      ]
+    },
+    {
+      "type": "PromptMediaFileAttachment",
+      "member": "Width",
+      "summary": "The stored blob's width; width and height are present only when the stored blob records them.",
+      "reason": "Upstream documents this member in its server source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/core/src/session/blob.ts:207", "excerpt": "/** Adds each kept ref's blob size and dimensions to files decoded from {@link keepRefs} or {@link keepInboxRefs}. */" },
+        { "location": "packages/core/src/session/blob.ts:216", "excerpt": "      ...(blob.width === null ? {} : { width: blob.width })," }
+      ]
+    },
+    {
+      "type": "PromptMediaFileAttachment",
+      "member": "Height",
+      "summary": "The stored blob's height; width and height are present only when the stored blob records them.",
+      "reason": "Upstream documents this member in its server source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/core/src/session/blob.ts:207", "excerpt": "/** Adds each kept ref's blob size and dimensions to files decoded from {@link keepRefs} or {@link keepInboxRefs}. */" },
+        { "location": "packages/core/src/session/blob.ts:217", "excerpt": "      ...(blob.height === null ? {} : { height: blob.height })," }
+      ]
     }
   ],
   "sessionScopedEvent": {
