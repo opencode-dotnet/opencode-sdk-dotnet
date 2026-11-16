@@ -11,7 +11,7 @@ using OpenCode.Sdk.Tests.Support;
 namespace OpenCode.Sdk.Tests.Experimental.Support;
 
 /// <summary>Owns deterministic loopback admission and scripted client-MCP observations.</summary>
-internal sealed class ClientMcpScenario : IDisposable
+internal sealed class ClientMcpScenario(Func<int>? reservePort = null) : IDisposable
 {
     private HttpListener? _listener;
     private readonly Channel<TimeSpan> _retry = Channel.CreateUnbounded<TimeSpan>();
@@ -42,9 +42,27 @@ internal sealed class ClientMcpScenario : IDisposable
         {
             if (_listener is null)
             {
-                _listener = new HttpListener();
-                _listener.Prefixes.Add($"http://127.0.0.1:{LoopbackPortReservation.Reserve().ToString(CultureInfo.InvariantCulture)}/");
-                _listener.Start();
+                var ports = new List<string>();
+                while (ports.Count < 5)
+                {
+                    _listener = new HttpListener();
+                    try
+                    {
+                        var port = (reservePort ?? LoopbackPortReservation.Reserve)().ToString(CultureInfo.InvariantCulture);
+                        ports.Add(port);
+                        _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+                        _listener.Start();
+                        return _listener;
+                    }
+                    // Measured with two registrations of one prefix on KAER: ERROR_ALREADY_EXISTS.
+                    catch (HttpListenerException exception) when (OperatingSystem.IsWindows() && exception.ErrorCode == 183)
+                    {
+                        _listener.Close();
+                        _listener = null;
+                    }
+                }
+
+                throw new InvalidOperationException($"No client MCP listener port could be registered: {string.Join(", ", ports)}.");
             }
 
             return _listener;
