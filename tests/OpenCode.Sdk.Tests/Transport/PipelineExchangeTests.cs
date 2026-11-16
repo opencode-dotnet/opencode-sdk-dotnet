@@ -147,7 +147,7 @@ public sealed class PipelineExchangeTests
     }
 
     private static PipelineExchange CreateExchange(PipelinePolicy[] policies, ArrayPool<byte>? pool = null) =>
-        new(new ConnectionSnapshot("https://test.invalid", authorization: null, location: null, TimeProvider.System),
+        new(new ConnectionSnapshot("https://test.invalid", authorization: null, location: null, httpHandler: null, TimeProvider.System),
             clientNetworkTimeout: null, policies, CancellationToken.None)
         { BodyPool = pool ?? ResponseBufferingPolicy.DefaultPool };
 

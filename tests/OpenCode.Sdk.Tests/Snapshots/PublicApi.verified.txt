@@ -967,6 +967,7 @@ namespace OpenCode.Sdk
         public System.Uri? Endpoint { get; set; }
         public System.TimeSpan? EventStreamIdleTimeout { get; set; }
         public System.Collections.Generic.IDictionary<string, string> Headers { get; }
+        public System.Net.Http.HttpMessageHandler? HttpHandler { get; set; }
         public OpenCode.Sdk.LocationSelector? Location { get; set; }
         public System.TimeSpan? NetworkTimeout { get; set; }
         public string? Password { get; set; }

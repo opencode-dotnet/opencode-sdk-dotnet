@@ -28,13 +28,19 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
 
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
+#if !NET
+    private readonly bool _ownsHttpHandler;
+#endif
 
-    public TransportPolicy(HttpClient httpClient, bool ownsHttpClient)
+    public TransportPolicy(HttpClient httpClient, bool ownsHttpClient, bool ownsHttpHandler = true)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
 
         _httpClient = httpClient;
         _ownsHttpClient = ownsHttpClient;
+#if !NET
+        _ownsHttpHandler = ownsHttpClient && ownsHttpHandler;
+#endif
     }
 
 #if NET
@@ -44,7 +50,7 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
     {
         Debug.Assert(remaining.IsEmpty, "The transport is the pipeline's terminal policy.");
 #if !NET
-        if (_ownsHttpClient)
+        if (_ownsHttpHandler)
         {
             ConfigureDownlevelServicePoint(message.Request.RequestUri!);
         }
@@ -73,6 +79,10 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
             _httpClient.Dispose();
         }
     }
+
+    /// <summary>Owns only a wrapper over the caller's handler; the pipeline remains the only timer.</summary>
+    public static HttpClient CreateHttpClient(HttpMessageHandler handler) =>
+        new(handler, disposeHandler: false) { Timeout = Timeout.InfiniteTimeSpan };
 
     /// <summary>Builds the non-redirecting owned transport with endpoint rotation on every runtime.</summary>
     public static HttpClient CreateOwnedHttpClient(Uri endpoint)

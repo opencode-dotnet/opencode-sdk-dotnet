@@ -19,13 +19,15 @@ namespace OpenCode.Sdk.Internal;
 /// </remarks>
 internal sealed class ConnectionSnapshot
 {
-    public ConnectionSnapshot(string endpointBase, AuthenticationHeaderValue? authorization, LocationSelector? location, TimeProvider time)
+    public ConnectionSnapshot(string endpointBase, AuthenticationHeaderValue? authorization, LocationSelector? location,
+        HttpMessageHandler? httpHandler, TimeProvider time)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointBase);
 
         EndpointBase = endpointBase;
         Authorization = authorization;
         Location = location;
+        HttpHandler = httpHandler;
         Time = time;
     }
 
@@ -37,6 +39,9 @@ internal sealed class ConnectionSnapshot
 
     /// <summary>Gets the ambient location a per-call selector merges over member by member.</summary>
     public LocationSelector? Location { get; }
+
+    /// <summary>Gets the caller-owned handler, or null when the SDK built its own handler.</summary>
+    public HttpMessageHandler? HttpHandler { get; }
 
     /// <summary>Gets the client's clock for waits and deadlines outside the HTTP policies.</summary>
     public TimeProvider Time { get; }

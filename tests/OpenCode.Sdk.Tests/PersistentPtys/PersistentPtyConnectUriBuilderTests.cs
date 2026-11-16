@@ -54,5 +54,5 @@ public sealed class PersistentPtyConnectUriBuilderTests
     }
 
     private static ConnectionSnapshot Snapshot(string endpoint) =>
-        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location: null, new ManualTimeProvider());
+        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location: null, httpHandler: null, new ManualTimeProvider());
 }

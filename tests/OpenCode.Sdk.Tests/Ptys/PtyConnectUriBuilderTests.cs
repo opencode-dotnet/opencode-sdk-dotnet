@@ -105,5 +105,5 @@ public sealed class PtyConnectUriBuilderTests
     }
 
     private static ConnectionSnapshot Snapshot(string endpoint, LocationSelector? location = null) =>
-        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location, new ManualTimeProvider());
+        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location, httpHandler: null, new ManualTimeProvider());
 }

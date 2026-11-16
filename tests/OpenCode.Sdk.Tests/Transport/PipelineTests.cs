@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Transport.Support;
 
@@ -28,6 +29,176 @@ public sealed class PipelineTests
     /// test's clock can pass it, never the host's.
     /// </summary>
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(2);
+
+    [Test]
+    public async Task HttpHandler_Should_Carry_Every_Request_From_The_Construction_Snapshot()
+    {
+        await using var fallback = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse
+        {
+            StatusCode = HttpStatusCode.OK,
+            Body = WireBodyData.InfoOk,
+            ContentType = "application/json",
+        });
+        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(WireBodyData.InfoOk),
+        });
+        using var replacement = new RecordingHttpHandler();
+        var options = new OpenCodeClientOptions { Endpoint = fallback.Endpoint, HttpHandler = handler };
+        using var client = new OpenCodeClient(options);
+        _ = await client.Server.GetInfoAsync();
+        options.HttpHandler = replacement;
+        _ = await client.Server.GetInfoAsync();
+
+        await Assert.That(handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray())
+            .IsEquivalentTo(["/api/info", "/api/info"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        await Assert.That(replacement.Requests).IsEmpty();
+        client.Dispose();
+        await Assert.That(handler.IsDisposed).IsFalse();
+    }
+
+    [Test]
+    public async Task HttpHandler_Should_Have_An_Infinite_Wrapper_Timer_And_An_Owned_Wrapper_Only()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var pipeline = CreateHandlerPipeline(handler);
+        var transport = typeof(Pipeline).GetField("_transport", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(pipeline);
+        var wrapper = (HttpClient)typeof(TransportPolicy).GetField("_httpClient", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(transport)!;
+        await Assert.That(wrapper.Timeout).IsEqualTo(Timeout.InfiniteTimeSpan);
+
+        pipeline.Dispose();
+
+        _ = await Assert.That(async () => _ = await wrapper.GetAsync(Endpoint)).Throws<ObjectDisposedException>();
+        await Assert.That(handler.IsDisposed).IsFalse();
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task HttpHandler_Should_Keep_The_Progress_Window_And_Caller_Cancellation(bool cancelCaller)
+    {
+        var time = new ManualTimeProvider();
+        using var caller = new CancellationTokenSource();
+        using var content = new BlockingContent();
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        using var pipeline = CreateHandlerPipeline(handler, time);
+        var execution = PipelineStreamTests.CaptureFailureAsync(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, caller.Token));
+        try
+        {
+            await Assert.That(handler.Requests.Count).IsEqualTo(1);
+            await content.ReadStarted.WaitAsync(HangGuard.Bound);
+            await Assert.That(time.ArmedIn(Window)).IsEqualTo(1);
+            if (cancelCaller)
+            {
+                await caller.CancelOnWorkerAsync();
+            }
+
+            // Cancellation is already observed; expiry also settles a transport that dropped its token.
+            time.Advance(Window);
+            var failure = await execution.WaitAsync(HangGuard.Bound);
+            if (cancelCaller)
+            {
+                await Assert.That(failure).IsTypeOf<OperationCanceledException>();
+                await Assert.That(((OperationCanceledException)failure!).CancellationToken).IsEqualTo(caller.Token);
+            }
+            else
+            {
+                await Assert.That(failure).IsTypeOf<OpenCodeTransportException>();
+                await Assert.That(failure!.Message).IsEqualTo("The opencode response body could not be read.");
+                await Assert.That(caller.IsCancellationRequested).IsFalse();
+            }
+
+            await Assert.That(content.IsDisposed).IsTrue();
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            _ = await execution.WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    [Test]
+    public async Task HttpHandler_Should_Still_Refuse_A_Returned_Redirect()
+    {
+        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Found));
+        using var pipeline = CreateHandlerPipeline(handler);
+
+        var refusal = await Assert.That(async () => await ExecuteInfoAsync(pipeline)).Throws<OpenCodeTransportException>();
+
+        await Assert.That(refusal!.Message).IsEqualTo("The opencode API returned undeclared redirect status 302.");
+        await Assert.That(handler.Requests.Single().RequestUri!.AbsolutePath).IsEqualTo("/api/info");
+    }
+
+    [Test]
+    public async Task HttpHandler_Should_Carry_The_Event_Stream_And_Its_Reconnect()
+    {
+        var time = new ManualTimeProvider();
+        var marker = WireBodyData.Frames(ScriptedEventServer.Connected);
+        await using var fallback = LoopbackHttpServer.Start(_ => new LoopbackHttpResponse
+        {
+            StatusCode = HttpStatusCode.OK,
+            ContentType = "text/event-stream",
+            Body = marker,
+        });
+        using var handler = new RecordingHttpHandler(_ => ScriptedEventServer.StreamOf(marker, ends: true));
+        using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = fallback.Endpoint, HttpHandler = handler }, time);
+        var events = new EventsClient(pipeline);
+        await using var subscription = events.SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That(await EventStreamSteps.PendingNext(subscription).WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(subscription.Current.Type).IsEqualTo("server.connected");
+        var next = EventStreamSteps.PendingNext(subscription);
+        var delay = TimeSpan.FromSeconds(1);
+        await time.WaitForArmedAsync(delay, HangGuard.Bound);
+        time.Advance(delay);
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(subscription.Current.Type).IsEqualTo("server.connected");
+        await Assert.That(handler.Requests.Select(static request => request.RequestUri!.AbsolutePath).ToArray())
+            .IsEquivalentTo(["/api/event", "/api/event"], TUnit.Assertions.Enums.CollectionOrdering.Matching);
+        pipeline.Dispose();
+        await Assert.That(handler.IsDisposed).IsFalse();
+    }
+
+#if NET
+    [Test]
+    public async Task HttpHandler_Should_Keep_The_Callers_Redirect_And_Pooling_Settings()
+    {
+        using var handler = new SocketsHttpHandler
+        {
+            AllowAutoRedirect = true,
+            PooledConnectionLifetime = TimeSpan.FromSeconds(17),
+            PooledConnectionIdleTimeout = TimeSpan.FromSeconds(19),
+        };
+        using var pipeline = CreateHandlerPipeline(handler);
+
+        await Assert.That(pipeline.Connection.HttpHandler).IsSameReferenceAs(handler);
+        await Assert.That(handler.AllowAutoRedirect).IsTrue();
+        await Assert.That(handler.PooledConnectionLifetime).IsEqualTo(TimeSpan.FromSeconds(17));
+        await Assert.That(handler.PooledConnectionIdleTimeout).IsEqualTo(TimeSpan.FromSeconds(19));
+        await Assert.That((object?)handler.ConnectCallback).IsNull();
+    }
+#else
+    [Test]
+    public async Task HttpHandler_Should_Not_Configure_The_Downlevel_ServicePoint()
+    {
+        var endpoint = new Uri("http://caller-handler.invalid");
+        var point = ServicePointManager.FindServicePoint(endpoint, WebRequest.DefaultWebProxy);
+        point.ConnectionLimit = 7;
+        point.ConnectionLeaseTimeout = 19_000;
+        point.MaxIdleTime = 11_000;
+        using var handler = new RecordingHttpHandler();
+        using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = endpoint, HttpHandler = handler });
+
+        await ExecuteInfoAsync(pipeline);
+
+        await Assert.That(point.ConnectionLimit).IsEqualTo(7);
+        await Assert.That(point.ConnectionLeaseTimeout).IsEqualTo(19_000);
+        await Assert.That(point.MaxIdleTime).IsEqualTo(11_000);
+    }
+#endif
+
+    private static Pipeline CreateHandlerPipeline(HttpMessageHandler handler, TimeProvider? time = null) =>
+        Pipeline.Create(new OpenCodeClientOptions { Endpoint = Endpoint, HttpHandler = handler, NetworkTimeout = Window }, time);
 
     [Test]
     [Arguments("")]

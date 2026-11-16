@@ -1,6 +1,6 @@
 # Platform and Packaging Architecture
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Canonical current rules for target frameworks, package boundaries, repository shape, versioning,
 distribution, dependencies, and licensing.
@@ -68,6 +68,9 @@ Two separate API vintages shape the downlevel legs, and conflating them would mi
 - `ClientWebSocketOptions.CollectHttpResponseDetails` and `ClientWebSocket.HttpStatusCode` — the
   pair that recovers a refused upgrade's HTTP status — are .NET 7 and later. Both downlevel legs
   therefore report a failed upgrade without its status (`client-runtime.md`).
+- Terminal upgrades use `OpenCodeClientOptions.HttpHandler` on `net10.0` and `net11.0` through
+  `ConnectAsync(Uri, HttpMessageInvoker, CancellationToken)`. `net472` and `netstandard2.0` lack
+  that overload and keep the socket's own transport; HTTP and event streams still use the handler.
 
 ## Packages
 
