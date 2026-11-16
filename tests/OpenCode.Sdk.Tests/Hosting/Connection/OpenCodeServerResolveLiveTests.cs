@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
@@ -82,8 +83,8 @@ public sealed class OpenCodeServerResolveLiveTests(PinnedOpenCodeServerFixture f
 
         await connection.DisposeAsync();
 
-        var exit = await connection.Server.Exited.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken);
-        await Assert.That(exit.Kind).IsNotEqualTo(OpenCodeServerExitKind.Unknown);
+        var exit = await ChildExitObservation.WithinAsync(connection.Server, TimeSpan.FromSeconds(30));
+        await Assert.That(exit).IsNotEqualTo(ChildExitStatus.Unknown).Because(exit.Describe());
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(
             connection.Server.ProcessId, TimeSpan.FromSeconds(30), cancellationToken)).IsTrue();
     }
