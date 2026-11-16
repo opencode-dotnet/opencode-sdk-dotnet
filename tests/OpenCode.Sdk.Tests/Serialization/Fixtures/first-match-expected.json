@@ -187,5 +187,89 @@
     "union": "migration",
     "value": {},
     "member": null
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "data": "aGVsbG8=",
+      "mime": "text/plain",
+      "source": {
+        "type": "inline"
+      }
+    },
+    "member": 0
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "mime": "image/png",
+      "source": {
+        "type": "inline"
+      },
+      "bytes": 42
+    },
+    "member": 1
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "mime": "image/png",
+      "source": {
+        "type": "inline"
+      },
+      "width": 16,
+      "height": 8
+    },
+    "member": 1
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "mime": "image/png",
+      "source": {
+        "type": "inline"
+      },
+      "name": "image.png",
+      "description": "a picture",
+      "mention": {
+        "start": 0,
+        "end": 5,
+        "text": "image"
+      }
+    },
+    "member": 1
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "data": "aGVsbG8=",
+      "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "mime": "text/plain",
+      "source": {
+        "type": "inline"
+      }
+    },
+    "member": 0
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "mime": "image/png",
+      "source": {
+        "type": "inline"
+      }
+    },
+    "member": null
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "mime": "image/png"
+    },
+    "member": null
   }
 ]

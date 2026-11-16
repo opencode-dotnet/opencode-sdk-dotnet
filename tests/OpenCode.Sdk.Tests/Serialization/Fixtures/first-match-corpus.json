@@ -22,5 +22,12 @@
   { "union": "migration", "value": { "status": "error", "error": "the V1 database is locked" } },
   { "union": "migration", "value": { "status": "error" } },
   { "union": "migration", "value": { "status": "paused" } },
-  { "union": "migration", "value": {} }
+  { "union": "migration", "value": {} },
+  { "union": "attachment", "value": { "data": "aGVsbG8=", "mime": "text/plain", "source": { "type": "inline" } } },
+  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png", "source": { "type": "inline" }, "bytes": 42 } },
+  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png", "source": { "type": "inline" }, "width": 16, "height": 8 } },
+  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png", "source": { "type": "inline" }, "name": "image.png", "description": "a picture", "mention": { "start": 0, "end": 5, "text": "image" } } },
+  { "union": "attachment", "value": { "data": "aGVsbG8=", "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "text/plain", "source": { "type": "inline" } } },
+  { "union": "attachment", "value": { "mime": "image/png", "source": { "type": "inline" } } },
+  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png" } }
 ]

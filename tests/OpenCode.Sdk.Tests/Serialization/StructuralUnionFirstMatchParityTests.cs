@@ -7,7 +7,7 @@ using OpenCode.Sdk.Tests.Harness;
 namespace OpenCode.Sdk.Tests.Serialization;
 
 /// <summary>
-/// Upstream decodes the three same-token unions with Effect's union decode: the first member in
+/// Upstream decodes the four same-token unions with Effect's union decode: the first member in
 /// declaration order that decodes takes the value. <c>tools/oracles/first-match-union.ts</c> runs
 /// that decode over the corpus beside the expected file and records which member took each value,
 /// or that no member did; the generated converters must agree value for value. A member index is
@@ -33,6 +33,7 @@ public sealed class StructuralUnionFirstMatchParityTests
                 "reference" => Read(payload, OpenCodeJsonContext.Default.ConfigReferenceEntry).Kind.ToString(),
                 "lsp" => Read(payload, OpenCodeJsonContext.Default.ConfigLspEntry).Kind.ToString(),
                 "migration" => Read(payload, OpenCodeJsonContext.Default.ExperimentalMigrationV1Status).Kind.ToString(),
+                "attachment" => Read(payload, OpenCodeJsonContext.Default.PromptAttachment).Kind.ToString(),
                 _ => throw new InvalidOperationException($"The verdict file names an unknown union '{union}'."),
             };
             if (!StringComparer.Ordinal.Equals(expected, actual))
@@ -50,6 +51,7 @@ public sealed class StructuralUnionFirstMatchParityTests
         "reference" => ((ConfigReferenceEntryKind)member).ToString(),
         "lsp" => ((ConfigLspEntryKind)member).ToString(),
         "migration" => ((ExperimentalMigrationV1StatusKind)member).ToString(),
+        "attachment" => ((PromptAttachmentKind)member).ToString(),
         _ => throw new InvalidOperationException($"The verdict file names an unknown union '{union}'."),
     };
 

@@ -20,7 +20,7 @@ public sealed record SessionInboxUserPayload
     /// </summary>
     [JsonPropertyName("files")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyList<PromptFileAttachment>? Files { get; init; }
+    public IReadOnlyList<PromptAttachment>? Files { get; init; }
 
     /// <summary>
     /// Gets the agents value.

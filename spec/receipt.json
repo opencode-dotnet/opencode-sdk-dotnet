@@ -14,15 +14,29 @@
           "sha256": "06d3fc552eebdec7950baeb9f00a38f67951be52978b6ed49c035c6314cbd16a"
         }
       ]
+    },
+    {
+      "manifest": "003-restore-media-file-attachment.json",
+      "patchSha256": "d09949d585c4b4fe8888dc434563a9cf12c066f4454ca716ff6f6ed78d01531b",
+      "preimages": [
+        {
+          "path": "packages/schema/src/session-inbox.ts",
+          "sha256": "b3de56bc3c5465150ce96138a69016bd04c28348555b7549699f9eb821728d74"
+        },
+        {
+          "path": "packages/schema/src/session-message.ts",
+          "sha256": "66bab3776915e9804d5b28d9ddfdaf1e9e23021fc52e6eaf47ec5c71845632d7"
+        }
+      ]
     }
   ],
-  "normalizedDocumentSha256": "271f092257e3f8f88964f722a43bf96ecb43178486fbfa7b7affd5b185cdfc87",
+  "normalizedDocumentSha256": "4f6d89233e30356e0270c3f44acbfcbfce9bee0320cdeecdc09336fcc9ce3693",
   "normalizedDocumentPath": null,
   "operationSetDigest": "8985cd36ad8de68fec00e7a5d00639a4e96905b03fdc6ef0ebfaa5fbf06fd4a9",
   "operationCount": 170,
   "addedOperations": [],
   "removedOperations": [],
-  "componentCount": 501,
+  "componentCount": 504,
   "contentSchemaCount": 2,
   "watchedSources": [
     {

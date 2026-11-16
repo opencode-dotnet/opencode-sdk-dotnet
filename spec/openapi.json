@@ -21690,6 +21690,16 @@
         "required": ["name"],
         "additionalProperties": false
       },
+      "Prompt.Attachment": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/Prompt.FileAttachment"
+          },
+          {
+            "$ref": "#/components/schemas/Prompt.MediaFileAttachment"
+          }
+        ]
+      },
       "Prompt.Base64": {
         "type": "string",
         "pattern": "^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$"
@@ -21747,6 +21757,49 @@
             "additionalProperties": false
           }
         ]
+      },
+      "Prompt.MediaFileAttachment": {
+        "type": "object",
+        "properties": {
+          "mime": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/Prompt.FileSource"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "mention": {
+            "$ref": "#/components/schemas/Prompt.Mention"
+          },
+          "uri": {
+            "$ref": "#/components/schemas/Prompt.MediaRef"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "width": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "height": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": ["mime", "source", "uri"],
+        "additionalProperties": false
+      },
+      "Prompt.MediaRef": {
+        "type": "string"
       },
       "Prompt.Mention": {
         "type": "object",
@@ -23359,7 +23412,7 @@
           "files": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Prompt.FileAttachment"
+              "$ref": "#/components/schemas/Prompt.Attachment"
             }
           },
           "agents": {
@@ -24341,7 +24394,7 @@
           "files": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Prompt.FileAttachment"
+              "$ref": "#/components/schemas/Prompt.Attachment"
             }
           },
           "agents": {
