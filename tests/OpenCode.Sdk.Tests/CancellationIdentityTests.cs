@@ -92,6 +92,7 @@ public sealed class CancellationIdentityTests
     }
 
     [Test]
+    [DependsOn(nameof(Service_Config_Doors_Should_Use_The_Session_Isolation))]
     [MethodDataSource(nameof(CancellationCases))]
     public async Task PublicDoor_Should_Preserve_The_Caller_Token_When_Canceled_Mid_Call(string row, string variant)
     {

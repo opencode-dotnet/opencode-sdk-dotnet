@@ -29,4 +29,6 @@ internal static class ServiceConfigWriteData
     public static byte[] InvalidEnvironmentValue => [.. "{\"env\":{\"A\":\""u8.ToArray(), 0xff, .. "\"}}"u8.ToArray()];
     public static byte[] DoubleBomDonor => [0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, .. Encoding.UTF8.GetBytes(Config)];
     public static byte[] CollidingDonorNames => [.. "{\"a"u8.ToArray(), 0xff, .. "\":1,\"a"u8.ToArray(), 0xfe, .. "\":2}"u8.ToArray()];
+    public static byte[] CollidingRegistrationNames =>
+        [.. Encoding.UTF8.GetBytes(Registration[..^1] + ",\"a"), 0xff, .. "\":1,\"a"u8.ToArray(), 0xfe, .. "\":2}"u8.ToArray()];
 }
