@@ -41,11 +41,11 @@ public sealed class ServiceConfigStoreTests
         await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None))
             .IsEquivalentTo(Encoding.UTF8.GetBytes(environment
                 ? ServiceConfigWriteData.DecodedEnvironmentValue : ServiceConfigWriteData.DecodedHostname), CollectionOrdering.Matching);
-        await Assert.That(document.Hostname).IsEqualTo(environment ? null : "�");
+        await Assert.That(document.Hostname).IsEqualTo(environment ? null : "\uFFFD");
         if (environment)
         {
             await Assert.That(document.Environment).IsNotNull();
-            await Assert.That(document.Environment).IsEquivalentTo([new KeyValuePair<string, string>("A", "�")], CollectionOrdering.Matching);
+            await Assert.That(document.Environment).IsEquivalentTo([new KeyValuePair<string, string>("A", "\uFFFD")], CollectionOrdering.Matching);
         }
         else
         {

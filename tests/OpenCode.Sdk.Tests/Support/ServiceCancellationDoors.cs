@@ -17,40 +17,20 @@ internal sealed class ServiceCancellationDoors(
 
     internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
-        using var root = new TestRunRoot(fileSystem);
-        var isolated = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["XDG_CONFIG_HOME"] = fileSystem.Path.Combine(root.Path, "config"),
-            ["XDG_STATE_HOME"] = fileSystem.Path.Combine(root.Path, "state"),
-            ["OPENCODE_CONFIG_DIR"] = fileSystem.Path.Combine(root.Path, "config", "opencode"),
-        };
-        var original = isolated.Keys.ToDictionary(static name => name, Environment.GetEnvironmentVariable, StringComparer.Ordinal);
-        // The cancellation table already runs nonparallel; only these per-row roots replace the session's roots.
-        try
-        {
-            foreach (var pair in isolated)
-            {
-                Environment.SetEnvironmentVariable(pair.Key, pair.Value);
-            }
+        var options = new OpenCodeServiceConfigOptions();
+        var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(options));
+        await Assert.That(SessionIsolation.Root).IsNotNull();
+        await Assert.That(paths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+        await Assert.That(paths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+        var inventory = fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories);
+        await caller.CancelOnWorkerAsync();
+        var failure = await observeCancellation(() => row == "service-config-read"
+            ? OpenCodeServiceConfiguration.ReadAsync(options, caller.Token)
+            : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(options, caller.Token));
 
-            var options = new OpenCodeServiceConfigOptions();
-            var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(options));
-            await Assert.That(paths.ConfigFile!).StartsWith(root.Path + fileSystem.Path.DirectorySeparatorChar);
-            await Assert.That(paths.RegistrationFile).StartsWith(root.Path + fileSystem.Path.DirectorySeparatorChar);
-            await caller.CancelOnWorkerAsync();
-            return await observeCancellation(() => row == "service-config-read"
-                ? OpenCodeServiceConfiguration.ReadAsync(options, caller.Token)
-                : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(options, caller.Token));
-        }
-        finally
-        {
-            foreach (var pair in original)
-            {
-                Environment.SetEnvironmentVariable(pair.Key, pair.Value);
-            }
-
-            await Assert.That(fileSystem.Directory.GetFiles(root.Path, "*", SearchOption.AllDirectories)).IsEmpty();
-        }
+        await Assert.That(fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories))
+            .IsEquivalentTo(inventory, CollectionOrdering.Any);
+        return failure;
     }
 
     internal async Task<OperationCanceledException> AtStopPreCancelledAsync(CancellationTokenSource caller)

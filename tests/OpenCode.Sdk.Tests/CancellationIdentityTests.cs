@@ -82,6 +82,17 @@ public sealed class CancellationIdentityTests
     }
 
     [Test]
+    public async Task Service_Config_Doors_Should_Use_The_Session_Isolation()
+    {
+        var fileSystem = new RealFileSystem();
+        var paths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(new OpenCodeServiceConfigOptions()));
+        await Assert.That(SessionIsolation.Root).IsNotNull();
+        await Assert.That(SessionIsolation.AppliedNames).Contains("OPENCODE_CONFIG_DIR");
+        await Assert.That(paths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+        await Assert.That(paths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+    }
+
+    [Test]
     [MethodDataSource(nameof(CancellationCases))]
     public async Task PublicDoor_Should_Preserve_The_Caller_Token_When_Canceled_Mid_Call(string row, string variant)
     {

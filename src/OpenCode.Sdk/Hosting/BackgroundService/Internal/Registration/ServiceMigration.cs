@@ -31,7 +31,7 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
         foreach (var donor in paths.LegacyRegistrationFiles)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var bytes = await fileSystem.TryReadAllBytesAsync(donor, cancellationToken).ConfigureAwait(false);
+            var bytes = await ReadDonorAsync(donor, cancellationToken).ConfigureAwait(false);
             if (bytes is null)
             {
                 continue;
@@ -44,13 +44,13 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
                 continue;
             }
 
-            await CopyAsync(paths.RegistrationFile, Encoding.UTF8.GetBytes(ServiceConfigReader.DecodeCliText(bytes)), cancellationToken).ConfigureAwait(false);
+            await CopyAsync(paths.RegistrationFile, bytes, cancellationToken).ConfigureAwait(false);
         }
 
         if (paths.LegacyConfigFile is { } legacyConfig && paths.ConfigFile is { } configFile)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var bytes = await fileSystem.TryReadAllBytesAsync(legacyConfig, cancellationToken).ConfigureAwait(false);
+            var bytes = await ReadDonorAsync(legacyConfig, cancellationToken).ConfigureAwait(false);
             if (bytes is not null)
             {
                 await ApplyConfigAsync(configFile, bytes, cancellationToken).ConfigureAwait(false);
@@ -58,16 +58,29 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
         }
     }
 
+    private async Task<byte[]?> ReadDonorAsync(string donor, CancellationToken cancellationToken)
+    {
+        var bytes = await fileSystem.TryReadAllBytesAsync(donor, cancellationToken).ConfigureAwait(false);
+        if (bytes is null)
+        {
+            return null;
+        }
+
+        var text = ServiceConfigReader.DecodeCliText(bytes);
+        // TextDecoder strips one BOM; JSON.parse rejects a mark that remains after that decode.
+        return text.Length > 0 && text[0] == '\uFEFF' ? null : Encoding.UTF8.GetBytes(text);
+    }
+
     /// <summary>Copies an already-read current-shape donor as the CLI's decoded text, exclusively and best-effort.</summary>
     /// <param name="configFile">The destination.</param>
-    /// <param name="bytes">The original donor bytes, on which the existing admission check operates.</param>
+    /// <param name="bytes">The decoded donor bytes, with any remaining leading byte-order mark already rejected.</param>
     /// <param name="cancellationToken">The caller's token.</param>
     /// <returns>The completed copy attempt.</returns>
     internal async Task ApplyConfigAsync(string configFile, byte[] bytes, CancellationToken cancellationToken)
     {
         if (ServiceConfigReader.IsCurrent(bytes))
         {
-            await CopyAsync(configFile, Encoding.UTF8.GetBytes(ServiceConfigReader.DecodeCliText(bytes)), cancellationToken).ConfigureAwait(false);
+            await CopyAsync(configFile, bytes, cancellationToken).ConfigureAwait(false);
         }
     }
 

@@ -21,8 +21,11 @@ internal static class ServiceConfigWriteData
         : [.. "{\"url\":\"http://localhost:4096\",\"pid\":123,\"version\":\"0.0.0-beta-1\",\"note\":\"a"u8.ToArray(),
             0xef, 0xbf, 0xbd, .. "b\"}"u8.ToArray()];
     public static byte[] InvalidHostname => [.. "{\"hostname\":\""u8.ToArray(), 0xff, .. "\"}"u8.ToArray()];
-    public const string DecodedHostname = "{\"hostname\":\"�\"}";
-    public const string DecodedEnvironmentValue = "{\"env\":{\"A\":\"�\"}}";
+    public static byte[] InvalidRegistrationId => [.. Encoding.UTF8.GetBytes(Registration[..^1] + ",\"id\":\""), 0xff, .. "\"}"u8.ToArray()];
+    public const string DecodedRegistrationId = "{\"url\":\"http://localhost:4096\",\"pid\":123,\"version\":\"0.0.0-beta-1\",\"id\":\"\uFFFD\"}";
+    public static byte[] DoubleBomRegistration => [0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, .. Encoding.UTF8.GetBytes(Registration)];
+    public const string DecodedHostname = "{\"hostname\":\"\uFFFD\"}";
+    public const string DecodedEnvironmentValue = "{\"env\":{\"A\":\"\uFFFD\"}}";
     public static byte[] InvalidEnvironmentValue => [.. "{\"env\":{\"A\":\""u8.ToArray(), 0xff, .. "\"}}"u8.ToArray()];
     public static byte[] DoubleBomDonor => [0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, .. Encoding.UTF8.GetBytes(Config)];
     public static byte[] CollidingDonorNames => [.. "{\"a"u8.ToArray(), 0xff, .. "\":1,\"a"u8.ToArray(), 0xfe, .. "\":2}"u8.ToArray()];
