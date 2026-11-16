@@ -266,23 +266,24 @@ internal static class CurationValidator
         // divergent handle row would fork the family; a divergent emission row is worse, since
         // one row's accessibility would silently govern another row's operations — including a
         // header parameter admitted per-row landing on a public client.
-        foreach (var clientName in curation
+        foreach (var family in curation
                      .Groups
                      .Where(static pair => pair.Value is { Placement: GroupPlacement.Client, ClientName: not null })
                      .GroupBy(static pair => pair.Value.ClientName!, StringComparer.Ordinal)
-                     .Where(static family => family
-                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission,
-                             pair.Value.RootAccessor, pair.Value.ExperimentalDiagnostic))
-                         .Distinct()
-                         .Skip(1)
-                         .Any())
-                     .Select(static family => family.Key)
-                     .Order(StringComparer.Ordinal))
+                     .OrderBy(static family => family.Key, StringComparer.Ordinal))
         {
-            errors.Add(
-                BindingErrorCategory.Curation,
-                clientName,
-                $"groups sharing client '{clientName}' must declare identical handle and emission configuration and the same experimentalDiagnostic");
+            if (family.Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission,
+                    pair.Value.ExperimentalDiagnostic)).Distinct().Skip(1).Any())
+            {
+                errors.Add(BindingErrorCategory.Curation, family.Key,
+                    $"groups sharing client '{family.Key}' must declare identical handle and emission configuration and the same experimentalDiagnostic");
+            }
+
+            if (family.Select(static pair => pair.Value.RootAccessor).Distinct().Skip(1).Any())
+            {
+                errors.Add(BindingErrorCategory.Curation, family.Key,
+                    $"groups sharing client '{family.Key}' must declare the same rootAccessor");
+            }
         }
 
         // An id names one family, so groups that share it must be one merged client.
@@ -399,9 +400,14 @@ internal static class CurationValidator
             return;
         }
 
+        if (group.Placement is GroupPlacement.Root && !group.RootAccessor)
+        {
+            errors.Add(BindingErrorCategory.Curation, wireName, "root group cannot declare rootAccessor");
+        }
+
         if (group.Emission is not EmissionMode.InternalRaw)
         {
-            if (!group.RootAccessor)
+            if (group.Placement is not GroupPlacement.Root && !group.RootAccessor)
             {
                 errors.Add(BindingErrorCategory.Curation, wireName, "rootAccessor false requires internalRaw emission");
             }
