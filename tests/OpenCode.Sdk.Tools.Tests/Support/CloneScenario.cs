@@ -97,7 +97,7 @@ internal sealed class CloneScenario
     {
         var fileSystem = _detectorFileSystem;
         var root = new RepositoryRoot(fileSystem).Locate();
-        var detector = new CloneDetector(fileSystem, new CliWrapProcessRunner());
+        var detector = new CloneDetector(fileSystem, new CliWrapProcessRunner(), System.TimeProvider.System);
         detector.EnsureInstalled(root);
         var work = CreateDetectorWorkDirectory("opencode-using-clones-");
         var sources = fileSystem.Path.Combine(work, "sources");
@@ -124,7 +124,7 @@ internal sealed class CloneScenario
         var fileSystem = _detectorFileSystem;
         var root = new RepositoryRoot(fileSystem).Locate();
         var runner = new CliWrapProcessRunner();
-        var detector = new CloneDetector(fileSystem, runner);
+        var detector = new CloneDetector(fileSystem, runner, System.TimeProvider.System);
         detector.EnsureInstalled(root);
         var work = CreateDetectorWorkDirectory("opencode-string-clones-");
         var sources = fileSystem.Path.Combine(work, "sources");
