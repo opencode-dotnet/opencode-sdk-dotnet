@@ -34,6 +34,23 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 - `OpenCodeServer.FindIncumbentAsync` reports whether the registered background service that answers at a given URL is ready, starting or stopping, or failed (`OpenCodeServerIncumbent`, `OpenCodeServerState`), as opencode's `serve --service` checks, before it binds, whether a compatible service already owns its address; it answers null when no compatible registered service answers there.
 - `RpcDefinition` declares a plugin's RPC definition once, with `Method` (`RpcMethod<TInput, TOutput>`) and `Event` (`RpcEventDefinition<TData>`) descriptors that carry your source-generated JSON metadata, so it works under native AOT and on every target. `client.Rpc.CallAsync(method, input)` calls a method with typed input and output, as opencode's own client binds a definition, and a failure the RPC registry or the plugin reports throws `OpenCodeRpcException` with its `ErrorType`, its message and its data. It derives from `OpenCodeApiException`, which is no longer sealed, so an existing `catch (OpenCodeApiException)` still catches it.
 - `client.Events.SubscribeAsync(rpcEvent)` yields one RPC definition's events as `RpcEventPayload<TData>`, the shared `EventRpc` and its data read with your metadata, as opencode's own client subscribes to a definition's events. It selects nothing at the feed and keeps only its own events, so queued unrelated events count against its 4,096-event queue, and an event whose data does not match your type throws `OpenCodeTransportException`.
+- `OpenCodeServiceConfiguration` adds typed administration of the background service's config,
+  matching the CLI's `service get`, `set`, and `unset` surface. `ReadAsync` returns an
+  `OpenCodeServiceConfig` without the password or remote route and migrates or repairs legacy
+  config as the CLI's read does. `GetOrCreatePasswordAsync` returns a stored password or creates
+  and stores one when it is absent or empty. Setters change the hostname, port, password, CORS
+  origins, environment entries and disabled flag; `UnsetAsync(OpenCodeServiceSetting)` and
+  `UnsetEnvironmentVariableAsync` remove settings, and `DisableRemoteAsync` turns remote access
+  off. Sets and unsets stop the registered service first except `SetDisabledAsync(false)` and
+  unsetting Disabled; nothing restarts it. `OpenCodeServiceConfigOptions` selects the channel and
+  installed-version comparand. Reads and SDK-managed writes refuse a config or donor the CLI may
+  read but the strict materializer cannot represent, rather than returning empty settings or
+  erasing them.
+- `OpenCodeServiceConfiguration.EnableRemoteAsync` turns remote access on through the installed
+  `opencode service set remote true`, using `CliCommand` and `Environment`, then reads and returns
+  the selected config's secret route through the shared migrating and repairing read. The SDK does
+  not check that the command, channel and environment agree. Cancellation after CLI success can
+  leave remote access enabled.
 
 ### 🔧 Changes
 
@@ -48,6 +65,10 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 ### 🐛 Fixes
 
 - `client.Rpc.CallAsync` runs until the plugin's method returns, as opencode's own client does: it no longer takes the client-wide `NetworkTimeout` (100 s by default). A per-call `NetworkTimeout` still bounds it, and the cancellation token is its deadline.
+- Legacy service-config and registration migration now write the decoded UTF-8 text opencode's
+  CLI writes: one leading byte-order mark is dropped and invalid sequences become U+FFFD. A donor
+  whose decoded text still begins with U+FEFF is not migrated. Before: donor bytes were copied
+  unchanged.
 
 ### 📚 Documentation
 

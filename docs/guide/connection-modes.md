@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -15,6 +15,7 @@ register any of them with a container.
   - [🛑 Stopping the background service](#-stopping-the-background-service)
   - [🧹 Shutting down the service's persistent terminals](#-shutting-down-the-services-persistent-terminals)
   - [🟢 Ensuring the background service](#-ensuring-the-background-service)
+  - [🔧 Configuring the background service](#-configuring-the-background-service)
 - [🔌 Supplying a handler](#-supplying-a-handler)
 - [🧩 Registering with dependency injection](#-registering-with-dependency-injection)
 
@@ -435,8 +436,8 @@ working. The client never reads either one, or any other environment variable, f
 in the snippet above is your application's choice; a configuration section or a secret store works
 exactly as well. The canonical
 [construction contract](../architecture/client-runtime.md#construction-and-transport-ownership)
-names the background-service doors, including Ensure and the resolver's non-explicit paths, that
-read path variables, never a credential variable.
+names the background-service doors, including Ensure and the resolver's non-explicit paths, and the
+service-configuration operations that use path variables without selecting credentials from them.
 
 ### An app-owned server on a fixed endpoint
 
@@ -724,10 +725,10 @@ URL that cannot be a base address: a relative one, or one such as `mailto:owner@
 ### 🛑 Stopping the background service
 
 `OpenCodeServer.StopAsync` is `opencode service stop` for your code: it ends the daemon the
-registration names and removes the registration. Nothing else in the SDK ever stops the shared
-service — disposing a discovered handle is a no-op by contract — so this is the one call to make
-deliberately, for the reasons the CLI has the command: replacing a version, shutting the service
-down before an uninstall, or ending a daemon that no longer answers.
+registration names and removes the registration. Disposing a discovered handle is still a no-op.
+Configuration changes and managed restart operations can also stop the shared service; call this
+door when the stop itself is your intention, such as before an uninstall or to end a daemon that
+no longer answers.
 
 ```csharp
 await OpenCodeServer.StopAsync();
@@ -828,7 +829,7 @@ await using var server = await OpenCodeServer.EnsureAsync();
 using var client = server.CreateClient();
 var info = await client.Server.GetInfoAsync();
 Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {server.ProcessId})");
-// Disposal is a no-op: the service is shared. StopAsync is the one way to end it.
+// Disposal is a no-op: the service is shared. Call StopAsync when you intend to stop it.
 ```
 
 What it does:
@@ -873,6 +874,39 @@ service speaks an incompatible health protocol at a version the call accepts, `E
 at another version, or the 120-second bound expired (a contender's failure when one failed, and
 otherwise the timeout with the last failed replacement as the inner exception, when there was one);
 and `OperationCanceledException` for your own token.
+
+### 🔧 Configuring the background service
+
+`OpenCodeServiceConfiguration` reads and changes the background-service config managed by the CLI's
+`opencode service get`, `set`, and `unset`.
+
+```csharp
+var config = await OpenCodeServiceConfiguration.ReadAsync();
+Console.WriteLine($"port {config.Port}, remote access {(config.RemoteEnabled ? "on" : "off")}");
+
+await OpenCodeServiceConfiguration.SetPortAsync(4097); // stops the running service first
+await using var server = await OpenCodeServer.EnsureAsync(); // starts it again on the new port
+```
+
+- Sets and unsets stop the registered service first, except `SetDisabledAsync(false)` and
+  `UnsetAsync(OpenCodeServiceSetting.Disabled)`. Nothing automatically restarts it; call
+  `EnsureAsync` or start it through the CLI.
+- `ReadAsync` stops nothing and exposes neither password nor remote route. Like the CLI's
+  `service get`, it can migrate a legacy config or repair a legacy remote-access value.
+- `GetOrCreatePasswordAsync` returns the password, creating and storing one when it is absent or
+  empty. This is the administration call whose result carries the password.
+- `OpenCodeServiceConfigOptions.Channel` selects another channel's config using the
+  [channel rules](#shaping-the-lookup). These options have no direct registration-file selector.
+- `ReadAsync` and SDK-managed writes refuse a config or donor the CLI may read but the strict
+  materializer cannot safely represent, rather than showing empty settings or overwriting them.
+  The [canonical contract](../architecture/client-runtime.md#connection-modes) owns the read,
+  refusal, CORS, stop and whole-file write rules, including configuration selection.
+- `EnableRemoteAsync` runs the installed `opencode service set remote true`; install the CLI on
+  `PATH` or name it in `CliCommand`. Tunnel setup can take minutes. The `Environment` option reaches
+  the CLI, not the SDK's own lookup. After success the SDK reads the route through the shared config
+  read, which can migrate or repair. Keep the returned route like a password. Cancellation after
+  CLI success can leave remote access enabled. See
+  [configuration failures](errors-and-responses.md#-when-a-local-server-door-fails).
 
 ## 🔌 Supplying a handler
 
