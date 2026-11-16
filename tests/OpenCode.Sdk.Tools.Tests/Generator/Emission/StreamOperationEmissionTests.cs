@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -85,5 +86,21 @@ public sealed class StreamOperationEmissionTests
 
         var diagnostics = await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources);
         await Assert.That(diagnostics).IsEmpty();
+    }
+
+    [Test]
+    [Arguments(false, "The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.")]
+    [Arguments(true, "The per-call options; only the hand-written owner of this family calls this method, and it supplies them.")]
+    public async Task Emit_Should_Document_Stream_Request_Options_By_Family_Emission(bool internalRaw, string expected)
+    {
+        var plan = await EmitterPlanFixture.CreateStreamPlanAsync();
+        var operation = plan.Clients.SelectMany(static client => client.Operations).Single();
+
+        var xml = OperationMethodEmitter
+            .Emit(operation, internalRaw ? EmissionMode.InternalRaw : EmissionMode.Public)
+            .GetLeadingTrivia()
+            .ToFullString();
+
+        await Assert.That(xml).Contains($"/// <param name=\"requestOptions\">{expected}</param>");
     }
 }
