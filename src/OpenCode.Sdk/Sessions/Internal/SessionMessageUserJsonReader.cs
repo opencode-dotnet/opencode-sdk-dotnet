@@ -13,7 +13,7 @@ internal static class SessionMessageUserJsonReader
         public IReadOnlyDictionary<string, JsonElement>? value1;
         public SessionMessageUserTime? value2;
         public string? value3;
-        public IReadOnlyList<PromptFileAttachment>? value4;
+        public IReadOnlyList<PromptAttachment>? value4;
         public IReadOnlyList<PromptAgentAttachment>? value5;
         public IReadOnlyList<PromptSkillAttachment>? value6;
         public ulong present0;
@@ -171,7 +171,7 @@ internal static class SessionMessageUserJsonReader
     private static bool ReadFiles(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
         AdvanceToValue(ref reader);
-        state.value4 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyList<PromptFileAttachment>?>(ref reader, options);
+        state.value4 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyList<PromptAttachment>?>(ref reader, options);
         return true;
     }
 

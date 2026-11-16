@@ -8214,6 +8214,24 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public required string Name { get; init; }
     }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.PromptAttachmentJsonConverter))]
+    public sealed class PromptAttachment : System.IEquatable<OpenCode.Sdk.Models.PromptAttachment>
+    {
+        public OpenCode.Sdk.Models.PromptAttachmentKind Kind { get; }
+        public OpenCode.Sdk.Models.PromptFileAttachment PromptFileAttachment { get; }
+        public OpenCode.Sdk.Models.PromptMediaFileAttachment PromptMediaFileAttachment { get; }
+        public System.Text.Json.JsonElement Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.PromptAttachment FromPromptFileAttachment(OpenCode.Sdk.Models.PromptFileAttachment value) { }
+        public static OpenCode.Sdk.Models.PromptAttachment FromPromptMediaFileAttachment(OpenCode.Sdk.Models.PromptMediaFileAttachment value) { }
+        public static OpenCode.Sdk.Models.PromptAttachment FromUnknown(System.Text.Json.JsonElement value) { }
+    }
+    public enum PromptAttachmentKind
+    {
+        PromptFileAttachment = 0,
+        PromptMediaFileAttachment = 1,
+        Unknown = 2,
+    }
     public sealed class PromptFileAttachment : System.IEquatable<OpenCode.Sdk.Models.PromptFileAttachment>
     {
         public PromptFileAttachment() { }
@@ -8273,6 +8291,34 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("mention")]
         public OpenCode.Sdk.Models.PromptMention? Mention { get; init; }
+    }
+    public sealed class PromptMediaFileAttachment : System.IEquatable<OpenCode.Sdk.Models.PromptMediaFileAttachment>
+    {
+        public PromptMediaFileAttachment() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("bytes")]
+        public long? Bytes { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("height")]
+        public long? Height { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mention")]
+        public OpenCode.Sdk.Models.PromptMention? Mention { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("mime")]
+        public required string Mime { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        public required OpenCode.Sdk.Models.IPromptFileSource Source { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("uri")]
+        public required string Uri { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("width")]
+        public long? Width { get; init; }
     }
     public sealed class PromptMention : System.IEquatable<OpenCode.Sdk.Models.PromptMention>
     {
@@ -10560,7 +10606,7 @@ namespace OpenCode.Sdk.Models
         public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PromptAgentAttachment>? Agents { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("files")]
-        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PromptFileAttachment>? Files { get; init; }
+        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PromptAttachment>? Files { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("metadata")]
         public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Metadata { get; init; }
@@ -11502,7 +11548,7 @@ namespace OpenCode.Sdk.Models
         public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PromptAgentAttachment>? Agents { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("files")]
-        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PromptFileAttachment>? Files { get; init; }
+        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PromptAttachment>? Files { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public required string Id { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

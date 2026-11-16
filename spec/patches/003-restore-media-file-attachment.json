@@ -1,0 +1,17 @@
+{
+  "patch": "003-restore-media-file-attachment.patch",
+  "sha256": "d09949d585c4b4fe8888dc434563a9cf12c066f4454ca716ff6f6ed78d01531b",
+  "upstreamReport": "https://github.com/anomalyco/opencode/issues/64246",
+  "order": 3,
+  "touches": [
+    "packages/schema/src/session-inbox.ts",
+    "packages/schema/src/session-message.ts"
+  ],
+  "repairPredicate": {
+    "type": "componentAbsent",
+    "components": [
+      "Prompt.MediaFileAttachment"
+    ]
+  },
+  "retirement": "Raw upstream openapi.json carries Prompt.MediaFileAttachment (the session message and inbox user files, or the opted-in media response schemas, reference it); prepare then refuses this patch and an empty-patch refresh retires it."
+}

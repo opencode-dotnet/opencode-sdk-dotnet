@@ -1054,6 +1054,7 @@
 /Server/ServerInfoResponse.cs linguist-generated
 /Server/ServerPairResponse.cs linguist-generated
 /Sessions/Internal/OpenCodeRoutes.Sessions.cs linguist-generated
+/Sessions/Internal/PromptAttachmentJsonConverter.cs linguist-generated
 /Sessions/Internal/PromptFileSourceJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionActiveResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionActiveResponseEnvelope.cs linguist-generated
@@ -1409,11 +1410,14 @@
 /Sessions/Models/Messages/UnknownSessionMessageToolState.cs linguist-generated
 /Sessions/Models/Prompt/IPromptFileSource.cs linguist-generated
 /Sessions/Models/Prompt/PromptAgentAttachment.cs linguist-generated
+/Sessions/Models/Prompt/PromptAttachment.cs linguist-generated
+/Sessions/Models/Prompt/PromptAttachmentKind.cs linguist-generated
 /Sessions/Models/Prompt/PromptFileAttachment.cs linguist-generated
 /Sessions/Models/Prompt/PromptFileSourceInline.cs linguist-generated
 /Sessions/Models/Prompt/PromptFileSourceUri.cs linguist-generated
 /Sessions/Models/Prompt/PromptInputFileAttachment.cs linguist-generated
 /Sessions/Models/Prompt/PromptInputSkillAttachment.cs linguist-generated
+/Sessions/Models/Prompt/PromptMediaFileAttachment.cs linguist-generated
 /Sessions/Models/Prompt/PromptMention.cs linguist-generated
 /Sessions/Models/Prompt/PromptSkillAttachment.cs linguist-generated
 /Sessions/Models/Prompt/UnknownPromptFileSource.cs linguist-generated

@@ -4,7 +4,7 @@
 // upstream's own schemas and upstream's own Effect, then writes which union member took each value
 // to first-match-expected.json beside it. The SDK's parity test asserts that the generated
 // converters pick the same member. Re-run it when a refresh moves the pinned Effect version (the
-// source watch on the effect catalog line trips) or touches one of the three schemas:
+// source watch on the effect catalog line trips) or touches one of the four schemas:
 //
 //   bun tools/oracles/first-match-union.ts
 //
@@ -24,12 +24,14 @@ const { Schema } = await import(createRequire(join(schemaPackage, "package.json"
 const reference = await import(join(schemaPackage, "src", "config", "reference.ts"))
 const lsp = await import(join(schemaPackage, "src", "config", "lsp.ts"))
 const migration = await import(join(upstream, "packages", "protocol", "src", "groups", "migration.ts"))
+const prompt = await import(join(schemaPackage, "src", "prompt.ts"))
 
 // Each union with its members in declaration order, the order the pinned document keeps.
 const unions: Record<string, { union: unknown; members: unknown[] }> = {
   reference: { union: reference.Entry, members: reference.Entry.members },
   lsp: { union: lsp.Entry, members: lsp.Entry.members },
   migration: { union: migration.V1MigrationStatus, members: migration.V1MigrationStatus.members },
+  attachment: { union: prompt.Attachment, members: prompt.Attachment.members },
 }
 
 const corpus: { union: string; value: unknown }[] = JSON.parse(readFileSync(join(fixtures, "first-match-corpus.json"), "utf8"))

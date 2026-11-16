@@ -411,11 +411,14 @@ ProjectUpdateRequest owner=Projects reached-by=Projects
 ProjectUpdated owner=Projects reached-by=Events
 ProjectUpdatedData owner=Projects reached-by=Events
 PromptAgentAttachment owner=Sessions reached-by=Events,Experimental,Sessions
+PromptAttachment owner=Sessions reached-by=Events,Experimental,Sessions
+PromptAttachmentKind owner=Sessions reached-by=Events,Experimental,Sessions
 PromptFileAttachment owner=Sessions reached-by=Events,Experimental,Sessions
 PromptFileSourceInline owner=Sessions reached-by=Events,Experimental,Sessions
 PromptFileSourceUri owner=Sessions reached-by=Events,Experimental,Sessions
 PromptInputFileAttachment owner=Sessions reached-by=Sessions
 PromptInputSkillAttachment owner=Sessions reached-by=Sessions
+PromptMediaFileAttachment owner=Sessions reached-by=Events,Experimental,Sessions
 PromptMention owner=Sessions reached-by=Events,Experimental,Sessions
 PromptSkillAttachment owner=Sessions reached-by=Events,Experimental,Sessions
 ProviderCache owner=Providers reached-by=Agents,Config,LanguageModels,Providers

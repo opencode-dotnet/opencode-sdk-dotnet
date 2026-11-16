@@ -181,6 +181,8 @@
     <EmbeddedResource Include="Serialization/Fixtures/session-create-request-absent.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-create-request-absent.json" />
     <EmbeddedResource Include="Serialization/Fixtures/session-create-request-cleared.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-create-request-cleared.json" />
     <EmbeddedResource Include="Serialization/Fixtures/session-create-request-set.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-create-request-set.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/session-inbox-user-payload-attachments.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-inbox-user-payload-attachments.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/session-message-user-attachments.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-message-user-attachments.json" />
     <EmbeddedResource Include="Serialization/Fixtures/stream-events.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.stream-events.json" />
     <EmbeddedResource Include="Serialization/Fixtures/stream-session-messages.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.stream-session-messages.json" />
     <EmbeddedResource Include="Serialization/Fixtures/unknown-assistant-content.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.unknown-assistant-content.json" />
