@@ -20,7 +20,7 @@ the page source, so a member a snippet uses exists.
 | [Terminals](terminals.md) | PTY and persistent-PTY sessions over the WebSocket doors, frames, input, resize, and the Windows platform note |
 | [Errors and responses](errors-and-responses.md) | The response spine, throwing versus `NoThrow`, the typed error family, and transport failures |
 | [Pagination](pagination.md) | The two cursor-carrying list envelopes, manual paging, and the `EnumerateMessagesAsync` companion |
-| [Experimental APIs](experimental.md) | What upstream serves as experimental, the `OPENCODE001` and `OPENCODE002` diagnostics, and how to opt in |
+| [Experimental APIs](experimental.md) | The `OPENCODE001` and `OPENCODE002` diagnostics, how to opt in, and the [client-hosted MCP and browser handoff recipe](experimental.md#client-hosted-mcp) |
 
 New here? [Getting started](getting-started.md) is the shortest path to a working call, and the
 root [README](../../README.md) carries the badges, the compatibility matrix, the API-coverage
