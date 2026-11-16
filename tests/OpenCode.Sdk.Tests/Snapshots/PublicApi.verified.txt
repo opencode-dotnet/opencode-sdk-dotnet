@@ -386,6 +386,7 @@ namespace OpenCode.Sdk
     public static class ExperimentalClientMcpExtensions
     {
         public static OpenCode.Sdk.ClientMcpConnection ConnectClientMcp(this OpenCode.Sdk.ExperimentalClient client, OpenCode.Sdk.ClientMcpOptions options) { }
+        public static System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpClientTokenResponse> CreateClientMcpConnectTokenAsync(this OpenCode.Sdk.ExperimentalClient client, OpenCode.Sdk.ExperimentalMcpClientTokenRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]

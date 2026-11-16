@@ -66,6 +66,7 @@ internal static class GeneratedSourceCompiler
         ("Events/Internal/SharedEventFeed.cs", "Events/Internal/EventsRawClient.cs"),
         ("Events/Internal/StopWork.cs", "Events/Internal/EventsRawClient.cs"),
         ("Experimental/ExperimentalClientMcpExtensions.cs", "Experimental/ExperimentalClient.cs"),
+        ("Experimental/ExperimentalClientMcpExtensions.cs", "ClientMcpTokens/Internal/ClientMcpTokensRawClient.cs"),
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/Internal/Handoff/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
