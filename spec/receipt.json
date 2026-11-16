@@ -92,6 +92,10 @@
         {
           "text": "const DEFAULT_TTL = Duration.seconds(60)",
           "matched": true
+        },
+        {
+          "text": "record.target === input.target \u0026\u0026 record.directory === input.directory \u0026\u0026 record.workspaceID === input.workspaceID",
+          "matched": true
         }
       ]
     },
@@ -441,6 +445,26 @@
       "anchors": [
         {
           "text": "const reconnectDelay = 1_000",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/client/src/shared-events.ts",
+      "sha256": "3445c46d26144f823647369f6526724bfc2fc958646ffadc8ae552974955b8b1",
+      "anchors": [
+        {
+          "text": "const capacity = 4_096",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/client/test/shared-events.test.ts",
+      "sha256": "108248386a581a4687071f2f2bf5437033686c906cd0d84fd8f4f647f523a07c",
+      "anchors": [
+        {
+          "text": "late consumers receive the latest connection marker but no business event replay",
           "matched": true
         }
       ]
@@ -987,6 +1011,72 @@
       "anchors": [
         {
           "text": "for (const [key, value] of new Headers(requestOptions?.headers)) headers.set(key, value)",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/client/src/mcp.ts",
+      "sha256": "c6c2eb2f43e2f3c7e73c06e82adaf3459d20f44e38c4829e0b35959f751f270f",
+      "anchors": [
+        {
+          "text": "const url = new URL(\u0022api/experimental/client-mcp\u0022, base)",
+          "matched": true
+        },
+        {
+          "text": "if (!tool) return { error: { code: -32602, message: \u0060Unknown tool: ${String(params?.name)}\u0060 } }",
+          "matched": true
+        },
+        {
+          "text": "state.delay = Math.min(state.delay * 2, RECONNECT_MAX)",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/server/src/handlers/mcp.ts",
+      "sha256": "e89bb87bb69916aaef42a0948ec063a519ffa71c992513af8e8f0a8287e5fee3",
+      "anchors": [
+        {
+          "text": "mcpClient: ctx.query.name,",
+          "matched": true
+        },
+        {
+          "text": "new Socket.CloseEvent(1011, \u0022attach failed\u0022)",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/mcp/index.ts",
+      "sha256": "263a70c9bc1d374a83830fca79601c7016dac2090909ddbca87a84ba17fd4ab2",
+      "anchors": [
+        {
+          "text": "const FALLBACK_LIST_TIMEOUT = \u00225 seconds\u0022",
+          "matched": true
+        },
+        {
+          "text": "if (client \u0026\u0026 (client.tools.some((tool) =\u003E tool.name === input.name) || !entries.has(server)))",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/mcp/socket-client.ts",
+      "sha256": "9d041b64ffcb6b55d4d2bfdd4c842295d75d9754b9c6d7e1840276f13b3f3629",
+      "anchors": [
+        {
+          "text": "const closed = Result.try(() =\u003E socket.close(1000))",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/core/src/tool/runtime.ts",
+      "sha256": "adbaf4adafb9b5a60fa6c1680f58aacdea9d0db65d6d36b77d808374fb4f166a",
+      "anchors": [
+        {
+          "text": "export const normalizedName = (tool: Pick\u003CTool.Info, \u0022name\u0022\u003E) =\u003E tool.name.replace(",
           "matched": true
         }
       ]
