@@ -23,6 +23,44 @@ public sealed class ServiceFileSystemTests
     private static readonly byte[] Content = Encoding.UTF8.GetBytes("{\"url\":\"http://127.0.0.1:1\"}");
 
     [Test]
+    public async Task CreateDirectory_Should_Create_Parents_And_Accept_An_Existing_Directory()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var nested = directory.File("one", "two");
+        var files = new ServiceFileSystem();
+        files.CreateDirectory(nested);
+        files.CreateDirectory(nested);
+        await Assert.That(nested).Satisfies(directory.FileSystem.Directory.Exists);
+    }
+
+    [Test]
+    public async Task WriteOwnerOnlyAsync_Should_Create_And_Truncate_With_The_Required_Access()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var path = directory.File("overwrite.json");
+        var files = new ServiceFileSystem();
+        await files.WriteOwnerOnlyAsync(path, Content, CancellationToken.None);
+        await Assert.That(directory.FileSystem.File.ReadAllBytes(path)).IsEquivalentTo(Content, CollectionOrdering.Matching);
+#if NET
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(directory.FileSystem.File.GetUnixFileMode(path))
+                .IsEqualTo(UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            directory.FileSystem.File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+        }
+#endif
+        await files.WriteOwnerOnlyAsync(path, "short"u8.ToArray(), CancellationToken.None);
+        await Assert.That(directory.FileSystem.File.ReadAllText(path)).IsEqualTo("short");
+#if NET
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(directory.FileSystem.File.GetUnixFileMode(path))
+                .IsEqualTo(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+        }
+#endif
+    }
+
+    [Test]
     public async Task Exists_Should_Report_Files_And_Directories_And_Reject_Missing_Entries()
     {
         using var directory = new OwnedTemporaryDirectory();

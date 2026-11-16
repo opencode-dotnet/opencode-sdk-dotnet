@@ -14,6 +14,15 @@ internal sealed class TestablyServiceFileSystem(IFileSystem fileSystem) : IServi
 {
     private const int CopyBufferSize = 4096;
 
+    public void CreateDirectory(string path) => fileSystem.Directory.CreateDirectory(path);
+
+    public async Task WriteOwnerOnlyAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var stream = fileSystem.FileStream.New(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+
     public bool Exists(string path)
     {
         try

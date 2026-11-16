@@ -5,6 +5,8 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>The real process environment behind <see cref="IServiceEnvironment"/>.</summary>
 internal sealed class ServiceEnvironment : IServiceEnvironment
 {
+    public int ProcessId => Environment.ProcessId;
+
     public string? GetEnvironmentVariable(string name) => Environment.GetEnvironmentVariable(name);
 
     public string? UserProfile => ResolveUserProfile(

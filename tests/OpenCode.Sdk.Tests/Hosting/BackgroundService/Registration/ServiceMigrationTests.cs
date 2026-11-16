@@ -3,7 +3,9 @@ using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 
@@ -18,6 +20,40 @@ public sealed class ServiceMigrationTests
     private const string CustomChannel = "preview/a";
 
     private readonly MockFileSystem _fileSystem = new();
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ApplyAsync_Should_Write_A_Legacy_Config_As_The_Text_The_Cli_Decodes(bool bom)
+    {
+        var paths = ChannelPaths("beta");
+        _ = _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(paths.LegacyConfigFile!)!);
+        var files = new TestablyServiceFileSystem(_fileSystem);
+        _ = await files.TryCreateExclusiveAsync(paths.LegacyConfigFile!,
+            ServiceConfigWriteData.Donor(ServiceConfigWriteData.Config, bom), CancellationToken.None);
+
+        await Migration().ApplyAsync(Select("beta"), paths, CancellationToken.None);
+
+        await Assert.That(await files.TryReadAllBytesAsync(paths.ConfigFile!, CancellationToken.None))
+            .IsEquivalentTo(ServiceConfigWriteData.ConfigDecoded(bom), CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ApplyAsync_Should_Write_A_Legacy_Registration_As_The_Text_The_Cli_Decodes(bool bom)
+    {
+        var paths = ChannelPaths("beta");
+        _ = _fileSystem.Directory.CreateDirectory(_fileSystem.Path.GetDirectoryName(paths.LegacyRegistrationFiles[0])!);
+        var files = new TestablyServiceFileSystem(_fileSystem);
+        _ = await files.TryCreateExclusiveAsync(paths.LegacyRegistrationFiles[0],
+            ServiceConfigWriteData.Donor(ServiceConfigWriteData.Registration, bom), CancellationToken.None);
+
+        await Migration().ApplyAsync(Select("beta"), paths, CancellationToken.None);
+
+        await Assert.That(await files.TryReadAllBytesAsync(paths.RegistrationFile, CancellationToken.None))
+            .IsEquivalentTo(ServiceConfigWriteData.RegistrationDecoded(bom), CollectionOrdering.Matching);
+    }
 
     [Test]
     [Arguments("BackgroundService.registration-dev-prerelease.json")]

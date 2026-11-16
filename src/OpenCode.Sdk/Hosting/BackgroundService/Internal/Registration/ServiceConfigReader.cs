@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Unicode;
 
 namespace OpenCode.Sdk.Internal;
 
@@ -13,13 +14,88 @@ namespace OpenCode.Sdk.Internal;
 /// <see cref="TryReadEnvironment"/> and <see cref="IsCurrent"/> keep their narrower projection for
 /// Ensure and migration. Earlier builds stored
 /// <c>remote</c> as a boolean: the CLI's <c>read()</c> still accepts that legacy shape and rewrites it
-/// in place, which the SDK, never authoring the config's contents, leaves to the daemon's next read,
+/// in place; the SDK's config store does the same for every service-configuration operation that
+/// reads through it, ReadAsync included, and Discovery, Ensure and Stop read the document as it is,
 /// while its <c>migrateConfig</c> copies only the current shape. Any other document is absent
 /// config, as the CLI's own read turns a document that fails both decodes into an empty config.
 /// </summary>
 internal static class ServiceConfigReader
 {
     private const int MaxPort = 65_535;
+
+    /// <summary>The text produced by the CLI's TextDecoder, including maximal-subpart replacement on downlevel targets.</summary>
+    /// <param name="utf8">The original file bytes.</param>
+    /// <returns>The decoded text without one leading UTF-8 byte-order mark.</returns>
+    internal static string DecodeCliText(ReadOnlySpan<byte> utf8)
+    {
+        if (utf8.StartsWith("\uFEFF"u8))
+        {
+            utf8 = utf8[3..];
+        }
+
+        var characters = new char[utf8.Length];
+        _ = Utf8.ToUtf16(utf8, characters, out _, out var written, replaceInvalidSequences: true, isFinalBlock: true);
+        return new string(characters, 0, written);
+    }
+
+    /// <summary>Proves the CLI rejects both shapes; a parser limit is never proof.</summary>
+    /// <param name="utf8">The original file bytes.</param>
+    /// <returns>True only for a completed syntax or shape rejection.</returns>
+    public static bool IsProvenUnreadableByCli(ReadOnlySpan<byte> utf8) =>
+        IsProvenUnreadable(utf8, static root => IsCliShape(root, admitLegacy: true));
+
+    /// <summary>Proves the CLI's migration rejects the current shape alone.</summary>
+    /// <param name="utf8">The original donor bytes.</param>
+    /// <returns>True only for a completed current-shape rejection.</returns>
+    public static bool IsProvenUnreadableByCliAsCurrent(ReadOnlySpan<byte> utf8) =>
+        IsProvenUnreadable(utf8, static root => IsCliShape(root, admitLegacy: false));
+
+    private static bool IsProvenUnreadable(ReadOnlySpan<byte> utf8, Func<JsonElement, bool> accepts)
+    {
+        var text = DecodeCliText(utf8);
+        try
+        {
+            if (ReachedCliReadLimit(System.Text.Encoding.UTF8.GetBytes(text)))
+            {
+                return false;
+            }
+
+            using var document = JsonDocument.Parse(text);
+            return !accepts(document.RootElement);
+        }
+        catch (JsonException)
+        {
+            // The scan stops explicitly before depth can throw; this is syntax before that limit.
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            // An undecodable property name gives the SDK no verdict about the CLI's object keys.
+            return false;
+        }
+    }
+
+    private static bool ReachedCliReadLimit(ReadOnlySpan<byte> utf8)
+    {
+        var reader = new Utf8JsonReader(utf8, new JsonReaderOptions { MaxDepth = int.MaxValue });
+        while (reader.Read())
+        {
+            if (reader.CurrentDepth >= 64 && reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsCliShape(JsonElement root, bool admitLegacy) =>
+        root.ValueKind == JsonValueKind.Object && IsValidDisabled(root) && IsValidRemote(root, admitLegacy)
+        && IsValidRemoteAccepted(root) && IsValidPort(root) && IsValidCors(root)
+        && (!root.TryGetProperty("hostname", out var hostname) || hostname.ValueKind == JsonValueKind.String)
+        && (!root.TryGetProperty("password", out var password) || password.ValueKind == JsonValueKind.String)
+        && (!root.TryGetProperty("env", out var env) || (env.ValueKind == JsonValueKind.Object
+            && env.EnumerateObject().All(entry => env.GetProperty(entry.Name).ValueKind == JsonValueKind.String)));
 
     /// <summary>Validates a config document and extracts its environment map.</summary>
     /// <param name="utf8">The file's bytes.</param>

@@ -1,5 +1,106 @@
 [
   {
+    "name": "route-rewrite-password",
+    "initial": "{\"unknown\":1,\"remote\":{\"route\":\"kept-route\",\"extra\":1},\"env\":{\"route\":\"environment-route\"}}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "read-legacy-all",
+    "initial": "{\"env\":{\"B\":\"b\",\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\"},\"unknown\":1,\"cors\":[\"https://b.example\",\"https://a.example\"],\"password\":\"stored-password\",\"port\":8080.0,\"hostname\":\"é😀\\u2028\\u001f\\\"\\\\/\",\"remoteAccepted\":true,\"remote\":true,\"disabled\":true}",
+    "command": ["read"]
+  },
+  {
+    "name": "password-legacy-all",
+    "initial": "{\"env\":{\"B\":\"b\",\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\"},\"unknown\":1,\"cors\":[\"https://b.example\",\"https://a.example\"],\"password\":\"\",\"port\":8080.0,\"hostname\":\"é😀\\u2028\\u001f\\\"\\\\/\",\"remoteAccepted\":true,\"remote\":true,\"disabled\":true}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "read-legacy-off",
+    "initial": "{\"remote\":false,\"hostname\":\"off\"}",
+    "command": ["read"]
+  },
+  {
+    "name": "password-legacy-off",
+    "initial": "{\"remote\":false,\"hostname\":\"off\"}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "current-read",
+    "initial": "{\"unknown\":1,\"password\":\"kept\",\"remote\":{\"route\":\"kept-route\",\"extra\":1},\"port\":8080.0}",
+    "command": ["read"]
+  },
+  {
+    "name": "current-password",
+    "initial": "{\"unknown\":1,\"password\":\"kept\",\"remote\":{\"route\":\"kept-route\",\"extra\":1},\"port\":8080.0}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "neither-read",
+    "initial": "{\"disabled\":\"true\"}",
+    "command": ["read"]
+  },
+  {
+    "name": "neither-password",
+    "initial": "{\"disabled\":\"true\"}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "unknown-password",
+    "initial": "{\"future\":{},\"hostname\":\"é😀\\u2028\\u001f\\\"\\\\/\",\"env\":{\"B\":\"b\",\"10\":\"ten\",\"2\":\"two\",\"01\":\"one\"},\"port\":8080.0}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "repeated-read",
+    "initial": "{\"port\":4096,\"port\":4097}",
+    "command": ["read"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "repeated-password",
+    "initial": "{\"port\":4096,\"port\":4097}",
+    "command": ["get", "password"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "legacy-repeated",
+    "initial": "{\"remote\":true,\"hostname\":\"first\",\"hostname\":\"last\"}",
+    "command": ["get", "password"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "surrogate-hostname",
+    "initial": "{\"hostname\":\"\\ud800\"}",
+    "command": ["get", "password"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "deep-read",
+    "initial": "{\"unknown\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}",
+    "command": ["read"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "deep-password",
+    "initial": "{\"unknown\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}",
+    "command": ["get", "password"],
+    "divergence": "Q2-a"
+  },
+  {
+    "name": "empty-password",
+    "initial": "{\"password\":\"\"}",
+    "command": ["get", "password"]
+  },
+  {
+    "name": "absent-password",
+    "initial": null,
+    "command": ["get", "password"]
+  },
+  {
+    "name": "stored-password",
+    "initial": "{\"password\":\"stored-password\"}",
+    "command": ["get", "password"]
+  },
+  {
     "name": "absent",
     "initial": null,
     "command": ["get"]

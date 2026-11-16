@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 
@@ -10,6 +11,12 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 /// </summary>
 public sealed class ServiceEnvironmentTests
 {
+    [Test]
+    public async Task ProcessId_Should_Equal_The_Current_Process_Id()
+    {
+        await Assert.That(new ServiceEnvironment().ProcessId).IsEqualTo(HostDescriptors.CurrentProcessId());
+    }
+
     [Test]
     public async Task ResolveUserProfile_Should_Prefer_USERPROFILE_On_Windows()
     {

@@ -88,7 +88,8 @@ public partial class OpenCodeServer
         var readinessTimeout = options.ReadinessTimeout;
         var output = BindOutput(options);
 
-        var password = GeneratePassword();
+        using var random = RandomNumberGenerator.Create();
+        var password = new RandomCredential(random).Password();
 
         // Ownership stays local until the very end: every failure path throws through this
         // try, and the finally is the single place that releases the child on that path. The
@@ -312,16 +313,6 @@ public partial class OpenCodeServer
         }
 
         return workingDirectory;
-    }
-
-    private static string GeneratePassword()
-    {
-        var bytes = new byte[32];
-        using var random = RandomNumberGenerator.Create();
-        random.GetBytes(bytes);
-
-        // base64url, mirroring the reference client's randomBytes(32).toString("base64url").
-        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
     private static string DescribeStderr(object gate, BoundedLineBuffer tail)

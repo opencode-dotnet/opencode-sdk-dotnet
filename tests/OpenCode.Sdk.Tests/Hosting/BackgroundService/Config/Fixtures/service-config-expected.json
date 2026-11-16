@@ -1,5 +1,138 @@
 [
   {
+    "name": "route-rewrite-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"remote\": {\n    \"route\": \"kept-route\"\n  },\n  \"env\": {\n    \"route\": \"environment-route\"\n  },\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "read-legacy-all",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"disabled\": true,\n  \"remoteAccepted\": true,\n  \"hostname\": \"é😀 \\u001f\\\"\\\\/\",\n  \"port\": 8080,\n  \"password\": \"stored-password\",\n  \"cors\": [\n    \"https://b.example\",\n    \"https://a.example\"\n  ],\n  \"env\": {\n    \"2\": \"two\",\n    \"10\": \"ten\",\n    \"B\": \"b\",\n    \"01\": \"one\"\n  },\n  \"remote\": {\n    \"route\": \"@route\"\n  }\n}\n"
+  },
+  {
+    "name": "password-legacy-all",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"disabled\": true,\n  \"remoteAccepted\": true,\n  \"hostname\": \"é😀 \\u001f\\\"\\\\/\",\n  \"port\": 8080,\n  \"password\": \"@password\",\n  \"cors\": [\n    \"https://b.example\",\n    \"https://a.example\"\n  ],\n  \"env\": {\n    \"2\": \"two\",\n    \"10\": \"ten\",\n    \"B\": \"b\",\n    \"01\": \"one\"\n  },\n  \"remote\": {\n    \"route\": \"@route\"\n  }\n}\n"
+  },
+  {
+    "name": "read-legacy-off",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\n  \"hostname\": \"off\"\n}\n"
+  },
+  {
+    "name": "password-legacy-off",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"hostname\": \"off\",\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "current-read",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\"unknown\":1,\"password\":\"kept\",\"remote\":{\"route\":\"kept-route\",\"extra\":1},\"port\":8080.0}"
+  },
+  {
+    "name": "current-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "kept",
+    "file": "{\"unknown\":1,\"password\":\"kept\",\"remote\":{\"route\":\"kept-route\",\"extra\":1},\"port\":8080.0}"
+  },
+  {
+    "name": "neither-read",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\"disabled\":\"true\"}"
+  },
+  {
+    "name": "neither-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "unknown-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"hostname\": \"é😀 \\u001f\\\"\\\\/\",\n  \"port\": 8080,\n  \"env\": {\n    \"2\": \"two\",\n    \"10\": \"ten\",\n    \"B\": \"b\",\n    \"01\": \"one\"\n  },\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "repeated-read",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\"port\":4096,\"port\":4097}"
+  },
+  {
+    "name": "repeated-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"port\": 4097,\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "legacy-repeated",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"hostname\": \"last\",\n  \"remote\": {\n    \"route\": \"@route\"\n  },\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "surrogate-hostname",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"hostname\": \"\\ud800\",\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "deep-read",
+    "outcome": "ok",
+    "message": null,
+    "output": null,
+    "file": "{\"unknown\":[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[0]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}"
+  },
+  {
+    "name": "deep-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "empty-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "absent-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "@password",
+    "file": "{\n  \"password\": \"@password\"\n}\n"
+  },
+  {
+    "name": "stored-password",
+    "outcome": "ok",
+    "message": null,
+    "output": "stored-password",
+    "file": "{\"password\":\"stored-password\"}"
+  },
+  {
     "name": "absent",
     "outcome": "ok",
     "message": null,

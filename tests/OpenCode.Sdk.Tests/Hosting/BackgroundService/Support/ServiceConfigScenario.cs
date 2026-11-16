@@ -3,6 +3,7 @@ using System.Text.Json;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
 using TUnit.Assertions.Enums;
 
@@ -23,11 +24,16 @@ internal sealed class ServiceConfigScenario
         FileSystem.TryReadAllBytesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(call => Adapter.TryReadAllBytesAsync(call.ArgAt<string>(0), call.ArgAt<CancellationToken>(1)));
         FileSystem.Exists(Arg.Any<string>()).Returns(call => Adapter.Exists(call.Arg<string>()));
+        FileSystem.When(files => files.CreateDirectory(Arg.Any<string>()))
+            .Do(call => Adapter.CreateDirectory(call.Arg<string>()));
+        FileSystem.WriteOwnerOnlyAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(call => Adapter.WriteOwnerOnlyAsync(call.ArgAt<string>(0), call.ArgAt<ReadOnlyMemory<byte>>(1), call.ArgAt<CancellationToken>(2)));
+        Environment.ProcessId.Returns(12345);
         FileSystem.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
             .Returns(call => Adapter.TryCreateExclusiveAsync(call.ArgAt<string>(0), call.ArgAt<ReadOnlyMemory<byte>>(1), call.ArgAt<CancellationToken>(2)));
         FileSystem.TryDelete(Arg.Any<string>()).Returns(call => Adapter.TryDelete(call.Arg<string>()));
         FileSystem.When(files => files.Rename(Arg.Any<string>(), Arg.Any<string>()))
-            .Do(call => Adapter.Rename(call.ArgAt<string>(0), call.ArgAt<string>(1)));
+            .Do(call => (Rename ?? Adapter.Rename)(call.ArgAt<string>(0), call.ArgAt<string>(1)));
         Options = new OpenCodeServiceConfigOptions { Channel = channel };
         Paths = new ServicePathResolver(Environment).Resolve(ServiceSelection.Snapshot(Options));
         ClearCalls();
@@ -40,7 +46,18 @@ internal sealed class ServiceConfigScenario
     public OpenCodeServiceConfigOptions Options { get; }
     public ServicePaths Paths { get; }
     public string Root { get; }
-    public ServiceConfigStore Store => new(Environment, FileSystem);
+    public System.TimeProvider Time { get; set; } = System.TimeProvider.System;
+    public RandomCredential Credentials { get; set; } = new(new ScriptedRandomNumberGenerator());
+    public Action<string, string>? Rename { get; set; }
+    public ServiceConfigStore Store => new(Environment, FileSystem, Time, Credentials);
+
+    public IReadOnlyList<string> WriteCalls =>
+        ["CreateDirectory:" + Files.Path.GetDirectoryName(Paths.ConfigFile),
+            "WriteOwnerOnlyAsync:" + Paths.ConfigFile + ".12345.tmp", "Rename:" + Paths.ConfigFile + ".12345.tmp"];
+
+    public IReadOnlyList<string> MigrationCalls =>
+        ["TryReadAllBytesAsync:" + Paths.ConfigFile, "Exists:" + Paths.ConfigFile, "TryReadAllBytesAsync:" + Paths.LegacyConfigFile,
+            "TryCreateExclusiveAsync:" + Paths.ConfigFile, "TryReadAllBytesAsync:" + Paths.ConfigFile];
 
     public string? Initial(string name)
     {
@@ -50,9 +67,19 @@ internal sealed class ServiceConfigScenario
     }
 
     public async Task SeedAsync(string path, string content)
+        => await SeedAsync(path, Encoding.UTF8.GetBytes(content));
+
+    public async Task SeedAsync(string path, ReadOnlyMemory<byte> content)
     {
         _ = Files.Directory.CreateDirectory(Files.Path.GetDirectoryName(path)!);
-        await Assert.That(await Adapter.TryCreateExclusiveAsync(path, Encoding.UTF8.GetBytes(content), CancellationToken.None)).IsTrue();
+        await Assert.That(await Adapter.TryCreateExclusiveAsync(path, content, CancellationToken.None)).IsTrue();
+    }
+
+    public async Task<string> ReadTextAsync(string path)
+    {
+        var bytes = await Adapter.TryReadAllBytesAsync(path, CancellationToken.None);
+        await Assert.That(bytes).IsNotNull();
+        return Encoding.UTF8.GetString(bytes);
     }
 
     public async Task<string> SeedDonorAsync(string name)

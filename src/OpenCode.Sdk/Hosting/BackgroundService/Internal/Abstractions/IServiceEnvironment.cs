@@ -7,6 +7,9 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal interface IServiceEnvironment
 {
+    /// <summary>Gets this process's id, used by the CLI's temporary config filename.</summary>
+    public int ProcessId { get; }
+
     /// <summary>Reads one environment variable; null when it is not set.</summary>
     /// <param name="name">The variable name.</param>
     /// <returns>The raw value, or null.</returns>

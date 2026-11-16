@@ -35,11 +35,115 @@ public sealed class OpenCodeServiceConfigurationTests
         await Assert.That(config.Port).IsEqualTo(5123);
         var calls = scenario.FileSystem.ReceivedCalls().Where(static call => call.GetMethodInfo().Name == "TryReadAllBytesAsync").ToArray();
         await Assert.That(calls.Select(static call => (string)call.GetArguments()[0]!)).IsEquivalentTo(
-            [scenario.Paths.ConfigFile, scenario.Paths.LegacyConfigFile], CollectionOrdering.Matching);
+            [scenario.Paths.ConfigFile, scenario.Paths.LegacyConfigFile, scenario.Paths.ConfigFile], CollectionOrdering.Matching);
         foreach (var call in calls)
         {
             await Assert.That(call.GetArguments()[1]).IsEqualTo(caller.Token);
         }
+        var copy = scenario.FileSystem.ReceivedCalls().Single(static call => call.GetMethodInfo().Name == "TryCreateExclusiveAsync");
+        await Assert.That(copy.GetArguments()[2]).IsEqualTo(caller.Token);
+        await Assert.That(scenario.Calls).IsEquivalentTo(scenario.MigrationCalls, CollectionOrdering.Matching);
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, caller.Token))
+            .IsEquivalentTo(Encoding.UTF8.GetBytes(scenario.Initial("all-members")!), CollectionOrdering.Matching);
+        await Assert.That(await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.LegacyConfigFile!, caller.Token))
+            .IsEquivalentTo(Encoding.UTF8.GetBytes(scenario.Initial("all-members")!), CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("repeated-member", false)]
+    [Arguments("surrogate-hostname", false)]
+    [Arguments("surrogate-route", false)]
+    [Arguments("surrogate-cors", false)]
+    [Arguments("deep-read", false)]
+    [Arguments("legacy-repeated", false)]
+    [Arguments("repeated-member", true)]
+    [Arguments("surrogate-route", true)]
+    public async Task ReadAsync_Should_Refuse_The_Document_Before_Any_Write(string name, bool donor)
+    {
+        var scenario = new ServiceConfigScenario(donor ? "beta" : "local");
+        var path = donor ? scenario.Paths.LegacyConfigFile! : scenario.Paths.ConfigFile!;
+        var initial = scenario.Initial(name)!;
+        await scenario.SeedAsync(path, initial);
+        scenario.ClearCalls();
+        var inventory = scenario.Inventory();
+
+        var failure = await Assert.That(async () =>
+            await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, CancellationToken.None))
+            .Throws<OpenCodeServerException>();
+
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure.Message).Contains(path);
+        await scenario.AssertUnchangedAsync(path, initial, inventory);
+        string[] expected = donor
+            ? ["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile, "Exists:" + scenario.Paths.ConfigFile, "TryReadAllBytesAsync:" + path]
+            : ["TryReadAllBytesAsync:" + path];
+        await Assert.That(scenario.Calls).IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("legacy-on", true)]
+    [Arguments("legacy-off", false)]
+    public async Task ReadAsync_Should_Repair_A_Legacy_Remote_With_The_Exact_Scripted_Route(string name, bool enabled)
+    {
+        var scenario = new ServiceConfigScenario();
+        await scenario.SeedAsync(scenario.Paths.ConfigFile!, scenario.Initial(name)!);
+        scenario.ClearCalls();
+
+        var view = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, CancellationToken.None);
+
+        await Assert.That(view.RemoteEnabled).IsEqualTo(enabled);
+        var text = await scenario.ReadTextAsync(scenario.Paths.ConfigFile!);
+        await Assert.That(text).IsEqualTo(enabled
+            ? "{\n  \"hostname\": \"legacy-on\",\n  \"env\": {\n    \"A\": \"1\"\n  },\n  \"remote\": {\n    \"route\": \"0011223344556677\"\n  }\n}\n"
+            : "{\n  \"hostname\": \"legacy-off\",\n  \"env\": {\n    \"A\": \"1\"\n  }\n}\n");
+        await Assert.That(scenario.Calls).IsEquivalentTo(
+            ["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile, .. scenario.WriteCalls], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("unknown-member")]
+    [Arguments("neither-shape")]
+    [Arguments("unreadable")]
+    [Arguments("legacy-only")]
+    [Arguments("absent")]
+    public async Task ReadAsync_Should_Leave_The_Files_Unchanged_Where_The_Cli_Does_Not_Write(string name)
+    {
+        var scenario = new ServiceConfigScenario(name == "legacy-only" ? "beta" : "local");
+        var path = name == "legacy-only" ? scenario.Paths.LegacyConfigFile! : scenario.Paths.ConfigFile!;
+        var initial = name switch
+        {
+            "unreadable" => scenario.Initial("all-members"),
+            "legacy-only" => scenario.Initial("legacy-on"),
+            _ => scenario.Initial(name),
+        };
+        if (initial is not null)
+        {
+            await scenario.SeedAsync(path, initial);
+        }
+        if (name == "unreadable")
+        {
+            scenario.FileSystem.TryReadAllBytesAsync(path, Arg.Any<CancellationToken>()).Returns((byte[]?)null);
+        }
+        scenario.ClearCalls();
+        var inventory = scenario.Inventory();
+
+        var config = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, CancellationToken.None);
+
+        using var original = JsonDocument.Parse(initial ?? "{}");
+        await AssertViewAsync(config, name == "unknown-member" ? original.RootElement : default);
+        await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
+        if (initial is not null)
+        {
+            await scenario.AssertUnchangedAsync(path, initial, inventory);
+        }
+        string[] expected = name switch
+        {
+            "legacy-only" => ["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile, "Exists:" + scenario.Paths.ConfigFile,
+                "TryReadAllBytesAsync:" + path],
+            "unreadable" or "absent" => ["TryReadAllBytesAsync:" + path, "Exists:" + path],
+            _ => ["TryReadAllBytesAsync:" + path],
+        };
+        await Assert.That(scenario.Calls).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -95,33 +199,97 @@ public sealed class OpenCodeServiceConfigurationTests
             var name = row.GetProperty("name").GetString()!;
             var verdict = verdicts.RootElement.EnumerateArray().Single(item => item.GetProperty("name").GetString() == name);
             await Assert.That(verdict.GetProperty("outcome").GetString()).IsEqualTo("ok");
-            var scenario = new ServiceConfigScenario();
-            var initial = row.GetProperty("initial").GetString();
-            if (initial is not null)
-            {
-                await scenario.SeedAsync(scenario.Paths.ConfigFile!, initial);
-            }
+            await AssertParityRowAsync(row, verdict);
+        }
+    }
 
-            var inventory = scenario.Inventory();
-            var config = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, CancellationToken.None);
+    private static async Task AssertParityRowAsync(JsonElement row, JsonElement verdict)
+    {
+        var scenario = new ServiceConfigScenario();
+        var initial = row.GetProperty("initial").GetString();
+        if (initial is not null)
+        {
+            await scenario.SeedAsync(scenario.Paths.ConfigFile!, initial);
+        }
+        scenario.ClearCalls();
+        var inventory = scenario.Inventory();
+        var command = row.GetProperty("command").EnumerateArray().Select(static item => item.GetString()!).ToArray();
+        if (row.TryGetProperty("divergence", out _))
+        {
+            var failure = await Assert.That(async () => await InvokeParityAsync(scenario, command, verdict)).Throws<OpenCodeServerException>();
+            await Assert.That(failure).IsNotNull();
+            await Assert.That(failure.Message).Contains(scenario.Paths.ConfigFile!);
+            await scenario.AssertUnchangedAsync(scenario.Paths.ConfigFile!, initial!, inventory);
+            await Assert.That(scenario.Calls).IsEquivalentTo(["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile], CollectionOrdering.Matching);
+            return;
+        }
 
-            using var output = JsonDocument.Parse(verdict.GetProperty("output").GetString()!);
-            await AssertViewAsync(config, row.TryGetProperty("divergence", out _) ? default : output.RootElement);
-            await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching).Because(name);
-            var retained = await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None);
-            if (initial is null)
-            {
-                await Assert.That(retained).IsNull();
-            }
-            else
-            {
-                await Assert.That(retained).IsEquivalentTo(Encoding.UTF8.GetBytes(initial), CollectionOrdering.Matching).Because(name);
-            }
-
+        await InvokeParityAsync(scenario, command, verdict);
+        var retained = await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None);
+        var expected = verdict.GetProperty("file").GetString();
+        var actual = retained is null ? null : Encoding.UTF8.GetString(retained);
+        using var original = JsonDocument.Parse(initial ?? "{}");
+        if (Member(original.RootElement, "remote").ValueKind == JsonValueKind.True)
+        {
+            using var written = JsonDocument.Parse(actual!);
+            var route = written.RootElement.GetProperty("remote").GetProperty("route").GetString()!;
+            await Assert.That(route).Matches("^[0-9a-f]{16}$");
+            actual = MaskGenerated(actual!, "\n  \"remote\": {\n    \"route\": ", route, "@route");
+        }
+        if (command.Length == 2 && command[1] == "password" && verdict.GetProperty("output").GetString() == "@password")
+        {
+            using var written = JsonDocument.Parse(actual!);
+            var password = written.RootElement.GetProperty("password").GetString()!;
+            await Assert.That(password).Matches("^[A-Za-z0-9_-]{43}$");
+            actual = MaskGenerated(actual!, "\n  \"password\": ", password, "@password");
+        }
+        await Assert.That(actual).IsEqualTo(expected).Because(row.GetProperty("name").GetString()!);
+        if (expected == initial)
+        {
+            await Assert.That(scenario.Inventory()).IsEquivalentTo(inventory, CollectionOrdering.Matching);
             string[] calls = initial is null
                 ? ["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile, "Exists:" + scenario.Paths.ConfigFile]
                 : ["TryReadAllBytesAsync:" + scenario.Paths.ConfigFile];
-            await Assert.That(scenario.Calls).IsEquivalentTo(calls, CollectionOrdering.Matching).Because(name);
+            await Assert.That(scenario.Calls).IsEquivalentTo(calls, CollectionOrdering.Matching);
+        }
+    }
+
+    private static string MaskGenerated(string text, string prefix, string secret, string marker) =>
+#if NET
+        text.Replace(prefix + "\"" + secret + "\"", prefix + "\"" + marker + "\"", StringComparison.Ordinal);
+#else
+        // Framework's Replace has no comparison overload and always replaces ordinally.
+        text.Replace(prefix + "\"" + secret + "\"", prefix + "\"" + marker + "\"");
+#endif
+
+    private static async Task InvokeParityAsync(ServiceConfigScenario scenario, string[] command, JsonElement verdict)
+    {
+        if (command[0] == "read")
+        {
+            _ = await scenario.Store.ReadForWriteAsync(ServiceSelection.Snapshot(scenario.Options), CancellationToken.None);
+        }
+        else if (command.Length == 2)
+        {
+            var password = await OpenCodeServiceConfiguration.GetOrCreatePasswordWithSeamsAsync(
+                scenario.Options, new ServiceConfigEditor(scenario.Store), CancellationToken.None);
+            var expected = verdict.GetProperty("output").GetString();
+            if (expected == "@password")
+            {
+                await Assert.That(password).Matches("^[A-Za-z0-9_-]{43}$");
+                var bytes = await scenario.Adapter.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, CancellationToken.None);
+                using var written = JsonDocument.Parse(bytes!);
+                await Assert.That(written.RootElement.GetProperty("password").GetString()).IsEqualTo(password);
+            }
+            else
+            {
+                await Assert.That(password).IsEqualTo(expected);
+            }
+        }
+        else
+        {
+            var config = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(scenario.Options, scenario.Store, CancellationToken.None);
+            using var output = JsonDocument.Parse(verdict.GetProperty("output").GetString()!);
+            await AssertViewAsync(config, output.RootElement);
         }
     }
 

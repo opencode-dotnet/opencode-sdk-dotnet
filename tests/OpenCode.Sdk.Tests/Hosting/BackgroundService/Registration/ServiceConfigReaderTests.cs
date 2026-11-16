@@ -15,6 +15,40 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 public sealed class ServiceConfigReaderTests
 {
     [Test]
+    [Arguments("repeated-member")]
+    [Arguments("surrogate-route")]
+    [Arguments("surrogate-cors")]
+    public async Task IsProvenUnreadableByCli_Should_Protect_A_Document_The_Cli_Reads(string name)
+    {
+        var json = new ServiceConfigScenario().Initial(name)!;
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(json))).IsFalse();
+    }
+
+    [Test]
+    public async Task IsProvenUnreadableByCli_Should_Distinguish_Syntax_And_Shape_From_A_Parser_Limit()
+    {
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigData.Malformed))).IsTrue();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigData.DisabledAsString))).IsTrue();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.Deep(false)))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.Deep(true)))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.LegacyRepeated))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.SurrogateHostname))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(Bytes(ServiceConfigWriteData.RepeatedEnvironment))).IsFalse();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCliAsCurrent(Bytes(ServiceConfigWriteData.LegacyRepeated))).IsTrue();
+        await Assert.That(ServiceConfigReader.IsProvenUnreadableByCli(ServiceConfigWriteData.InvalidHostname)).IsFalse();
+    }
+
+    [Test]
+    [Arguments(new byte[] { 0xc3, 0x28 }, "\ufffd(")]
+    [Arguments(new byte[] { 0xed, 0xa0, 0x80 }, "\ufffd\ufffd\ufffd")]
+    [Arguments(new byte[] { 0xe2, 0x82 }, "\ufffd")]
+    [Arguments(new byte[] { 0xc0, 0xaf }, "\ufffd\ufffd")]
+    public async Task DecodeCliText_Should_Replace_Maximal_Invalid_Subparts(byte[] bytes, string expected)
+    {
+        await Assert.That(ServiceConfigReader.DecodeCliText(bytes)).IsEqualTo(expected);
+    }
+
+    [Test]
     public async Task TryReadDocument_Should_Retain_Every_Declared_Value()
     {
         var document = ServiceConfigReader.TryReadDocument(Encoding.UTF8.GetBytes(new ServiceConfigScenario().Initial("all-members")!));

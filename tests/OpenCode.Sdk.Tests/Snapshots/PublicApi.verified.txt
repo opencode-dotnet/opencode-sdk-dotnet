@@ -1156,6 +1156,7 @@ namespace OpenCode.Sdk
     }
     public static class OpenCodeServiceConfiguration
     {
+        public static System.Threading.Tasks.Task<string> GetOrCreatePasswordAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServiceConfig> ReadAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public sealed class OpenCodeStreamFailureException : OpenCode.Sdk.OpenCodeTransportException

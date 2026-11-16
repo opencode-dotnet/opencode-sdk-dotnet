@@ -1,9 +1,11 @@
+using System.Text;
+
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned CLI's legacy copy (<c>migrateRegistration</c> and <c>migrateConfig</c> in
-/// <c>service-config.ts</c>): a donor written under the earlier hashed filename is copied byte for
-/// byte to the current name, exclusively, once, and only when its version belongs to the channel; a
+/// <c>service-config.ts</c>): a donor written under the earlier hashed filename is copied as the CLI's
+/// decoded UTF-8 text to the current name, exclusively, once, and only when its version belongs to the channel; a
 /// config donor is copied only when it decodes under the current shape, so a legacy boolean
 /// <c>remote</c> stays behind. The copy is a convenience the daemon's own registration supersedes,
 /// so every write failure is swallowed the way upstream's <c>Effect.ignore</c> swallows it, no
@@ -42,17 +44,30 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
                 continue;
             }
 
-            await CopyAsync(paths.RegistrationFile, bytes, cancellationToken).ConfigureAwait(false);
+            await CopyAsync(paths.RegistrationFile, Encoding.UTF8.GetBytes(ServiceConfigReader.DecodeCliText(bytes)), cancellationToken).ConfigureAwait(false);
         }
 
         if (paths.LegacyConfigFile is { } legacyConfig && paths.ConfigFile is { } configFile)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var bytes = await fileSystem.TryReadAllBytesAsync(legacyConfig, cancellationToken).ConfigureAwait(false);
-            if (bytes is not null && ServiceConfigReader.IsCurrent(bytes))
+            if (bytes is not null)
             {
-                await CopyAsync(configFile, bytes, cancellationToken).ConfigureAwait(false);
+                await ApplyConfigAsync(configFile, bytes, cancellationToken).ConfigureAwait(false);
             }
+        }
+    }
+
+    /// <summary>Copies an already-read current-shape donor as the CLI's decoded text, exclusively and best-effort.</summary>
+    /// <param name="configFile">The destination.</param>
+    /// <param name="bytes">The original donor bytes, on which the existing admission check operates.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The completed copy attempt.</returns>
+    internal async Task ApplyConfigAsync(string configFile, byte[] bytes, CancellationToken cancellationToken)
+    {
+        if (ServiceConfigReader.IsCurrent(bytes))
+        {
+            await CopyAsync(configFile, Encoding.UTF8.GetBytes(ServiceConfigReader.DecodeCliText(bytes)), cancellationToken).ConfigureAwait(false);
         }
     }
 
