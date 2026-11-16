@@ -288,6 +288,8 @@ public sealed class SpecBinderTests
             new(BindingErrorCategory.Curation, "widget", "root group cannot declare internalRaw emission")]),
         ("client", ClientGroup(null!, null, null), [new(BindingErrorCategory.Curation, "widget", "client group must declare clientName")]),
         ("placement", RootGroup() with { Placement = (GroupPlacement)99 }, [new(BindingErrorCategory.Curation, "widget", "placement value '99' is not a recognized group placement")]),
+        ("placement-root-accessor", RootGroup() with { Placement = (GroupPlacement)99, RootAccessor = false }, [new(BindingErrorCategory.Curation, "widget", "placement value '99' is not a recognized group placement"),
+            new(BindingErrorCategory.Curation, "widget", "rootAccessor false requires internalRaw emission")]),
         ("client-name", ClientGroup("bad-name", null, null), [new(BindingErrorCategory.Naming, "widget", "client name 'bad-name' is not a valid C# identifier")]),
         ("handle-name", ClientGroup("Widgets", "bad-name", "id"), [new(BindingErrorCategory.Naming, "widget", "handle name 'bad-name' is not a valid C# identifier")]),
         ("half-handle", ClientGroup("Widgets", "WidgetClient", null), [new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
