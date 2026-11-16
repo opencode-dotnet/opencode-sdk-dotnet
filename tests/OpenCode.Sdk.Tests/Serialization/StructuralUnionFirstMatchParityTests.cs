@@ -28,14 +28,7 @@ public sealed class StructuralUnionFirstMatchParityTests
             var payload = verdict.GetProperty("value").GetRawText();
             var member = verdict.GetProperty("member");
             var expected = member.ValueKind is JsonValueKind.Null ? "Unknown" : ArmAt(union, member.GetInt32());
-            var actual = union switch
-            {
-                "reference" => Read(payload, OpenCodeJsonContext.Default.ConfigReferenceEntry).Kind.ToString(),
-                "lsp" => Read(payload, OpenCodeJsonContext.Default.ConfigLspEntry).Kind.ToString(),
-                "migration" => Read(payload, OpenCodeJsonContext.Default.ExperimentalMigrationV1Status).Kind.ToString(),
-                "attachment" => Read(payload, OpenCodeJsonContext.Default.PromptAttachment).Kind.ToString(),
-                _ => throw new InvalidOperationException($"The verdict file names an unknown union '{union}'."),
-            };
+            var actual = ReadKind(union, payload);
             if (!StringComparer.Ordinal.Equals(expected, actual))
             {
                 disagreements.Add($"{union} {payload}: upstream {expected}, SDK {actual}");
@@ -54,6 +47,29 @@ public sealed class StructuralUnionFirstMatchParityTests
         "attachment" => ((PromptAttachmentKind)member).ToString(),
         _ => throw new InvalidOperationException($"The verdict file names an unknown union '{union}'."),
     };
+
+    /// <summary>
+    /// Reads one payload's member. A converter that picks the wrong arm throws in that arm's reader;
+    /// the row then counts as a disagreement, so a wrong pick fails the test's assertion with its payload.
+    /// </summary>
+    private static string ReadKind(string? union, string payload)
+    {
+        try
+        {
+            return union switch
+            {
+                "reference" => Read(payload, OpenCodeJsonContext.Default.ConfigReferenceEntry).Kind.ToString(),
+                "lsp" => Read(payload, OpenCodeJsonContext.Default.ConfigLspEntry).Kind.ToString(),
+                "migration" => Read(payload, OpenCodeJsonContext.Default.ExperimentalMigrationV1Status).Kind.ToString(),
+                "attachment" => Read(payload, OpenCodeJsonContext.Default.PromptAttachment).Kind.ToString(),
+                _ => throw new InvalidOperationException($"The verdict file names an unknown union '{union}'."),
+            };
+        }
+        catch (JsonException exception)
+        {
+            return $"threw {exception.Message}";
+        }
+    }
 
     private static T Read<T>(string payload, JsonTypeInfo<T> typeInfo) =>
         JsonSerializer.Deserialize(payload, typeInfo) ?? throw new InvalidOperationException($"{payload} materialized null.");

@@ -271,5 +271,33 @@
       "mime": "image/png"
     },
     "member": null
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "data": "aGVsbG8=",
+      "source": {
+        "type": "inline"
+      }
+    },
+    "member": null
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "data": "aGVsbG8=",
+      "mime": "text/plain"
+    },
+    "member": null
+  },
+  {
+    "union": "attachment",
+    "value": {
+      "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "source": {
+        "type": "inline"
+      }
+    },
+    "member": null
   }
 ]

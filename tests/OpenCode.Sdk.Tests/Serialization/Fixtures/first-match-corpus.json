@@ -29,5 +29,8 @@
   { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png", "source": { "type": "inline" }, "name": "image.png", "description": "a picture", "mention": { "start": 0, "end": 5, "text": "image" } } },
   { "union": "attachment", "value": { "data": "aGVsbG8=", "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "text/plain", "source": { "type": "inline" } } },
   { "union": "attachment", "value": { "mime": "image/png", "source": { "type": "inline" } } },
-  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png" } }
+  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "mime": "image/png" } },
+  { "union": "attachment", "value": { "data": "aGVsbG8=", "source": { "type": "inline" } } },
+  { "union": "attachment", "value": { "data": "aGVsbG8=", "mime": "text/plain" } },
+  { "union": "attachment", "value": { "uri": "media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "source": { "type": "inline" } } }
 ]

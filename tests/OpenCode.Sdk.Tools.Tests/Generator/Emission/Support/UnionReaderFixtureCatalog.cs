@@ -78,6 +78,8 @@ internal sealed class UnionReaderFixtureCatalog
         ["session-create-request-absent"] = "SessionCreateRequest",
         ["session-create-request-cleared"] = "SessionCreateRequest",
         ["session-create-request-set"] = "SessionCreateRequest",
+        ["session-inbox-user-payload-attachments"] = "SessionInboxUserPayload",
+        ["session-message-user-attachments"] = "ISessionMessageInfo",
         ["stream-events"] = "IEvent",
         ["stream-message-list-page"] = "ISessionMessageInfo",
         ["stream-session-messages"] = "ISessionMessageInfo",
@@ -127,6 +129,7 @@ internal sealed class UnionReaderFixtureCatalog
                     "reference" => "ConfigReferenceEntry",
                     "lsp" => "ConfigLspEntry",
                     "migration" => "ExperimentalMigrationV1Status",
+                    "attachment" => "PromptAttachment",
                     _ => throw new InvalidOperationException("Unknown first-match corpus root."),
                 } : root;
                 if (root == "composite")

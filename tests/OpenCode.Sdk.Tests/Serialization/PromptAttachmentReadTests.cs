@@ -1,61 +1,42 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Serialization;
 
 public sealed class PromptAttachmentReadTests
 {
+    private readonly FixtureLoader _fixtures = new();
+    private readonly GeneratedJsonSerializer _serializer = new();
+
     [Test]
     public async Task SessionMessageUser_Should_Read_Inline_Media_And_Unknown_Files()
     {
-        var payload = CreatePayload(message: true);
+        var json = _fixtures.LoadJson("Serialization.session-message-user-attachments.json");
 
-        var user = JsonSerializer.Deserialize(payload.ToJsonString(), OpenCodeJsonContext.Default.SessionMessageUser);
+        var message = _serializer.Deserialize<ISessionMessageInfo>(json);
 
-        await AssertFilesAsync(user?.Files ?? throw new InvalidOperationException("The message files were absent."));
+        await Assert.That(message).IsTypeOf<SessionMessageUser>();
+        await AssertFilesAsync(((SessionMessageUser)message).Files);
     }
 
     [Test]
     public async Task SessionInboxUserPayload_Should_Read_Inline_Media_And_Unknown_Files()
     {
-        var payload = CreatePayload(message: false);
+        var json = _fixtures.LoadJson("Serialization.session-inbox-user-payload-attachments.json");
 
-        var user = JsonSerializer.Deserialize(payload.ToJsonString(), OpenCodeJsonContext.Default.SessionInboxUserPayload);
+        var payload = _serializer.Deserialize<SessionInboxUserPayload>(json);
 
-        await AssertFilesAsync(user?.Files ?? throw new InvalidOperationException("The inbox files were absent."));
+        await AssertFilesAsync(payload.Files);
     }
 
-    private static JsonObject CreatePayload(bool message)
+    private static async Task AssertFilesAsync(IReadOnlyList<PromptAttachment>? files)
     {
-        var corpus = JsonNode.Parse(new FixtureLoader().LoadJson("Unions.first-match-corpus.json"))!.AsArray();
-        var attachments = corpus.Where(row => row!["union"]!.GetValue<string>() == "attachment").ToArray();
-        var payload = new JsonObject
-        {
-            ["text"] = "attachments",
-            ["files"] = new JsonArray(
-                attachments[0]!["value"]!.DeepClone(),
-                attachments[1]!["value"]!.DeepClone(),
-                attachments[5]!["value"]!.DeepClone()),
-        };
-        if (message)
-        {
-            payload["id"] = "message";
-            payload["time"] = new JsonObject { ["created"] = 1 };
-            payload["type"] = "user";
-        }
-
-        return payload;
-    }
-
-    private static async Task AssertFilesAsync(IReadOnlyList<PromptAttachment> files)
-    {
-        await Assert.That(files.Count).IsEqualTo(3);
-        await Assert.That(files[0].Kind).IsEqualTo(PromptAttachmentKind.PromptFileAttachment);
-        await Assert.That(files[1].Kind).IsEqualTo(PromptAttachmentKind.PromptMediaFileAttachment);
-        await Assert.That(files[2].Kind).IsEqualTo(PromptAttachmentKind.Unknown);
+        await Assert.That(files).IsNotNull();
+        await Assert.That(files!.Select(static file => file.Kind)).IsEquivalentTo(
+            [PromptAttachmentKind.PromptFileAttachment, PromptAttachmentKind.PromptMediaFileAttachment, PromptAttachmentKind.Unknown],
+            CollectionOrdering.Matching);
         var inline = files[0].PromptFileAttachment;
         await Assert.That(inline.Data).IsEqualTo("aGVsbG8=");
         await Assert.That(inline.Mime).IsEqualTo("text/plain");

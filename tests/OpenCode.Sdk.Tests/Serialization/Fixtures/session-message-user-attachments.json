@@ -1,0 +1,1 @@
+{"id":"msg_1","time":{"created":1},"text":"attachments","type":"user","files":[{"data":"aGVsbG8=","mime":"text/plain","source":{"type":"inline"}},{"uri":"media:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","mime":"image/png","source":{"type":"inline"},"bytes":42},{"mime":"image/png","source":{"type":"inline"}}]}
