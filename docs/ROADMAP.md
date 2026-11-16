@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-15
+Date: 2026-11-17
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -171,11 +171,14 @@ These do not block `1.0.0` and run beside the road.
   carriers stay the representation; existing types are never retrofitted (ADR-0036).
 - A Hosting package, if a concrete consumer — the MCP server or a first external host — needs
   host-owned process lifecycle.
-- Research: turning the service's remote access on and off from .NET. Upstream exposes it only
-  through the CLI (`opencode service set remote`, `opencode pair --remote`) over an OpenTunnel
-  route, not through its client library or the HTTP API; the SDK reads the setting and surfaces
-  the remote URL in `ServerInfo.Urls`, and would have to author CLI config contents for the first
-  time, where today it only copies a config verbatim when it migrates one.
+- Research: remote access beyond service configuration. `OpenCodeServiceConfiguration`
+  ([#213](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/213)) reads and changes the
+  background service's config through typed `service get`, `set`, and `unset` operations.
+  Sets and unsets stop the service except turning the disabled flag off or unsetting it.
+  `DisableRemoteAsync` turns remote access off; `EnableRemoteAsync` runs the installed
+  `opencode service set remote true` for OpenTunnel setup, then reads and returns the selected
+  config's route. The SDK does not yet offer remote-address pairing (`opencode pair --remote`) or
+  tunnel setup without an installed CLI; the latter would need an OpenTunnel client integration.
 
 ## Open Questions
 
