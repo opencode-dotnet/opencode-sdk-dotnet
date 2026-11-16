@@ -253,18 +253,5 @@ public sealed class ServiceConfigReaderTests
         await Assert.That(ServiceConfigReader.IsCurrent(Bytes(json))).IsFalse();
     }
 
-    [Test]
-    [Arguments(ServiceConfigData.DisabledTrue, true)]
-    [Arguments(ServiceConfigData.DisabledFalse, false)]
-    [Arguments(ServiceConfigData.DisabledAsTheCliWritesIt, true)]
-    [Arguments(ServiceConfigData.DisabledAsString, null)]
-    [Arguments(ServiceConfigData.DisabledNull, null)]
-    [Arguments(ServiceConfigData.Empty, null)]
-    [Arguments(ServiceConfigData.Malformed, null)]
-    public async Task TryReadDisabled_Should_Read_The_Boolean_And_Refuse_Invalid_Documents(string json, bool? expected)
-    {
-        await Assert.That(ServiceConfigReader.TryReadDisabled(Bytes(json))).IsEqualTo(expected);
-    }
-
     private static byte[] Bytes(string json) => Encoding.UTF8.GetBytes(json);
 }

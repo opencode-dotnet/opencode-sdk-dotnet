@@ -52,6 +52,7 @@ public sealed class CancellationIdentityTests
         yield return new("ensure", "shutdown-fallback", caller => ServiceDoors.AtServiceRequestAsync("ensure", "fallback", caller));
         yield return new("shutdown-persistent-pty", "shutdown-request", caller => ServiceDoors.AtServiceRequestAsync("shutdown-persistent-pty", "shutdown", caller));
         yield return new("resolve", "explicit-probe", caller => ServiceDoors.AtServiceRequestAsync("resolve", "probe", caller));
+        yield return new("resolve", "service-config-store-read", ServiceDoors.AtResolveConfigStoreReadAsync);
         yield return new("reconnect", "authenticated-probe", caller => ServiceDoors.AtServiceRequestAsync("reconnect", "probe", caller));
         yield return new("restart", "handoff-ticket", caller => ServiceDoors.AtServiceRequestAsync("restart", "ticket", caller));
         // Since upstream v2.3.0 stop has no cancellable network wait: entry is its first cancellation point.

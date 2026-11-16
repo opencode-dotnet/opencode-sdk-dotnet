@@ -4,6 +4,7 @@ using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
 using TUnit.Assertions.Enums;
@@ -148,7 +149,53 @@ public sealed class ConnectionResolverTests : IDisposable
         await Assert.That(connection.ServerVersion).IsNull();
         await Assert.That(connection.ServiceOperations).IsNull();
         await AssertCallsAsync("StartAsync");
-        await Assert.That(_reads).IsEquivalentTo([paths.LegacyConfigFile!, paths.ConfigFile!], CollectionOrdering.Matching);
+        await Assert.That(_reads).IsEquivalentTo([paths.ConfigFile!], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ResolveAsync_Should_Repair_A_Legacy_Disabled_Config_Before_Starting_Standalone()
+    {
+        var scenario = new ServiceConfigScenario();
+        var legacy = new JsonObject { ["disabled"] = true, ["remote"] = false };
+        await scenario.SeedAsync(scenario.Paths.ConfigFile!, legacy.ToJsonString());
+        var seams = _seams with { Environment = scenario.Environment, FileSystem = scenario.FileSystem, ProbeTime = scenario.Time };
+
+        await using var connection = await OpenCodeServer.ResolveWithSeamsAsync(
+            new() { Service = new OpenCodeServerEnsureOptions { Channel = "local" } }, seams, CancellationToken.None);
+
+        await Assert.That(connection.Mode).IsEqualTo(OpenCodeServerConnectionMode.Standalone);
+        var repaired = JsonNode.Parse(await scenario.ReadTextAsync(scenario.Paths.ConfigFile!))!.AsObject();
+        await Assert.That(repaired.Select(static member => member.Key)).IsEquivalentTo(["disabled"], CollectionOrdering.Matching);
+        await Assert.That(repaired["disabled"]!.GetValue<bool>()).IsTrue();
+        await AssertCallsAsync("StartAsync");
+    }
+
+    [Test]
+    [Arguments("absent")]
+    [Arguments("unreadable")]
+    [Arguments("refused")]
+    public async Task ResolveAsync_Should_Treat_Absent_Unreadable_Or_Refused_Config_As_Empty_Without_Throwing(string shape)
+    {
+        var service = new OpenCodeServerEnsureOptions { Channel = "dev" };
+        var config = shape switch
+        {
+            "unreadable" => ServiceConfigData.DisabledAsString,
+            "refused" => await RepeatedDisabledConfigAsync(),
+            _ => null,
+        };
+        if (config is not null)
+        {
+            Seed(Paths(service).ConfigFile!, config);
+        }
+
+        var resolving = ResolveAsync(new() { Service = service });
+        await Assert.That(resolving).ThrowsNothing();
+        await using var connection = await resolving;
+
+        await Assert.That(connection.Mode).IsEqualTo(OpenCodeServerConnectionMode.Service);
+        await Assert.That(connection.ServerVersion).IsEqualTo("2.2.7");
+        await Assert.That(connection.ServiceOperations).IsNotNull();
+        await AssertCallsAsync("EnsureLocatedAsync");
     }
 
     [Test]
@@ -274,7 +321,7 @@ public sealed class ConnectionResolverTests : IDisposable
         var paths = Paths(service);
         await using var connection = await ResolveAsync(new() { Service = service });
 
-        string[] expected = direct ? [] : [paths.LegacyConfigFile!, paths.ConfigFile!, .. paths.LegacyRegistrationFiles,
+        string[] expected = direct ? [] : [paths.ConfigFile!, paths.LegacyConfigFile!, .. paths.LegacyRegistrationFiles,
             paths.LegacyConfigFile!, paths.ConfigFile!];
         await Assert.That(_reads).IsEquivalentTo(expected, CollectionOrdering.Matching);
         _reads.Clear();
@@ -346,7 +393,7 @@ public sealed class ConnectionResolverTests : IDisposable
             };
             await AssertCallsAsync(expectedDoors);
             await Assert.That(_reads).IsEquivalentTo(
-                [paths.LegacyConfigFile!, paths.ConfigFile!, .. paths.LegacyRegistrationFiles, paths.LegacyConfigFile!, paths.ConfigFile!],
+                [paths.ConfigFile!, .. paths.LegacyRegistrationFiles, paths.LegacyConfigFile!, paths.ConfigFile!],
                 CollectionOrdering.Matching);
         }
         foreach (var read in _files.ReceivedCalls().Where(call =>
@@ -399,6 +446,18 @@ public sealed class ConnectionResolverTests : IDisposable
     }
 
     private static OpenCodeServer Shared(string? version) => new(Endpoint, "pw", 42, version);
+
+    private static async Task<string> RepeatedDisabledConfigAsync()
+    {
+        var bytes = new System.Buffers.ArrayBufferWriter<byte>();
+        await using var writer = new System.Text.Json.Utf8JsonWriter(bytes);
+        writer.WriteStartObject();
+        writer.WriteBoolean("disabled", false);
+        writer.WriteBoolean("disabled", true);
+        writer.WriteEndObject();
+        await writer.FlushAsync();
+        return System.Text.Encoding.UTF8.GetString(bytes.WrittenMemory.ToArray());
+    }
 
     private ServicePaths Paths(OpenCodeServerEnsureOptions service) =>
         new ServicePathResolver(_environment).Resolve(EnsureRequest.Snapshot(service).Selection);

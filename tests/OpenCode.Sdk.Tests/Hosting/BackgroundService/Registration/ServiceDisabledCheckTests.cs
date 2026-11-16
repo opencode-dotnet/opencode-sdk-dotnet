@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
@@ -67,13 +68,13 @@ public sealed class ServiceDisabledCheckTests
             RegistrationFilePath = _fileSystem.Path.Combine(_fileSystem.Path.GetTempPath(), "direct.json"),
         });
 
-        await Assert.That(await new ServiceDisabledCheck(_environment, fileSystem)
+        await Assert.That(await new ServiceDisabledCheck(_environment, fileSystem, new ManualTimeProvider())
             .IsDisabledAsync(selection, CancellationToken.None)).IsFalse();
         await Assert.That(fileSystem.ReceivedCalls()).IsEmpty();
         await Assert.That(_environment.ReceivedCalls()).IsEmpty();
     }
 
-    private ServiceDisabledCheck Check() => new(_environment, new TestablyServiceFileSystem(_fileSystem));
+    private ServiceDisabledCheck Check() => new(_environment, new TestablyServiceFileSystem(_fileSystem), new ManualTimeProvider());
 
     private static ServiceSelection Select() =>
         ServiceSelection.Snapshot(new OpenCodeServerDiscoverOptions { Channel = "dev" });

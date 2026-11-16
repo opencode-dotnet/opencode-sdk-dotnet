@@ -346,6 +346,7 @@ internal static class ReservedNamePolicy
             "ServiceConfigEnvironmentReader",
             "ServiceConfigJsonWriter",
             "ServiceConfigReader",
+            "ServiceConfigReadResult",
             "ServiceConfigStore",
             "ServiceContender",
             "ServiceContenderEnvironmentComposer",

@@ -1356,7 +1356,7 @@ deadline comparisons and spawn stamps read UTC, and handoff expiry reads UTC epo
 neither is a monotonic elapsed-time policy. Each request deadline arms after probe headers, after
 ticket pipeline construction, or at entry to the separate shutdown fallback, respectively.
 
-Resolve chooses no clock: the explicit bound uses the probe pipeline's clock; located discovery
+Resolve reuses the launcher's clock for config repair; the explicit bound uses the probe pipeline's clock; located discovery
 shares Discover's factory, and located Stop and Ensure share their respective doors' roots.
 
 `BannedSymbols.Clock.txt` bans the system clock in shipped src outside the five counted

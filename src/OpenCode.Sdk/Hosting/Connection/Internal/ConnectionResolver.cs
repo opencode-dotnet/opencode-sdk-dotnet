@@ -15,7 +15,8 @@ internal sealed class ConnectionResolver(ConnectionSeams seams)
         }
 
         var service = EnsureRequest.Snapshot(request.Service);
-        if (request.Standalone || await new ServiceDisabledCheck(seams.Environment, seams.FileSystem)
+        if (request.Standalone || await new ServiceDisabledCheck(
+            seams.Environment, seams.FileSystem, seams.ProbeTime ?? LauncherSeams.ForCurrentProcess().Time)
             .IsDisabledAsync(service.Selection, cancellationToken).ConfigureAwait(false))
         {
             return await StartStandaloneAsync(request.Launch, cancellationToken).ConfigureAwait(false);

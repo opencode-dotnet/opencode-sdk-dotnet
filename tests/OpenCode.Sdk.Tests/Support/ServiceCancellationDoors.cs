@@ -1,8 +1,10 @@
 using System.IO.Abstractions;
 using System.Net;
 using System.Text;
+using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Support;
@@ -14,6 +16,30 @@ internal sealed class ServiceCancellationDoors(
     private const string HandoffPath = "/api/experimental/persistent-pty/handoff";
     private const string ShutdownPath = "/api/experimental/persistent-pty/shutdown";
     private const string ServicePassword = "synthetic-identity-password";
+
+    internal async Task<OperationCanceledException> AtResolveConfigStoreReadAsync(CancellationTokenSource caller)
+    {
+        var scenario = new ServiceConfigScenario();
+        var forwarded = default(CancellationToken);
+        scenario.FileSystem.TryReadAllBytesAsync(scenario.Paths.ConfigFile!, Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                forwarded = call.Arg<CancellationToken>();
+                await caller.CancelOnWorkerAsync();
+                forwarded.ThrowIfCancellationRequested();
+                return null;
+            });
+        var seams = new ConnectionSeams(
+            Substitute.For<IServerDoors>(), scenario.Environment, scenario.FileSystem, ProbeTime: scenario.Time);
+        var failure = await observeCancellation(async () =>
+        {
+            await using var connection = await OpenCodeServer.ResolveWithSeamsAsync(
+                new() { Service = new OpenCodeServerEnsureOptions { Channel = "local" } }, seams, caller.Token);
+        });
+
+        await Assert.That(forwarded).IsEqualTo(caller.Token);
+        return failure;
+    }
 
     internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
