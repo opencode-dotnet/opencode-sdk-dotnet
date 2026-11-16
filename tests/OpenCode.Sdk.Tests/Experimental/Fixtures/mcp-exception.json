@@ -1,0 +1,1 @@
+[{"request":{"id":7,"method":"tools/call","params":{"name":"lookup"}},"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"boom"}],"isError":true}}}]

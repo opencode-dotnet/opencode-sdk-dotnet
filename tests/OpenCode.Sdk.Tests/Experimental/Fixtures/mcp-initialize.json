@@ -1,0 +1,7 @@
+[
+{"request":{"id":7,"method":"initialize","params":{"protocolVersion":"offered-version"}},"response":{"jsonrpc":"2.0","id":7,"result":{"protocolVersion":"offered-version","capabilities":{"tools":{}},"serverInfo":{"name":"app","version":"1.0.0"}}}},
+{"request":{"id":"req","method":"initialize","params":{"protocolVersion":""}},"response":{"jsonrpc":"2.0","id":"req","result":{"protocolVersion":"","capabilities":{"tools":{}},"serverInfo":{"name":"app","version":"1.0.0"}}}},
+{"request":{"id":7,"method":"initialize"},"response":{"jsonrpc":"2.0","id":7,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"app","version":"1.0.0"}}}},
+{"request":{"id":7,"method":"initialize","params":{"protocolVersion":null}},"response":{"jsonrpc":"2.0","id":7,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"app","version":"1.0.0"}}}},
+{"request":{"id":7,"method":"initialize","params":{"protocolVersion":3}},"response":{"jsonrpc":"2.0","id":7,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"app","version":"1.0.0"}}}}
+]

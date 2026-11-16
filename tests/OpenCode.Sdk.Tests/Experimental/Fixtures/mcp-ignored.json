@@ -1,0 +1,22 @@
+{
+"messages":[
+{"value":{"method":"notifications/cancelled"}},
+{"value":{"id":7,"result":{}}},
+{"value":{"id":null,"method":"ping"}},
+{"value":{"id":true,"method":"ping"}},
+{"value":{"id":{},"method":"ping"}},
+{"value":{"id":7,"method":false}},
+{"raw":"{"},
+{"raw":"null"},
+{"value":true},
+{"value":[]},
+{"value":42},
+{"binary":true,"value":{"id":7,"method":"ping"}},
+{"value":{"id":7,"method":"ping"}},
+{"value":{"id":0,"method":"ping"}},
+{"value":{"id":"","method":"ping"}}
+],
+"responses":[{"jsonrpc":"2.0","id":7,"result":{}},{"jsonrpc":"2.0","id":0,"result":{}},{"jsonrpc":"2.0","id":"","result":{}}],
+"initialized":{"id":8,"method":"notifications/initialized"},
+"initializedResponse":{"jsonrpc":"2.0","id":8,"error":{"code":-32601,"message":"Method not found: notifications/initialized"}}
+}

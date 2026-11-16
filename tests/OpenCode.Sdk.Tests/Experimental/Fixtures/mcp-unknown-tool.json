@@ -1,0 +1,10 @@
+[
+{"request":{"id":7,"method":"tools/call","params":{"name":"missing"}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: missing"}}},
+{"request":{"id":7,"method":"tools/call","params":{}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: undefined"}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":null}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: null"}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":{}}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: [object Object]"}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":["a",null,"b"]}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: a,,b"}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":0}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: 0"}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":true}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: true"}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":false}},"response":{"jsonrpc":"2.0","id":7,"error":{"code":-32602,"message":"Unknown tool: false"}}}
+]

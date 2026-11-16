@@ -89,6 +89,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Experimental/Fixtures/*.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Experimental.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Config/Fixtures/shells.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Config.shells.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Config/Fixtures/service-config-corpus.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-corpus.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Config/Fixtures/service-config-expected.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-expected.json" />

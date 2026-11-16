@@ -1,0 +1,5 @@
+[
+{"flag":null,"request":{"id":7,"method":"tools/call","params":{"name":"lookup"}},"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"image","data":"AQID","mimeType":"image/png"},{"type":"text","text":"ok"}]}}},
+{"flag":false,"request":{"id":7,"method":"tools/call","params":{"name":"lookup"}},"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"image","data":"AQID","mimeType":"image/png"},{"type":"text","text":"ok"}],"isError":false}}},
+{"flag":true,"request":{"id":7,"method":"tools/call","params":{"name":"lookup"}},"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"image","data":"AQID","mimeType":"image/png"},{"type":"text","text":"ok"}],"isError":true}}}
+]

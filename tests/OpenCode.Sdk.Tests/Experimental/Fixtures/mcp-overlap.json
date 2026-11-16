@@ -1,0 +1,4 @@
+{
+"requests":[{"id":"A","method":"tools/call","params":{"name":"lookup","arguments":{"name":"A"}}},{"id":"B","method":"tools/call","params":{"name":"lookup","arguments":{"name":"B"}}}],
+"responses":[{"jsonrpc":"2.0","id":"B","result":{"content":[{"type":"text","text":"B"}]}},{"jsonrpc":"2.0","id":"A","result":{"content":[{"type":"text","text":"A"}]}}]
+}

@@ -1,0 +1,9 @@
+[
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup","arguments":{"id":{"nested":42}},"_meta":{"ai.opencode/sessionID":"ses_42"}}},"arguments":{"id":{"nested":42}},"session":"ses_42","response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup"}},"arguments":{},"session":null,"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup","arguments":null}},"arguments":{},"session":null,"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup","arguments":0,"_meta":{"ai.opencode/sessionID":false}}},"arguments":0,"session":null,"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup","arguments":false,"_meta":{"ai.opencode/sessionID":""}}},"arguments":false,"session":"","response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup","arguments":""}},"arguments":"","session":null,"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}},
+{"request":{"id":7,"method":"tools/call","params":{"name":"lookup","arguments":[1,null]}},"arguments":[1,null],"session":null,"response":{"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"nonce"}]}}}
+]

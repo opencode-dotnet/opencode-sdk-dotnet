@@ -1,0 +1,6 @@
+[
+{"request":{"id":7,"method":"ping"},"response":{"jsonrpc":"2.0","id":7,"result":{}}},
+{"request":{"id":"req","method":"ping"},"response":{"jsonrpc":"2.0","id":"req","result":{}}},
+{"request":{"id":0,"method":"ping"},"response":{"jsonrpc":"2.0","id":0,"result":{}}},
+{"request":{"id":"","method":"ping"},"response":{"jsonrpc":"2.0","id":"","result":{}}}
+]
