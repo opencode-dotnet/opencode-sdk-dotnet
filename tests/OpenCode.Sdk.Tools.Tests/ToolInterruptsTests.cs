@@ -21,6 +21,22 @@ public sealed class ToolInterruptsTests
     [Test]
     [Arguments("terminate")]
     [Arguments("ctrl-c")]
+    public async Task RunAsync_Should_Ignore_A_Signal_After_The_Run_Ends(string signal)
+    {
+        var callbacks = new Dictionary<string, Action>(StringComparer.Ordinal);
+        using var registration = new CancellationTokenSource();
+        using var interrupts = new ToolInterrupts(
+            callback => { callbacks.Add("ctrl-c", callback); return registration; },
+            callback => { callbacks.Add("terminate", callback); return registration; });
+
+        await Assert.That(await interrupts.RunAsync(_ => Task.FromResult(5))).IsEqualTo(5);
+
+        await Assert.That(() => callbacks[signal]()).ThrowsNothing();
+    }
+
+    [Test]
+    [Arguments("terminate")]
+    [Arguments("ctrl-c")]
     [Arguments("none")]
     public async Task RunAsync_Should_Preserve_The_Run_Outcome_And_Dispose_Both_Registrations(string ending)
     {

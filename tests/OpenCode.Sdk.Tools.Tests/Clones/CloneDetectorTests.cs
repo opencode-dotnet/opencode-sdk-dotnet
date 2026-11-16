@@ -31,6 +31,8 @@ public sealed class CloneDetectorTests
         var clock = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
         var entered = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        // The double throws only when the test releases it, so the detector sees both cancellations.
+        using var release = new SemaphoreSlim(0);
         var work = scenario.FileSystem.Path.Combine(scenario.FileSystem.Path.GetTempPath(), "bounded-scope");
         scenario.FileSystem.Directory.CreateDirectory(work);
         var config = scenario.FileSystem.Path.Combine(work, "generated.json");
@@ -40,8 +42,10 @@ public sealed class CloneDetectorTests
                 var token = scenario.Runner.CancellationTokens[^1];
                 entered.SetResult(token);
                 var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-                using var registration = token.Register(() => tcs.TrySetCanceled(token));
+                using var registration = token.Register(() => tcs.TrySetResult());
                 await tcs.Task;
+                await release.WaitAsync();
+                token.ThrowIfCancellationRequested();
             });
         var detector = new CloneDetector(scenario.FileSystem, scenario.Runner, clock);
         var operation = detector.RunAsync(scenario.Root, Scope("generated"), new CloneSourceSplit([], []), work,
@@ -62,6 +66,7 @@ public sealed class CloneDetectorTests
 
             clock.Advance(TimeSpan.FromTicks(2));
             await Assert.That(received.IsCancellationRequested).IsTrue();
+            _ = release.Release();
             if (callerCancels)
             {
                 _ = await Assert.That(async () => _ = await operation.WaitAsync(TimeSpan.FromSeconds(10)))
@@ -78,6 +83,7 @@ public sealed class CloneDetectorTests
         {
             if (!operation.IsCompleted)
             {
+                _ = release.Release();
                 await caller.CancelAsync();
                 _ = await Assert.That(async () => _ = await operation.WaitAsync(TimeSpan.FromSeconds(10)))
                     .Throws<OperationCanceledException>();

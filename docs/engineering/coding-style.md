@@ -101,7 +101,8 @@ for a pile of static steps.
 - **Cross-cutting CLI options ride an interceptor** (logging verbosity, global options), never
   copy-pasted per command. The composition root registers one exception handler for refusal output
   and exit mapping; commands do not catch refusals. The Tools library's interrupt type owns Ctrl+C
-  and SIGTERM subscription; the file-based entry calls it.
+  subscription, and SIGTERM subscription on Linux and macOS; the file-based entry reaches it through
+  `ToolApp.RunUntilInterruptedAsync`.
 - **Statics never perform outside-world operations.** The composition root may instantiate
   and register adapters; actual filesystem, console, time, environment, process, and network
   work occurs only through injected seams. The TestableIO analyzer enforces the filesystem

@@ -106,7 +106,7 @@ public static class ToolApp
             .WithDescription("Run the pinned clone detector: hand-written src/ and tools/ against their baselines, tests and generated output reported.");
     }
 
-    /// <summary>Runs the tool with Ctrl+C and SIGTERM cancellation.</summary>
+    /// <summary>Runs the tool and cancels it when an interrupt signal arrives.</summary>
     public static async Task<int> RunUntilInterruptedAsync(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);

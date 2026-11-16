@@ -300,8 +300,8 @@ but not recorded.
 
 ## Clone gate
 
-Each scope's jscpd run is bounded to 10 minutes and fails the gate naming the scope if exceeded,
-and SIGTERM, like Ctrl+C, cancels the tool and the child it runs.
+Each scope's jscpd run is bounded to 10 minutes and fails the gate naming the scope if exceeded;
+cancelling the tool cancels that run.
 
 The detector ignores using directives and three anchored argument-guard lines: the one-field
 constructor assignment `_name = name ?? throw new ArgumentNullException(nameof(name));`,

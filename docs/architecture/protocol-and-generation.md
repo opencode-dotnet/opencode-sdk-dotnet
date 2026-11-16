@@ -116,8 +116,8 @@ evidence and may contain superseded positions.
   usings; the generator refuses otherwise and never restores the real project itself.
   `--verify` runs the same writer in a staging mirror of the repository root in the temp directory,
   never modifying the working tree; it restores its own staging project offline from the global packages folder.
-- The repository tool forwards Ctrl+C cancellation to the running command and returns the configured
-  cancellation exit code. Its composition root maps tool refusals to an unwrapped `Refused: <message>`
+- The repository tool forwards Ctrl+C, and on Linux and macOS SIGTERM, to the running command as
+  cancellation and returns the configured cancellation exit code. Its composition root maps tool refusals to an unwrapped `Refused: <message>`
   diagnostic and exit code 1; other failures retain the CLI framework's error rendering and exit code.
 - Generated and hand-written files share the slice folders (ADR-0033). One placement rule maps
   each generated file's kind and owning slice to its folder: models under the family's `Models/`
