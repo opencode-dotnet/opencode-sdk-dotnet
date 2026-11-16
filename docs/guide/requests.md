@@ -368,6 +368,16 @@ catch (OpenCodeRpcException failure) when (failure.ErrorType == "rpc.unavailable
 }
 ```
 
+To call a definition by name, wrap it in a class of your own:
+
+```csharp
+public sealed class GoalClient(OpenCodeClient client)
+{
+    public Task<GoalState?> GetAsync(string sessionId, CancellationToken cancellationToken = default) =>
+        client.Rpc.CallAsync(GoalRpc.Get, new GoalQuery(sessionId), cancellationToken: cancellationToken);
+}
+```
+
 ### 📨 A definition's events
 
 A plugin's events arrive on the live event stream as `EventRpc`.
@@ -390,16 +400,6 @@ so watching it can miss a reconnect.
 Data that does not match your type, or that your metadata reads as null, throws
 `OpenCodeTransportException` and ends the loop. Cancelling the token throws
 `OperationCanceledException`. There is no callback form: run the loop in a task of your own.
-
-To call a definition by name, wrap it in a class of your own:
-
-```csharp
-public sealed class GoalClient(OpenCodeClient client)
-{
-    public Task<GoalState?> GetAsync(string sessionId, CancellationToken cancellationToken = default) =>
-        client.Rpc.CallAsync(GoalRpc.Get, new GoalQuery(sessionId), cancellationToken: cancellationToken);
-}
-```
 
 ## 🧾 Members the schema does not explain
 

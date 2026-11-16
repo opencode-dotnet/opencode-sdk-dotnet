@@ -676,11 +676,10 @@ resolves the message's network window from those carried traits.
   separate subscription and applies the feed's admission and refresh rules above; connection
   state coalesces and is not a transition log, so watching it can miss a reconnect. Each item
   is an `RpcEventPayload` whose `Data` is the definition's data type, the .NET projection of
-  upstream's payload, which is the
-  envelope itself with typed `data` (`promise/rpc.ts:36-47`): the feed's shared `EventRpc`,
-  read-only, beside its data read with the event's metadata. Cancellation, overflow, source
-  faults and root disposal end the enumeration as the door ends it; leaving the enumeration
-  disposes its subscription.
+  upstream's payload, which is the envelope itself with typed `data` (`promise/rpc.ts:36-47`):
+  the feed's shared `EventRpc`, read-only, beside its data read with the event's metadata.
+  Cancellation, overflow, source faults and root disposal end the enumeration as the door ends
+  it; leaving the enumeration disposes its subscription.
 - An output the consumer's metadata cannot read faults the call with
   `OpenCodeTransportException`, the `JsonException` as its inner exception. Event data
   the metadata cannot read, or reads as null, throws the same exception from the subscription's
@@ -695,8 +694,8 @@ resolves the message's network window from those carried traits.
   - No `on(name, handler)` callback. Upstream's promise helper has one
     (`promise/rpc.ts:126-138`); its Effect helper does not (`effect/rpc.ts:27-31`). A background
     loop that reports failures only to the console hides them; a consumer runs `await foreach`
-    in its own task instead. Reason: the idiomatic .NET form
-    (maintainer's decision, 2026-11-15, #846). Reversal: a consumer need that `await foreach` cannot meet.
+    in its own task instead. Reason: the idiomatic .NET form (maintainer's decision,
+    2026-11-15, #846). Reversal: a consumer need that `await foreach` cannot meet.
   - Cancellation throws `OperationCanceledException` carrying the caller's token, where
     upstream's subscription ends quietly on abort (`promise/rpc.ts:71`, `:77-78`). Reason: the
     SDK-wide cancellation contract ([Error channels](#error-channels)). Reversal: a change to

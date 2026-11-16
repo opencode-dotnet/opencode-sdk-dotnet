@@ -46,6 +46,7 @@ public sealed class EventsClientRpcExtensionsTests
             RpcFacadeData.ObservedEvent(OtherType, FirstNonce), first,
             RpcFacadeData.ObservedEvent("rpc.opencode.sdk.test.other.observed", FirstNonce),
             RpcFacadeData.ObservedEvent("rpc.OPENCODE.SDK.TEST.RPC.observed", FirstNonce),
+            RpcFacadeData.ObservedEvent("rpc.opencode.sdk.test.rpc.nested.observed", FirstNonce),
             RpcFacadeData.ObservedEvent("rpc.opencode.sdk.test.rpc.observed.extra", FirstNonce), second,
         ]);
         var client = Door(stream);
@@ -96,15 +97,12 @@ public sealed class EventsClientRpcExtensionsTests
     {
         var stream = new DoorStream([Target(), Target(SecondNonce)]);
 
-        await foreach (var payload in Door(stream).SubscribeAsync(RpcFacadeData.Observed))
+        await using (var events = Door(stream).SubscribeAsync(RpcFacadeData.Observed).GetAsyncEnumerator())
         {
-            await Assert.That(payload.Data.Nonce).IsEqualTo(FirstNonce);
+            await Assert.That(await events.MoveNextAsync()).IsTrue();
+            await Assert.That(events.Current.Data.Nonce).IsEqualTo(FirstNonce);
             await Assert.That(stream.Pulled).IsEqualTo(1);
             await Assert.That(stream.Finished).IsFalse();
-            if (payload.Data.Nonce == FirstNonce)
-            {
-                break;
-            }
         }
 
         await Assert.That(stream.Finished).IsTrue();
@@ -165,14 +163,14 @@ public sealed class EventsClientRpcExtensionsTests
         using var caller = new CancellationTokenSource();
         await using var events = server.Events.SubscribeAsync(RpcFacadeData.Observed, caller.Token).GetAsyncEnumerator();
 
-        await Assert.That(await events.MoveNextAsync()).IsTrue();
+        await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current.Event.Id).IsEqualTo(RpcFacadeData.EventId);
         await Assert.That(events.Current.Event.Location.Directory).IsEqualTo(RpcFacadeData.Directory);
         await Assert.That(events.Current.Data.Nonce).IsEqualTo(RpcFacadeData.Nonce);
         await Assert.That(server.LastRequest.Address?.Query).IsEqualTo(string.Empty);
         var pending = EventStreamSteps.PendingCancellationAsync(events);
         await caller.CancelOnWorkerAsync();
-        var failure = await pending;
+        var failure = await pending.WaitAsync(HangGuard.Bound, CancellationToken.None);
         await Assert.That(failure?.CancellationToken).IsEqualTo(caller.Token);
     }
 

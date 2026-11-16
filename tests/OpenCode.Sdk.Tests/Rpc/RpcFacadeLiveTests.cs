@@ -131,14 +131,9 @@ public sealed class RpcFacadeLiveTests(PinnedOpenCodeServerFixture server)
     private static async Task<RpcEventPayload<RpcNonce>> FirstPayloadAsync(IAsyncEnumerable<RpcEventPayload<RpcNonce>> stream)
     {
         // The stream already carries the owned reader's token; no second entry token is needed.
-        await foreach (var payload in stream.WithCancellation(CancellationToken.None))
-        {
-            if (payload is not null)
-            {
-                return payload;
-            }
-        }
-
-        throw new InvalidOperationException("The typed RPC event stream ended without a payload.");
+        await using var enumerator = stream.GetAsyncEnumerator();
+        return await enumerator.MoveNextAsync()
+            ? enumerator.Current
+            : throw new InvalidOperationException("The typed RPC event stream ended without a payload.");
     }
 }
