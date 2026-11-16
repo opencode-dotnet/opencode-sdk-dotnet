@@ -15,6 +15,18 @@ internal sealed class ServiceConfigStore(
     /// <returns>The channel's paths.</returns>
     internal ServicePaths ResolvePaths(ServiceSelection selection) => new ServicePathResolver(environment).Resolve(selection);
 
+    /// <summary>Obtains the route after CLI success through the same migrating and repairing read as other store consumers.</summary>
+    /// <param name="selection">The entry-time validated selection, resolved under the SDK process environment.</param>
+    /// <param name="cancellationToken">The caller's token, forwarded unchanged.</param>
+    /// <returns>The readable route; a strict-reader refusal is unavailable, not a write refusal.</returns>
+    public async Task<string> ReadRouteAsync(ServiceSelection selection, CancellationToken cancellationToken)
+    {
+        var result = await ReadAsync(selection, cancellationToken).ConfigureAwait(false);
+        return result.Document?.RemoteRoute ?? throw new OpenCodeServerException(
+            $"The CLI reported success, but service config '{ResolvePaths(selection).ConfigFile}' holds no remote route the SDK can read. " +
+            "CliCommand, Channel and Environment may name different configs.");
+    }
+
     /// <summary>Reads, migrates and repairs, refusing settings the CLI may keep but the strict reader cannot decode.</summary>
     /// <param name="selection">The entry-time validated selection.</param>
     /// <param name="cancellationToken">The caller's token, forwarded unchanged to every read.</param>

@@ -32,12 +32,10 @@ internal sealed class ChildEnvironmentComposer
 
     /// <summary>Composes the environment.</summary>
     /// <param name="entries">The caller's entries; null adds none.</param>
-    /// <param name="password">The lease credential.</param>
+    /// <param name="password">The lease credential; null preserves inherited and supplied credentials without injecting one.</param>
     /// <returns>The child's whole environment.</returns>
-    public IReadOnlyDictionary<string, string> Compose(IReadOnlyDictionary<string, string>? entries, string password)
+    public IReadOnlyDictionary<string, string> Compose(IReadOnlyDictionary<string, string>? entries, string? password)
     {
-        ArgumentNullException.ThrowIfNull(password);
-
         var composed = new Dictionary<string, string>(_names);
         // The host's own environment cannot hold a NUL; one that somehow does is not passed on cut short.
         foreach (var entry in _hostEnvironment.Where(static entry => !NulText.Occurs(entry.Key) && !NulText.Occurs(entry.Value)))
@@ -53,7 +51,10 @@ internal sealed class ChildEnvironmentComposer
             }
         }
 
-        composed[PasswordVariable] = password;
+        if (password is not null)
+        {
+            composed[PasswordVariable] = password;
+        }
         return composed;
     }
 }

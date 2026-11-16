@@ -13,6 +13,46 @@ public sealed class PosixServerChildTests
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(10);
 
     [Test]
+    [Arguments(null, null, null)]
+    [Arguments(null, "host", "host")]
+    [Arguments("caller", "host", "caller")]
+    public async Task SpawnAsync_Should_Keep_Optional_Credentials_And_Force_Stderr(string? overlay, string? host, string? expected)
+    {
+        var environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["OPENCODE_PRINT_LOGS"] = "1" };
+        if (host is not null)
+        {
+            environment["OPENCODE_PASSWORD"] = host;
+        }
+        var seams = Seams() with { HostEnvironment = environment };
+        PosixSpawnRequest? request = null;
+        seams.Spawn.Spawn(Arg.Any<PosixSpawnRequest>()).Returns(call =>
+        {
+            request = call.Arg<PosixSpawnRequest>();
+            throw new System.ComponentModel.Win32Exception(2);
+        });
+        // A CLI child deliberately has no lease credential.
+        var start = Start() with
+        {
+            Password = null,
+            ForceStandardErrorPipe = true,
+            Environment = overlay is null ? null : new Dictionary<string, string>(StringComparer.Ordinal) { ["OPENCODE_PASSWORD"] = overlay },
+        };
+        _ = await Assert.That(async () => await PosixServerChild.SpawnAsync(start, seams)).Throws<OpenCodeServerException>();
+        await Assert.That(request!.StandardError).IsEqualTo(ChildStreamRoute.Pipe);
+        await Assert.That(request.StandardOutput).IsEqualTo(ChildStreamRoute.Pipe);
+        await Assert.That(request.StandardInput).IsEqualTo(ChildStreamRoute.Pipe);
+        await Assert.That(request.Environment["OPENCODE_PRINT_LOGS"]).IsEqualTo("1");
+        if (expected is null)
+        {
+            await Assert.That(request.Environment).DoesNotContainKey("OPENCODE_PASSWORD");
+        }
+        else
+        {
+            await Assert.That(request.Environment["OPENCODE_PASSWORD"]).IsEqualTo(expected);
+        }
+    }
+
+    [Test]
     public async Task SpawnAsync_Should_Declare_A_Reasoned_Best_Effort_Background_Reap_Suppression()
     {
         var reaping = typeof(PosixServerChild).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
@@ -142,16 +182,5 @@ public sealed class PosixServerChildTests
             StandardError = standardError,
         });
 
-    private static LauncherSeams Seams() => new()
-    {
-        WindowsSpawn = Substitute.For<IWindowsSpawn>(),
-        Job = Substitute.For<IProcessJob>(),
-        WindowsExits = Substitute.For<IWindowsChildExit>(),
-        TreeKill = Substitute.For<IWindowsTreeKill>(),
-        Spawn = Substitute.For<IPosixSpawn>(),
-        Signals = Substitute.For<IProcessGroupSignal>(),
-        Exits = Substitute.For<IChildExitStatus>(),
-        Time = TimeProvider.System,
-        HostEnvironment = new Dictionary<string, string>(StringComparer.Ordinal),
-    };
+    private static LauncherSeams Seams() => LauncherChildScenario.CreateSeams();
 }

@@ -61,6 +61,7 @@ public sealed class CancellationIdentityTests
         yield return new("service-config-read", "pre-cancelled", caller => ServiceDoors.AtConfigPreCancelledAsync("service-config-read", caller));
         yield return new("service-config-write", "pre-cancelled", caller => ServiceDoors.AtConfigPreCancelledAsync("service-config-write", caller));
         yield return new("service-config-stop", "pre-cancelled", ServiceDoors.AtConfigStopPreCancelledAsync);
+        yield return new("service-config-cli", "pre-cancelled", ServiceDoors.AtConfigCliPreCancelledAsync);
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -96,6 +97,12 @@ public sealed class CancellationIdentityTests
         await Assert.That(SessionIsolation.Root).IsNotNull();
         await Assert.That(paths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
         await Assert.That(paths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+        var cli = ServiceCancellationDoors.ConfigCliOptions;
+        await Assert.That(cli.CliCommand).IsEquivalentTo(["bun", "--version"], CollectionOrdering.Matching);
+        await Assert.That(cli.Environment!.Keys).IsEquivalentTo(["SDK_CONFIG_CLI_WITNESS"], CollectionOrdering.Matching);
+        var cliPaths = new ServicePathResolver(new ServiceEnvironment()).Resolve(ServiceSelection.Snapshot(cli));
+        await Assert.That(cliPaths.ConfigFile!).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
+        await Assert.That(cliPaths.RegistrationFile).StartsWith(SessionIsolation.Root + fileSystem.Path.DirectorySeparatorChar);
     }
 
     [Test]
@@ -616,6 +623,8 @@ public sealed class CancellationIdentityTests
 
         private static string? Map(MemberSignature member) => member switch
         {
+            _ when member.Is(typeof(OpenCodeServiceConfiguration), nameof(OpenCodeServiceConfiguration.EnableRemoteAsync), typeof(Task<string>),
+                typeof(OpenCodeServiceConfigOptions), typeof(CancellationToken)) => "service-config-cli",
             _ when member.IsStatic && member.DeclaringType == typeof(OpenCodeServiceConfiguration) &&
                 member.Name is nameof(OpenCodeServiceConfiguration.DisableRemoteAsync) or nameof(OpenCodeServiceConfiguration.SetCorsOriginsAsync)
                     or nameof(OpenCodeServiceConfiguration.SetDisabledAsync) or nameof(OpenCodeServiceConfiguration.SetEnvironmentVariableAsync)
