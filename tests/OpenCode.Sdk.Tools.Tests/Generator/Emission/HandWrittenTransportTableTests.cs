@@ -38,6 +38,9 @@ public sealed class HandWrittenTransportTableTests(PinnedBinding pinnedBinding)
             "rpc.call",
             "session.command",
             "session.generate",
+            "session.inbox.list",
+            "session.message.get",
+            "session.message.list",
             "session.shell",
         ], CollectionOrdering.Any);
     }

@@ -27,6 +27,7 @@ internal static class ClientIdentityComposer
             HttpHandler = options.HttpHandler,
             NetworkTimeout = options.NetworkTimeout,
             EventStreamIdleTimeout = options.EventStreamIdleTimeout,
+            MediaReferences = options.MediaReferences,
         };
         foreach (var header in options.Headers)
         {

@@ -155,6 +155,13 @@ resolves the message's network window from those carried traits.
   Neither reaches terminal WebSocket upgrades (as upstream's terminal sockets carry no caller
   headers), which send only the `Password` credential, nor the background-service info probe,
   which is not a client.
+- `OpenCodeClientOptions.MediaReferences` is an experimental, construction-time opt-in, off by
+  default. On `session.message.list` (every cursor page included), `session.message.get` and
+  `session.inbox.list` only, decoration sets `X-OpenCode-Capabilities: experimental-media-uri`
+  after per-call headers, replacing rather than appending any caller value. The operation trait
+  rides the message, not the document-declared header channel. `OpenCodeRequestOptions.InlineMedia`
+  omits this automatic write; it never removes a caller's own header. The session location's
+  `experimental.media_blob` setting decides whether stored media actually stays a reference.
 
 ### Location
 

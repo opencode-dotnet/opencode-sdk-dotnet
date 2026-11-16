@@ -80,7 +80,7 @@ internal sealed class Pipeline : IDisposable
         PipelinePolicy[] policies =
         [
             new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve(),
-                RequestDecorationPolicy.SnapshotHeaders(options.Headers, "OpenCodeClientOptions.Headers", nameof(options))),
+                RequestDecorationPolicy.SnapshotHeaders(options.Headers, "OpenCodeClientOptions.Headers", nameof(options)), options.MediaReferences),
             new ResponseBufferingPolicy(bufferPool ?? ResponseBufferingPolicy.DefaultPool, time),
             _transport,
         ];

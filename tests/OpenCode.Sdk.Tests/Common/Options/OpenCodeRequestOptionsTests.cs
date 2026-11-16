@@ -16,6 +16,7 @@ public sealed class OpenCodeRequestOptionsTests
             [nameof(OpenCodeRequestOptions.ErrorBehavior)] = ErrorBehavior.NoThrow,
             [nameof(OpenCodeRequestOptions.Location)] = new LocationSelector { Directory = "/sentinel" },
             [nameof(OpenCodeRequestOptions.NetworkTimeout)] = TimeSpan.FromSeconds(42),
+            [nameof(OpenCodeRequestOptions.InlineMedia)] = true,
         };
         var properties = typeof(OpenCodeRequestOptions).GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var options = new OpenCodeRequestOptions();

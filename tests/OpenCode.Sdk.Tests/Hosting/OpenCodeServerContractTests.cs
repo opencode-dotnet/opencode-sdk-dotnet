@@ -16,6 +16,24 @@ public sealed class OpenCodeServerContractTests
     private static OpenCodeServer CreateDiscoveredDoor() => new(DoorEndpoint, DoorPassword, processId: 48213, version: null);
 
     [Test]
+    public async Task CreateClient_Should_Carry_MediaReferences_On_The_Wire()
+    {
+        await using var wire = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse
+        {
+            StatusCode = System.Net.HttpStatusCode.Unauthorized,
+            ContentType = "application/json",
+            Body = WireBodyData.UnauthorizedError,
+        });
+        var server = new OpenCodeServer(wire.Endpoint, DoorPassword);
+        using var client = server.CreateClient(options => options.MediaReferences = true);
+
+        _ = await client.Sessions.GetSessionClient("ses_media").ListMessagesAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
+
+        await Assert.That(wire.Requests.Single().Headers).ContainsKey("X-OpenCode-Capabilities");
+        await Assert.That(wire.Requests.Single().Headers["X-OpenCode-Capabilities"]).IsEqualTo("experimental-media-uri");
+    }
+
+    [Test]
     public async Task CreateClient_Should_Copy_And_Snapshot_Configured_Headers_On_The_Wire()
     {
         await using var wire = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse
@@ -185,7 +203,7 @@ public sealed class OpenCodeServerContractTests
         // that silence loud instead of quiet. Extend both the expected list and the propagation
         // checks, including CreateClient_Should_Copy_And_Snapshot_Configured_Headers_On_The_Wire, when adding the member.
         // Member/type membership is the contract; declaration order is not asserted here.
-        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Headers", "HttpHandler", "Location", "NetworkTimeout"],
+        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Headers", "HttpHandler", "Location", "MediaReferences", "NetworkTimeout"],
             CollectionOrdering.Any);
 
         var server = CreateStartedDoor();

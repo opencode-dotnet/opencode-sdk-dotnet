@@ -89,6 +89,7 @@ internal static class ReservedNamePolicy
             "ListOrder",
             "ListRequest",
             "LocationSelector",
+            "MediaReference",
             "OpenCodeApiException",
             "OpenCodeClientOptions",
             "OpenCodeException",

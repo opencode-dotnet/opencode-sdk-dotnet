@@ -5,7 +5,8 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Decorates every request in four steps: SDK User-Agent; <see cref="OpenCodeClientOptions.Headers"/>;
 /// SDK authorization, merged location and declared headers; <see cref="OpenCodeRequestOptions.Headers"/>.
-/// Later steps replace earlier names. Client-wide values are snapshotted at construction.
+/// Later steps replace earlier names. The experimental media capability follows per-call headers
+/// on eligible reads when enabled. Client-wide values are snapshotted at construction.
 /// Knowledge source: upstream-observed — the location
 /// header mirrors the middleware's percent decoding, re-verified at every spec refresh. A
 /// per-call location in <see cref="PipelineMessage.Options"/> merges over that snapshot: a set
@@ -26,15 +27,17 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
     private readonly string? _escapedDirectory;
     private readonly string _userAgent;
     private readonly IReadOnlyDictionary<string, string>? _headers;
+    private readonly bool _mediaReferences;
 
     public RequestDecorationPolicy(AuthenticationHeaderValue? authorization, LocationSelector? location, ProductInfoHeaderValue userAgent,
-        IReadOnlyDictionary<string, string>? headers = null)
+        IReadOnlyDictionary<string, string>? headers = null, bool mediaReferences = false)
     {
         ArgumentNullException.ThrowIfNull(userAgent);
 
         _authorization = authorization;
         _userAgent = userAgent.ToString();
         _headers = headers is { Count: > 0 } ? headers : null;
+        _mediaReferences = mediaReferences;
 
         // The server percent-decodes this header. Compute the ambient escape once; per-call
         // overrides are escaped when decorating. This also keeps Unicode paths sendable.
@@ -44,6 +47,11 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
     public override ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
     {
         Decorate(message.Request, message.Options, message.DeclaredHeaders);
+        if (_mediaReferences && message.CarriesMediaCapability && message.Options?.InlineMedia is not true)
+        {
+            AddOrReplaceRequestHeader(message.Request, "X-OpenCode-Capabilities", "experimental-media-uri");
+        }
+
         return ProcessNextAsync(message, remaining);
     }
 

@@ -24,6 +24,7 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 ### ✨ Added
 
 - `OpenCodeClientOptions.HttpHandler` accepts a caller-owned HTTP transport for requests, event streams, and terminal upgrades on modern targets.
+- Experimental media references for message and inbox reads via `MediaReferences`, with `InlineMedia` for self-contained exports and `MediaReference.HashFromUri` for fetching referenced blobs.
 - `OpenCodeClientOptions.Headers` and `OpenCodeRequestOptions.Headers` set client-wide and per-call HTTP headers, with per-call values winning.
 - `OpenCodeServer.ResolveAsync` selects an explicit endpoint, an owned standalone server or the shared service with the CLI's precedence, including the saved `disabled` flag. Connections expose resolve-time `ServerVersion`; explicit mismatches can invoke `OnServerVersionMismatch`. Managed `ServiceOperations` reconnect or restart with a best-effort persistent-terminal handoff using the resolve-time snapshot.
 - `OpenCodeServerStopOptions.Pty` accepts `OpenCodeServerStopPtyMode.Handoff` so that `StopAsync` attempts a best-effort persistent-terminal handoff after it reads the registration and before it signals the process. Follow it with `EnsureAsync` using the same registration selection to restart as the managed connection does; preservation depends on preparing and adopting the ticket before it expires. Null and `Clear` keep the default: terminals end with the service, as with the CLI's `service restart`.

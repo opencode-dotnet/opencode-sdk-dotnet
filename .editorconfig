@@ -827,6 +827,15 @@ dotnet_diagnostic.CA1034.severity = none
 [src/OpenCode.Sdk/**/{ArtifactInfo,ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,PromptMediaFileAttachment,ToolFileContent,UsageLimitsInfoWorkspace,VoiceWebSocketTransport,WebSearchResult}.cs]
 dotnet_diagnostic.CA1056.severity = none
 
+# MediaReference.HashFromUri mirrors upstream's first-party mediaHashFromUri: its parameter
+# carries the wire media: reference string under upstream's name, not a System.Uri, and it
+# returns a hash, not a URI, so CA1055 fires on the method name alone.
+# Winner: upstream's first-party spelling (ADR-0031); CA1054 and CA1055 remain enabled for
+# every other file.
+[src/OpenCode.Sdk/Common/MediaReference.cs]
+dotnet_diagnostic.CA1054.severity = none
+dotnet_diagnostic.CA1055.severity = none
+
 # The SDK's namespaces are API surface, not placement: a public type declares OpenCode.Sdk or
 # OpenCode.Sdk.Models wherever its file lives, and every internal type declares
 # OpenCode.Sdk.Internal, so moving a file never changes a namespace. Winner: the SDK

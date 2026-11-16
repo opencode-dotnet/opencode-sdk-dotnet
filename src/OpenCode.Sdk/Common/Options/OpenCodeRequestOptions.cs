@@ -3,6 +3,17 @@ namespace OpenCode.Sdk;
 /// <summary>Configures one opencode API call.</summary>
 public sealed class OpenCodeRequestOptions
 {
+    /// <summary>Gets whether to omit the automatic media capability header for this call; defaults to false.</summary>
+    /// <remarks>
+    /// Overrides <see cref="OpenCodeClientOptions.MediaReferences"/> on session.message.list (each
+    /// cursor page included), session.message.get and session.inbox.list. Stored media comes back
+    /// inline unless the caller sends the capability header itself. Otherwise the session location's
+    /// experimental.media_blob setting decides whether media stays a ref, whose bytes
+    /// client.Experimental.GetMediaAsync reads. Use this option for self-contained exports.
+    /// </remarks>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
+    public bool InlineMedia { get; init; }
+
     /// <summary>
     /// Gets the headers validated and copied when this call starts; each cursor page is a separate
     /// call. The event subscription refuses them. Later values replace

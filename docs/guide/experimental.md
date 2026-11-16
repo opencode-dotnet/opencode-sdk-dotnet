@@ -1,6 +1,6 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-15
+Date: 2026-11-16
 
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it except three declined operations (the client-hosted MCP attach and its token, deferred in #529, and the legacy text-generation endpoint), and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
@@ -41,10 +41,47 @@ later. Older compilers ignore the attribute.
 
 The `ExperimentalClient` (`client.Experimental`) and the types only it uses: session stats, import
 and export, skills, the session wait, the durable session event stream, instruction entries, text, image and
-decision generation, schedules, background jobs, usage limits, media, artifacts, well-known integrations, adding,
+decision generation, schedules, background jobs, usage limits, media and media references, artifacts, well-known integrations, adding,
 removing, connecting and disconnecting MCP servers, voice models and sessions, file write and file
 watching, the v1 migration status, and the config update. The
 [streaming guide](streaming.md#-a-single-sessions-log) covers the durable session event stream.
+
+### Media references
+
+Set `MediaReferences = true` when constructing the client to request `media:<hash>` references on
+`ListMessagesAsync` (and every `EnumerateMessagesAsync` page), `GetMessageAsync` and `ListInboxAsync`.
+The session location's `experimental.media_blob` setting decides whether stored media stays a ref.
+`HashFromUri` returns its 64 lowercase-hex hash, or null for any other value; `GetMediaAsync` fetches
+the bytes. For self-contained exports, `InlineMedia = true` omits the automatic capability header:
+stored media then comes back inline unless you send that header yourself.
+
+```csharp
+#pragma warning disable OPENCODE001 // Accept the experimental media capability.
+using OpenCode.Sdk;
+using OpenCode.Sdk.Models;
+
+using var client = new OpenCodeClient(new OpenCodeClientOptions
+{
+    Endpoint = new Uri("http://localhost:4096"),
+    MediaReferences = true,
+});
+var session = client.Sessions.GetSessionClient("ses_example");
+var message = await session.GetMessageAsync("msg_example");
+if (message.Message is SessionMessageUser { Files: { } files })
+{
+    foreach (var file in files)
+    {
+        if (MediaReference.HashFromUri(file.Data) is { } hash)
+        {
+            var blob = await client.Experimental.GetMediaAsync(hash);
+            Console.WriteLine($"Referenced attachment: {blob.Content.Length} bytes");
+        }
+    }
+}
+var export = await session.GetMessageAsync("msg_example",
+    requestOptions: new OpenCodeRequestOptions { InlineMedia = true });
+#pragma warning restore OPENCODE001
+```
 
 ## OPENCODE002
 

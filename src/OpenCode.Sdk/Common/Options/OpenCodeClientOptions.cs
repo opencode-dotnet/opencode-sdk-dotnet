@@ -7,6 +7,17 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeClientOptions
 {
+    /// <summary>Gets or sets whether message reads request experimental media references; defaults to false.</summary>
+    /// <remarks>
+    /// Sends X-OpenCode-Capabilities: experimental-media-uri on session.message.list (each cursor page
+    /// included), session.message.get and session.inbox.list. The session location's
+    /// experimental.media_blob setting decides whether stored media stays a ref.
+    /// Use client.Experimental.GetMediaAsync to read its bytes, or
+    /// <see cref="OpenCodeRequestOptions.InlineMedia"/> to omit the automatic header for one call.
+    /// </remarks>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
+    public bool MediaReferences { get; set; }
+
     /// <summary>
     /// Gets the case-insensitive headers copied and validated once at client construction.
     /// Later values replace earlier ones: SDK User-Agent, these headers, SDK authentication,
