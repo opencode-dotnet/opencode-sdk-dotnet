@@ -53,7 +53,7 @@ internal static class OperationMethodEmitter
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(emission is EmissionMode.Public && !classMarked ? operation.ExperimentalDiagnostic : null))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(EmitParameters(operation, methodParameters))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmitDocumentation(operation, methodParameters));
+            .WithLeadingTrivia(EmitDocumentation(operation, emission, methodParameters));
     }
 
     /// <summary>
@@ -252,7 +252,20 @@ internal static class OperationMethodEmitter
         return EmissionSyntax.Invocation(member, [.. arguments]);
     }
 
-    private static SyntaxTriviaList EmitDocumentation(OperationPlan operation, IReadOnlyList<OperationParameterPlan> methodParameters)
+    /// <summary>
+    /// Describes the per-call options. An internal-raw stream's family has a hand-written owner that
+    /// decides which per-call options apply, so the caller-facing stream rules do not describe it.
+    /// </summary>
+    private static string RequestOptionsDocumentation(OperationPlan operation, EmissionMode emission) =>
+        (operation.Stream, emission) switch
+        {
+            (null, _) => "The per-call options.",
+            (_, EmissionMode.InternalRaw) => "The per-call options; the family's hand-written owner decides which apply.",
+            _ => "The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.",
+        };
+
+    private static SyntaxTriviaList EmitDocumentation(OperationPlan operation, EmissionMode emission,
+        IReadOnlyList<OperationParameterPlan> methodParameters)
     {
         var parameters = new List<DocumentedParameter>();
         parameters.AddRange(methodParameters.Select(static parameter =>
@@ -285,9 +298,7 @@ internal static class OperationMethodEmitter
         parameters.AddRange(operation.DeclaredHeaders.Select(static header =>
             new DocumentedParameter(header.Name, $"The '{header.WireName}' request header; omitted when null.")));
 
-        parameters.Add(new DocumentedParameter(ReservedNamePolicy.RequestOptionsParameter, operation.Stream is null
-            ? "The per-call options."
-            : "The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan."));
+        parameters.Add(new DocumentedParameter(ReservedNamePolicy.RequestOptionsParameter, RequestOptionsDocumentation(operation, emission)));
 
         parameters.Add(new DocumentedParameter(ReservedNamePolicy.CancellationTokenParameter, "The cancellation token."));
 
