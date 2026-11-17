@@ -686,5 +686,21 @@
   {
     "origin": "http://xn--99999999999999999999999999999999999999999999999999999999999",
     "valid": false
+  },
+  {
+    "origin": "http://xn--\"-mga",
+    "valid": true
+  },
+  {
+    "origin": "http://xn--\"-9ca",
+    "valid": false
+  },
+  {
+    "origin": "http://xn--9caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
+  },
+  {
+    "origin": "http://xn--9caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
   }
 ]
