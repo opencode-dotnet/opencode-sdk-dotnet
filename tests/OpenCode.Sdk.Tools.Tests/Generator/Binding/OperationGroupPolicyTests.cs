@@ -73,6 +73,21 @@ public sealed class OperationGroupPolicyTests
     }
 
     [Test]
+    [Arguments(true, new[] { "widget", "child", "grand", "get" })]
+    [Arguments(false, new[] { "grand", "get" })]
+    public async Task Apply_Should_Name_Accessor_Free_Raw_Groups_From_Their_Effective_Boundary(bool curatedParents, string[] expected)
+    {
+        var groups = Groups("lab.widget.child.grand", ClientGroup("Grandchildren", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false });
+        if (curatedParents)
+        {
+            groups["lab.widget"] = ClientGroup("Widgets", null, null);
+            groups["lab.widget.child"] = ClientGroup("Children", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false };
+        }
+        var grouped = OperationGroupPolicy.Apply(await IngestAsync("lab.widget.child.grand.get"), groups);
+        await Assert.That(grouped.Operations.Single().Segments).IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments("lab.wid")]
     [Arguments("lab.widget.get")]
     public async Task Apply_Should_Leave_An_Operation_A_Key_Does_Not_Prefix_At_A_Dot(string key)

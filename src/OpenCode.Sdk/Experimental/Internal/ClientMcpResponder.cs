@@ -131,7 +131,7 @@ internal sealed class ClientMcpResponder(ClientMcpOptions options)
     {
         try
         {
-            var result = await tool.Handler(args, context).ConfigureAwait(false);
+            var result = await Task.Run(() => tool.Handler(args, context)).ConfigureAwait(false);
             if (result is null || result.Content is null || result.Content.Any(static part => part is null))
             {
                 throw new InvalidOperationException("Client MCP handlers must return non-null results, content and content elements.");
@@ -186,7 +186,7 @@ internal sealed class ClientMcpResponder(ClientMcpOptions options)
         var significant = digits.TrimStart('0');
         point -= digits.Length - significant.Length;
         var magnitude = Math.Abs(number);
-        if (magnitude >= 1e-6 && magnitude < 1e21)
+        if (magnitude is >= 1e-6 and < 1e21)
         {
             return sign + (point switch
             {

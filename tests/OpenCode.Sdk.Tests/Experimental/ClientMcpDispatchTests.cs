@@ -39,7 +39,6 @@ public sealed class ClientMcpDispatchTests
         {
             await dispatch.DispatchAsync(Decode(entry!["raw"]?.GetValue<string>() ?? entry["value"]!.ToJsonString(),
                 entry["binary"]?.GetValue<bool>() is true ? WebSocketMessageType.Binary : WebSocketMessageType.Text));
-            await dispatch.ObserveResponsesAsync();
         }
 
         await dispatch.ObserveResponsesAsync();
@@ -76,9 +75,9 @@ public sealed class ClientMcpDispatchTests
         }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         try
         {
-            var handlerThread = await entered.Task;
+            var handlerThread = await entered.Task.WaitAsync(HangGuard.Bound);
             await Assert.That(handlerThread).IsNotEqualTo(readerThread);
-            await socket.SendEntered;
+            await socket.SendEntered.WaitAsync(HangGuard.Bound);
             await Assert.That(socket.SentText).IsEquivalentTo([
                 new JsonObject { ["jsonrpc"] = "2.0", ["id"] = 7, ["result"] = new JsonObject() }.ToJsonString(),
             ], CollectionOrdering.Matching);
@@ -120,10 +119,10 @@ public sealed class ClientMcpDispatchTests
         try
         {
             var a = dispatch.DispatchAsync(Decode(fixture["requests"]![0]!.ToJsonString()));
-            await aStarted.Task;
+            await aStarted.Task.WaitAsync(HangGuard.Bound);
             var b = dispatch.DispatchAsync(Decode(fixture["requests"]![1]!.ToJsonString()));
-            await bStarted.Task;
-            await socket.SendEntered;
+            await bStarted.Task.WaitAsync(HangGuard.Bound);
+            await socket.SendEntered.WaitAsync(HangGuard.Bound);
             await Assert.That(a.IsCompleted).IsTrue();
             await Assert.That(b.IsCompleted).IsTrue();
             await Assert.That(started).IsEquivalentTo(["A", "B"], CollectionOrdering.Matching);

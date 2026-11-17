@@ -169,7 +169,6 @@ public sealed class ClientMcpConnectionTests
 
         var dispatch = await scenario.OpenedAsync(connection);
         await dispatch.DispatchAsync(ClientMcpScenario.Message("initialize"));
-        await dispatch.ObserveResponsesAsync();
         await dispatch.DispatchAsync(ClientMcpScenario.Message("tools/list"));
         await dispatch.ObserveResponsesAsync();
         await Assert.That(third.SentText).IsEquivalentTo(_wire["reset"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
@@ -274,7 +273,7 @@ public sealed class ClientMcpConnectionTests
         try
         {
             await dispatch.DispatchAsync(ClientMcpScenario.Message("tools/call"));
-            await entered.Task;
+            await entered.Task.WaitAsync(HangGuard.Bound);
             await Assert.That(held).IsNotNull();
             var observed = dispatch.ObserveResponsesAsync();
             await Assert.That(observed.IsCompleted).IsFalse();
@@ -302,14 +301,18 @@ public sealed class ClientMcpConnectionTests
         var calls = 0;
         await using var connection = scenario.Connect([one, two], ClientMcpScenario.Options((_, _) =>
         {
-            _ = entered.TrySetResult(true);
-            return ++calls is 1 ? held.Task : Task.FromResult(Result("new"));
+            var call = Interlocked.Increment(ref calls);
+            if (call is 1)
+            {
+                _ = entered.TrySetResult(true);
+            }
+            return call is 1 ? held.Task : Task.FromResult(Result("new"));
         }));
         var old = await scenario.OpenedAsync(connection);
         try
         {
             await old.DispatchAsync(ClientMcpScenario.Message("tools/call"));
-            await entered.Task;
+            await entered.Task.WaitAsync(HangGuard.Bound);
             one.ReleaseReceives();
             await Assert.That(await scenario.RetryAsync(connection)).IsEqualTo(TimeSpan.FromMilliseconds(500));
             scenario.Clock.Advance(TimeSpan.FromMilliseconds(500));
@@ -339,7 +342,7 @@ public sealed class ClientMcpConnectionTests
         await dispatch.DispatchAsync(ClientMcpScenario.Message("ping"));
         try
         {
-            await socket.SendEntered;
+            await socket.SendEntered.WaitAsync(HangGuard.Bound);
             await Assert.That(socket.SentText).IsEquivalentTo([_wire["ping"]!.ToJsonString()], CollectionOrdering.Matching);
             var deadlines = scenario.Clock.ArmedIn(TimeSpan.FromSeconds(30));
             scenario.Clock.Advance(TimeSpan.FromSeconds(60));

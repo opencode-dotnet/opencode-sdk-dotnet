@@ -35,7 +35,7 @@ internal sealed class ClientMcpDispatch(TerminalSocketCore<ClientMcpMessage> cor
         Task? observed = null;
         lock (_gate)
         {
-            observed = Task.Run(() => SendResponseAsync(message)).ContinueWith(completed =>
+            observed = SendResponseAsync(message).ContinueWith(completed =>
             {
                 _ = completed.Exception;
                 lock (_gate)
