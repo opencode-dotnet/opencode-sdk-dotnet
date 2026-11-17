@@ -46,10 +46,10 @@ Console.WriteLine($"session {created.Session.Id}");
 
 ## 🧭 API Coverage
 
-Every operation in the pinned OpenAPI snapshot is callable except the legacy text endpoint below;
-three connection doors use hand-written WebSocket transports. All three connection modes
-work: a private server the SDK starts, a server you already run, and the background service that
-the opencode CLI registers.
+The SDK covers the whole opencode API at the pinned version, including the three WebSocket
+connections (terminals, persistent terminals and client-hosted MCP), which use hand-written
+transports. All three connection modes work: a private server the SDK starts, a server you already
+run, and the background service that the opencode CLI registers.
 
 `OpenCodeClient` exposes one sub-client per area of the API. Every sub-client is also injectable on
 its own when you use dependency injection.
@@ -81,9 +81,6 @@ attachment are WebSocket upgrades outside the HTTP pipeline. The hand-written `P
 `PersistentPtySession` and `ClientMcpConnection` types expose these three doors.
 [Client-hosted MCP](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#client-hosted-mcp)
 also provides `CreateClientMcpConnectTokenAsync` for browser tickets through the HTTP pipeline.
-Only the legacy text generation endpoint is declined; upstream's own clients omit it.
-[`src/OpenCode.Sdk/.generation-incomplete`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/src/OpenCode.Sdk/.generation-incomplete)
-is the machine-readable map that the build reads.
 
 ## 📦 Installation
 

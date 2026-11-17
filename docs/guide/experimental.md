@@ -1,9 +1,8 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-16
+Date: 2026-11-17
 
-Upstream serves some of its API under `/api/experimental/`. The SDK exposes it except for the
-legacy text-generation endpoint, and marks
+Upstream serves some of its API under `/api/experimental/`. The SDK exposes it and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
 before you depend on it.
 
