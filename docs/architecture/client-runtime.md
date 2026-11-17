@@ -395,11 +395,12 @@ resolves the message's network window from those carried traits.
   wire, so a resume anchors on the previous connection's replay-complete `EndOffset` or on the
   terminal's `Info.Output.Tail`; a cursor pointing at trimmed output is advanced by the server,
   which reports the gap through the attachment's replay bounds.
-- **Close.** 1000 ends the enumeration normally. 4404 means the terminal does not exist **or** the
-  `opencode-pty` daemon is unavailable — one application code for both causes, which a caller
-  cannot tell apart from the wire — and because this family runs no pre-upgrade existence check it
-  arrives before the `attached` frame, so `ConnectAsync` surfaces it rather than the first read.
-  Any other close is abnormal.
+- **Close.** 1000 ends the enumeration normally. 4404 means the terminal does not exist, the
+  `opencode-pty` daemon is unavailable, **or** a `Controller` attach without `Takeover` met another
+  controller — one application code for all three causes, which a caller cannot tell apart from
+  the wire — and because this family runs no pre-upgrade existence check it arrives before the
+  `attached` frame, so `ConnectAsync` surfaces it rather than the first read. Any other close is
+  abnormal.
 - **Failed upgrade.** The connect query and the credential are checked before the upgrade: 400
   names the rejected query (the cursor is the value that can produce it), 401 and 403 name the
   rejected credential or origin, and any other status is named as the answer it was. There is

@@ -256,11 +256,12 @@ What is different here:
 - **`ConnectAsync` returns only after the server's attach**, so `Attachment` is always populated:
   the attachment id, the terminal as it stood, the replay bounds, the resize generation, and the
   **granted** role.
-- **The role you asked for is not necessarily the role you got.** Ask for `Controller`, read
-  `attached.Attachment.Role`, and treat it as the role at attach time: input written from an
-  observer connection is accepted and makes that attachment the controller. Set `Takeover = true` to take control from the
-  current controller; without it a second controller is attached as an observer instead. Reusing a
-  previous connection's `AttachmentId` is how a reconnect reclaims its own control.
+- **A `Controller` attach can fail.** Asking for `Controller` without `Takeover` while another
+  connection controls the terminal makes `ConnectAsync` throw `OpenCodeTransportException` on the
+  server's 4404 close. Set `Takeover = true` to take control instead; the previous controller
+  becomes an observer. `attached.Attachment.Role` is the role at attach time: input written from
+  an observer connection is accepted and makes that attachment the controller. Reusing a previous
+  connection's `AttachmentId` is how a reconnect reclaims its own control.
 - **Input has the same two doors as a normal PTY.** `SubmitAsync` submits one line — the same
   contract, the same `\r` — UTF-8 encoded into the framed input message that carries your viewport.
   `WriteAsync` is the raw door here too, and it takes bytes: partial input, control sequences, or
