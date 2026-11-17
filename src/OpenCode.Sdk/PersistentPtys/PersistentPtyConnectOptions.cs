@@ -76,8 +76,10 @@ public sealed record PersistentPtyConnectOptions
     public string? AttachmentId { get; init; }
 
     /// <summary>
-    /// Gets whether this connection takes control from the terminal's current controller. Without
-    /// it a second controller is attached as an observer instead.
+    /// Gets whether this connection takes control from the terminal's current controller, which
+    /// becomes an observer. Without it, a <see cref="PersistentPtyRole.Controller"/> attach fails
+    /// while another attachment controls the terminal: the server closes with 4404 and
+    /// <see cref="PersistentPtyClient.ConnectAsync"/> throws <see cref="OpenCodeTransportException"/>.
     /// </summary>
     public bool Takeover { get; init; }
 }

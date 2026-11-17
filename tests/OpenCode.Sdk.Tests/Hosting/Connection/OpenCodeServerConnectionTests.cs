@@ -41,7 +41,7 @@ public sealed class OpenCodeServerConnectionTests
         })).Throws<InvalidOperationException>();
 
         await Assert.That(failure!.Message).IsEqualTo(
-            "CreateClient owns the connection identity: leave Endpoint, Username, and Password unset — the started server supplies them. Configure behavior members such as Location only.");
+            "CreateClient owns the connection identity: Endpoint and Password must stay null and Username must stay \"opencode\"; the server supplies them. Every other option is carried into the client.");
     }
 
     [Test]

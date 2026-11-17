@@ -6,10 +6,11 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Reads a persistent PTY WebSocket close frame as an ending or a failure. Knowledge source:
 /// upstream-observed — the server closes with 1000 after the terminal exits and whenever the
-/// daemon's stream ends, and with the application code 4404 when the terminal does not exist or
-/// the opencode-pty daemon is unavailable. Because this family performs no pre-upgrade existence
-/// check, 4404 is the arm a missing terminal takes, and it arrives before the <c>attached</c>
-/// frame rather than mid-stream. The policy holds no state, so one instance serves every session.
+/// daemon's stream ends, and with the application code 4404 when the terminal does not exist,
+/// the opencode-pty daemon is unavailable, or a controller attach without takeover meets another
+/// controller. Because this family performs no pre-upgrade existence check, 4404 is the arm a
+/// missing terminal takes, and it arrives before the <c>attached</c> frame rather than mid-stream.
+/// The policy holds no state, so one instance serves every session.
 /// </summary>
 internal sealed class PersistentPtyClosePolicy : ITerminalClosePolicy
 {
@@ -33,7 +34,7 @@ internal sealed class PersistentPtyClosePolicy : ITerminalClosePolicy
         if (status is TerminalUnavailable)
         {
             return new OpenCodeTransportException(
-                $"The opencode server closed the persistent PTY WebSocket with status 4404{FormatReason(description)}; the terminal does not exist or the opencode-pty daemon is unavailable.");
+                $"The opencode server closed the persistent PTY WebSocket with status 4404{FormatReason(description)}; the terminal does not exist, the opencode-pty daemon is unavailable, or another attachment controls the terminal and this controller attach did not take over.");
         }
 
         var code = status is null

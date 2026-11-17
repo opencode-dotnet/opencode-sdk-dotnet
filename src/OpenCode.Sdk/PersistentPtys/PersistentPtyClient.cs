@@ -129,7 +129,8 @@ public class PersistentPtyClient
     /// designed non-browser path — and the SDK never mints a ticket for its own connection;
     /// <see cref="CreateConnectTokenAsync"/> stays the door for handing a browser one. Unlike the
     /// normal PTY family, the server does not check the terminal's existence before upgrading: a
-    /// missing terminal or an absent daemon closes 4404 right after, which this door surfaces here
+    /// missing terminal, an absent daemon, or a controller attach without takeover while another
+    /// attachment controls the terminal closes 4404 right after, which this door surfaces here
     /// rather than on the first read.
     /// </summary>
     /// <param name="options">The connect options: the replay cursor, the role, the attachment identity, and the takeover.</param>
