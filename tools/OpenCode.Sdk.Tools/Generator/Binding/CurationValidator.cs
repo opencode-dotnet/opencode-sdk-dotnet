@@ -268,7 +268,7 @@ internal static class CurationValidator
         // header parameter admitted per-row landing on a public client.
         foreach (var family in curation
                      .Groups
-                     .Where(static pair => pair.Value is { Placement: GroupPlacement.Client, ClientName: not null })
+                     .Where(static pair => pair.Value is { Placement: GroupPlacement.Client } && !string.IsNullOrWhiteSpace(pair.Value.ClientName))
                      .GroupBy(static pair => pair.Value.ClientName!, StringComparer.Ordinal)
                      .OrderBy(static family => family.Key, StringComparer.Ordinal))
         {
