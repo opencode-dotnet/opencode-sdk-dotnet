@@ -28,8 +28,8 @@ internal sealed class LoopbackUpgradeListener(Func<int>? reservePort = null) : I
                         _listener = listener;
                         return _listener;
                     }
-                    // HTTP.sys reports prefix conflicts as 183 (ERROR_ALREADY_EXISTS), invisible to TCP port probes.
-                    catch (HttpListenerException exception) when (OperatingSystem.IsWindows() && exception.ErrorCode == 183)
+                    // 183: HTTP.sys prefix conflict; 32: TCP-held port. Probes miss HTTP.sys conflicts; ports can be taken after probing.
+                    catch (HttpListenerException exception) when (OperatingSystem.IsWindows() && exception.ErrorCode is 183 or 32)
                     {
                         listener.Close();
                     }
