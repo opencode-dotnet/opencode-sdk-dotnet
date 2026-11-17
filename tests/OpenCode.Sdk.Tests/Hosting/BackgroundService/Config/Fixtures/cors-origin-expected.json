@@ -322,5 +322,269 @@
   {
     "origin": "​https://example.com​",
     "valid": false
+  },
+  {
+    "origin": "http://.a",
+    "valid": true
+  },
+  {
+    "origin": "http://a..b",
+    "valid": true
+  },
+  {
+    "origin": "http://a..",
+    "valid": true
+  },
+  {
+    "origin": "http://.",
+    "valid": true
+  },
+  {
+    "origin": "http://..",
+    "valid": true
+  },
+  {
+    "origin": "http://a...b",
+    "valid": true
+  },
+  {
+    "origin": "http://a.42..",
+    "valid": true
+  },
+  {
+    "origin": "http://a.42.",
+    "valid": false
+  },
+  {
+    "origin": "http://a..42",
+    "valid": false
+  },
+  {
+    "origin": "http://.a:8080",
+    "valid": true
+  },
+  {
+    "origin": "https://a..b:8080",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.",
+    "valid": true
+  },
+  {
+    "origin": "http://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.",
+    "valid": true
+  },
+  {
+    "origin": "http://!",
+    "valid": true
+  },
+  {
+    "origin": "http://a!b",
+    "valid": true
+  },
+  {
+    "origin": "http://$",
+    "valid": true
+  },
+  {
+    "origin": "http://a$b",
+    "valid": true
+  },
+  {
+    "origin": "http://&",
+    "valid": true
+  },
+  {
+    "origin": "http://a&b",
+    "valid": true
+  },
+  {
+    "origin": "http://'",
+    "valid": true
+  },
+  {
+    "origin": "http://a'b",
+    "valid": true
+  },
+  {
+    "origin": "http://(",
+    "valid": true
+  },
+  {
+    "origin": "http://a(b",
+    "valid": true
+  },
+  {
+    "origin": "http://)",
+    "valid": true
+  },
+  {
+    "origin": "http://a)b",
+    "valid": true
+  },
+  {
+    "origin": "http://*",
+    "valid": true
+  },
+  {
+    "origin": "http://a*b",
+    "valid": true
+  },
+  {
+    "origin": "http://+",
+    "valid": true
+  },
+  {
+    "origin": "http://a+b",
+    "valid": true
+  },
+  {
+    "origin": "http://;",
+    "valid": true
+  },
+  {
+    "origin": "http://a;b",
+    "valid": true
+  },
+  {
+    "origin": "http://=",
+    "valid": true
+  },
+  {
+    "origin": "http://a=b",
+    "valid": true
+  },
+  {
+    "origin": "http://~",
+    "valid": true
+  },
+  {
+    "origin": "http://a~b",
+    "valid": true
+  },
+  {
+    "origin": "http://%21",
+    "valid": false
+  },
+  {
+    "origin": "http://%24",
+    "valid": false
+  },
+  {
+    "origin": "http://%26",
+    "valid": false
+  },
+  {
+    "origin": "http://%27",
+    "valid": false
+  },
+  {
+    "origin": "http://%28",
+    "valid": false
+  },
+  {
+    "origin": "http://%29",
+    "valid": false
+  },
+  {
+    "origin": "http://%2a",
+    "valid": false
+  },
+  {
+    "origin": "http://%2b",
+    "valid": false
+  },
+  {
+    "origin": "http://%3b",
+    "valid": false
+  },
+  {
+    "origin": "http://%3d",
+    "valid": false
+  },
+  {
+    "origin": "http://%7e",
+    "valid": false
+  },
+  {
+    "origin": "http://%2e",
+    "valid": false
+  },
+  {
+    "origin": "http://%2ea",
+    "valid": false
+  },
+  {
+    "origin": "http://a%2e%2eb",
+    "valid": false
+  },
+  {
+    "origin": "http://!:8080",
+    "valid": true
+  },
+  {
+    "origin": "https://!:8080",
+    "valid": true
+  },
+  {
+    "origin": "http://!:80",
+    "valid": false
+  },
+  {
+    "origin": "https://!:443",
+    "valid": false
+  },
+  {
+    "origin": "http://!:08080",
+    "valid": false
+  },
+  {
+    "origin": "http://!:65536",
+    "valid": false
+  },
+  {
+    "origin": "http://!/",
+    "valid": false
+  },
+  {
+    "origin": "http://!@a",
+    "valid": false
+  },
+  {
+    "origin": "http://a!B",
+    "valid": false
+  },
+  {
+    "origin": "http://!@!",
+    "valid": false
+  },
+  {
+    "origin": "http://!:8080/",
+    "valid": false
   }
 ]

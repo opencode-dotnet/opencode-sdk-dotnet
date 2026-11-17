@@ -1403,11 +1403,16 @@ writes, even when its value was already stored or no file existed.
 be empty strings; null arguments and undefined unset settings are refused. `SetCorsOriginsAsync`
 requires a nonempty list, trims each item with ECMAScript's WhiteSpace and LineTerminator set,
 refuses commas inside an item, and preserves order and duplicates. Its `CorsOriginPolicy` accepts
-an item only when it equals the HTTP or HTTPS origin reconstructed through .NET's `Uri`,
-`IdnMapping`, and IP handling. The oracle `tools/oracles/service-config.ts` compares a checked
-corpus with the CLI's own WHATWG-based validation; this bounded evidence does not establish full
-parser equivalence. Invalid values are refused with an `ArgumentException` subtype before
-configuration I/O, stopping, or CLI execution.
+an item only when it exactly equals the reconstructed HTTP or HTTPS origin. It uses .NET's `Uri`,
+ACE-label validation through `IdnMapping`, and IP handling. When `Uri` refuses a host containing
+only lowercase ASCII letters, digits, dots, hyphens, underscores, or `!$&'()*+;=~`, a fixed
+replacement host lets `Uri` parse the scheme and port while reconstruction keeps the original host.
+This admits empty labels and long ASCII names without imposing DNS length limits; a numeric final
+label is checked after removing at most one terminal empty label. The oracle
+`tools/oracles/service-config.ts` compares a checked corpus with the CLI's own WHATWG-based
+validation, including these host classes; this bounded evidence does not establish full parser
+equivalence. Invalid values are refused with an `ArgumentException` subtype before configuration
+I/O, stopping, or CLI execution.
 
 `DisableRemoteAsync` is both `set remote false` and `unset remote`: it stops the service, forgets
 the route and records `remoteAccepted` when remote access was enabled, leaving that marker
