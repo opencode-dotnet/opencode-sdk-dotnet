@@ -17,11 +17,10 @@ public sealed class ClientMcpDispatchTests
         using var socket = new ScriptedTerminalWebSocket();
         await using var core = Core(socket);
         var dispatch = new ClientMcpDispatch(core, new ClientMcpResponder(new ClientMcpOptions { Name = "app", Tools = [] }), static () => { });
-        await dispatch.DispatchAsync(Decode(entry["raw"]!.GetValue<string>()));
-        await dispatch.ObserveResponsesAsync();
-        await dispatch.DispatchAsync(Support.ClientMcpScenario.Message("ping"));
-        await dispatch.ObserveResponsesAsync();
-        await Assert.That(socket.SentText).IsEquivalentTo([
+        var inlineResponses = DispatchInline(dispatch, socket,
+            [Decode(entry["raw"]!.GetValue<string>()), Support.ClientMcpScenario.Message("ping")]);
+        await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
+        await Assert.That(inlineResponses).IsEquivalentTo([
             entry["response"]!.ToJsonString(),
             new JsonObject { ["jsonrpc"] = "2.0", ["id"] = 7, ["result"] = new JsonObject() }.ToJsonString(),
         ], CollectionOrdering.Matching);
@@ -35,30 +34,19 @@ public sealed class ClientMcpDispatchTests
         await using var core = Core(socket);
         var resets = 0;
         var dispatch = new ClientMcpDispatch(core, new ClientMcpResponder(new ClientMcpOptions { Name = "app", Tools = [] }), () => resets++);
-        IReadOnlyList<string> inlineResponses;
-#if NET
-        lock ((Lock)typeof(ClientMcpDispatch).GetField("_gate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dispatch)!)
-#else
-        // The downlevel Lock is an assembly-local polyfill over Monitor.
-        lock (typeof(ClientMcpDispatch).GetField("_gate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dispatch)!)
-#endif
-        {
-            foreach (var entry in fixture["messages"]!.AsArray())
-            {
-                _ = dispatch.DispatchAsync(Decode(entry!["raw"]?.GetValue<string>() ?? entry["value"]!.ToJsonString(),
-                    entry["binary"]?.GetValue<bool>() is true ? WebSocketMessageType.Binary : WebSocketMessageType.Text));
-            }
-            inlineResponses = socket.SentText;
-        }
+        var inlineResponses = DispatchInline(dispatch, socket, fixture["messages"]!.AsArray().Select(static entry =>
+            Decode(entry!["raw"]?.GetValue<string>() ?? entry["value"]!.ToJsonString(),
+                entry["binary"]?.GetValue<bool>() is true ? WebSocketMessageType.Binary : WebSocketMessageType.Text)));
 
-        await dispatch.ObserveResponsesAsync();
+        await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         await Assert.That(inlineResponses).IsEquivalentTo(fixture["responses"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
         await Assert.That(socket.SentText).IsEquivalentTo(fixture["responses"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
         await dispatch.DispatchAsync(Decode(fixture["initialized"]!.ToJsonString()));
-        await dispatch.ObserveResponsesAsync();
+        await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         await Assert.That(resets).IsEqualTo(1);
         await Assert.That(socket.SentText).IsEquivalentTo(fixture["responses"]!.AsArray().Select(static node => node!.ToJsonString())
             .Append(fixture["initializedResponse"]!.ToJsonString()), CollectionOrdering.Matching);
+        // Reflection preserves the bounded-retention check: no existing surface observes response removal.
         var outstanding = (IReadOnlyCollection<Task>)typeof(ClientMcpDispatch).GetField("_responses", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dispatch)!;
         await Assert.That(outstanding.Count).IsEqualTo(0);
     }
@@ -96,8 +84,8 @@ public sealed class ClientMcpDispatchTests
         finally
         {
             release.Set();
-            await reader;
-            await dispatch.ObserveResponsesAsync();
+            await reader.WaitAsync(HangGuard.Bound);
+            await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         }
     }
 
@@ -129,31 +117,47 @@ public sealed class ClientMcpDispatchTests
         var dispatch = new ClientMcpDispatch(core, responder, static () => { });
         try
         {
-            var a = dispatch.DispatchAsync(Decode(fixture["requests"]![0]!.ToJsonString()));
+            await dispatch.DispatchAsync(Decode(fixture["requests"]![0]!.ToJsonString()));
             await aStarted.Task.WaitAsync(HangGuard.Bound);
-            var b = dispatch.DispatchAsync(Decode(fixture["requests"]![1]!.ToJsonString()));
+            await dispatch.DispatchAsync(Decode(fixture["requests"]![1]!.ToJsonString()));
             await bStarted.Task.WaitAsync(HangGuard.Bound);
             await socket.SendEntered.WaitAsync(HangGuard.Bound);
-            await Assert.That(a.IsCompleted).IsTrue();
-            await Assert.That(b.IsCompleted).IsTrue();
             await Assert.That(started).IsEquivalentTo(["A", "B"], CollectionOrdering.Matching);
-            await Task.WhenAll(a, b);
             await Assert.That(socket.SentText).IsEquivalentTo([fixture["responses"]![0]!.ToJsonString()], CollectionOrdering.Matching);
             held.SetResult(Result("A"));
             await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
             socket.ReleaseSends();
-            await dispatch.ObserveResponsesAsync();
+            await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
             await Assert.That(socket.SentText).IsEquivalentTo(fixture["responses"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
         }
         finally
         {
             _ = held.TrySetResult(Result("A"));
             socket.ReleaseSends();
-            await dispatch.ObserveResponsesAsync();
+            await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         }
     }
 
     private static ClientMcpToolResult Result(string text) => new() { Content = [ClientMcpContent.FromText(text)] };
+
+    private static IReadOnlyList<string> DispatchInline(ClientMcpDispatch dispatch, ScriptedTerminalWebSocket socket, IEnumerable<ClientMcpMessage> messages)
+    {
+        var gate = typeof(ClientMcpDispatch).GetField("_gate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dispatch)!;
+        _ = gate.GetType().GetMethod("Enter")!.Invoke(gate, null);
+        try
+        {
+            foreach (var message in messages)
+            {
+                _ = dispatch.DispatchAsync(message);
+            }
+
+            return socket.SentText;
+        }
+        finally
+        {
+            _ = gate.GetType().GetMethod("Exit")!.Invoke(gate, null);
+        }
+    }
 
     private static TerminalSocketCore<ClientMcpMessage> Core(ScriptedTerminalWebSocket socket) =>
         new(socket, new ClientMcpFrameDecoder(), PtyClosePolicy.Instance, typeof(ClientMcpOptions), new ManualTimeProvider())

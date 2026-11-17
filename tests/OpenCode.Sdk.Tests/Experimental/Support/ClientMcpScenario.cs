@@ -1,11 +1,9 @@
-using System.Globalization;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Experimental.Support;
@@ -13,7 +11,7 @@ namespace OpenCode.Sdk.Tests.Experimental.Support;
 /// <summary>Owns deterministic loopback admission and scripted client-MCP observations.</summary>
 internal sealed class ClientMcpScenario(Func<int>? reservePort = null) : IDisposable
 {
-    private HttpListener? _listener;
+    private readonly ClientMcpListener _listener = new(reservePort);
     private readonly Channel<TimeSpan> _retry = Channel.CreateUnbounded<TimeSpan>();
     private readonly Channel<ClientMcpDispatch> _opened = Channel.CreateUnbounded<ClientMcpDispatch>();
     private readonly List<ScriptedTerminalWebSocket> _sockets = [];
@@ -36,43 +34,7 @@ internal sealed class ClientMcpScenario(Func<int>? reservePort = null) : IDispos
     public static ClientMcpOptions Options(Func<System.Text.Json.JsonElement, ClientMcpToolContext, Task<ClientMcpToolResult>> handler) =>
         new() { Name = "app", Tools = [new ClientMcpTool { Name = "lookup", Handler = handler }] };
 
-    public HttpListener Listener
-    {
-        get
-        {
-            if (_listener is null)
-            {
-                var ports = new List<string>();
-                while (ports.Count < 5)
-                {
-                    var listener = new HttpListener();
-                    try
-                    {
-                        var port = (reservePort ?? LoopbackPortReservation.Reserve)().ToString(CultureInfo.InvariantCulture);
-                        ports.Add(port);
-                        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
-                        listener.Start();
-                        _listener = listener;
-                        return _listener;
-                    }
-                    // HTTP.sys reports prefix conflicts as 183 (ERROR_ALREADY_EXISTS), invisible to TCP port probes.
-                    catch (HttpListenerException exception) when (OperatingSystem.IsWindows() && exception.ErrorCode == 183)
-                    {
-                        listener.Close();
-                    }
-                    catch
-                    {
-                        listener.Close();
-                        throw;
-                    }
-                }
-
-                throw new InvalidOperationException($"No client MCP listener port could be registered: {string.Join(", ", ports)}.");
-            }
-
-            return _listener;
-        }
-    }
+    public HttpListener Listener => _listener.Listener;
 
     public ClientMcpConnection Connect(IReadOnlyList<ScriptedTerminalWebSocket> sockets, ClientMcpOptions? options = null,
         Func<ITerminalWebSocket>? create = null, Func<ITerminalWebSocket, CancellationToken, Task<ITerminalWebSocket>>? upgrade = null)
@@ -143,7 +105,7 @@ internal sealed class ClientMcpScenario(Func<int>? reservePort = null) : IDispos
 
     public void Dispose()
     {
-        _listener?.Close();
+        _listener.Dispose();
         foreach (var socket in _owned)
         {
             socket.Dispose();

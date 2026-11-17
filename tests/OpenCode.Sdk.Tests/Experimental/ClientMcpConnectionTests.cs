@@ -20,12 +20,18 @@ public sealed class ClientMcpConnectionTests
         var listener = scenario.Listener;
         using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = new Uri(listener.Prefixes.Single()) });
         var created = new List<ClientWebSocket>();
+        var retried = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var options = new ClientMcpOptions
         {
             Name = "app",
             Tools = [],
             WebSocketFactory = () =>
             {
+                if (created.Count is not 0)
+                {
+                    _ = retried.TrySetResult(true);
+                }
+
                 var socket = new ClientWebSocket();
                 created.Add(socket);
                 return socket;
@@ -63,7 +69,9 @@ public sealed class ClientMcpConnectionTests
 #endif
         await using var connection = client.Experimental.ConnectClientMcp(options);
         await Assert.That(created.Count).IsEqualTo(1);
-        var request = await listener.GetContextAsync();
+        var context = listener.GetContextAsync();
+        await Assert.That(await Task.WhenAny(context, retried.Task).WaitAsync(HangGuard.Bound)).IsSameReferenceAs(context);
+        var request = await context.WaitAsync(HangGuard.Bound);
         await Assert.That(request.Request.RawUrl).IsEqualTo("/api/experimental/client-mcp?name=app");
         using var peer = (await request.AcceptWebSocketAsync(subProtocol: null)).WebSocket;
         await Assert.That(await ClientMcpScenario.ExchangeAsync(peer, "ping")).IsEqualTo(_wire["ping"]!.ToJsonString());
@@ -76,13 +84,26 @@ public sealed class ClientMcpConnectionTests
         var listener = scenario.Listener;
         using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = new Uri(listener.Prefixes.Single()) });
         using var document = JsonDocument.Parse(_wire["schema"]!.ToJsonString());
+        var retried = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var attempts = 0;
         await using var connection = client.Experimental.ConnectClientMcp(new ClientMcpOptions
         {
             Name = "app",
             Tools = [new ClientMcpTool { Name = "lookup", InputSchema = document.RootElement, Handler = static (_, _) => Task.FromResult(Result("unused")) }],
+            WebSocketFactory = () =>
+            {
+                if (Interlocked.Increment(ref attempts) > 1)
+                {
+                    _ = retried.TrySetResult(true);
+                }
+
+                return new ClientWebSocket();
+            },
         });
         document.Dispose();
-        var request = await listener.GetContextAsync();
+        var context = listener.GetContextAsync();
+        await Assert.That(await Task.WhenAny(context, retried.Task).WaitAsync(HangGuard.Bound)).IsSameReferenceAs(context);
+        var request = await context.WaitAsync(HangGuard.Bound);
         using var peer = (await request.AcceptWebSocketAsync(subProtocol: null)).WebSocket;
         await Assert.That(await ClientMcpScenario.ExchangeAsync(peer, "tools/list")).IsEqualTo(_wire["manual"]!.ToJsonString());
     }
@@ -170,7 +191,7 @@ public sealed class ClientMcpConnectionTests
         var dispatch = await scenario.OpenedAsync(connection);
         await dispatch.DispatchAsync(ClientMcpScenario.Message("initialize"));
         await dispatch.DispatchAsync(ClientMcpScenario.Message("tools/list"));
-        await dispatch.ObserveResponsesAsync();
+        await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         await Assert.That(third.SentText).IsEquivalentTo(_wire["reset"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
         scenario.Clock.Advance(TimeSpan.FromSeconds(60));
         third.ReleaseReceives();
@@ -191,8 +212,6 @@ public sealed class ClientMcpConnectionTests
         var socket = scenario.Socket().Closing((WebSocketCloseStatus)code, reason);
         await using var connection = scenario.Connect([socket, scenario.Socket()]);
         await Assert.That(await scenario.RetryAsync(connection)).IsEqualTo(TimeSpan.FromMilliseconds(500));
-        await Assert.That(socket.CloseStatus).IsEqualTo((WebSocketCloseStatus)code);
-        await Assert.That(socket.CloseStatusDescription).IsEqualTo(reason);
         await Assert.That(new ClientMcpClosePolicy("app").Map(socket.CloseStatus, socket.CloseStatusDescription).Message)
             .IsEqualTo($"The opencode client MCP 'app' WebSocket closed with code {code.ToString(System.Globalization.CultureInfo.InvariantCulture)} ({reason}).");
         scenario.Clock.Advance(TimeSpan.FromMilliseconds(500));
@@ -239,12 +258,12 @@ public sealed class ClientMcpConnectionTests
         var serving = await scenario.OpenedAsync(second);
         var left = first.DisposeAsync();
         var right = first.DisposeAsync();
-        await Task.WhenAll(left.AsTask(), right.AsTask());
+        await Task.WhenAll(left.AsTask(), right.AsTask()).WaitAsync(HangGuard.Bound);
         await Assert.That(one.CloseOutputCalls).IsEqualTo(1);
         await Assert.That(one.DisposeCalls).IsEqualTo(1);
         await Assert.That(two.DisposeCalls).IsEqualTo(0);
         await serving.DispatchAsync(ClientMcpScenario.Message("ping"));
-        await serving.ObserveResponsesAsync();
+        await serving.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         await Assert.That(two.SentText).IsEquivalentTo([_wire["ping"]!.ToJsonString()], CollectionOrdering.Matching);
         await second.DisposeAsync();
         scenario.Clock.Advance(TimeSpan.FromHours(1));
@@ -278,15 +297,14 @@ public sealed class ClientMcpConnectionTests
             var observed = dispatch.ObserveResponsesAsync();
             await Assert.That(observed.IsCompleted).IsFalse();
             await connection.DisposeAsync();
-            await Assert.That(held!.Task.IsCompleted).IsFalse();
-            held.SetResult(Result("nonce"));
-            await observed;
+            held!.SetResult(Result("nonce"));
+            await observed.WaitAsync(HangGuard.Bound);
             await Assert.That(socket.SentText).IsEmpty();
         }
         finally
         {
             _ = held?.TrySetResult(Result("nonce"));
-            await dispatch.ObserveResponsesAsync();
+            await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         }
     }
 
@@ -315,9 +333,9 @@ public sealed class ClientMcpConnectionTests
             scenario.Clock.Advance(TimeSpan.FromMilliseconds(500));
             var current = await scenario.OpenedAsync(connection);
             await current.DispatchAsync(ClientMcpScenario.Message("tools/call"));
-            await current.ObserveResponsesAsync();
+            await current.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
             held.SetResult(Result("old"));
-            await old.ObserveResponsesAsync();
+            await old.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
             await Assert.That(two.SentText).IsEquivalentTo([_wire["new"]!.ToJsonString()], CollectionOrdering.Matching);
             await Assert.That(one.SentText).IsEmpty();
             await Assert.That(calls).IsEqualTo(2);
@@ -325,7 +343,7 @@ public sealed class ClientMcpConnectionTests
         finally
         {
             _ = held.TrySetResult(Result("old"));
-            await old.ObserveResponsesAsync();
+            await old.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
         }
     }
 
@@ -345,7 +363,7 @@ public sealed class ClientMcpConnectionTests
             scenario.Clock.Advance(TimeSpan.FromSeconds(60));
             var completed = dispatch.ObserveResponsesAsync().IsCompleted;
             socket.ReleaseSends();
-            await dispatch.ObserveResponsesAsync();
+            await dispatch.ObserveResponsesAsync().WaitAsync(HangGuard.Bound);
             await Assert.That(completed).IsFalse();
             await Assert.That(deadlines).IsEqualTo(0);
             await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);

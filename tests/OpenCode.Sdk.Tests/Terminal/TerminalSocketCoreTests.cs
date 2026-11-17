@@ -17,7 +17,7 @@ public sealed class TerminalSocketCoreTests
     [Test]
     [Arguments(false, "could not be read.")]
     [Arguments(true, "could not be written to.")]
-    public async Task ReadAsync_Should_Use_The_Owners_Failure_Context(bool write, string suffix)
+    public async Task ReadAsync_And_SendAsync_Should_Use_The_Owners_Failure_Context(bool write, string suffix)
     {
         var cause = new WebSocketException("wire");
         using var socket = write ? new ScriptedTerminalWebSocket().FailingNextSendWith(cause) : new ScriptedTerminalWebSocket().Faulting(cause);
