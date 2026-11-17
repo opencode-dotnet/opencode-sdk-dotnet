@@ -37,7 +37,7 @@ internal static class CorsOriginPolicy
             asciiHost = origin[hostStart..hostEnd];
             if (asciiHost.Length == 0 || !asciiHost.All(static character =>
                 character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '.' or '-' or '_'
-                || "!$&'()*+;=~".Contains(character, StringComparison.Ordinal)))
+                || "!$&'()*+;=~\"`{}".Contains(character, StringComparison.Ordinal)))
             {
                 return false;
             }

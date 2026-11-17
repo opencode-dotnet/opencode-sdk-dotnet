@@ -66,6 +66,7 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 
 ### 🐛 Fixes
 
+- `OpenCodeServiceConfiguration.SetCorsOriginsAsync` now also accepts quotation marks, grave accents, and braces in origin hosts, matching the CLI. (#945)
 - `OpenCodeServiceConfiguration.SetCorsOriginsAsync` accepted fewer CORS origins than the CLI.
   It now accepts the same origins for the covered empty-label, long ASCII-name, and
   `!$&'()*+;=~` host-character classes. (#929)

@@ -586,5 +586,105 @@
   {
     "origin": "http://!:8080/",
     "valid": false
+  },
+  {
+    "origin": "http://\"",
+    "valid": true
+  },
+  {
+    "origin": "http://a\"b",
+    "valid": true
+  },
+  {
+    "origin": "http://`",
+    "valid": true
+  },
+  {
+    "origin": "http://a`b",
+    "valid": true
+  },
+  {
+    "origin": "http://{",
+    "valid": true
+  },
+  {
+    "origin": "http://a{b",
+    "valid": true
+  },
+  {
+    "origin": "http://}",
+    "valid": true
+  },
+  {
+    "origin": "http://a}b",
+    "valid": true
+  },
+  {
+    "origin": "http://%22",
+    "valid": false
+  },
+  {
+    "origin": "http://%60",
+    "valid": false
+  },
+  {
+    "origin": "http://%7b",
+    "valid": false
+  },
+  {
+    "origin": "http://%7d",
+    "valid": false
+  },
+  {
+    "origin": "http://!:",
+    "valid": false
+  },
+  {
+    "origin": "HTTP://!",
+    "valid": false
+  },
+  {
+    "origin": "http://!:0",
+    "valid": true
+  },
+  {
+    "origin": "http://-!",
+    "valid": true
+  },
+  {
+    "origin": "http://!-",
+    "valid": true
+  },
+  {
+    "origin": "http://!.:8080",
+    "valid": true
+  },
+  {
+    "origin": "http://!.42",
+    "valid": false
+  },
+  {
+    "origin": "http://!.0x10",
+    "valid": false
+  },
+  {
+    "origin": "http://1.2.3.4!",
+    "valid": true
+  },
+  {
+    "origin": "http://xn--9ca.a!b",
+    "valid": true
+  },
+  {
+    "origin": "http://xn--a.a!b",
+    "valid": false
+  },
+  {
+    "origin": "http://xn--9caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
+  },
+  {
+    "origin": "http://xn--99999999999999999999999999999999999999999999999999999999999",
+    "valid": false
   }
 ]
