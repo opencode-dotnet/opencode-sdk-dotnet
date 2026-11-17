@@ -30,12 +30,13 @@ raw twin's subscribe method. The raw endpoint, routes, adapters, wire models and
 stay generated; the public subscription signature stays stable while its runtime contract belongs
 to hand-written code.
 
-The client-MCP token subgroup (`experimental.mcp.client.token`) follows the same bounded ownership
+The client-MCP token subgroup (`experimental.mcp.client`) follows the same bounded ownership
 pattern because its handshake requires the same fixed `x-opencode-ticket` sentinel. Its
 `CreateClientMcpConnectTokenAsync` extension on `ExperimentalClient` supplies that implementation
 knowledge over a generated internal raw route, query, adapter and response envelope. The subgroup
-has no public token subclient, root accessor or DI singleton; unrelated Experimental methods remain
-generated. The client-MCP attach itself is a transport-owned WebSocket door.
+has the public composition described under [Client-hosted MCP](../architecture/client-runtime.md#client-hosted-mcp);
+unrelated Experimental methods remain generated. The client-MCP attach itself is a transport-owned
+WebSocket door.
 
 ## Considered options
 

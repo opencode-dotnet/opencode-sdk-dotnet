@@ -200,8 +200,8 @@ resolves the message's network window from those carried traits.
 - The hand-written client classes keep the protected mocking constructor, `virtual` members, and the
   `MockSeam` guard. The PTY doors delegate once into their raw twins and add the knowledge generation
   may not import. The Events door owns sharing and local selection over a generated route and adapter.
-  The client-MCP token extension constructs its raw client from the Experimental client's pipeline,
-  without a public token subclient, root accessor or DI singleton.
+  The client-MCP token extension constructs its raw client from the Experimental client's pipeline;
+  its public composition belongs to [Client-hosted MCP](#client-hosted-mcp).
 - `CreateConnectTokenAsync` and `CreateClientMcpConnectTokenAsync` carry that knowledge.
   The server's connect-token handler requires a
   fixed `x-opencode-ticket` value that exists only in upstream implementation source, which
@@ -440,10 +440,12 @@ resolves the message's network window from those carried traits.
   `2025-11-25`, advertises only `tools: {}`, and reports the supplied name with server version
   `1.0.0`. Ping returns `{}`. Tool listing preserves declaration order, omits unset descriptions,
   and merges manual schema fields over a default `type: "object"`; a caller's type wins.
+  A supplied schema must be a JSON object; admission refuses other value kinds synchronously.
   Calls select the first exact-ordinal matching tool name. Only missing/null arguments become `{}`;
   other values pass unchanged, and `ai.opencode/sessionID` contributes context only when a string.
   Ordered text/image content and an explicitly false `IsError` are preserved; unset `IsError` is
-  omitted. Handler exceptions become message text with `isError: true`, not JSON-RPC errors.
+  omitted. Handler exceptions and null results, content collections or content elements become
+  message text with `isError: true`, not JSON-RPC errors.
   Unknown tools answer `-32602` with `Unknown tool: <name>` using JavaScript string conversion;
   unknown methods answer `-32601` with `Method not found: <method>`.
 - **Work and capture.** Handlers take `(JsonElement args, ClientMcpToolContext ctx)`, with no
@@ -481,10 +483,19 @@ resolves the message's network window from those carried traits.
   unconnected socket per attempt, owned by the SDK once returned; its transport is left untouched.
   Default sockets follow the handler rule under Construction and transport ownership.
   Options printing includes only the name, never URL or header credentials.
+  Recorded divergences:
+  - Root Authorization is supplied even to an explicit URL, unless overridden in `Headers`, so
+    this door inherits its root client's authentication context like the terminal doors.
+    Upstream's helper instead requires headers to be supplied explicitly.
+  - Without an explicit URL, per-call location merges over the root's ambient location, preserving
+    the SDK's inherit-or-replace location contract. Upstream's helper has no ambient client context.
+  - Downlevel default sockets retain their own transport because their `ClientWebSocket` cannot
+    accept an HTTP invoker. Modern targets reuse the root client's handler, as described under
+    [Construction and transport ownership](#construction-and-transport-ownership).
 - **Browser token door.** `CreateClientMcpConnectTokenAsync` extends `ExperimentalClient` and
   delegates once to generated `ClientMcpTokensRawClient.CreateConnectTokenAsync`, an accessor-free
   `internalRaw` subgroup, with `PtyTicketHeader.Sentinel` supplying `x-opencode-ticket: 1` through
-  the declared-header channel. No public token subclient or DI registration exists.
+  the declared-header channel. No public token subclient, root accessor or DI singleton exists.
   Its `ExperimentalMcpClientTokenRequest` carries required `Name` and optional `Location` in the
   query; that query, not the ambient directory header, fixes token scope. The normal HTTP pipeline
   targets the root endpoint with root credentials and retains request options, cancellation,
