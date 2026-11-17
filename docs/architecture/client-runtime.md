@@ -436,6 +436,10 @@ resolves the message's network window from those carried traits.
   Each text WebSocket message carries one JSON-RPC value; binary messages, invalid JSON, non-object
   values and batches are ignored. A string or number id and a string method admit a request,
   without validating `jsonrpc`; notifications and responses receive no reply.
+  - Recorded divergence: the client-MCP frame decoder accepts JSON nested at most 256 levels deep;
+    deeper frames are ignored as invalid (`src/OpenCode.Sdk/Experimental/Internal/ClientMcpFrameDecoder.cs:16`).
+    The bound keeps the responder's recursive formatting within a safe stack depth; upstream's
+    parser has no limit.
 - **Answers.** Initialize echoes any string protocol version, including empty, otherwise
   `2025-11-25`, advertises only `tools: {}`, and reports the supplied name with server version
   `1.0.0`. Ping returns `{}`. Tool listing preserves declaration order, omits unset descriptions,
