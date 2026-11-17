@@ -170,5 +170,9 @@
   "http://xn--9ca.a!b",
   "http://xn--a.a!b",
   "http://xn--9caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-  "http://xn--99999999999999999999999999999999999999999999999999999999999"
+  "http://xn--99999999999999999999999999999999999999999999999999999999999",
+  "http://xn--\"-mga",
+  "http://xn--\"-9ca",
+  "http://xn--9caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "http://xn--9caaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 ]

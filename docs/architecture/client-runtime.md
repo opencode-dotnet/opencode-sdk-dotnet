@@ -1517,13 +1517,19 @@ item, the fallback takes the host as the text after `://` up to the first `:`, o
 item when there is no colon. It requires only lowercase ASCII letters, digits, dots, hyphens,
 underscores, `!$&'()*+;=~"{}`, or grave accents. A fixed replacement host lets `Uri` parse the
 scheme and port while reconstruction keeps the original host. This admits empty labels and ordinary
-ASCII names without a DNS length limit; ACE (`xn--`) labels are validated by `IdnMapping`, which
-enforces its 63-character label limit. A numeric final label is checked after removing at most one
-terminal empty label. The oracle
+ASCII names without a DNS length limit; ACE (`xn--`) labels follow the recorded divergence below.
+A numeric final label is checked after removing at most one terminal empty label. The oracle
 `tools/oracles/service-config.ts` compares a checked corpus with the CLI's own WHATWG-based
 validation, including these host classes; this bounded evidence does not establish full parser
 equivalence. Invalid values are refused with an `ArgumentException` subtype before configuration
 I/O, stopping, or CLI execution.
+
+- Recorded divergence: upstream accepts valid ACE labels over 63 characters; the SDK refuses them.
+  Reason: .NET's `IdnMapping` always enforces the 63-character label limit and has no switch to
+  disable it. DNS limits a label to 63 octets (RFC 1035), so no resolvable host is lost
+  (maintainer's decision, 2026-11-17, #945). Reversal: `IdnMapping` gains a way to skip its
+  label-length check, or a consumer needs an ACE label over 63 characters. Pinned by
+  `CorsOriginPolicyTests.IsOrigin_Should_Preserve_Recorded_Upstream_Differences`.
 
 `DisableRemoteAsync` is both `set remote false` and `unset remote`: it stops the service, forgets
 the route and records `remoteAccepted` when remote access was enabled, leaving that marker
