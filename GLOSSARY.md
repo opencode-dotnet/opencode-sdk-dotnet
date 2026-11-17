@@ -295,6 +295,13 @@ _Avoid_: guarded server handle, shared handle (draft names for the same thing)
 The CLI's compiled release identity that selects the registration and service-config filenames and
 the legacy-migration rules. The SDK has none compiled in: a caller may name one.
 
+**SDK-managed write**:
+A service-configuration operation that assigns or removes a setting through the SDK:
+`OpenCodeServiceConfiguration.GetOrCreatePasswordAsync`, `SetDisabledAsync`, `SetHostnameAsync`,
+`SetPortAsync`, `SetPasswordAsync`, `SetCorsOriginsAsync`, `SetEnvironmentVariableAsync`,
+`DisableRemoteAsync`, `UnsetAsync`, or `UnsetEnvironmentVariableAsync`. The term excludes
+`ReadAsync` and `EnableRemoteAsync`, even though their config reads can migrate or repair a file.
+
 #### Snapshot and refresh
 
 **Protocol surface**:

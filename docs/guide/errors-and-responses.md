@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Every one-shot call of a client family answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -315,9 +315,10 @@ Terminal sessions own their connections separately. See the canonical
 ## 🚀 When a local-server door fails
 
 The local-server doors — `OpenCodeServer.StartAsync`, `OpenCodeServer.DiscoverAsync`,
-`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ResolveAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
-`OpenCodeServer.StopAsync`, and `OpenCodeServer.EnsureAsync` — use `OpenCodeServerException` for
-their local lifecycle failures.
+`OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ResolveAsync`,
+`OpenCodeServer.ShutdownPersistentPtyAsync`, `OpenCodeServer.StopAsync`,
+`OpenCodeServer.EnsureAsync`, and the `OpenCodeServiceConfiguration` operations — use
+`OpenCodeServerException` for their local lifecycle failures.
 Discovery uses it for exactly one cause: an XDG variable was unset and no user home directory
 resolved either (`USERPROFILE` on Windows, `HOME` elsewhere, and the profile folder all empty),
 so the registration roots cannot be located. Every ordinary way a background service can be absent
@@ -338,9 +339,33 @@ start, the registered service speaks an incompatible health protocol at a versio
 `VersionPolicy.Error` met a service at another version, or the 120-second bound expired.
 `ShutdownPersistentPtyAsync` shares discovery's roots cause; where discovery answers null it does
 nothing and completes, and a failed shutdown request throws `OpenCodeApiException` or
-`OpenCodeTransportException`, not `OpenCodeServerException`. The
-[connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery,
-the registered owner's state, stop, the persistent-terminal shutdown, and ensure.
+`OpenCodeTransportException`, not `OpenCodeServerException`.
+
+Service-configuration operations share the roots cause. `ReadAsync` and SDK-managed writes
+(`GetOrCreatePasswordAsync` and every set and unset) can also refuse a config or legacy donor the
+CLI may read but the SDK's strict materializer cannot represent. The message names the file;
+inspect repeated members, undecodable strings, malformed UTF-8 and excessive nesting using the
+[configuration contract](../architecture/client-runtime.md#connection-modes). A failed config
+write, including a legacy repair performed during a read, carries the filesystem error as its
+inner exception. A changing operation can also fail while stopping the service: its requested
+change is then unmade, though migration or repair from the first read can remain.
+
+`EnableRemoteAsync` applies no administrative refusal before the CLI runs. It can fail because
+the command could not be resolved or started, or because the CLI ended unsuccessfully; an exit
+failure carries its exit description and bounded stderr tail. That tail is the CLI's own text and
+can contain secrets. After CLI success, the shared config read can fail to locate the roots or
+write a repair, or yield no route the SDK can read. The missing-route message names the config;
+check that `CliCommand`, `Channel`, and `Environment` describe the same config. A readable route
+does not prove that those selections agree. Cancellation after CLI success can leave remote access
+enabled.
+
+Invalid arguments, including a port outside 1 through 65535, refused CORS items and invalid
+options used by the operation, throw an `ArgumentException` subtype before configuration I/O,
+stopping, or CLI execution.
+
+The [connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery,
+the registered owner's state, stop, the persistent-terminal shutdown, ensure, and
+[service configuration](connection-modes.md#-configuring-the-background-service).
 
 `ResolveAsync` also reports an explicit server it could not reach, authenticate with or read as
 `OpenCodeServerException`, retaining the original probe exception in `InnerException`. A tagged

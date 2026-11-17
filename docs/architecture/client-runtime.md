@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -90,15 +90,20 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   `Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync`, are described under
   [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
-  environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`,
-  `OpenCodeServer.FindIncumbentAsync`, `OpenCodeServer.ShutdownPersistentPtyAsync`,
-  `OpenCodeServer.StopAsync`, `OpenCodeServer.EnsureAsync` and the non-explicit paths of
-  `OpenCodeServer.ResolveAsync` are the doors that read the environment, and they read exactly
-  `XDG_STATE_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR`, and the user profile (`USERPROFILE` on
-  Windows, `HOME` elsewhere), because those roots locate the registration file. For discovery that
-  file is the mode's complete endpoint-and-credential contract; `FindIncumbentAsync` takes its
-  endpoint from the caller's `url` and only the id, credential, pid and version from the file.
-  None of them reads an `OPENCODE_*` credential variable.
+  environment variable; consumers resolve their own configuration. The path lookup used by
+  `OpenCodeServer.DiscoverAsync`, `OpenCodeServer.FindIncumbentAsync`,
+  `OpenCodeServer.ShutdownPersistentPtyAsync`, `OpenCodeServer.StopAsync`,
+  `OpenCodeServer.EnsureAsync`, the non-explicit paths of `OpenCodeServer.ResolveAsync`, and the
+  `OpenCodeServiceConfiguration` operations uses `XDG_STATE_HOME`, `XDG_CONFIG_HOME`,
+  `OPENCODE_CONFIG_DIR`, and the user profile (`USERPROFILE` on Windows, `HOME` elsewhere, with the
+  platform profile folder as fallback). Those roots locate the registration and service-config
+  files. For discovery the registration is the complete endpoint-and-credential contract;
+  `FindIncumbentAsync` takes its endpoint from the caller's `url` and only the id, credential, pid
+  and version from the registration. This lookup does not select credentials from an `OPENCODE_*`
+  variable. Configuration operations also compose the launcher seams, which snapshot the whole host
+  environment; `EnableRemoteAsync` passes that environment, with its `Environment` option layered
+  over it, to the CLI. Its command lookup uses the process's `PATH` and `PATHEXT`, as the standalone
+  launcher does. The CLI environment overlay does not redirect the SDK's own config lookup.
 
 `Pipeline` owns construction, the policy roster, the one-shot plane and disposal orchestration.
 Its Events-neutral `RegisterOwned(IDisposable)` hook lets a hand-written family door register a
@@ -439,7 +444,8 @@ resolves the message's network window from those carried traits.
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
   `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `ShutdownPersistentPtyAsync`, `StopAsync`,
-  `ResolveAsync`, `ServiceOperations.ReconnectAsync` and `ServiceOperations.RestartAsync`.
+  `ResolveAsync`, `ServiceOperations.ReconnectAsync`, `ServiceOperations.RestartAsync`, and the
+  `OpenCodeServiceConfiguration` operations.
   This identity guarantee applies when one caller token is supplied, including the
   same token supplied at both enumeration entry points; two distinct cancellable entry tokens
   are both observed but have no token-identity guarantee.
@@ -1082,8 +1088,12 @@ copying over only the behavior members (`Location`) the delegate set; the object
 received stays identity-unset for as long as the caller keeps a reference to it. Every call builds
 a new client over its own owned transport, which the caller disposes.
 
-The failure plane of every local-server door, standalone start and background-service discovery
-alike, is `OpenCodeServerException : OpenCodeException`. A bounded stderr tail rides every startup
+The local lifecycle failures of every local-server door, standalone start, the background-service
+doors and the service configuration alike, use `OpenCodeServerException : OpenCodeException`;
+refused arguments are `ArgumentException`, the caller's cancellation is
+`OperationCanceledException`, and a request a door sends to a running service
+(`ShutdownPersistentPtyAsync`'s shutdown) fails on the API and transport planes.
+A bounded stderr tail rides every startup
 failure that reaches a running child: an exit before readiness (naming the exit code — on Windows in
 its full 32 bits, a negative status code with its hexadecimal form — or on Linux and macOS the
 terminating signal), a stdout that closed before readiness, a readiness timeout (naming the
@@ -1156,18 +1166,23 @@ The channel's service config is read the CLI's way: a document whose members do 
 `disabled` must be a boolean, `remote` an object holding a string `route` (or, in the legacy
 shape, a boolean), and `remoteAccepted` the literal `true` when present — is no config at all, so its `env` overlay and the legacy migration
 it gates do not apply; a legacy-shape document still reads, and only the current shape is migrated.
-The CLI's read rewrites a legacy-shape document in place; Discovery, Ensure and Stop read it as it
-is and leave the rewrite to the daemon's next read, which reads the same `env`.
-`OpenCodeServiceConfiguration` operations read and repair it the CLI's way, copying a current-shape
-donor or repairing a legacy `remote` in place, and write it (`GetOrCreatePasswordAsync` stores a
-password). Remote access is set only through the CLI (`opencode service set remote`); the SDK's
-config repair can generate a route, and the service's remote URL reaches callers in `ServerInfo.Urls`
-while its tunnel is attached. The CLI's pairing command also reads the `disabled` key
+Legacy config and registration donors are written as the CLI's decoded UTF-8 text: one leading
+byte-order mark is dropped and each invalid sequence is replaced by U+FFFD. A donor whose decoded
+text still begins with U+FEFF is not migrated.
+The CLI's read rewrites a legacy-shape document in place. Discovery, Ensure and Stop leave that
+repair to the CLI or a later shared config-store read. The daemon's next read sees the same `env`
+overlay Ensure reads. `OpenCodeServiceConfiguration` reads and changes the config through that
+store, as described below. Remote access is turned on through the
+installed CLI by `OpenCodeServiceConfiguration.EnableRemoteAsync` and turned off by
+`DisableRemoteAsync`; legacy config repair can also generate a route. The service's remote URL
+reaches callers in `ServerInfo.Urls` while its tunnel is attached. The CLI's pairing command also
+reads the `disabled` key
 (`opencode pair` needs the service). `ResolveAsync` reads the config's `disabled` key after the config migration and
 before the registration migration, as `resolve` does. The pinned client's `Service.discover`,
 `ensure` and `stop` do not read it; neither do `DiscoverAsync`, `FindIncumbentAsync`, `EnsureAsync`, `StopAsync` or
 `ShutdownPersistentPtyAsync`. A direct registration path has no config file and is never disabled.
-Resolution reads the service configuration through the config store, as the CLI does; a refused document reads as absent, as for Discovery, Ensure and Stop.
+Resolution uses the same migrating and repairing config-store read as configuration administration,
+but treats a strict-reader refusal as absent config rather than throwing the administration refusal.
 The registration and service-config files are read the way libuv opens files, sharing read, write,
 and delete, so a poll never makes the daemon's remove-on-exit fail on Windows, and a UTF-8
 byte-order mark is skipped as the CLI's decoder skips it. A daemon bound to every interface
@@ -1329,15 +1344,130 @@ registration (or whose registration is gone) as `OPENCODE_PTY_HANDOFF` and remov
 otherwise; `complete` clears only a sidecar a different source wrote, with no expiry check; and
 `clear` removes it idempotently, the same seam Stop's handoff step routes through.
 
+`OpenCodeServiceConfiguration` provides typed access to the CLI's `service get`, `set`, and `unset`
+over the selected channel's config. `OpenCodeServiceConfigOptions.Channel` follows the channel rules
+above, with null selecting the shared `service.json`; `InstalledVersion` is used only by the
+registration migration of an SDK stop the operation runs. `ReadAsync` is `get` with no key: it
+returns the saved settings without the password or remote route, represents remote access as on or
+off, and stops nothing. `GetOrCreatePasswordAsync` is `get password`: it returns a nonempty stored
+password, or generates 32 random bytes in unpadded base64url, stores them, and returns that
+password. It stops nothing.
+
+[SDK-managed writes](../../GLOSSARY.md#connection-modes) are defined in the glossary.
+
+The store has one shared read. When the current config is absent, not merely unreadable, it
+considers the legacy donor: a current-shape donor the strict reader can materialize is migrated
+exclusively through the decoded-text migration above. A donor the CLI may copy but the strict
+reader cannot materialize produces a refusal result instead. A present config the strict reader
+cannot materialize also produces a refusal unless the SDK proves the CLI cannot read it.
+`ReadAsync` and SDK-managed writes turn that result into `OpenCodeServerException` naming the
+refused file. A legacy boolean `remote` is repaired and written in place: true becomes a route
+generated from eight random bytes in lowercase hex, and false drops the member. A document proven
+unreadable by the CLI is empty config. `ReadAsync` otherwise writes nothing: a current-shape
+document, a proven-unreadable document, an unreadable file, or an absent file with no admissible
+donor creates no config or directory. Resolution and remote-on consume the same read result with
+the refusal handling described in their contracts.
+
+SDK-managed writes serialize the whole decoded and merged document as the CLI's `write` does.
+Decoded members start in schema order: `disabled`, `remote`, `remoteAccepted`, `hostname`, `port`,
+`password`, `cors`, `env`. Unknown members and extra members inside `remote` are dropped. A remote
+member repaired by that read follows the other members; assigning a present member keeps its
+position, assigning an absent member adds it last, and removing a member drops it. Environment
+names follow JavaScript object order: canonical array-index names from 0 through 4294967294 first,
+numerically ascending, then other names in insertion order. Output follows `JSON.stringify` with
+two-space indentation and a final newline.
+
+The write creates the config directory, writes to the config path followed by a dot, this process's
+pid and `.tmp`, then renames that file over the config. A new temporary file is owner-only where
+the platform supports mode 0600; Windows inherits the parent directory's DACL. An existing
+temporary file is truncated and overwritten without changing its access mode. The rename has one
+initial attempt and up to 20 retries, 10 ms apart, on the injected clock.
+Nothing serializes writers. Separate processes use separate temporary names; writes in one process
+share a name and can interfere, and the last successful rename determines the published file. A
+failed write or exhausted rename leaves any temporary file in place. Filesystem failures at
+directory creation, temporary writing or final rename become `OpenCodeServerException` naming the
+config and temporary file, with the filesystem exception inside.
+
+The nine changing operations are `SetDisabledAsync`, `SetHostnameAsync`, `SetPortAsync`,
+`SetPasswordAsync`, `SetCorsOriginsAsync`, `SetEnvironmentVariableAsync`, `DisableRemoteAsync`,
+`UnsetAsync`, and `UnsetEnvironmentVariableAsync`. Each reads first. Every set and unset except
+`SetDisabledAsync(false)` and `UnsetAsync(OpenCodeServiceSetting.Disabled)` then stops the
+registered service as `StopAsync` does for the same channel and installed version, with the default
+persistent-terminal clear, reads again, merges, and writes. The two exceptions merge and write
+after their first read without stopping. Nothing restarts the service. A stop that throws prevents
+the requested merge and final write; a donor copy or repair already made by the first read stays.
+The second read may also refuse after the service has stopped. Every successful set and unset
+writes, even when its value was already stored or no file existed.
+
+`SetPortAsync` accepts 1 through 65535. Hostnames, passwords, and environment names and values may
+be empty strings; null arguments and undefined unset settings are refused. `SetCorsOriginsAsync`
+requires a nonempty list, trims each item with ECMAScript's WhiteSpace and LineTerminator set,
+refuses commas inside an item, and preserves order and duplicates. Its `CorsOriginPolicy` accepts
+an item only when it equals the HTTP or HTTPS origin reconstructed through .NET's `Uri`,
+`IdnMapping`, and IP handling. The oracle `tools/oracles/service-config.ts` compares a checked
+corpus with the CLI's own WHATWG-based validation; this bounded evidence does not establish full
+parser equivalence. Invalid values are refused with an `ArgumentException` subtype before
+configuration I/O, stopping, or CLI execution.
+
+`DisableRemoteAsync` is both `set remote false` and `unset remote`: it stops the service, forgets
+the route and records `remoteAccepted` when remote access was enabled, leaving that marker
+unchanged otherwise. Setting an environment entry preserves its position when already present;
+unsetting an entry removes `env` and appends the remaining map last, or drops it when empty.
+`UnsetAsync` selects Disabled, Hostname, Port, Password or CorsOrigins through
+`OpenCodeServiceSetting`; remote access and environment entries use their dedicated operations.
+
+The public config view has no password or route property. Its default string representation and
+the internal config document's do not print their members. Store diagnostics name paths rather
+than stored credential fields. Within this administration surface, `GetOrCreatePasswordAsync` is
+the result that returns the password and `EnableRemoteAsync` is the result that returns the route.
+
+`OpenCodeServiceConfiguration.EnableRemoteAsync` is `set remote true`. It delegates tunnel setup
+to the installed CLI's own OpenTunnel client rather than porting that client (maintainer's decision,
+2026-11-15, #213). `OpenCodeServiceConfigOptions.CliCommand`, defaulting to `opencode`, supplies the
+executable and leading arguments; the first entry is resolved as the standalone launcher's command,
+and `service set remote true` is appended after the leading arguments. Only `EnableRemoteAsync`
+reads `CliCommand` and `Environment`. It captures both before resolution and layers the environment
+entries over the host environment for the child. No SDK-generated password is injected; inherited
+or explicitly supplied credentials remain. Standard output is drained and discarded, and standard
+error is retained as a bounded tail even when the host sets `OPENCODE_PRINT_LOGS=1`.
+
+The CLI creates or resumes the device's tunnel, which can take up to five minutes, then stops its
+own channel's registered service and stores or reuses its route. Nothing restarts the service.
+There is no SDK config read before the CLI run, no pre-run administrative refusal, and no SDK
+service stop or config write during that run: the installed CLI uses its own read and write
+behavior, including on documents SDK-managed writes refuse.
+
+After CLI success, the SDK obtains the selected config's route through the store's shared read.
+That read may migrate a donor or repair and write a legacy remote value; it is not a separate
+read-only route parser. A refused document is unavailable for this purpose rather than an
+administrative write refusal. If the shared read yields no readable route, the operation throws
+`OpenCodeServerException` naming the selected config; roots and repair failures can also propagate.
+The returned route is the secret part of the remote address, hidden by the CLI's own `get`.
+Treat the route as a credential (maintainer's decision, 2026-11-15, #213).
+
+For the CLI runner, exit code 0 is success; every other end, an unknown status included, throws
+`OpenCodeServerException` carrying the exit description and bounded stderr tail. That tail is
+external CLI text and can contain whatever the CLI printed, including secrets. An unresolvable
+command throws before a child starts. Caller cancellation during the run ends the child through
+the launcher's cleanup ladder. The subsequent shared read receives the same caller token;
+cancellation after CLI success can throw while remote access remains enabled.
+
+The CLI writes its own compiled channel's config under its environment's roots, while the SDK
+reads under its process's roots and selected Channel. The SDK reads the config that `CliCommand`,
+`Channel` and `Environment` select together. It does not check that they agree. A mismatch is not
+checked before the run. A missing readable route is reported afterward, but a readable route
+already present in the wrong selected config can leave a mismatch undetected.
+
 The background service's recorded divergences from upstream on Windows (ADR-0031):
 
 | Divergence | Upstream | SDK | Reason |
 |---|---|---|---|
-| Sidecar publish | The pinned client's `publish` (`packages/client/src/pty-handoff.ts`) renames the temporary file over the sidecar with `node:fs` `rename`, which fails with `EPERM` while any handle holds the destination, whatever that handle shares | A POSIX-semantics rename: `SetFileInformationByHandle(FileRenameInfoEx)` with `FILE_RENAME_FLAG_REPLACE_IF_EXISTS` and `FILE_RENAME_FLAG_POSIX_SEMANTICS`, on a source opened with `DELETE` access. A system or volume that refuses it with `ERROR_INVALID_PARAMETER`, `ERROR_NOT_SUPPORTED`, or `ERROR_INVALID_FUNCTION` (Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares; the codes Git's own POSIX-semantics rename falls back on) takes the platform replace instead: `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`, or `File.Replace` on the downlevel targets | The sidecar's readers include holders the SDK does not control, such as real-time antivirus and the indexer, and they open a fresh file with delete sharing, as the SDK's own reader does. The POSIX-semantics rename replaces the destination under them, and they keep reading the contents they opened, so the failure class is removed rather than retried. It is the rename Bun itself makes in its install path. A holder that opened the sidecar without delete sharing still fails the publish, and the replacement then starts without a handoff, as after any failed publish. |
+| Sidecar and service-config publish | The pinned client's `publish` (`packages/client/src/pty-handoff.ts`) renames the temporary file over the persistent-terminal handoff sidecar with `node:fs` `rename`, which fails with `EPERM` while any handle holds the destination, whatever that handle shares. Upstream's `write` (`packages/cli/src/services/service-config.ts:180`) uses a plain `fs.rename` for the service config, with 20 retries 10 ms apart. | A POSIX-semantics rename: `SetFileInformationByHandle(FileRenameInfoEx)` with `FILE_RENAME_FLAG_REPLACE_IF_EXISTS` and `FILE_RENAME_FLAG_POSIX_SEMANTICS`, on a source opened with `DELETE` access. A system or volume that refuses it with `ERROR_INVALID_PARAMETER`, `ERROR_NOT_SUPPORTED`, or `ERROR_INVALID_FUNCTION` (Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares; the codes Git's own POSIX-semantics rename falls back on) takes the platform replace instead: `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`, or `File.Replace` on the downlevel targets. `ServiceConfigStore.WriteAsync` calls `ServiceFileSystem.Rename` through `RenameAsync`; the SDK keeps the config's 20 retries 10 ms apart, and each attempt uses this POSIX-semantics rename with its platform fallback (maintainer's decision, 2026-11-17, #939). | The sidecar's publish or the service config's write can meet holders the SDK does not control, such as real-time antivirus and the indexer, and they open a fresh file with delete sharing, as the SDK's own reader does. The POSIX-semantics rename replaces the destination under them, and they keep reading the contents they opened, so the failure class is removed rather than retried. It is the rename Bun itself makes in its install path. A holder that opened the sidecar without delete sharing still fails the publish, and the replacement then starts without a handoff, as after any failed publish. |
 | Case-only collision in a non-ASCII name | Bun's spawn groups spellings with JavaScript's `toUpperCase`, which applies full Unicode case mapping, so `straße` and `STRASSE` are one variable | Groups with `ToUpperInvariant`, so those two stay separate variables. 158 code points map differently, none of them ASCII: those with a multi-character uppercase (`ß`, `ŉ`, `ΐ`) or a mapping .NET doesn't have (`ı`, `ƛ`) | No ASCII name is affected. The base class library has no full case mapping, so matching it would mean carrying a case table in the SDK for names that environment variables rarely use. |
 
-The divergence is reversed when upstream changes its publish to one that survives such holders, or
-when the POSIX-semantics rename proves unsound on a volume the SDK supports.
+The divergence is reversed when upstream changes its publish or the service config's write to one
+that survives such holders, or when the POSIX-semantics rename proves unsound on a volume the SDK
+supports.
 
 The daemon side of the lifecycle is the spawned CLI's, not the SDK's: the incumbent check, the
 exit-0 loser on a port another daemon holds, the `chdir` into the user home, and the registration
@@ -1355,9 +1485,11 @@ resolver snapshot, public Ensure reads the config anew at every spawn.
 Each background-service door chooses `TimeProvider.System` once at its composition root:
 Discover supplies its probe, from one factory that `ShutdownPersistentPtyAsync` and
 `FindIncumbentAsync` share; Stop shares it across the handoff and terminator; Ensure shares it
-across the election collaborators and spawned contenders. Stop and the election share the same
-handoff step. Internal collaborators require that provider, including the handoff ticket's
-request pipeline.
+across the election collaborators and spawned contenders. The service configuration chooses no clock
+of its own: its door takes the standalone launcher root's clock from `LauncherSeams.Time`, and its
+write's rename retry, the stop its operations run, and the CLI run that turns remote access on share
+it. Stop and the election share the same handoff step. Internal collaborators require that provider,
+including the handoff ticket's request pipeline.
 Request deadlines, election and termination polls, and contender exit backoff run on it. Election
 deadline comparisons and spawn stamps read UTC, and handoff expiry reads UTC epoch milliseconds;
 neither is a monotonic elapsed-time policy. Each request deadline arms after probe headers, after
@@ -1392,7 +1524,10 @@ reason (ADR-0031):
 
 - **Stricter readers than upstream's `JSON.parse`.** The registration and service-config readers
   refuse a repeated member. The registration reader also refuses a pid that is not a positive
-  32-bit integer and a URL that is not absolute HTTP or HTTPS. A refused document reads as absent.
+  32-bit integer and a URL that is not absolute HTTP or HTTPS. For discovery, incumbent lookup,
+  Ensure, Stop and persistent-terminal shutdown, a refused document reads as absent. Resolution also
+  treats the shared config read's refusal as absent; configuration administration handles it as
+  described below.
   Reason: the repository's fail-closed boundary, which treats malformed state as missing rather
   than acting on it. For the pid the mechanism is hard: upstream's promise client reads the
   registration with an unchecked `JSON.parse` (`packages/client/src/promise/service.ts:118` at the
@@ -1428,5 +1563,26 @@ reason (ADR-0031):
   rejects but .NET accepts, such as `example.42`, is probed and answers null where upstream's
   `new URL` throws. Reason: parity would reimplement WHATWG's host, IPv4 and IDNA rules for hosts
   no loopback service uses (maintainer's decision, 2026-11-15, #847). Reversal: a consumer needs the throw.
+
+- **The service configuration refuses a document it cannot prove the CLI would fail to read.**
+  (maintainer's decision, 2026-11-15, #213). The CLI's UTF-8 decoding and JSON parse can retain
+  settings the SDK's strict materializer refuses, including repeated members, escaped lone
+  surrogates and malformed UTF-8 replaced during decoding. The shared config read returns a refusal
+  when strict materialization fails unless the SDK proves the CLI's read rejects the document; a
+  parse stopped at an SDK limit, such as nesting depth, is not proof.
+  `OpenCodeServiceConfiguration.ReadAsync` and SDK-managed writes, including
+  `GetOrCreatePasswordAsync`, turn that result into `OpenCodeServerException` naming the file.
+  Donor classification uses the current shape alone, as the CLI's migration does, and refuses an
+  unmaterializable donor the CLI may copy before copying it. The first read precedes any requested
+  service stop; a stopping edit checks again after the stop, and migration or repair already made
+  by an earlier read remains. A document proven unreadable by the CLI is empty config:
+  `ReadAsync` leaves it unwritten and an SDK-managed edit replaces it. `ReadAsync` refuses even a
+  current-shape document needing no repair, because returning empty config would misrepresent
+  settings the CLI reads. Resolution retains the absent-on-refusal behavior recorded above.
+  `EnableRemoteAsync` has no protective config read before delegating to the CLI; its later shared
+  read reports a refusal as no readable route. Reason: SDK-managed edits must not erase settings
+  the CLI would retain, whether in the config or an admissible legacy donor (maintainer's decision,
+  2026-11-15, #213). Reversal: the strict reader admits what the CLI's parse admits, or the
+  maintainer asks for the CLI's literal behavior (maintainer's decision, 2026-11-15, #213).
 
 Everything else follows the chain at the pin.
