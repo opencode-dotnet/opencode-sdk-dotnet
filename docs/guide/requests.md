@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -231,6 +231,11 @@ HTTP calls and streams, not terminal WebSocket upgrades or background-service in
 `Authorization` header does not authenticate terminals: use `Password` for a client that opens them.
 Header values containing NUL (U+0000), CR, LF or any character above U+007F are refused with
 `ArgumentException`.
+
+One exception is the automatic media capability: with `MediaReferences` enabled, the SDK
+replaces `X-OpenCode-Capabilities` after per-call headers on `ListMessagesAsync` (each page included),
+`GetMessageAsync` and `ListInboxAsync`. See [media references](experimental.md#media-references)
+for the per-call `InlineMedia` opt-out.
 
 ## ⏱️ How long a call may wait
 

@@ -672,9 +672,10 @@ Three things throw; everything else is null.
 
 > **🔑 `opencode serve` always has a password.** Setting neither variable does not start an open
 > server — it makes the CLI generate one and print it as `server password <pw>` on startup, and no
-> serve flag disables authentication. A client for a CLI-started server therefore always needs
-> `Password`. An `Authorization` header in `Headers` authenticates HTTP calls (and, client-wide, the
-> event feed) but not terminal WebSocket upgrades, which send only the `Password` credential.
+> serve flag disables authentication. Use `Password` for SDK-generated Basic authentication, or
+> supply `Authorization` for HTTP calls as [request headers](requests.md#-request-headers) describes.
+> Only client-wide headers reach the shared event feed; authenticated terminal upgrades require
+> `Password`.
 > Leaving both absent is right only for a host without authentication, such as an embedded server.
 > Send no credential to `opencode serve` and every call answers **401 with the
 > typed `UnauthorizedError`** (`Authentication required`), the same answer a wrong password gets.
