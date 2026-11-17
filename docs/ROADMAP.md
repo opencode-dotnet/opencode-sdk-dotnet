@@ -10,6 +10,18 @@ to issues in [the milestones](https://github.com/opencode-dotnet/opencode-sdk-do
 per release, and [`1.x`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2) for the
 work deferred from `1.0.0`.
 
+The next SDK release is **2.0.0**, as `../Directory.Build.props` declares. The shared event connection
+([#902](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pull/902),
+[ADR-0041](adr/0041-one-shared-event-feed-per-client.md)) replaces per-enumeration connections with one
+background source per root client. Ordinary attempt failures retry indefinitely
+and reach connection state instead of ending subscriptions. These hand-written runtime/error-channel
+breaks require a major release, on the same opencode **2.3.0** pin already shipped in SDK `1.1.0`
+([Unreleased breaking changes](../CHANGELOG.md#-breaking-changes)).
+
+Separately, milestone [`Next`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/5)
+is the current unversioned first-party parity and fix queue, not a promise that every item ships in
+`2.0.0`.
+
 ## Status
 
 **Released, and the protocol surface is complete.** The callable surface is generated from an
@@ -48,27 +60,29 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   still lists 1.x releases. The pin tracks upstream 2.x release tags and is refreshed under receipt
   right before a release, not between releases. The accepted protocol identity is owned by `../spec/SNAPSHOT.md`.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
-  `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
-  single-sourced `VersionPrefix 1.1.1`, the next version. Every `master` push publishes a nightly of
-  it to the organization's GitHub Packages feed, and `1.1.0`, the latest release, is on NuGet.org, owned by
+  `OpenCodeDotNet.Sdk.Extensions`; their assembly and namespace names are unchanged
+  ([package boundary](architecture/platform-and-packaging.md#packages)). They pack at the next version
+  declared by `../Directory.Build.props`. Nightly publication follows the
+  [publication policy](architecture/platform-and-packaging.md#repository-and-versioning), and
+  `1.1.0`, the latest release, is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.
 
 ## Road to 1.0
 
-Releases stayed `0.9.0-preview.N` until the freeze; `1.0.0` ships from the release-candidate commit,
-with no `-rc` package. Each workstream has a
-short plan in the private companion repository when it starts, and its issues sit in milestone
-`1.0` on the project board. Only work that breaks or decides the public surface, the gates that enforce the freeze,
-and the items named below come before `1.0.0`; additive and internal work waits in milestone
-`1.x`. In order:
+`1.0.0`, `1.0.1`, and `1.1.0` are released; milestones `1.0` and `1.0.1` are closed. The workstreams
+below record the road to 1.0; step 6's release rehearsal is the release check, and
+[#796](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/796), the `1.0.0` benchmark
+record, is still open in milestone `1.x`.
+Milestone `1.x` holds deferred additive and internal work. The current release and parity/fix queue
+are identified above.
 
 1. **Support policy.** The MCP server's repository (ADR-0030), the target-framework policy
    (ADR-0002), and the end of the .NET 5–7 promise
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). **Complete.**
-2. **Target-framework transition.** `net11.0` joins now on its go-live release candidate and
-   `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
+2. **Target-framework transition.** `net11.0` is targeted; `net8.0` and `net9.0` are not, and
+   `global.json` pins GA SDK `11.0.100` with prereleases disabled. The matrix covers packages,
    tests, CI legs, the public API check, and the docs; no non-preview package is built on a pre-GA
    SDK (one exception, `1.0.0`: step 8). A consumer whose target falls back to the `netstandard2.0`
    asset on an unsupported runtime gets a build warning. It ships in `0.9.0-preview.10`. Launcher
@@ -79,8 +93,10 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    ladder. `OpenCodeServer.Exited`
    ([#174](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/174)) reports how a
    standalone server ended — exit code, signal, or unknown, as upstream's `exited` does — on every
-   target and OS. **Landed.** Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and
-   `net11.0` as its platform allows.
+   target and OS. **Landed.** Exit: build `netstandard2.0`, `net472`, `net10.0`, and `net11.0` package
+   assets; tests execute on `net10.0`/`net11.0` and on `net472` on Windows
+   ([target policy](architecture/platform-and-packaging.md#target-frameworks),
+   [gate](engineering/quality-gates.md#completion-gate)).
 3. **Maintainability review.** A time-boxed, read-only review limited to what feeds the freeze:
    a pass over the public API baseline
    ([#183](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/183)), the terminal receive
@@ -142,7 +158,7 @@ and the items named below come before `1.0.0`; additive and internal work waits 
 
 ## Parallel tracks
 
-These do not block `1.0.0` and run beside the road.
+These are parallel workstreams alongside the current release and deferred-work queues.
 
 - **MCP server** in its own repository (ADR-0030), a thin adapter over the published SDK. The
   namespace decision keeps the public namespaces, so code against the SDK can start.

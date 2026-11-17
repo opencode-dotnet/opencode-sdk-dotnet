@@ -71,7 +71,7 @@ Run from the repository root — see [`docs/engineering/quality-gates.md`](../do
 - [ ] No new analyzer warnings; any new suppression follows the policy in [`docs/engineering/slop-review.md`](../docs/engineering/slop-review.md) and is named below
 - [ ] The change passes the slop rubric in the same file
 - [ ] No tests skipped, weakened, or deleted to make the suite pass
-- [ ] All tests pass locally
+- [ ] The [required local checks](../docs/engineering/quality-gates.md#completion-gate) pass, or the documented exemption applies
 - [ ] Branch is up to date with the target branch, no merge conflicts
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and carry **no AI-attribution trailers**
 

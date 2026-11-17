@@ -27,7 +27,8 @@ from selecting a member a stream or traversal must refuse at run time.
 
 Outside the shared event bus's retry loop, transport and protocol failures throw
 `OpenCodeTransportException`. The spec's tagged error
-payloads are generated as typed models under an `OpenCodeError` base and ride **as data** on either
+payloads are generated as typed models implementing `IOpenCodeError` (the interface representation
+of [ADR-0011](0011-union-membership-as-interfaces.md)) and ride **as data** on either
 channel, pattern-matchable without string sniffing. There is no client-level switch. Throwing API
 errors retain the raw body on `OpenCodeApiException`; `NoThrow` responses retain it on their shared
 response spine, including when a typed error cannot be parsed. This deliberately renders upstream's

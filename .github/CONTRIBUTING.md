@@ -35,10 +35,9 @@ sign.
 - The **.NET 10 runtime**, for the `net10.0` test legs (the .NET 10 SDK carries it).
   It must be the latest .NET 10 runtime patch: the build
   targets the newest patch the pinned SDK knows (`TargetLatestRuntimePatch`)
-- On Windows, the **.NET Framework 4.7.2 targeting pack** for the `net472` legs
 - [Bun](https://bun.sh/) at the exact version in `external/opencode/package.json`'s
-  `packageManager` field, first on `PATH` — the pinned-server fixture and CI use that runtime, and
-  `OpenCode.Sdk.Tests` refuses to run under any other Bun
+  `packageManager` field, first on `PATH` — required by default and in CI; the explicit local-host
+  exception is in [quality-gates.md](../docs/engineering/quality-gates.md#completion-gate)
 - [ripgrep 15.1.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.1.0) on `PATH` — the
   filesystem live tests run against an offline simulated server that refuses the on-demand download
   upstream would otherwise perform
@@ -61,9 +60,9 @@ sign.
 
    `external/` holds read-only upstream checkouts used as protocol evidence and as the pinned-server
    test fixture. They are **never** hand-edited. If you cloned without `--recurse-submodules`, run
-   `git submodule update --init --depth 1 external/opencode`. Then install the pinned server's
-   dependencies once, with the pinned Bun first on `PATH`:
-   `cd external/opencode && bun install --frozen-lockfile --ignore-scripts`.
+   `git submodule update --init --depth 1 external/opencode`. Complete the
+   [fresh-checkout preparation](../docs/engineering/quality-gates.md#completion-gate) before the
+   build and tests below; it installs both the pinned server's dependencies and the clone detector.
 
 2. **Build the Project**
 

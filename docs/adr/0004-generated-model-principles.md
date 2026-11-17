@@ -19,7 +19,8 @@ null. A source-generation-proven in-band JSON-null carrier remains non-nullable.
 uses `IReadOnlyList<T>` / `IReadOnlyDictionary<string, T>` without defensive copies, read-only
 wrappers, empty normalization, or recursive item/value validation. `IReadOnly*` is an API view, not
 a deep-immutability guarantee; caller-supplied collection ownership stays with the caller
-(ADR-0014).
+(ADR-0014). The open-model `AdditionalProperties` bag is the exception; its ownership rules live in
+[Generated model shape](../architecture/protocol-and-generation.md#generated-model-shape).
 
 A literal used for union dispatch emits as a constant/get-only property because successful
 dispatch already proved it; a prefix-tagged discriminator emits as a required string because

@@ -1,6 +1,6 @@
 # Developing on Windows
 
-Date: 2026-11-06
+Date: 2026-11-17
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.
@@ -55,14 +55,20 @@ so the two installs clobber each other's daemon binary.
    cd ~/repos/opencode-sdk-dotnet/external/opencode
    bun install --frozen-lockfile --ignore-scripts
    ```
-4. Serve from `packages/cli` under isolated XDG roots and a fixed password, so the run touches no
-   real profile and the Windows side can authenticate:
+4. Serve from `packages/cli` with a fresh `/tmp/ocsdk` tree and a fixed password. The clean child
+   environment drops inherited config/database and provider selectors; the isolation rules are in
+   [testing-style.md](testing-style.md#6-owned-servers-are-hermetic). The server also reads
+   `/etc/opencode`; if it exists, move it aside first.
    ```sh
    cd ~/repos/opencode-sdk-dotnet/external/opencode/packages/cli
-   mkdir -p /tmp/ocsdk/data /tmp/ocsdk/cache /tmp/ocsdk/config /tmp/ocsdk/state
+   rm -rf /tmp/ocsdk
+   mkdir -p /tmp/ocsdk/{data,cache,config,state,home,tmp}
+   touch /tmp/ocsdk/home/.zshrc
+   env -i PATH="$PATH" HOME=/tmp/ocsdk/home OPENCODE_TEST_HOME=/tmp/ocsdk/home \
    XDG_DATA_HOME=/tmp/ocsdk/data XDG_CACHE_HOME=/tmp/ocsdk/cache \
    XDG_CONFIG_HOME=/tmp/ocsdk/config XDG_STATE_HOME=/tmp/ocsdk/state \
-   OPENCODE_CONFIG_CONTENT='{}' OPENCODE_DISABLE_MODELS_FETCH=1 OPENCODE_PASSWORD=<pw> \
+   TMPDIR=/tmp/ocsdk/tmp OPENCODE_DISABLE_PROJECT_CONFIG=1 \
+   OPENCODE_CONFIG_CONTENT='{}' OPENCODE_DISABLE_MODELS_FETCH=1 OPENCODE_PASSWORD='<pw>' \
      bun src/index.ts serve --port 4097
    ```
 5. On Windows, point the fixture at it and run the persistent PTY legs:
