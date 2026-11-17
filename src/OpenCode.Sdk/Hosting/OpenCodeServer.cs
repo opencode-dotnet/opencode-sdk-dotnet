@@ -125,14 +125,14 @@ public partial class OpenCodeServer : IAsyncDisposable
 
     /// <summary>
     /// Builds a client for this server. The door owns the connection identity: the delegate
-    /// receives identity-unset options, and setting Endpoint, Username, or Password there is
-    /// refused. Behavior members such as <see cref="OpenCodeClientOptions.Location"/> configure
-    /// freely. Every call builds a new client the caller disposes; a configured HttpHandler stays
-    /// the caller's.
+    /// receives fresh options whose Endpoint and Password must stay null and whose Username must stay
+    /// <c>opencode</c>; any other final value is refused. Every other option the delegate sets, headers
+    /// and the handler included, is carried into the client. Every call builds a new client the caller
+    /// disposes; a configured HttpHandler stays the caller's.
     /// </summary>
-    /// <param name="configure">Optional behavior configuration; identity members must stay unset.</param>
+    /// <param name="configure">Optional configuration; Endpoint, Username and Password must keep their defaults.</param>
     /// <returns>A new client bound to this server's endpoint and credential: a started server's lease, a registration's password, or none.</returns>
-    /// <exception cref="InvalidOperationException">The delegate set an identity member.</exception>
+    /// <exception cref="InvalidOperationException">The delegate left Endpoint or Password non-null, or Username other than <c>opencode</c>.</exception>
     public virtual OpenCodeClient CreateClient(Action<OpenCodeClientOptions>? configure = null) =>
         ClientIdentityComposer.CreateClient(Endpoint, Password, configure);
 

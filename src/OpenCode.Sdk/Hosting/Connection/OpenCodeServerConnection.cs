@@ -65,10 +65,10 @@ public class OpenCodeServerConnection : IAsyncDisposable
     /// <summary>Gets reconnect and restart operations in service mode, or null otherwise.</summary>
     public virtual OpenCodeServerServiceOperations? ServiceOperations => Read(_serviceOperations);
 
-    /// <summary>Builds a caller-owned client; the delegate may configure behavior but not connection identity.</summary>
-    /// <param name="configure">Optional behavior configuration, with identity members left unset.</param>
+    /// <summary>Builds a caller-owned client; Endpoint, Username and Password keep their defaults, and every other option the delegate sets is carried into the client.</summary>
+    /// <param name="configure">Optional configuration; Endpoint, Username and Password must keep their defaults.</param>
     /// <returns>A new client bound to this connection.</returns>
-    /// <exception cref="InvalidOperationException">The delegate set an identity member.</exception>
+    /// <exception cref="InvalidOperationException">The delegate left Endpoint or Password non-null, or Username other than <c>opencode</c>.</exception>
     public virtual OpenCodeClient CreateClient(Action<OpenCodeClientOptions>? configure = null) =>
         ClientIdentityComposer.CreateClient(Endpoint, Password, configure);
 
