@@ -8,6 +8,8 @@ namespace OpenCode.Sdk;
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed class ClientMcpConnection : IAsyncDisposable
 {
+    private const int ReconnectMin = 500;
+    private const int ReconnectMax = 10000;
     private readonly TaskCompletionSource<bool> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Lock _gate = new();
     private readonly CancellationTokenSource _lifetime;
@@ -23,7 +25,7 @@ public sealed class ClientMcpConnection : IAsyncDisposable
     private ITimer? _timer;
     private Task? _disposal;
     private bool _disposed;
-    private int _delay = 500;
+    private int _delay = ReconnectMin;
     private int _attempt;
 
     internal ClientMcpConnection(ClientMcpOptions options, TimeProvider time, Func<ITerminalWebSocket> create,
@@ -137,7 +139,7 @@ public sealed class ClientMcpConnection : IAsyncDisposable
     {
         lock (_gate)
         {
-            _delay = 500;
+            _delay = ReconnectMin;
         }
     }
 
@@ -152,7 +154,7 @@ public sealed class ClientMcpConnection : IAsyncDisposable
             }
 
             var delay = TimeSpan.FromMilliseconds(_delay);
-            _delay = Math.Min(_delay * 2, 10000);
+            _delay = Math.Min(_delay * 2, ReconnectMax);
             _timer = _time.CreateTimer(_ => Retry(), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             _ = _timer.Change(delay, Timeout.InfiniteTimeSpan);
             _retryScheduled?.Invoke(_attempt + 1, delay);
@@ -169,17 +171,17 @@ public sealed class ClientMcpConnection : IAsyncDisposable
             {
                 return;
             }
+        }
 
-            try
-            {
-                Start(_create());
-            }
-            catch (Exception exception)
-            {
-                _ = _completion.TrySetException(exception);
-                _ = Completion.Exception;
-                throw;
-            }
+        try
+        {
+            Start(_create());
+        }
+        catch (Exception exception)
+        {
+            _ = _completion.TrySetException(exception);
+            _ = Completion.Exception;
+            throw;
         }
     }
 

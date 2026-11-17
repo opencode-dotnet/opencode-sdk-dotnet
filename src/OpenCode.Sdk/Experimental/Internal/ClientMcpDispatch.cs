@@ -13,7 +13,7 @@ internal sealed class ClientMcpDispatch(TerminalSocketCore<ClientMcpMessage> cor
     public Task DispatchAsync(ClientMcpMessage message)
     {
         var method = ClientMcpResponder.Get(message.Root, "method");
-        if (method.ValueKind is JsonValueKind.String && method.GetString() is "notifications/initialized")
+        if (ClientMcpResponder.ReadString(method) is "notifications/initialized")
         {
             initialized();
         }
@@ -32,12 +32,18 @@ internal sealed class ClientMcpDispatch(TerminalSocketCore<ClientMcpMessage> cor
             }
         }
 
-        var observed = SendResponseAsync(message).ContinueWith(static completed =>
-        {
-            _ = completed.Exception;
-        }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        Task? observed = null;
         lock (_gate)
         {
+            observed = Task.Run(() => SendResponseAsync(message)).ContinueWith(completed =>
+            {
+                _ = completed.Exception;
+                lock (_gate)
+                {
+                    // The same gate publishes the observer before this asynchronous continuation can remove it.
+                    _ = _responses.Remove(observed!);
+                }
+            }, CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
             _responses.Add(observed);
         }
 
@@ -72,6 +78,7 @@ internal sealed class ClientMcpDispatch(TerminalSocketCore<ClientMcpMessage> cor
                 return;
             }
 
+            // Socket lifetime owns reply I/O; disconnect never cancels application handlers.
             send = core.SendAsync(new ArraySegment<byte>(payload), WebSocketMessageType.Text, CancellationToken.None);
         }
 

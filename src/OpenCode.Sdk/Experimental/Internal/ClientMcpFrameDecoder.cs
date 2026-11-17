@@ -12,7 +12,8 @@ internal sealed class ClientMcpFrameDecoder : ITerminalFrameDecoder<ClientMcpMes
         {
             try
             {
-                using var document = JsonDocument.Parse(new ReadOnlyMemory<byte>(payload, 0, count));
+                // Bound the responder's recursive array-to-string traversal; 256 levels also fit downlevel stacks.
+                using var document = JsonDocument.Parse(new ReadOnlyMemory<byte>(payload, 0, count), new JsonDocumentOptions { MaxDepth = 256 });
                 if (document.RootElement.ValueKind is JsonValueKind.Object)
                 {
                     return new ClientMcpMessage(document.RootElement.Clone());
