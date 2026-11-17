@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-11-14
+Date: 2026-11-17
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -132,6 +132,9 @@ code, and the bus carries `PtyExited` with the PTY id and exit code. An abnormal
 `OpenCodeTransportException` naming the reason.
 When the PTY's location shuts down, for example on a reload, the server closes with 1012 and
 the reason "location shut down", which throws the same way.
+On .NET Framework, closes 1012–1014 abort either terminal family's socket and surface as a
+transport exception rather than a peer close; .NET 10+ receives the close normally. See the
+[platform limit](../architecture/client-runtime.md#pty-websocket-session).
 
 Connecting again to an exited PTY still succeeds **while the server retains it** — the 25 most
 recent exited PTYs. The first read then throws `OpenCodeTransportException` (close 4404,

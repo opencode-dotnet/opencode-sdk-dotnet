@@ -290,6 +290,11 @@ resolves the message's network window from those carried traits.
   exited and throws with the reason; because an exited PTY still upgrades cleanly, that failure
   surfaces on the first read rather than on connect. Any other close is an abnormal close, and a
   socket fault maps through `FailureClassification`'s PTY WebSocket phases.
+- **.NET Framework close-code limit.** A server close with 1012, 1013 or 1014 raises a
+  `WebSocketException` (native error `0x83760002`) and leaves the socket `Aborted`; .NET 10
+  and later report the close normally. PTY and persistent-PTY doors end in
+  `OpenCodeTransportException` rather than a peer closure; client-hosted MCP retries after
+  either a peer closure or a transport failure.
 - **Concurrency and reading (both terminal families).** One active public read enumeration is
   allowed; a concurrent second reader throws `InvalidOperationException`. A connection-owned
   receiver assembles complete messages into an unbounded `Channel<TFrame>` independently of
