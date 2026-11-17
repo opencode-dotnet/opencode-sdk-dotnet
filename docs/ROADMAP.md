@@ -10,17 +10,17 @@ to issues in [the milestones](https://github.com/opencode-dotnet/opencode-sdk-do
 per release, and [`1.x`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2) for the
 work deferred from `1.0.0`.
 
-The next SDK release is **2.0.0**, as `../Directory.Build.props` declares. The shared event connection
+The latest SDK release is **2.0.0**. The shared event connection
 ([#902](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pull/902),
 [ADR-0041](adr/0041-one-shared-event-feed-per-client.md)) replaces per-enumeration connections with one
 background source per root client. Ordinary attempt failures retry indefinitely
 and reach connection state instead of ending subscriptions. These hand-written runtime/error-channel
-breaks require a major release, on the same opencode **2.3.0** pin already shipped in SDK `1.1.0`
-([Unreleased breaking changes](../CHANGELOG.md#-breaking-changes)).
+breaks made it a major release, on the same opencode **2.3.0** pin already shipped in SDK `1.1.0`
+([2.0.0 breaking changes](../CHANGELOG.md#-breaking-changes)).
 
 Separately, milestone [`Next`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/5)
 is the current unversioned first-party parity and fix queue, not a promise that every item ships in
-`2.0.0`.
+the next release.
 
 ## Status
 
@@ -62,14 +62,14 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   ([package boundary](architecture/platform-and-packaging.md#packages)). They pack at the next version
   declared by `../Directory.Build.props`. Nightly publication follows the
   [publication policy](architecture/platform-and-packaging.md#repository-and-versioning), and
-  `1.1.0`, the latest release, is on NuGet.org, owned by
+  `2.0.0`, the latest release, is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.
 
 ## Road to 1.0
 
-`1.0.0`, `1.0.1`, and `1.1.0` are released; milestones `1.0` and `1.0.1` are closed. The workstreams
+`1.0.0`, `1.0.1`, `1.1.0`, and `2.0.0` are released; milestones `1.0` and `1.0.1` are closed. The workstreams
 below record the road to 1.0; step 6's release rehearsal is the release check, and
 [#796](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/796), the `1.0.0` benchmark
 record, is still open in milestone `1.x`.
