@@ -30,17 +30,15 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — **169 of 170 operations are usable**: 166 generated across 27 client families,
-  plus the three WebSocket connections that hand-written doors cover: the PTY and persistent-PTY
-  sessions and the experimental client-hosted MCP connection. Two live proofs of the client-hosted
-  MCP door wait for an upstream attach-registration signal: the model path with stacked
-  connections, and the automatic reattach after a location reload
-  ([#942](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/942)). One is not offered:
-  the legacy text generation endpoint, a deprecated alias of `GenerateTextAsync` that upstream's own
-  clients omit. `src/OpenCode.Sdk/.generation-incomplete` is the committed marker and names every
-  one. One-shot calls, server-sent event streams (the global
-  bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
-  errors with `NoThrow`, and the standalone launcher (`OpenCodeServer.StartAsync`) are landed.
+- **Coverage** — complete: 166 generated operations across 27 client families, plus the three
+  WebSocket connections that hand-written doors cover: the PTY and persistent-PTY sessions and the
+  experimental client-hosted MCP connection. Two live proofs of the client-hosted MCP door wait for
+  an upstream attach-registration signal: the model path with stacked connections, and the automatic
+  reattach after a location reload
+  ([#942](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/942)). One-shot calls,
+  server-sent event streams (the global bus and the per-session log), PTY and persistent-PTY
+  WebSocket sessions, cursor pagination, typed errors with `NoThrow`, and the standalone launcher
+  (`OpenCodeServer.StartAsync`) are landed.
 - **Assurance** — the suite runs on `net10.0` and `net11.0` across Linux, Windows, and macOS,
   plus `net472` on Windows, the fullest leg; `engineering/quality-gates.md` owns the gate a
   change must pass before it is called done.
