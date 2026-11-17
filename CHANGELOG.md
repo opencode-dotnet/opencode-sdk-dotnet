@@ -67,8 +67,8 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 ### 🐛 Fixes
 
 - `OpenCodeServiceConfiguration.SetCorsOriginsAsync` accepted fewer CORS origins than the CLI.
-  It now accepts the same origins for the covered empty-label, long ASCII-name, and
-  `!$&'()*+;=~` host-character classes. (#929)
+  It now accepts the same origins for the covered empty-label, long ASCII-name,
+  `!$&'()*+;=~`, quotation mark, grave accent, and brace host-character classes. (#929, #945)
 - `client.Rpc.CallAsync` runs until the plugin's method returns, as opencode's own client does: it no longer takes the client-wide `NetworkTimeout` (100 s by default). A per-call `NetworkTimeout` still bounds it, and the cancellation token is its deadline.
 - Legacy service-config and registration migration now write the decoded UTF-8 text opencode's
   CLI writes: one leading byte-order mark is dropped and invalid sequences become U+FFFD. A donor
