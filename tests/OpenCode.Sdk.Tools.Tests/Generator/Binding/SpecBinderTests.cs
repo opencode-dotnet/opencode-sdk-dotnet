@@ -273,6 +273,10 @@ public sealed class SpecBinderTests
         ("merge-root-accessor", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false }, [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare the same rootAccessor")]),
         ("merge-emission-and-root-accessor", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false }, [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic"),
             new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare the same rootAccessor")]),
+        ("merge-blank", ClientGroup("", "WidgetClient", "id"), [new(BindingErrorCategory.Curation, "widget", "client group must declare clientName"),
+            new(BindingErrorCategory.Curation, "widget", "handle parameter 'id' does not name a required path parameter on any selected operation in the group")]),
+        ("merge-whitespace", ClientGroup("  ", "WidgetClient", "id"), [new(BindingErrorCategory.Curation, "widget", "client group must declare clientName"),
+            new(BindingErrorCategory.Curation, "widget", "handle parameter 'id' does not name a required path parameter on any selected operation in the group")]),
         ("merge-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
         ("shared-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "OPENCODE001", "experimentalDiagnostic 'OPENCODE001' is shared by groups that are not one merged family")]),
         ("experimental", RootGroup(), [new(BindingErrorCategory.Curation, "widget", "selected experimental route requires experimentalDiagnostic")]),
@@ -328,7 +332,7 @@ public sealed class SpecBinderTests
             || ((fault.StartsWith("merge-", StringComparison.Ordinal) || fault == "shared-diagnostic") && operation.OperationId == "other.get")).ToArray();
         if (selected.Length == 2)
         {
-            groups["other"] = ClientGroup(fault == "shared-diagnostic" ? "Others" : "Widgets", null, null,
+            groups["other"] = ClientGroup(fault switch { "shared-diagnostic" => "Others", "merge-blank" => "", "merge-whitespace" => "  ", _ => "Widgets" }, null, null,
                 emission: fault == "merge-root-accessor" ? EmissionMode.InternalRaw : EmissionMode.Public,
                 experimentalDiagnostic: fault == "shared-diagnostic" ? "OPENCODE001" : null);
         }
