@@ -176,6 +176,13 @@ Curation may:
   operation identity, never an `operationNames` row (ADR-0008);
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
+- project session ownership through `sessionScopedEvent`: its configured unions (`IEvent` and
+  `ISessionEventDurable`) and member path (`data.sessionID`) qualify an event only when the
+  identifier is required and references the configured schema (`Session.ID`), not merely a
+  string-shaped schema. A qualifying event's payload must be required and non-nullable and its
+  identifier must bind to a non-nullable string, or generation fails. A row with no qualifying event
+  refuses as stale. Qualified records implement
+  `ISessionScopedEvent.SessionId` explicitly through that path, leaving serialization unchanged;
 - document a generated type or one of its members where the wire says too little, through a
   reason-bearing `descriptions` row keyed by the generated C# type and optional member: its summary
   replaces the generated one and its remarks join any the type already carries; a row on an

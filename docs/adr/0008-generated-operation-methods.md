@@ -39,8 +39,10 @@ breaks the build for explicit review. Exclusion is
 reserved for transports the HTTP pipeline cannot carry: `pty.connect` upgrades to
 WebSocket, which leaves HTTP after the handshake and needs a different client stack
 entirely. Non-JSON response bodies stay generated via a fail-closed
-content-type→payload map (`application/octet-stream` → `Stream` payload on a disposable
-envelope; `text/*` → `string`); an unknown content type breaks generation.
+content-type→payload map (`text/*` → `string`); an unknown content type breaks generation.
+The current binary response rule is in
+[Operations, streams, and exclusions](../architecture/protocol-and-generation.md#operations-streams-and-exclusions)
+and ADR-0029.
 
 ## Consequences
 

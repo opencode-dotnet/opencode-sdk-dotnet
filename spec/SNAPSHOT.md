@@ -39,11 +39,12 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
 1. `dotnet run --file tools/opencode-tool.cs -- refresh-spec --ref <commit-ish>` prepares a
    candidate: it resolves the reference once to a full SHA and produces the normalized
    document by running the exact pinned upstream generator, over the ordered Restore patches
-   when `spec/patches/` has any — never by copying upstream's committed document, which upstream
-   does not regenerate in CI — writing the receipt and document to
+   when `spec/patches/` has any — never by copying upstream's committed document — writing the
+   receipt and document to
    `.scratchpad/refresh/<sha>/` without touching accepted state. A patch whose repair
    predicate raw upstream already satisfies refuses, forcing an empty-patch retirement
-   refresh.
+   refresh. The [production policy](../docs/architecture/protocol-and-generation.md#snapshot-production)
+   owns this rule.
 2. Review the receipt: identity, hashes, operation delta, patch preimages, and prepare's `Moved for`
    and `Lost anchor for` lines. A line for `opencode-agents-ai` goes to that product; a lost anchor
    of either owner refuses apply until the anchor is rewritten.

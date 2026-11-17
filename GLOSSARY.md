@@ -15,8 +15,8 @@ A persistent conversation with an Agent, and the API's central concept.
 
 **Session metadata**:
 Host-supplied annotations on a Session: arbitrary keys with JSON values, opaque to opencode and
-durable from creation. Children and forks inherit the parent's unless their creator supplies its
-own.
+durable from creation. Children inherit the parent's unless creation supplies an override; forks
+copy the parent's metadata.
 
 **Message**:
 One entry in a Session's projected history, of one kind: user, assistant, synthetic, system, skill,

@@ -4,8 +4,9 @@ Date: 2026-09-16
 
 `OpenCodeServer` is the one process-backed local-server handle. `StartAsync` returns an owned
 standalone child whose disposal stops it; `DiscoverAsync` and `EnsureAsync` return a shared
-registered service whose disposal is a no-op, and only the static `StopAsync` ends the current
-registration. Ownership stays visible through `OwnsProcess`. A discovered handle has one operation
+registered service whose disposal is a no-op. Deliberate stop and restart follow the
+[connection lifecycle](../architecture/client-runtime.md#connection-modes).
+Ownership stays visible through `OwnsProcess`. A discovered handle has one operation
 (`CreateClient`) and an empty disposal, the shape ADR-0019 rejects for generated API handles; that
 ceremony is accepted here as the price of one type instead of a second near-identical public type
 whose only difference would be disposal semantics. ADR-0019 governs generated family handles and

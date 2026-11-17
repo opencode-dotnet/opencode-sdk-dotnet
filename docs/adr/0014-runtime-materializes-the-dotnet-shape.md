@@ -25,7 +25,9 @@ optional-and-nullable property uses `WhenWritingDefault` instead, because its ab
 wrapper's `default` rather than CLR null. Optional collections remain nullable
 rather than normalizing absence to empty. Generated collections are shallow `init`-only
 `IReadOnlyList<T>` / `IReadOnlyDictionary<string, T>` surfaces: the SDK does not copy or wrap
-caller-supplied collections, and callers own later mutation.
+caller-supplied collections, and callers own later mutation. The open-model `AdditionalProperties`
+bag is the exception to the collection rules; its ownership and absent-bag representation live in
+[Generated model shape](../architecture/protocol-and-generation.md#generated-model-shape).
 
 Union discriminator checks remain because they select the concrete C# type; unknown tags retain
 their explicit raw-payload carriers. Required members, non-null top-level payloads, enum token
@@ -35,9 +37,10 @@ string enums: ADR-0035.
 
 ## Consequences
 
-- Null-rejecting optional-property converters, collection-child scans, empty normalization,
-  defensive collection copies, and non-discriminator literal validation are removed. The closed
-  `Optional<T?>` converters are not that validation returning: they carry an admitted JSON null
+- Apart from the open-model bag's collection rules, null-rejecting optional-property converters,
+  collection-child scans, empty normalization, defensive collection copies, and non-discriminator
+  literal validation are removed. The closed `Optional<T?>` converters are not that validation
+  returning: they carry an admitted JSON null
   into a distinct CLR state instead of refusing it, and refuse nothing the schema admits.
 - A valid UTF-8 one-shot success may materialize directly from bytes. Charset/BOM selection and
   malformed-UTF-8 replacement remain equivalent to `HttpContent` string decoding, so the fast path
