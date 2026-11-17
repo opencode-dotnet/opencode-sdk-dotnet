@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -41,10 +41,10 @@ evidence and may contain superseded positions.
   such operations reach; the hand-written doors over an experimental family carry the same id. A
   group with an experimental route and no id, or with an id and no experimental route, fails
   generation, and so does a type reached only by experimental operations of two different ids.
-  An `internalRaw` group with `rootAccessor: false` may share the diagnostic of the group whose
-  dotted operation prefix it nests under; other distinct families cannot share one diagnostic.
-  Such a subgroup retains the parent family's naming segments; every other nested group rebases
-  naming at its prefix's last segment.
+  An `internalRaw` group with `rootAccessor: false` may share the diagnostic of its nearest curated
+  parent, the longest proper dotted prefix across all curated groups; other distinct families cannot
+  share one diagnostic. Such a subgroup inherits that parent's effective naming boundary; every
+  other group uses its own prefix's last segment as its naming boundary.
 - Derived model names strip Effect's encode-side `*Encoded` suffix from a component's final segment
   whenever a name remains, whatever other components the document holds — a mechanical
   projection-artifact rule owned by `ProjectionArtifactNamePolicy`, never a per-row curation act. A

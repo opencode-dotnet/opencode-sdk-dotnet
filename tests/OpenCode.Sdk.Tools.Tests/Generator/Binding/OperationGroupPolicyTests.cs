@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 /// <summary>
 /// A <c>groups</c> row keyed by a dotted prefix owns the operations whose identifiers start with it,
-/// the longest curated prefix wins, and the identifier keeps its name as its unprefixed form would.
+/// the longest curated prefix wins, and accessor-free raw subgroups inherit their parent's naming boundary.
 /// </summary>
 public sealed class OperationGroupPolicyTests
 {
@@ -57,6 +57,19 @@ public sealed class OperationGroupPolicyTests
 
         await Assert.That(prefixed.Models.Select(static model => model.Name))
             .IsEquivalentTo(unprefixed.Models.Select(static model => model.Name), CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Inherit_The_Dotted_Parents_Effective_Naming_Boundary()
+    {
+        var groups = Groups("lab.widget", ClientGroup("Widgets", null, null));
+        groups["lab.widget.child"] = ClientGroup("Children", null, null, emission: EmissionMode.InternalRaw) with { RootAccessor = false };
+        var document = await IngestAsync("lab.widget.get", "lab.widget.child.get");
+        var grouped = OperationGroupPolicy.Apply(document, groups);
+        await Assert.That(grouped.Operations.Single(static operation => operation.Group == "lab.widget.child").Segments).IsEquivalentTo(["widget", "child", "get"], CollectionOrdering.Matching);
+        var plan = new BindingTestHost().Bind(document, Selection("lab.widget.get", "lab.widget.child.get"), Curation(groups));
+        await Assert.That(plan.Clients.Single(static client => client.Name == "ChildrenRawClient").Operations.Single().Envelope?.ResponseTypeName)
+            .IsEqualTo("WidgetChildResponse");
     }
 
     [Test]

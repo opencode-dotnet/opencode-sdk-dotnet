@@ -892,7 +892,7 @@ public sealed class OperationPlanBinderTests
     public async Task Bind_Should_Refuse_Drift_In_The_Client_Mcp_Attach_Fingerprint()
     {
         var (document, selection, curation) = await BindingTestHost.LoadPinnedInputsAsync();
-        const string declared = "4a3e911341d39b1ce67d313d05ce87eb862f7f9bda4dc2a9b7d8e794fe2e86d6";
+        var declared = curation.TransportOwned.Single(static row => row.OperationId == "experimental.mcp.client").SubtreeSha256;
         const string drift = "de7981951ff32f7622ceb063b67d9bcaa8cce026362021051e2a084f084cf69f";
         var attach = document.Operations.Single(static operation => operation.OperationId == "experimental.mcp.client");
         await Assert.That(TransportOwnedFingerprint.ComputeSha256(attach)).IsEqualTo(declared);

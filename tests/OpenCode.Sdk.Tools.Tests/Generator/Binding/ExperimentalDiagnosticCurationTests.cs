@@ -19,6 +19,36 @@ public sealed class ExperimentalDiagnosticCurationTests(PinnedBinding pinned)
             Selection("probe.get", "other.get"), Curation(groups)));
 
     [Test]
+    [Arguments("OPENCODE001", false)]
+    [Arguments("OPENCODE002", true)]
+    public async Task Bind_Should_Share_A_Raw_Childs_Diagnostic_Only_With_The_Nearest_Parent(string diagnostic, bool accepted)
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation("experimental.get", path: "/api/experimental/root", configure: static operation => operation.WithoutResponse(200).Response(204))
+            .WithOperation("experimental.persistentPty.get", path: "/api/experimental/parent", configure: static operation => operation.WithoutResponse(200).Response(204))
+            .WithOperation("experimental.persistentPty.child.get", path: "/api/experimental/child", configure: static operation => operation.WithoutResponse(200).Response(204))));
+        var groups = Groups("experimental", ClientGroup("Experimental", null, null, experimentalDiagnostic: "OPENCODE001"));
+        groups["experimental.persistentPty"] = ClientGroup("ParentProbes", null, null, experimentalDiagnostic: "OPENCODE002");
+        groups["experimental.persistentPty.child"] = ClientGroup("Children", null, null, emission: EmissionMode.InternalRaw,
+            experimentalDiagnostic: diagnostic) with
+        { RootAccessor = false };
+        var selection = Selection("experimental.get", "experimental.persistentPty.get", "experimental.persistentPty.child.get");
+        if (accepted)
+        {
+            var plan = new BindingTestHost().Bind(document, selection, Curation(groups));
+            await Assert.That(plan.Clients.Single(static client => client.Name == "ChildrenRawClient").Operations.Single().ExperimentalDiagnostic)
+                .IsEqualTo("OPENCODE002");
+            return;
+        }
+
+        var failure = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, selection, Curation(groups)));
+        await Assert.That(failure.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Curation, "OPENCODE001",
+                "experimentalDiagnostic 'OPENCODE001' is shared by groups that are not one merged family"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments("other", false, true)]
     [Arguments("probe.child", true, true)]
     [Arguments("probe.child", false, false)]
