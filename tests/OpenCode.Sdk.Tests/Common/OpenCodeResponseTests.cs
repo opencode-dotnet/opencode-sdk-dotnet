@@ -14,10 +14,7 @@ public sealed class OpenCodeResponseTests
             Status = 200,
         };
 
-        await Assert.That(response.Status).IsEqualTo(200);
-        await Assert.That(response.IsError).IsFalse();
-        await Assert.That(response.Error).IsNull();
-        await Assert.That(response.RawBody).IsNull();
+        await ContractScenario.AssertSuccessSpineAsync(response, 200);
     }
 
     [Test]

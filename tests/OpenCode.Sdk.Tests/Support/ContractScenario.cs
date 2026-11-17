@@ -83,6 +83,14 @@ internal sealed class ContractScenario : IDisposable
         }));
     }
 
+    internal static async Task AssertSuccessSpineAsync(OpenCodeResponse response, int status)
+    {
+        await Assert.That(response.Status).IsEqualTo(status);
+        await Assert.That(response.IsError).IsFalse();
+        await Assert.That(response.Error).IsNull();
+        await Assert.That(response.RawBody).IsNull();
+    }
+
     public void Dispose()
     {
         Client.Dispose();

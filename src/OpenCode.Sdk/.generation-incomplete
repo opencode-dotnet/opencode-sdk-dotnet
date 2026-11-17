@@ -1,8 +1,8 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 165
+Selected operations: 166
 Pending operations: 0
-Declined operations: 3
-Transport-owned operations: 2
+Declined operations: 1
+Transport-owned operations: 3
 Selected:
 - agent.get
 - agent.list
@@ -35,6 +35,7 @@ Selected:
 - experimental.integration.wellknown.add
 - experimental.job.list
 - experimental.mcp.add
+- experimental.mcp.client.token
 - experimental.mcp.connect
 - experimental.mcp.disconnect
 - experimental.mcp.remove
@@ -172,8 +173,7 @@ Selected:
 Pending:
 Declined:
 - experimental.generate.textLegacy [declined: Both of upstream's first-party clients omit the legacy text generation endpoint; the SDK follows them.] [omitted upstream as generate.textLegacy] [bindable]
-- experimental.mcp.client [declined: Deferred to a hand-written door in 1.1 (#529): the WebSocket attach needs a client-hosted MCP runtime channel.] [refused: WebSocket operations are not supported]
-- experimental.mcp.client.token [declined: Deferred to a hand-written door in 1.1 (#529): the x-opencode-ticket header has no runtime channel for the client MCP attach.] [refused: header parameter 'x-opencode-ticket' has no runtime channel]
 Transport-owned:
+- experimental.mcp.client [fingerprint-pinned]
 - experimental.persistentPty.connect [fingerprint-pinned]
 - pty.connect [fingerprint-pinned]

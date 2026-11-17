@@ -48,8 +48,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   | Windows loopback connect / downlevel `ServicePoint` setup | Not applied |
   | Progress window, cancellation, disposal, status walls, errors, SSE framing/reconnect, buffering, headers | SDK |
 
-  Terminal upgrades use the same handler on `net10.0` and `net11.0`, through a non-owning invoker.
-  Recorded divergence: `net472` and `netstandard2.0` keep the socket's own transport because they
+  Terminal and default client-MCP upgrades use the same handler on `net10.0` and `net11.0`, through
+  a non-owning invoker. A caller's client-MCP `WebSocketFactory` socket keeps its own transport.
+  Recorded divergence: on both sockets, `net472` and `netstandard2.0` keep their own transport because they
   cannot accept an invoker; revisit if those assets gain that API.
 - The idle timeout keeps the transport from reusing a socket the server has already closed. The
   pinned server sends `Keep-Alive: timeout=5` and closes an idle connection about six seconds after
@@ -190,16 +191,19 @@ resolves the message's network window from those carried traits.
 
 ## Internal-raw family ownership
 
-- The normal PTY family is one of the three families whose **public** surface is hand-written:
+- The normal PTY family's **public** surface is hand-written:
   `PtysClient` and `PtyClient` live in `src/OpenCode.Sdk/Ptys/` as ordinary hand-written code,
   and the generator emits `PtysRawClient`/`PtyRawClient` internally beside them under the
   `internalRaw` curation emission. Everything else the family needs — routes, query shapers,
   response adapters, status verdicts, wire models, envelopes, and serializer metadata — stays
   generated, so route, status, and schema drift still breaks compilation locally (ADR-0021).
-- The hand-written doors keep the protected mocking constructor, `virtual` members, and the
+- The hand-written client classes keep the protected mocking constructor, `virtual` members, and the
   `MockSeam` guard. The PTY doors delegate once into their raw twins and add the knowledge generation
   may not import. The Events door owns sharing and local selection over a generated route and adapter.
-- `CreateConnectTokenAsync` is that knowledge. The server's connect-token handler requires a
+  The client-MCP token extension constructs its raw client from the Experimental client's pipeline;
+  its public composition belongs to [Client-hosted MCP](#client-hosted-mcp).
+- `CreateConnectTokenAsync` and `CreateClientMcpConnectTokenAsync` carry that knowledge.
+  The server's connect-token handler requires a
   fixed `x-opencode-ticket` value that exists only in upstream implementation source, which
   ADR-0013 forbids importing into generation; the constant therefore lives in the hand-written
   door alone and is never a caller's argument, never in curation, and never in generated output.
@@ -214,7 +218,7 @@ resolves the message's network window from those carried traits.
   general header facility: the channel is assembly-internal,
   only generated internal-raw methods feed it, and only a parameter the pinned document declares
   ever becomes an entry.
-- The Events family is the third: `EventsClient` is hand-written over the generated internal
+- The Events family also follows this pattern: `EventsClient` is hand-written over the generated internal
   `EventsRawClient`, under the same `internalRaw` emission (ADR-0021). Its subscription signature is
   unchanged; the shared feed opens the generated route and adapter directly through `StreamPlane`.
   `Pipeline.ExecuteStreamAsync` refuses reconnecting operations, after disposed/argument/options
@@ -227,10 +231,11 @@ resolves the message's network window from those carried traits.
 - `PtyClient.ConnectAsync` opens `PtySession`, the family's live working object: `ReadAsync`
   enumerates `PtyFrame` values, `WriteAsync` sends input, and `DisposeAsync` closes. The caller
   owns disposal of the session; peer closure and transport failure can also end the connection.
-- **Transport divergence.** This is one of the two public SDK doors that do not ride the HTTP
-  pipeline (the persistent PTY session is the other; the background-service info probe is an
-  internal third). The upgrade uses `HttpHandler`, when set, on modern targets, but the socket's own
-  transport downlevel, as specified under Construction and transport ownership. The pipeline's
+- **Transport divergence.** This is one of the three public SDK doors that do not ride the HTTP
+  pipeline (the persistent PTY session and client-hosted MCP connection are the others;
+  the background-service info probe is an internal fourth). The upgrade uses `HttpHandler`, when
+  set, on modern targets, but the socket's own transport downlevel, as specified under Construction
+  and transport ownership. The pipeline's
   progress window does not govern a PTY session. Its construction-time `ConnectionSnapshot`
   carries the normalized endpoint, Basic credential, ambient location, and caller's handler.
 - **Authentication.** The Basic credential rides the upgrade request's `Authorization` header. The
@@ -413,6 +418,104 @@ resolves the message's network window from those carried traits.
   `TimeProvider` in `ConnectionSnapshot`; both connect paths pass it through their sessions to
   the core's send deadlines and send queue. Send admission and close-output each arm their own
   independent graceful-close budget on that same clock.
+
+### Client-hosted MCP
+
+- **Public door and ownership.** `ExperimentalClientMcpExtensions.ConnectClientMcp` extends
+  `ExperimentalClient` and returns a caller-owned `ClientMcpConnection` immediately, without an
+  upgrade, readiness or registration acknowledgment. The application opens the socket but is the
+  MCP server; opencode is the MCP client. Root disposal does not own attachment disposal. The
+  connection, options, tools, content, result, context, schema helper and extension methods carry
+  `OPENCODE001`.
+- **Responder.** The hand-written responder answers only `initialize`, `ping`, `tools/list` and
+  `tools/call`, following `packages/client/src/mcp.ts` at the pin, not a general MCP implementation.
+  It runs over `TerminalSocketCore<ClientMcpMessage>`, sharing fragment assembly, serialized sends,
+  bounded close and SDK-owned I/O cleanup with the terminal doors. MCP sends have no deadline;
+  neither terminal family's 30-second default changes. MCP failure text uses the shared core's
+  `"MCP"` label; terminal diagnostics retain `"PTY"`.
+  Each text WebSocket message carries one JSON-RPC value; binary messages, invalid JSON, non-object
+  values and batches are ignored. A string or number id and a string method admit a request,
+  without validating `jsonrpc`; notifications and responses receive no reply.
+  - Recorded divergence: the client-MCP frame decoder accepts JSON nested at most 256 levels deep;
+    deeper frames are ignored as invalid (`src/OpenCode.Sdk/Experimental/Internal/ClientMcpFrameDecoder.cs:16`).
+    The bound keeps the responder's recursive formatting within a safe stack depth; upstream's
+    parser has no limit.
+- **Answers.** Initialize echoes any string protocol version, including empty, otherwise
+  `2025-11-25`, advertises only `tools: {}`, and reports the supplied name with server version
+  `1.0.0`. Ping returns `{}`. Tool listing preserves declaration order, omits unset descriptions,
+  and merges manual schema fields over a default `type: "object"`; a caller's type wins.
+  A supplied schema must be a JSON object; admission refuses other value kinds synchronously.
+  Calls select the first exact-ordinal matching tool name. Only missing/null arguments become `{}`;
+  other values pass unchanged, and `ai.opencode/sessionID` contributes context only when a string.
+  Ordered text/image content and an explicitly false `IsError` are preserved; unset `IsError` is
+  omitted. Handler exceptions and null results, content collections or content elements become
+  message text with `isError: true`, not JSON-RPC errors.
+  Unknown tools answer `-32602` with `Unknown tool: <name>` using JavaScript string conversion;
+  unknown methods answer `-32601` with `Method not found: <method>`.
+- **Work and capture.** Handlers take `(JsonElement args, ClientMcpToolContext ctx)`, with no
+  cancellation token, and may overlap. Physical sends serialize; a reply stays fenced to its
+  original socket, never transfers to a replacement, and an executed call is never replayed.
+  Arguments and captured manual schemas are independently owned JSON values. Supplied collections
+  remain shallow caller-owned references and must not be mutated while connected.
+- **Reconnect and failure channels.** Peer closes, including 1000, 1011 (`attach failed`) and
+  1012 (`location shut down`), and ordinary transport failures retry until local disposal.
+  Delays are 500, 1000, 2000, 4000, 8000, 10000, 10000… milliseconds, as in
+  `packages/client/src/mcp.ts:82-95` at the pin. Only `notifications/initialized` resets the delay,
+  before request filtering; neither socket open nor the initialize answer resets it.
+  Initial URI, factory and setup failures are synchronous; a supplied socket is cleaned up when
+  setup fails. A later synchronous retry-factory/setup failure terminates retry, is observed on the
+  internal loop completion and rethrown from the timer callback, not deferred until disposal.
+  An uncaught callback exception can terminate the process. Ordinary asynchronous upgrade failures
+  instead follow the retry schedule; failed upgrades dispose their socket before ownership transfer.
+- **Close.** `DisposeAsync` stops admission and retry, retires the response gate and closes only
+  this socket with 1000, joining SDK-owned I/O through the shared core's bounded graceful close and
+  hard teardown. Concurrent disposals share cleanup completion. It performs no name-keyed HTTP
+  removal. Neither disconnect nor disposal cancels or joins application handlers; their eventual
+  result or fault remains observed, and late replies are dropped. Application work and the
+  references needed to observe it may outlive disposal.
+- **Address and credentials.** `ClientMcpOptions.Url` is an absolute base URL, defaulting to the
+  root endpoint. The builder retains its base path and query, appends
+  `api/experimental/client-mcp`, removes the fragment and sets `name`. It maps `https`/`wss` to
+  `wss`, otherwise to `ws`; `http`, `https`, `ws` and `wss` are supported without changing root
+  `EndpointPolicy`. With no override, `Location` merges over ambient location. With explicit `Url`,
+  ambient location is not injected: only an explicitly supplied `Location.Directory` replaces
+  `location[directory]`. Unrelated query entries, including tickets, retain order and multiplicity.
+  Setting name/directory replaces its first occurrence and removes duplicates.
+  Root Authorization is the default even for an explicit destination; `Headers` overrides it.
+  An explicit `Url` therefore selects where that credential is sent. Neither client-wide nor
+  per-call HTTP headers are copied into the handshake. `WebSocketFactory` supplies a fresh
+  unconnected socket per attempt, owned by the SDK once returned; its transport is left untouched.
+  Default sockets follow the handler rule under Construction and transport ownership.
+  Options printing includes only the name, never URL or header credentials.
+  Recorded divergences:
+  - Root Authorization is supplied even to an explicit URL, unless overridden in `Headers`, so
+    this door inherits its root client's authentication context like the terminal doors.
+    Upstream's helper instead requires headers to be supplied explicitly.
+  - Without an explicit URL, per-call location merges over the root's ambient location, preserving
+    the SDK's inherit-or-replace location contract. Upstream's helper has no ambient client context.
+  - Downlevel default sockets retain their own transport because their `ClientWebSocket` cannot
+    accept an HTTP invoker. Modern targets reuse the root client's handler, as described under
+    [Construction and transport ownership](#construction-and-transport-ownership).
+- **Browser token door.** `CreateClientMcpConnectTokenAsync` extends `ExperimentalClient` and
+  delegates once to generated `ClientMcpTokensRawClient.CreateConnectTokenAsync`, an accessor-free
+  `internalRaw` subgroup, with `PtyTicketHeader.Sentinel` supplying `x-opencode-ticket: 1` through
+  the declared-header channel. No public token subclient, root accessor or DI singleton exists.
+  Its `ExperimentalMcpClientTokenRequest` carries required `Name` and optional `Location` in the
+  query; that query, not the ambient directory header, fixes token scope. The normal HTTP pipeline
+  targets the root endpoint with root credentials and retains request options, cancellation,
+  declared API errors and `NoThrow`. The generated `ExperimentalMcpClientTokenResponse` retains the
+  normal response spine and resolved `Location`; `ConnectToken` is the shared `PtyTicketConnectToken`
+  with `Ticket` and `ExpiresIn`. Tickets are single-use, short-lived (60 seconds by default) and
+  scoped to the name and resolved directory/workspace on the minting server. A ticket goes in the
+  attachment base `Url` query, not a separate options member. Ordinary .NET attach uses headers;
+  attach and retry never mint or refresh tickets, and an overridden attachment destination does
+  not redirect token HTTP.
+- **Metadata helper.** `ClientMcpSchema.FromType<T>(JsonTypeInfo<T>)` exports caller-supplied
+  source-generated object or dictionary metadata through System.Text.Json's schema exporter.
+  It sets only the root type to `"object"`, retaining nested nullability, required members,
+  references and additional properties, and returns an independently owned `JsonElement`.
+  Other metadata kinds are refused. It adds no dependency, reflection fallback, name validator
+  or runtime argument validation.
 
 ## Error channels
 

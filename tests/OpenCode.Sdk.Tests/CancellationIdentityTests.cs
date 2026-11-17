@@ -37,6 +37,9 @@ public sealed class CancellationIdentityTests
             static (client, token) => client.LanguageModels.WaitForDefaultAsync(cancellationToken: token), caller));
         yield return new("plugin-wait", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Plugins.WaitForPluginsAsync(cancellationToken: token), caller));
+        yield return new("client-mcp-token", "headers", caller => AtHeadersAsync(
+            static (client, token) => client.Experimental.CreateClientMcpConnectTokenAsync(
+                new ExperimentalMcpClientTokenRequest { Name = "identity" }, cancellationToken: token), caller));
         yield return new("rpc-call", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Rpc.CallAsync(RpcFacadeData.Echo, RpcFacadeData.EchoInput, cancellationToken: token), caller));
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
@@ -586,7 +589,8 @@ public sealed class CancellationIdentityTests
         public bool Is(Type owner, string name, Type result, params Type[] parameters) =>
             DeclaringType == owner && Name == name && ReturnType == result &&
             IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(OpenCodeServiceConfiguration) ||
-                owner == typeof(LanguageModelsClientExtensions) || owner == typeof(PluginsClientExtensions)) &&
+                owner == typeof(LanguageModelsClientExtensions) || owner == typeof(PluginsClientExtensions) ||
+                owner == typeof(ExperimentalClientMcpExtensions)) &&
             Parameters.SequenceEqual(parameters);
 
         public override string ToString() =>
@@ -631,6 +635,9 @@ public sealed class CancellationIdentityTests
                     or nameof(OpenCodeServiceConfiguration.SetHostnameAsync) or nameof(OpenCodeServiceConfiguration.SetPasswordAsync)
                     or nameof(OpenCodeServiceConfiguration.SetPortAsync) or nameof(OpenCodeServiceConfiguration.UnsetAsync)
                     or nameof(OpenCodeServiceConfiguration.UnsetEnvironmentVariableAsync) => "service-config-stop",
+            _ when member.Is(typeof(ExperimentalClientMcpExtensions), nameof(ExperimentalClientMcpExtensions.CreateClientMcpConnectTokenAsync),
+                typeof(Task<ExperimentalMcpClientTokenResponse>), typeof(ExperimentalClient), typeof(ExperimentalMcpClientTokenRequest),
+                typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "client-mcp-token",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StartAsync), typeof(Task<OpenCodeServer>),
                 typeof(OpenCodeServerOptions), typeof(CancellationToken)) => "start",
             _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.DiscoverAsync), typeof(Task<OpenCodeServer>),

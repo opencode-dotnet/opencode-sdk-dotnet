@@ -7,8 +7,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <remarks>
 /// A <c>groups</c> row keyed by a dotted prefix owns every operation whose identifier starts with it,
 /// and a longer curated prefix wins over a shorter one. The identifier itself is never remapped; naming
-/// sees it from the prefix's last segment on, so <c>experimental.persistentPty.create</c> names as
-/// <c>persistentPty.create</c> would.
+/// sees it from the prefix's last segment on, except accessor-free internal-raw subgroups inherit
+/// their nearest curated parent's effective naming boundary.
 /// </remarks>
 internal static class OperationGroupPolicy
 {
@@ -20,14 +20,35 @@ internal static class OperationGroupPolicy
             .OrderByDescending(static key => key.Length).ToArray();
         return prefixes.Length is 0
             ? document
-            : document with { Operations = [.. document.Operations.Select(operation => Assign(operation, prefixes))] };
+            : document with { Operations = [.. document.Operations.Select(operation => Assign(operation, prefixes, groups))] };
     }
 
-    private static SpecOperation Assign(SpecOperation operation, string[] prefixes)
+    public static bool TryGetInheritedParent(string prefix, IReadOnlyDictionary<string, GroupCuration> groups, out string parent)
+    {
+        parent = groups.Keys.Where(key => prefix.StartsWith(key + ".", StringComparison.Ordinal))
+            .OrderByDescending(static key => key.Length).FirstOrDefault() ?? string.Empty;
+        return parent.Length > 0 && groups[prefix] is { Emission: EmissionMode.InternalRaw, RootAccessor: false };
+    }
+
+    private static SpecOperation Assign(SpecOperation operation, string[] prefixes, IReadOnlyDictionary<string, GroupCuration> groups)
     {
         var prefix = prefixes.FirstOrDefault(prefix => operation.OperationId.StartsWith(prefix + ".", StringComparison.Ordinal));
         return prefix is null
             ? operation
-            : operation with { Group = prefix, Segments = [.. operation.OperationId.Split('.').Skip(prefix.Split('.').Length - 1)] };
+            : operation with
+            {
+                Group = prefix,
+                Segments = [.. operation.OperationId.Split('.').Skip(GetNamingPrefix(prefix, groups).Split('.').Length - 1)],
+            };
+    }
+
+    private static string GetNamingPrefix(string prefix, IReadOnlyDictionary<string, GroupCuration> groups)
+    {
+        while (TryGetInheritedParent(prefix, groups, out var parent))
+        {
+            prefix = parent;
+        }
+
+        return prefix;
     }
 }

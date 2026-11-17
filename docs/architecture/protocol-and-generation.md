@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -41,6 +41,10 @@ evidence and may contain superseded positions.
   such operations reach; the hand-written doors over an experimental family carry the same id. A
   group with an experimental route and no id, or with an id and no experimental route, fails
   generation, and so does a type reached only by experimental operations of two different ids.
+  An `internalRaw` group with `rootAccessor: false` may share the diagnostic of its nearest curated
+  parent, the longest proper dotted prefix across all curated groups; other distinct families cannot
+  share one diagnostic. Such a subgroup inherits that parent's effective naming boundary; every
+  other group uses its own prefix's last segment as its naming boundary.
 - Derived model names strip Effect's encode-side `*Encoded` suffix from a component's final segment
   whenever a name remains, whatever other components the document holds — a mechanical
   projection-artifact rule owned by `ProjectionArtifactNamePolicy`, never a per-row curation act. A
@@ -429,7 +433,10 @@ materializable.
 
 - Every HTTP operation method, including streaming operations, is generated as a short delegation
   into the hand-written behavior core (ADR-0008). The PTY families' and Events family's public
-  doors are the ownership exceptions (ADR-0021); their raw endpoints stay generated.
+  doors and the client-MCP token extension are the ownership exceptions (ADR-0021); their raw
+  endpoints stay generated. The client-MCP token uses an accessor-free `internalRaw` subgroup
+  beneath Experimental; its public extension supplies the fixed header without changing unrelated
+  Experimental methods or adding a second protocol-semantic input.
 - Bound root payload-union identity supplies a stream adapter's optional concrete unknown-arm
   metadata and scopes its carrier documentation; an adapter without such a union emits null.
   A stream payload union that reaches known-impossible tags, directly or through a nested union,
@@ -493,6 +500,8 @@ materializable.
   stream is exposed. Other generated streaming operations keep their existing one-shot semantics.
 - Exclusion is reserved for transports the HTTP pipeline cannot carry, such as a WebSocket upgrade.
   Every excluded operation is fingerprint-pinned so protocol drift forces review (ADR-0008).
+  The client-MCP attach is transport-owned and fingerprint-pinned; its connect-token POST is
+  generated internal-raw HTTP, exposed through the hand-written extension rather than excluded.
 - Unknown response media types fail generation. Supported non-JSON response bodies follow the
   fail-closed content-type-to-payload mapping recorded by ADR-0008. An `application/octet-stream`
   success whose schema is `string` with `format: binary` binds a binary envelope: the buffered

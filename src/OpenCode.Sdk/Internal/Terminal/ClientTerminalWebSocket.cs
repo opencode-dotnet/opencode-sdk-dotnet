@@ -14,24 +14,55 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
 {
-    private readonly ClientWebSocket _socket = new();
+    private readonly ClientWebSocket _socket;
 #if NET
     private readonly HttpMessageInvoker? _invoker;
 #endif
+    private readonly Action<ClientWebSocket>? _onDisposed;
+    private int _disposed;
 
     public ClientTerminalWebSocket(AuthenticationHeaderValue? authorization, HttpMessageHandler? httpHandler)
+        : this(new ClientWebSocket(), authorization, null, httpHandler: httpHandler)
     {
-        if (authorization is not null)
+    }
+
+    internal ClientTerminalWebSocket(AuthenticationHeaderValue? authorization,
+        IReadOnlyDictionary<string, string>? headers, Action<ClientWebSocket>? onDisposed, HttpMessageHandler? httpHandler = null)
+        : this(new ClientWebSocket(), authorization, headers, onDisposed, httpHandler)
+    {
+    }
+
+    internal ClientTerminalWebSocket(ClientWebSocket socket, AuthenticationHeaderValue? authorization,
+        IReadOnlyDictionary<string, string>? headers, Action<ClientWebSocket>? onDisposed = null, HttpMessageHandler? httpHandler = null)
+    {
+        _socket = socket;
+        _onDisposed = onDisposed;
+        try
         {
-            _socket.Options.SetRequestHeader("Authorization", authorization.ToString());
-        }
+            if (authorization is not null)
+            {
+                _socket.Options.SetRequestHeader("Authorization", authorization.ToString());
+            }
 
 #if NET
-        // The pre-upgrade refusals the server answers (404, 401, 403) are only distinguishable
-        // from the response status, which the socket keeps solely when asked to.
-        _socket.Options.CollectHttpResponseDetails = true;
-        _invoker = httpHandler is null ? null : new HttpMessageInvoker(httpHandler, disposeHandler: false);
+            // The pre-upgrade refusals the server answers (404, 401, 403) are only distinguishable
+            // from the response status, which the socket keeps solely when asked to.
+            _socket.Options.CollectHttpResponseDetails = true;
+            _invoker = httpHandler is null ? null : new HttpMessageInvoker(httpHandler, disposeHandler: false);
 #endif
+            if (headers is not null)
+            {
+                foreach (var header in headers)
+                {
+                    _socket.Options.SetRequestHeader(header.Key, header.Value);
+                }
+            }
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     public WebSocketCloseStatus? CloseStatus => _socket.CloseStatus;
@@ -65,8 +96,9 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
         catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
         {
             // ClientWebSocket links the caller's token with its own; the caller's token names the cancellation.
+            var label = policy is ClientMcpUpgradeFailurePolicy ? "MCP" : "terminal";
             throw FailureClassification.CallerCancellation(
-                exception, "The opencode terminal WebSocket upgrade was canceled.", cancellationToken);
+                exception, $"The opencode {label} WebSocket upgrade was canceled.", cancellationToken);
         }
         catch (WebSocketException exception)
         {
@@ -118,15 +150,19 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
 
     public void Dispose()
     {
-        try
+        if (Interlocked.Exchange(ref _disposed, 1) is 0)
         {
-            _socket.Dispose();
-        }
-        finally
-        {
+            try
+            {
+                _socket.Dispose();
+            }
+            finally
+            {
 #if NET
-            _invoker?.Dispose();
+                _invoker?.Dispose();
 #endif
+                _onDisposed?.Invoke(_socket);
+            }
         }
     }
 }

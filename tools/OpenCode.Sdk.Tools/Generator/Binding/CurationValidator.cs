@@ -286,11 +286,13 @@ internal static class CurationValidator
             }
         }
 
-        // An id names one family, so groups that share it must be one merged client.
+        // An id names one family, except for its nested accessor-free internal-raw subgroups.
         foreach (var diagnostic in curation.Groups
                      .Where(static pair => pair.Value.ExperimentalDiagnostic is not null)
                      .GroupBy(static pair => pair.Value.ExperimentalDiagnostic!, StringComparer.Ordinal)
-                     .Where(static groups => groups
+                     .Where(groups => groups
+                         .Where(pair => !OperationGroupPolicy.TryGetInheritedParent(pair.Key, curation.Groups, out var parent)
+                             || curation.Groups[parent].ExperimentalDiagnostic != pair.Value.ExperimentalDiagnostic)
                          .Select(static pair => (pair.Value.Placement,
                              Family: pair.Value.Placement is GroupPlacement.Client ? pair.Value.ClientName ?? pair.Key : pair.Key))
                          .Distinct().Skip(1).Any())

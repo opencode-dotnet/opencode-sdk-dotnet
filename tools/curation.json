@@ -2515,6 +2515,14 @@
       "experimentalDiagnostic": "OPENCODE001",
       "reason": "Experimental operations share a flat client that flags their stability; route identifiers are explicit method arguments rather than session handles, and its upstream experimental routes carry OPENCODE001."
     },
+    "experimental.mcp.client": {
+      "placement": "client",
+      "clientName": "ClientMcpTokens",
+      "emission": "internalRaw",
+      "experimentalDiagnostic": "OPENCODE001",
+      "rootAccessor": false,
+      "reason": "The client-MCP token POST needs a hand-written public sentinel wrapper over generated declared-header HTTP internals; this longest-prefix subgroup owns only the token operation selected here, while the attach is transport-owned and unrelated Experimental operations retain their public generated client."
+    },
     "model": {
       "placement": "client",
       "clientName": "LanguageModels",
@@ -2583,6 +2591,11 @@
   },
   "operationIdentities": [],
   "operationNames": [
+    {
+      "operationId": "experimental.mcp.client.token",
+      "methodName": "CreateConnectTokenAsync",
+      "reason": "Create client MCP WebSocket token: the POST mints a short-lived browser connect ticket, and its hand-written wrapper uses the existing terminal doors' CreateConnectTokenAsync vocabulary."
+    },
     {
       "operationId": "debug.heapDump",
       "methodName": "WriteHeapSnapshotAsync",
@@ -3130,6 +3143,11 @@
   ],
   "stringQueryParameters": [
     {
+      "operationId": "experimental.mcp.client.token",
+      "parameter": "name",
+      "reason": "The represented required plain-string query is the client MCP server name; upstream's generated token input takes name as a string."
+    },
+    {
       "operationId": "debug.heapDump",
       "parameter": "directory",
       "reason": "An absolute server-local directory for the snapshot; upstream's client takes a string."
@@ -3435,6 +3453,11 @@
     }
   ],
   "transportOwned": [
+    {
+      "operationId": "experimental.mcp.client",
+      "subtreeSha256": "4a3e911341d39b1ce67d313d05ce87eb862f7f9bda4dc2a9b7d8e794fe2e86d6",
+      "reason": "The client-hosted MCP door owns the WebSocket upgrade and JSON-RPC responder outside the HTTP pipeline; fingerprinting its method, path, parameters, x-websocket marker and declared responses makes protocol drift fail generation for explicit review."
+    },
     {
       "operationId": "pty.connect",
       "subtreeSha256": "381ad1c545b3a9ffbff50ab1c2ac922b35b6748f6a0330173f7eb56a129bc4f4",
@@ -3858,20 +3881,17 @@
   ],
   "declined": [
     {
-      "operationId": "experimental.mcp.client",
-      "reason": "Deferred to a hand-written door in 1.1 (#529): the WebSocket attach needs a client-hosted MCP runtime channel."
-    },
-    {
-      "operationId": "experimental.mcp.client.token",
-      "reason": "Deferred to a hand-written door in 1.1 (#529): the x-opencode-ticket header has no runtime channel for the client MCP attach."
-    },
-    {
       "operationId": "experimental.generate.textLegacy",
       "reason": "Both of upstream's first-party clients omit the legacy text generation endpoint; the SDK follows them.",
       "upstreamOmitted": "generate.textLegacy"
     }
   ],
   "envelopePayloadNames": [
+    {
+      "operationId": "experimental.mcp.client.token",
+      "name": "ConnectToken",
+      "reason": "The data payload is the shared PtyTicket.ConnectToken schema; ConnectToken names that payload rather than the mechanical McpClientToken subject."
+    },
     { "operationId": "mcp.list", "name": "McpServers", "reason": "The data array contains Mcp.Server records; McpServers names those servers rather than the mechanical group plural Mcps." },
     { "operationId": "vcs.status", "name": "Changes", "reason": "The data array contains Vcs.FileStatus records; Changes names the collection of file-status entries rather than making Status look like a single status value." },
     { "operationId": "location.get", "name": "ResolvedLocation", "reason": "The bare response is Location.PublicInfo; ResolvedLocation names that returned location and avoids the response spine's reserved Location member." },

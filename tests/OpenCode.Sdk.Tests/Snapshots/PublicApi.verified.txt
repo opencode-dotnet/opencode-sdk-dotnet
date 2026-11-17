@@ -30,6 +30,67 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.AgentResponse> GetAgentAsync(string agentId, OpenCode.Sdk.AgentRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.AgentListResponse> ListAgentsAsync(OpenCode.Sdk.AgentListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ClientMcpConnection : System.IAsyncDisposable
+    {
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ClientMcpContent
+    {
+        public string? Data { get; }
+        public string? MimeType { get; }
+        public string? Text { get; }
+        public string Type { get; }
+        public static OpenCode.Sdk.ClientMcpContent FromImage(string data, string mimeType) { }
+        public static OpenCode.Sdk.ClientMcpContent FromText(string text) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ClientMcpOptions : System.IEquatable<OpenCode.Sdk.ClientMcpOptions>
+    {
+        public ClientMcpOptions() { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers { get; init; }
+        public OpenCode.Sdk.LocationSelector? Location { get; init; }
+        public required string Name { get; init; }
+        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.ClientMcpTool> Tools { get; init; }
+        public System.Uri? Url { get; init; }
+        public System.Func<System.Net.WebSockets.ClientWebSocket>? WebSocketFactory { get; init; }
+        public override string ToString() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public static class ClientMcpSchema
+    {
+        public static System.Text.Json.JsonElement FromType<T>(System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> typeInfo) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ClientMcpTool : System.IEquatable<OpenCode.Sdk.ClientMcpTool>
+    {
+        public ClientMcpTool() { }
+        public string? Description { get; init; }
+        public required System.Func<System.Text.Json.JsonElement, OpenCode.Sdk.ClientMcpToolContext, System.Threading.Tasks.Task<OpenCode.Sdk.ClientMcpToolResult>> Handler { get; init; }
+        public System.Text.Json.JsonElement? InputSchema { get; init; }
+        public required string Name { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ClientMcpToolContext
+    {
+        public ClientMcpToolContext(string? sessionId) { }
+        public string? SessionId { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ClientMcpToolResult : System.IEquatable<OpenCode.Sdk.ClientMcpToolResult>
+    {
+        public ClientMcpToolResult() { }
+        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.ClientMcpContent> Content { get; init; }
+        public bool? IsError { get; init; }
+    }
     public sealed class CommandListRequest : System.IEquatable<OpenCode.Sdk.CommandListRequest>
     {
         public CommandListRequest() { }
@@ -323,6 +384,13 @@ namespace OpenCode.Sdk
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public static class ExperimentalClientMcpExtensions
+    {
+        public static OpenCode.Sdk.ClientMcpConnection ConnectClientMcp(this OpenCode.Sdk.ExperimentalClient client, OpenCode.Sdk.ClientMcpOptions options) { }
+        public static System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpClientTokenResponse> CreateClientMcpConnectTokenAsync(this OpenCode.Sdk.ExperimentalClient client, OpenCode.Sdk.ExperimentalMcpClientTokenRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalConfigUpdateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalConfigUpdateResponse>
     {
         public ExperimentalConfigUpdateResponse() { }
@@ -409,6 +477,23 @@ namespace OpenCode.Sdk
     public sealed class ExperimentalMcpAddResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpAddResponse>
     {
         public ExperimentalMcpAddResponse() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalMcpClientTokenRequest : System.IEquatable<OpenCode.Sdk.ExperimentalMcpClientTokenRequest>
+    {
+        public ExperimentalMcpClientTokenRequest() { }
+        public OpenCode.Sdk.LocationSelector? Location { get; init; }
+        public required string Name { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalMcpClientTokenResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpClientTokenResponse>
+    {
+        public ExperimentalMcpClientTokenResponse() { }
+        public required OpenCode.Sdk.Models.PtyTicketConnectToken ConnectToken { get; init; }
+        public required OpenCode.Sdk.Models.LocationPublicRef Location { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]

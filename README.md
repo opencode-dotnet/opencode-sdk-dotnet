@@ -46,8 +46,8 @@ Console.WriteLine($"session {created.Session.Id}");
 
 ## 🧭 API Coverage
 
-Every operation in the pinned OpenAPI snapshot is callable except the three declined below; the
-two terminal connections go through hand-written WebSocket transports. All three connection modes
+Every operation in the pinned OpenAPI snapshot is callable except the legacy text endpoint below;
+three connection doors use hand-written WebSocket transports. All three connection modes
 work: a private server the SDK starts, a server you already run, and the background service that
 the opencode CLI registers.
 
@@ -68,6 +68,7 @@ The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ran
 | Models and providers | `client.Providers`, `client.LanguageModels`, `client.Credentials` | — |
 | Agents, commands, skills, plugins | `client.Agents`, `client.Commands`, `client.Skills`, `client.Plugins` | — |
 | MCP servers and integrations | `client.McpServers`, `client.Integrations` | — |
+| Application-hosted MCP tools | `client.Experimental.ConnectClientMcp` | [Client-hosted MCP](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#client-hosted-mcp) |
 | Configuration, projects, references | `client.Config`, `client.Projects`, `client.References` | — |
 | Server info and pairing | `client.Server` | [Connection modes](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md) |
 | Locations | `client.GetLocationAsync`, `client.ReloadLocationsAsync`, `client.Debug` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
@@ -75,11 +76,12 @@ The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ran
 | Plugin RPC, raw or through a typed definition | `client.Rpc` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
 | Operations upstream marks experimental | `client.Experimental` | [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) |
 
-The two terminal connections (`pty.connect`, `experimental.persistentPty.connect`) are WebSocket
-upgrades that the HTTP pipeline cannot carry. They are fully usable through the hand-written
-`PtySession` and `PersistentPtySession` types. Three are declined by decision: the client-hosted MCP
-attach and its token, deferred to a hand-written API in 1.1 ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)), and the legacy text generation
-endpoint, which upstream's own clients omit.
+The terminal connections (`pty.connect`, `experimental.persistentPty.connect`) and client-hosted MCP
+attachment are WebSocket upgrades outside the HTTP pipeline. The hand-written `PtySession`,
+`PersistentPtySession` and `ClientMcpConnection` types expose these three doors.
+[Client-hosted MCP](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#client-hosted-mcp)
+also provides `CreateClientMcpConnectTokenAsync` for browser tickets through the HTTP pipeline.
+Only the legacy text generation endpoint is declined; upstream's own clients omit it.
 [`src/OpenCode.Sdk/.generation-incomplete`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/src/OpenCode.Sdk/.generation-incomplete)
 is the machine-readable map that the build reads.
 

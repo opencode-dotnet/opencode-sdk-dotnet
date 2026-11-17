@@ -1,6 +1,6 @@
 # The PTY families' and the Events family's public doors are hand-written over generated internals
 
-Date: 2026-11-14
+Date: 2026-11-16
 
 The PTY family's center of gravity is a live WebSocket session — a transport ADR-0008 already
 excludes from generation — and a token handshake whose fixed `x-opencode-ticket` value exists only
@@ -29,6 +29,14 @@ attempts through the generated route and adapter on the stream plane rather than
 raw twin's subscribe method. The raw endpoint, routes, adapters, wire models and serializer metadata
 stay generated; the public subscription signature stays stable while its runtime contract belongs
 to hand-written code.
+
+The client-MCP token subgroup (`experimental.mcp.client`) follows the same bounded ownership
+pattern because its handshake requires the same fixed `x-opencode-ticket` sentinel. Its
+`CreateClientMcpConnectTokenAsync` extension on `ExperimentalClient` supplies that implementation
+knowledge over a generated internal raw route, query, adapter and response envelope. The subgroup
+has the public composition described under [Client-hosted MCP](../architecture/client-runtime.md#client-hosted-mcp);
+unrelated Experimental methods remain generated. The client-MCP attach itself is a transport-owned
+WebSocket door.
 
 ## Considered options
 

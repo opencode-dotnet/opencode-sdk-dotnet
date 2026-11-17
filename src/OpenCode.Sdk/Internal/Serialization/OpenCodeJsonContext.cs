@@ -136,6 +136,7 @@ namespace OpenCode.Sdk.Internal;
 [JsonSerializable(typeof(ExperimentalIntegrationWellknownAddRequest))]
 [JsonSerializable(typeof(ExperimentalJobListResponseEnvelope))]
 [JsonSerializable(typeof(ExperimentalMcpAddRequest))]
+[JsonSerializable(typeof(ExperimentalMcpClientTokenResponseEnvelope))]
 [JsonSerializable(typeof(ExperimentalMcpEvent))]
 [JsonSerializable(typeof(ExperimentalMcpEventData))]
 [JsonSerializable(typeof(ExperimentalMigrationV1Status))]

@@ -23,6 +23,8 @@ The next SDK version is **2.0.0**, on the same opencode **2.3.0** pin already re
 
 ### ✨ Added
 
+- Experimental client-hosted MCP exposes application tools through `ConnectClientMcp` over a reconnecting WebSocket, including text/image results and the browser `CreateClientMcpConnectTokenAsync` door (`OPENCODE001`).
+- `ClientMcpSchema.FromType` exports object input schemas from source-generated metadata without a new dependency.
 - `OpenCodeClientOptions.HttpHandler` accepts a caller-owned HTTP transport for requests, event streams, and terminal upgrades on modern targets.
 - `OpenCodeClientOptions.MediaReferences` asks the message and inbox reads for media references, as opencode's own client does with `withMediaRefs`: when the session location's `experimental.media_blob` is on, a stored user file then reads as `PromptMediaFileAttachment`, and `MediaReference.HashFromUri(file.Uri)` gives the hash `client.Experimental.GetMediaAsync` fetches. `OpenCodeRequestOptions.InlineMedia` stops the SDK sending that capability on one call, for self-contained exports; a capability header the caller sets still goes out. All three are experimental (`OPENCODE001`).
 - `OpenCodeClientOptions.Headers` and `OpenCodeRequestOptions.Headers` set client-wide and per-call HTTP headers, with per-call values winning; on the message and inbox reads, the capability header `MediaReferences` sends replaces both.

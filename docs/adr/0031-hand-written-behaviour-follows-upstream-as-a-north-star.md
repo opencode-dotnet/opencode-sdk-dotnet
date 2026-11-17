@@ -28,6 +28,6 @@ A divergence that matters is scheduled and closed, not parked. Whether it matter
 ## Consequences
 
 - Each refresh's review sorts every watched behaviour change into one of two outcomes: follow it, or record a divergence with its reason.
-- Each divergence list lives with the canon it concerns: `docs/architecture/client-runtime.md` for the launcher, the background-service doors, and the terminal doors.
+- Each divergence list lives with the canon it concerns: `docs/architecture/client-runtime.md` for the launcher, the background-service doors, the terminal doors and client-MCP parity.
 
 Evidence: internal research, 2026-10-04, "How closely do the hand-written doors follow upstream, and when may they diverge?".

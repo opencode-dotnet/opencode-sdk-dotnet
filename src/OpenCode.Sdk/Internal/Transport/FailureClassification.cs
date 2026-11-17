@@ -66,9 +66,22 @@ internal static class FailureClassification
         return MapFault(exception, phase, cancellationToken, lifetimeToken);
     }
 
+    /// <summary>Classifies a shared-core WebSocket failure using only its product label.</summary>
+    public static Exception Map(Exception exception, FailurePhase phase, string label, CancellationToken cancellationToken)
+    {
+        Debug.Assert(phase is FailurePhase.PtyWebSocketRead or FailurePhase.PtyWebSocketWrite);
+        var read = phase is FailurePhase.PtyWebSocketRead;
+        var operation = read ? "read" : "write";
+        var action = read ? "read" : "written to";
+        var prefix = $"The opencode {label} WebSocket";
+        return cancellationToken.IsCancellationRequested
+            ? CallerCancellation(exception, $"{prefix} {operation} was canceled.", cancellationToken)
+            : new OpenCodeTransportException($"{prefix} could not be {action}.", exception);
+    }
+
     /// <summary>
     /// Classifies a fault against the caller and client lifetime: the shared tail of
-    /// <see cref="Map"/>, and the whole mapping for a fault the phase's own interruption caused.
+    /// <see cref="Map(Exception, FailurePhase, CancellationToken, CancellationToken)"/>, and the whole mapping for a fault the phase's own interruption caused.
     /// Once the SDK has interrupted a phase itself — disposing the content under a cancelled
     /// progress window — whatever the BCL throws afterwards is a consequence of that
     /// interruption, not a new fault, and needs no place in <see cref="Handles"/>.

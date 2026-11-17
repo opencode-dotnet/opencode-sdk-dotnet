@@ -18,10 +18,12 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — **167 of 170 operations are usable**: 165 generated across 27 client families,
-  plus the two terminal WebSocket connections that hand-written doors cover. Two are not available
-  yet: the experimental client-hosted MCP attach and its token
-  ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)). One is not offered:
+- **Coverage** — **169 of 170 operations are usable**: 166 generated across 27 client families,
+  plus the three WebSocket connections that hand-written doors cover: the PTY and persistent-PTY
+  sessions and the experimental client-hosted MCP connection. Two live proofs of the client-hosted
+  MCP door wait for an upstream attach-registration signal: the model path with stacked
+  connections, and the automatic reattach after a location reload
+  ([#942](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/942)). One is not offered:
   the legacy text generation endpoint, a deprecated alias of `GenerateTextAsync` that upstream's own
   clients omit. `src/OpenCode.Sdk/.generation-incomplete` is the committed marker and names every
   one. One-shot calls, server-sent event streams (the global
@@ -92,11 +94,11 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    types live in `OpenCode.Sdk.Internal`, and the folders are vertical slices. The package,
    test-roster, and Native AOT gates are in CI
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). **Complete.** The
-   parked handle questions are additive and wait in milestone `1.x`. So does the client-hosted MCP door
-   ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)), which closes the
-   two client-MCP declines: an application hosts its own tools for the server over the experimental
-   client-MCP WebSocket. It adds public surface without breaking any, so it lands after `1.0.0`; it
-   is not the MCP server of the parallel tracks. Exit: every surface question is decided.
+   parked handle questions are additive and wait in milestone `1.x`. The client-hosted MCP door
+   ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)) is landed: an
+   application hosts its own tools for the server over the experimental client-MCP WebSocket. It
+   adds public surface without breaking any; it is not the MCP server of the parallel tracks.
+   Exit: every surface question is decided.
 5. **Extension points.** Decided without new code: retry, telemetry, and hooks land additively
    after `1.0.0` under the two rules in
    [the client runtime's construction section](architecture/client-runtime.md#construction-and-transport-ownership),

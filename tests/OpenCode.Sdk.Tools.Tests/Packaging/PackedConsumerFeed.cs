@@ -274,6 +274,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
             _ = services.GetRequiredService<OpenCodeClient>();
         }
 
+        {{ClientMcpSchemaProgram}}
         using var wireClient = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = new Uri(args[0]) });
         var response = await wireClient.Sessions.GetSessionClient("ses_reader").GetMessageAsync("msg_reader");
         Equal(response.IsError, false);
@@ -320,7 +321,42 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
                 throw new InvalidOperationException($"Expected {expected}, received {actual}.");
             }
         }
+        {{ClientMcpSchemaTypes}}
         {{RpcFacadeTypes}}
+        """;
+
+    private const string ClientMcpSchemaProgram =
+        """
+        #pragma warning disable OPENCODE001
+        var schema = ClientMcpSchema.FromType(LookupJsonContext.Default.LookupArguments);
+        #pragma warning restore OPENCODE001
+        Equal(schema.GetProperty("type").GetString(), "object");
+        var properties = schema.GetProperty("properties");
+        Equal(properties.GetProperty("id").GetProperty("type").GetString(), "string");
+        Equal(schema.GetProperty("required").GetArrayLength(), 1);
+        Equal(schema.GetProperty("required")[0].GetString(), "id");
+        var nestedTypes = properties.GetProperty("Nested").GetProperty("type");
+        Equal(nestedTypes.GetArrayLength(), 2);
+        Equal(nestedTypes[0].GetString(), "object");
+        Equal(nestedTypes[1].GetString(), "null");
+        var valueTypes = properties.GetProperty("Nested").GetProperty("additionalProperties").GetProperty("type");
+        Equal(valueTypes.GetArrayLength(), 2);
+        Equal(valueTypes[0].GetString(), "string");
+        Equal(valueTypes[1].GetString(), "null");
+        """;
+
+    private const string ClientMcpSchemaTypes =
+        """
+        #nullable enable
+        internal sealed record LookupArguments
+        {
+            [JsonPropertyName("id")]
+            public required string Id { get; init; }
+            public IReadOnlyDictionary<string, string?>? Nested { get; init; }
+        }
+        [JsonSerializable(typeof(LookupArguments))]
+        internal sealed partial class LookupJsonContext : JsonSerializerContext;
+        #nullable restore
         """;
 
     private const string RpcFacadeProgram =

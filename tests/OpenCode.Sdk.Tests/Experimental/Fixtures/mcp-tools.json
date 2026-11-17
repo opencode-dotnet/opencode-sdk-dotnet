@@ -1,0 +1,1 @@
+[{"schema":{"type":"array","items":{"type":"string"}},"request":{"id":7,"method":"tools/list"},"response":{"jsonrpc":"2.0","id":7,"result":{"tools":[{"name":"z_lookup","description":"Lookup","inputSchema":{"type":"array","items":{"type":"string"}}},{"name":"a_lookup","inputSchema":{"type":"object"}}]}}}]
