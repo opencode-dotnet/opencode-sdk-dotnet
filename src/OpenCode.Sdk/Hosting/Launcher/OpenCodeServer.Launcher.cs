@@ -6,12 +6,6 @@ namespace OpenCode.Sdk;
 
 public partial class OpenCodeServer
 {
-    /// <summary>Bounds the tail to its last 40 lines.</summary>
-    private const int StderrRetainedLines = 40;
-
-    /// <summary>Bounds the tail's text to 8,192 UTF-16 characters, not counting the separators the message adds.</summary>
-    private const int StderrRetainedCharacters = 8 * 1024;
-
     /// <summary>The reference client's exact standalone argv tail, appended to every command.</summary>
     private static readonly string[] LauncherArguments = ["--stdio", "--port", "0"];
 
@@ -104,7 +98,7 @@ public partial class OpenCodeServer
             var executable = new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess())
                 .Resolve(command[0]);
             var stderrGate = new object();
-            var stderrTail = new BoundedLineBuffer(StderrRetainedLines, StderrRetainedCharacters);
+            var stderrTail = BoundedLineBuffer.ForStderrTail();
             var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             var (onStandardOutput, onStandardError) = CreateOutputHandlers(readyLine, stderrGate, stderrTail, output);
             cancellationToken.ThrowIfCancellationRequested();

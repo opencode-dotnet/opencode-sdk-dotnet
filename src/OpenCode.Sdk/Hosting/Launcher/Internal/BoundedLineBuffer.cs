@@ -11,6 +11,12 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class BoundedLineBuffer
 {
+    private const int StderrRetainedLines = 40;
+    private const int StderrRetainedCharacters = 8 * 1024;
+
+    /// <summary>Creates the shared stderr diagnostic tail: 40 lines and 8,192 UTF-16 content characters.</summary>
+    internal static BoundedLineBuffer ForStderrTail() => new(StderrRetainedLines, StderrRetainedCharacters);
+
     private readonly Queue<string> _lines = new();
     private readonly int _maximumLines;
     private readonly int _maximumCharacters;

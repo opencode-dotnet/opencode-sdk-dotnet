@@ -1200,11 +1200,14 @@ namespace OpenCode.Sdk
     {
         public OpenCodeServiceConfigOptions() { }
         public string? Channel { get; set; }
+        public System.Collections.Generic.IReadOnlyList<string> CliCommand { get; set; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string>? Environment { get; set; }
         public string? InstalledVersion { get; set; }
     }
     public static class OpenCodeServiceConfiguration
     {
         public static System.Threading.Tasks.Task DisableRemoteAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task<string> EnableRemoteAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<string> GetOrCreatePasswordAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServiceConfig> ReadAsync(OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Threading.Tasks.Task SetCorsOriginsAsync(System.Collections.Generic.IReadOnlyList<string> origins, OpenCode.Sdk.OpenCodeServiceConfigOptions? options = null, System.Threading.CancellationToken cancellationToken = default) { }

@@ -19,8 +19,11 @@ internal sealed record ServerChildStart
     /// <summary>Gets the caller's environment entries, already checked for NUL by the door; null adds none.</summary>
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
 
-    /// <summary>Gets the lease credential the child receives as <c>OPENCODE_PASSWORD</c>, after every other entry.</summary>
-    public required string Password { get; init; }
+    /// <summary>Gets the lease credential injected after every other entry; null injects no credential.</summary>
+    public string? Password { get; init; }
+
+    /// <summary>Gets whether stderr must be piped even when the host enables printed logs.</summary>
+    public bool ForceStandardErrorPipe { get; init; }
 
     /// <summary>Gets the child's working directory; null keeps the caller's.</summary>
     public string? WorkingDirectory { get; init; }

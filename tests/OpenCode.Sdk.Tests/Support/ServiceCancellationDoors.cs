@@ -17,6 +17,15 @@ internal sealed class ServiceCancellationDoors(
     private const string ShutdownPath = "/api/experimental/persistent-pty/shutdown";
     private const string ServicePassword = "synthetic-identity-password";
 
+    internal static OpenCodeServiceConfigOptions ConfigCliOptions => new()
+    {
+        CliCommand = ["bun", "--version"],
+        Environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["SDK_CONFIG_CLI_WITNESS"] = "isolated" },
+    };
+
+    internal Task<OperationCanceledException> AtConfigCliPreCancelledAsync(CancellationTokenSource caller) =>
+        ObserveConfigCancellationAsync(() => OpenCodeServiceConfiguration.EnableRemoteAsync(ConfigCliOptions, caller.Token), caller);
+
     internal async Task<OperationCanceledException> AtResolveConfigStoreReadAsync(CancellationTokenSource caller)
     {
         var scenario = new ServiceConfigScenario();
@@ -41,25 +50,22 @@ internal sealed class ServiceCancellationDoors(
         return failure;
     }
 
-    internal async Task<OperationCanceledException> AtConfigStopPreCancelledAsync(CancellationTokenSource caller)
-    {
-        var inventory = fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories);
-        await caller.CancelOnWorkerAsync();
-        var failure = await observeCancellation(() => OpenCodeServiceConfiguration.SetHostnameAsync("localhost", cancellationToken: caller.Token));
-        await Assert.That(fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories))
-            .IsEquivalentTo(inventory, CollectionOrdering.Any);
-        return failure;
-    }
+    internal Task<OperationCanceledException> AtConfigStopPreCancelledAsync(CancellationTokenSource caller) =>
+        ObserveConfigCancellationAsync(() => OpenCodeServiceConfiguration.SetHostnameAsync("localhost", cancellationToken: caller.Token), caller);
 
-    internal async Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
+    internal Task<OperationCanceledException> AtConfigPreCancelledAsync(string row, CancellationTokenSource caller)
     {
         var options = new OpenCodeServiceConfigOptions();
+        return ObserveConfigCancellationAsync(() => row == "service-config-read"
+            ? OpenCodeServiceConfiguration.ReadAsync(options, caller.Token)
+            : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(options, caller.Token), caller);
+    }
+
+    private async Task<OperationCanceledException> ObserveConfigCancellationAsync(Func<Task> operation, CancellationTokenSource caller)
+    {
         var inventory = fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories);
         await caller.CancelOnWorkerAsync();
-        var failure = await observeCancellation(() => row == "service-config-read"
-            ? OpenCodeServiceConfiguration.ReadAsync(options, caller.Token)
-            : OpenCodeServiceConfiguration.GetOrCreatePasswordAsync(options, caller.Token));
-
+        var failure = await observeCancellation(operation);
         await Assert.That(fileSystem.Directory.GetFiles(SessionIsolation.Root!, "*", SearchOption.AllDirectories))
             .IsEquivalentTo(inventory, CollectionOrdering.Any);
         return failure;

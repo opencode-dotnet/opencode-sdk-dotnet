@@ -52,7 +52,7 @@ internal static class WindowsServerChild
 
     private static WindowsSpawnRequest CreateRequest(ServerChildStart start, LauncherSeams seams)
     {
-        var printLogs = seams.HostEnvironment.TryGetValue(PrintLogsVariable, out var value) &&
+        var printLogs = !start.ForceStandardErrorPipe && seams.HostEnvironment.TryGetValue(PrintLogsVariable, out var value) &&
                         string.Equals(value, "1", StringComparison.Ordinal);
         var command = WindowsCommandLine.For(start.Executable, start.SuppliedArguments, start.LauncherArguments);
         return new WindowsSpawnRequest

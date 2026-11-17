@@ -20,6 +20,30 @@ public sealed class OpenCodeServiceConfigurationStopLiveTests(PinnedManagedServi
 
     [Test]
     [Timeout(180_000)]
+    public async Task RunAsync_Should_Stop_The_Managed_Service_And_Persist_The_Cli_Change(CancellationToken cancellationToken)
+    {
+        var scenario = new ServiceConfigLiveScenario(service);
+        using var random = RandomNumberGenerator.Create();
+        var seams = LauncherSeams.ForCurrentProcess();
+        var store = new ServiceConfigStore(scenario.Environment, scenario.Files, seams.Time, new RandomCredential(random));
+        var options = new OpenCodeServiceConfigOptions { Channel = PinnedManagedServiceFixture.Channel };
+        var original = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(options, store, cancellationToken);
+        var files = new RealFileSystem();
+        var directory = files.Path.Combine(service.RunRoot, "cli-shim");
+        _ = files.Directory.CreateDirectory(directory);
+        var shim = await OpenCodeCommandShim.WriteAsync(files, directory, cancellationToken);
+        var executable = new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()).Resolve(shim);
+        await new ServiceCliRunner(seams).RunAsync(executable, ["service", "set", "env", Name, Value], service.Environment, cancellationToken);
+        var config = await OpenCodeServiceConfiguration.ReadWithSeamsAsync(options, store, cancellationToken);
+        await Assert.That(config.Environment).IsEquivalentTo(
+            new Dictionary<string, string>(StringComparer.Ordinal) { [Name] = Value }, CollectionOrdering.Any);
+        await Assert.That(config.Port).IsEqualTo(original.Port);
+        await Assert.That(await ProcessObservation.ObserveExitWithinAsync(service.ProcessId, ExitBound, cancellationToken)).IsTrue();
+        await Assert.That(service.RegistrationFile).Satisfies(path => !files.File.Exists(path));
+    }
+
+    [Test]
+    [Timeout(180_000)]
     public async Task SetEnvironmentVariableAsync_Should_Stop_The_Managed_Service_And_Preserve_Its_Config(CancellationToken cancellationToken)
     {
         var scenario = new ServiceConfigLiveScenario(service);

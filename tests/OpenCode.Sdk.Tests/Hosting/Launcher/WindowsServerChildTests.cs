@@ -17,6 +17,25 @@ public sealed class WindowsServerChildTests
     private static readonly RealFileSystem FileSystem = new();
     private static readonly TimeSpan Bound = TimeSpan.FromSeconds(30);
 
+    [Test]
+    public async Task SpawnAsync_Should_Force_Stderr_Without_Injecting_A_Lease()
+    {
+        var seams = Seams() with { HostEnvironment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["OPENCODE_PRINT_LOGS"] = "1" } };
+        WindowsSpawnRequest? request = null;
+        seams.WindowsSpawn.Spawn(Arg.Any<WindowsSpawnRequest>()).Returns(call =>
+        {
+            request = call.Arg<WindowsSpawnRequest>();
+            throw new Win32Exception(2);
+        });
+        var start = Start(new ResolvedExecutable("cli", @"C:\cli.exe", IsBatchScript: false)) with { Password = null, ForceStandardErrorPipe = true };
+        _ = await Assert.That(async () => await WindowsServerChild.SpawnAsync(start, seams)).Throws<OpenCodeServerException>();
+        await Assert.That(request!.StandardStreams!.Error).IsEqualTo(ChildStreamRoute.Pipe);
+        await Assert.That(request.StandardStreams.Input).IsEqualTo(ChildStreamRoute.Pipe);
+        await Assert.That(request.StandardStreams.Output).IsEqualTo(ChildStreamRoute.Pipe);
+        await Assert.That(request.Environment!["OPENCODE_PRINT_LOGS"]).IsEqualTo("1");
+        await Assert.That(request.Environment).DoesNotContainKey("OPENCODE_PASSWORD");
+    }
+
     /// <summary>A native spawn failure preserves its cause and names the resolution and directory outside the command quotes.</summary>
     [Test]
     [Arguments(true)]
@@ -79,16 +98,9 @@ public sealed class WindowsServerChildTests
         OnStandardError = static _ => { },
     };
 
-    private static LauncherSeams Seams(IWindowsSpawn? spawn = null, IWindowsChildExit? exits = null) => new()
+    private static LauncherSeams Seams(IWindowsSpawn? spawn = null, IWindowsChildExit? exits = null) => LauncherChildScenario.CreateSeams(spawn, exits) with
     {
-        WindowsSpawn = spawn ?? Substitute.For<IWindowsSpawn>(),
-        WindowsExits = exits ?? Substitute.For<IWindowsChildExit>(),
-        Job = Substitute.For<IProcessJob>(),
-        Signals = Substitute.For<IProcessGroupSignal>(),
-        TreeKill = Substitute.For<IWindowsTreeKill>(),
-        Exits = Substitute.For<IChildExitStatus>(),
         Time = new ManualTimeProvider(),
-        Spawn = Substitute.For<IPosixSpawn>(),
         HostEnvironment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
     };
 

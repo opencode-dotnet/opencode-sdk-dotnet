@@ -6,6 +6,41 @@ namespace OpenCode.Sdk;
 /// <summary>Reads and changes the background service's configuration managed by the CLI.</summary>
 public static class OpenCodeServiceConfiguration
 {
+    /// <summary>Turns remote access on through the installed CLI's <c>opencode service set remote true</c> and returns its secret route.</summary>
+    /// <param name="options">The CLI command, environment and read-back channel; null uses the defaults.</param>
+    /// <param name="cancellationToken">The caller's token, observed during the CLI run and subsequent config read.</param>
+    /// <returns>The secret part of the remote address, read from the channel's config after CLI success. Treat it as a credential;
+    /// the CLI never prints it.</returns>
+    /// <exception cref="ArgumentException">The channel or version is blank, or the command or environment is invalid.</exception>
+    /// <exception cref="OpenCodeServerException">The command does not resolve or cannot run; the CLI ends unsuccessfully;
+    /// no user home resolves; a config repair fails; or CLI success leaves no route the SDK can read in the selected config.</exception>
+    /// <exception cref="OperationCanceledException">The caller cancelled. Cancellation after CLI success may leave remote access enabled.</exception>
+    /// <remarks>
+    /// The CLI's own OpenTunnel client creates or resumes the device's tunnel, which can take up to
+    /// five minutes, then stops its channel's registered service and stores the route. Nothing restarts it.
+    /// The SDK reads no config before the run and performs no stop or write for the CLI. Its refusal
+    /// protects only SDK-managed writes: the CLI reads and rewrites what upstream accepts, including
+    /// documents the SDK's writes refuse, without losing settings it can read.
+    /// CliCommand, Channel and Environment must describe the same config. The read-back uses the
+    /// SDK process's roots and the shared read, which may migrate a donor or repair a legacy remote value.
+    /// A failure message includes the CLI's bounded stderr tail, external text that can contain
+    /// whatever the CLI printed, including secrets.
+    /// </remarks>
+    public static async Task<string> EnableRemoteAsync(
+        OpenCodeServiceConfigOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        using var random = RandomNumberGenerator.Create();
+        var seams = LauncherSeams.ForCurrentProcess();
+        return await EnableRemoteWithSeamsAsync(options, new ServiceRemoteAccess(
+            new ServiceCliRunner(seams), new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()),
+            CreateStore(random, seams, out _)), cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>The remote-on door over its injected CLI, resolver and shared configuration store.</summary>
+    internal static Task<string> EnableRemoteWithSeamsAsync(
+        OpenCodeServiceConfigOptions? options, ServiceRemoteAccess remote, CancellationToken cancellationToken) =>
+        remote.TurnOnAsync(options, cancellationToken);
+
     /// <summary>
     /// The CLI's <c>opencode service get</c> with no key: reads the channel's configuration without
     /// its password or remote route, copying a legacy donor and repairing a legacy remote value
@@ -301,9 +336,12 @@ public static class OpenCodeServiceConfiguration
     }
 
     private static ServiceConfigStore CreateStore(
-        RandomNumberGenerator random, out Func<OpenCodeServerStopOptions, CancellationToken, Task> stop)
+        RandomNumberGenerator random, out Func<OpenCodeServerStopOptions, CancellationToken, Task> stop) =>
+        CreateStore(random, LauncherSeams.ForCurrentProcess(), out stop);
+
+    private static ServiceConfigStore CreateStore(
+        RandomNumberGenerator random, LauncherSeams seams, out Func<OpenCodeServerStopOptions, CancellationToken, Task> stop)
     {
-        var seams = LauncherSeams.ForCurrentProcess();
         var environment = new ServiceEnvironment();
         var fileSystem = new ServiceFileSystem();
         stop = (options, token) => OpenCodeServer.SystemStopper(environment, fileSystem, seams.Time).StopAsync(options, token);
