@@ -21,7 +21,7 @@ public sealed class FailureClassificationTests
     [Arguments(true, false, "could not be written to.")]
     [Arguments(false, true, "read was canceled.")]
     [Arguments(true, true, "write was canceled.")]
-    public async Task Map_Should_Keep_Terminal_Text_And_Name_Client_Mcp(bool write, bool cancel, string suffix)
+    public async Task Map_Should_Name_Client_Mcp_Read_And_Write_Failures(bool write, bool cancel, string suffix)
     {
         using var caller = new CancellationTokenSource();
         if (cancel)
@@ -34,8 +34,6 @@ public sealed class FailureClassificationTests
             "MCP", caller.Token);
         await Assert.That(failure.Message).IsEqualTo($"The opencode MCP WebSocket {suffix}");
         await Assert.That(failure.InnerException).IsSameReferenceAs(cause);
-        await Assert.That(new TerminalConnectionOutcome(null, "MCP").SendFailure.Message)
-            .IsEqualTo("The opencode MCP WebSocket connection has ended.");
         if (cancel)
         {
             await Assert.That(failure).IsTypeOf<OperationCanceledException>();
@@ -45,6 +43,13 @@ public sealed class FailureClassificationTests
         {
             await Assert.That(failure).IsTypeOf<OpenCodeTransportException>();
         }
+    }
+
+    [Test]
+    public async Task ConnectionOutcome_Should_Name_Client_Mcp_In_Its_Send_Failure()
+    {
+        await Assert.That(new TerminalConnectionOutcome(null, "MCP").SendFailure.Message)
+            .IsEqualTo("The opencode MCP WebSocket connection has ended.");
     }
 
     public static IEnumerable<Func<Exception>> SendFaults() =>

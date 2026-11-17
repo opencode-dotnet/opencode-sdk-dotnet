@@ -2,14 +2,14 @@ using System.Globalization;
 using System.Net;
 using OpenCode.Sdk.Tests.Harness;
 
-namespace OpenCode.Sdk.Tests.Experimental.Support;
+namespace OpenCode.Sdk.Tests.Support;
 
-public sealed class ClientMcpScenarioTests
+public sealed class LoopbackUpgradeListenerTests
 {
     [Test]
     public async Task Listener_Should_Skip_A_PreRegistered_Conflict_And_Start_On_The_Next_Port()
     {
-        using var owner = new ClientMcpScenario();
+        using var owner = new LoopbackUpgradeListener();
         var prefix = owner.Listener.Prefixes.Single();
         using var duplicate = new HttpListener();
         duplicate.Prefixes.Add(prefix);
@@ -17,7 +17,7 @@ public sealed class ClientMcpScenarioTests
         await Assert.That(conflict.ErrorCode).IsEqualTo(OperatingSystem.IsWindows() ? 183 : 400);
         var next = EnsureServiceContext.ReserveUnguardedPort(LoopbackPortReservation.Hold);
         var ports = new Queue<int>([new Uri(prefix).Port, next]);
-        using var scenario = new ClientMcpScenario(ports.Dequeue);
+        using var scenario = new LoopbackUpgradeListener(ports.Dequeue);
         if (await IsWindowsListenerAsync(scenario))
         {
             await Assert.That(() => scenario.Listener).ThrowsNothing();
@@ -30,7 +30,7 @@ public sealed class ClientMcpScenarioTests
     public async Task Listener_Should_Propagate_Any_Other_HttpListenerException()
     {
         var failure = new HttpListenerException(5);
-        using var scenario = new ClientMcpScenario(() => throw failure);
+        using var scenario = new LoopbackUpgradeListener(() => throw failure);
         var propagated = Assert.Throws<HttpListenerException>(() => _ = scenario.Listener);
         await Assert.That(propagated).IsSameReferenceAs(failure);
         var repeated = Assert.Throws<HttpListenerException>(() => _ = scenario.Listener);
@@ -40,21 +40,21 @@ public sealed class ClientMcpScenarioTests
     [Test]
     public async Task Listener_Should_Name_Every_Tried_Port_When_Reservations_Are_Exhausted()
     {
-        using var first = new ClientMcpScenario();
-        using var second = new ClientMcpScenario();
+        using var first = new LoopbackUpgradeListener();
+        using var second = new LoopbackUpgradeListener();
         var a = new Uri(first.Listener.Prefixes.Single()).Port;
         var b = new Uri(second.Listener.Prefixes.Single()).Port;
         var ports = new Queue<int>([a, b, a, b, a]);
-        using var scenario = new ClientMcpScenario(ports.Dequeue);
+        using var scenario = new LoopbackUpgradeListener(ports.Dequeue);
         if (await IsWindowsListenerAsync(scenario))
         {
             var failure = Assert.Throws<InvalidOperationException>(() => _ = scenario.Listener);
             await Assert.That(failure.Message).IsEqualTo(string.Format(CultureInfo.InvariantCulture,
-                "No client MCP listener port could be registered: {0}, {1}, {0}, {1}, {0}.", a, b));
+                "No loopback listener port could be registered: {0}, {1}, {0}, {1}, {0}.", a, b));
         }
     }
 
-    private static async Task<bool> IsWindowsListenerAsync(ClientMcpScenario scenario)
+    private static async Task<bool> IsWindowsListenerAsync(LoopbackUpgradeListener scenario)
     {
         if (!OperatingSystem.IsWindows())
         {

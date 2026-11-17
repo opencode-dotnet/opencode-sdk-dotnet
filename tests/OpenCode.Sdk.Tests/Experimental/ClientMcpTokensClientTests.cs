@@ -43,7 +43,7 @@ public sealed class ClientMcpTokensClientTests
     [Arguments(401, WireBodyData.UnauthorizedError, typeof(UnauthorizedError))]
     [Arguments(403, WireBodyData.ForbiddenError, typeof(ForbiddenError))]
     [Arguments(404, null, typeof(LocationNotFoundError))]
-    public async Task CreateClientMcpConnectTokenAsync_Should_Keep_Declared_Failures_And_Caller_Cancellation(
+    public async Task CreateClientMcpConnectTokenAsync_Should_Keep_Declared_Failures(
         int status, string? body, Type errorType)
     {
         body ??= new JsonObject
@@ -74,7 +74,7 @@ public sealed class ClientMcpTokensClientTests
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.LocationEnvelope(WireBodyData.PersistentPtyConnectTokenBody));
         var cancelled = await Assert.That(async () => _ = await scenario.Client.Experimental.CreateClientMcpConnectTokenAsync(
             Request, cancellationToken: caller.Token)).Throws<OperationCanceledException>();
-        await Assert.That(cancelled!.CancellationToken == caller.Token).IsTrue();
+        await Assert.That(cancelled!.CancellationToken).IsEqualTo(caller.Token);
     }
 
     [Test]

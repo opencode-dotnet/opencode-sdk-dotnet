@@ -1,7 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Tests.Experimental.Support;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Terminal;
@@ -20,7 +19,7 @@ public sealed class ClientTerminalWebSocketTests
     [Arguments(true, "Bearer explicit")]
     public async Task ConnectAsync_Should_Apply_Root_And_Explicit_Handshake_Headers(bool overrideAuthorization, string expected)
     {
-        using var scenario = new ClientMcpScenario();
+        using var scenario = new LoopbackUpgradeListener();
         var listener = scenario.Listener;
         using var raw = new ClientWebSocket();
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Extra"] = "extra" };
