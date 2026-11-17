@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -69,19 +69,20 @@ using var client = new OpenCodeClient(new OpenCodeClientOptions
 });
 ```
 
-`OpenCodeClientOptions` has eight members. Set `Endpoint` and, for a CLI-started server, `Password`;
-the rest have defaults:
+Set `OpenCodeClientOptions.Endpoint` and choose authentication for your server; the other options
+have defaults:
 
 | Member | Type | Meaning |
 |---|---|---|
 | `Endpoint` | `Uri?` | The server's base address. Required. |
-| `Password` | `string?` | The HTTP Basic password. Required for any server the `opencode` CLI started — it always runs with one, generated and printed as `server password <pw>` when you set none. `null` sends no credential at all, which only a server embedded without authentication accepts; any other value is sent exactly as written. |
+| `Password` | `string?` | The HTTP Basic password. A CLI-started server always requires authentication; it generates and prints `server password <pw>` when you configure none. `null` disables SDK-generated Basic authentication: caller `Authorization` can authenticate ordinary HTTP calls, and client-wide `Headers` also authenticate the shared event feed, which refuses per-call headers. Authenticated terminal upgrades require `Password`. Other values are sent exactly as written. See [request headers](requests.md#-request-headers). |
 | `Username` | `string` | The Basic username. Defaults to `opencode` — the only username the pinned server accepts — so leave it alone unless upstream changes. |
 | `Location` | `LocationSelector?` | The ambient directory header values, overridable per call; only operations that resolve location from those headers use them. |
 | `NetworkTimeout` | `TimeSpan?` | The ordinary call's no-progress window; `null` means 100 seconds. See [call windows](requests.md#️-how-long-a-call-may-wait) for exceptions and per-call overrides. |
 | `EventStreamIdleTimeout` | `TimeSpan?` | The live event stream's idle window; `null` means 45 seconds. Keep it above the server's 15-second keepalive; see [reconnection](streaming.md#-a-live-bus-that-reconnects). |
 | `Headers` | `IDictionary<string, string>` | Headers every HTTP request and event stream sends, copied when the client is built; a per-call `OpenCodeRequestOptions.Headers` value replaces one by name. Terminal upgrades do not send them. See [request headers](requests.md#-request-headers). |
 | `HttpHandler` | `HttpMessageHandler?` | Your HTTP transport, or `null` for the SDK-owned default. See [supplying a handler](connection-modes.md#-supplying-a-handler). |
+| `MediaReferences` | `bool` | Defaults to `false`; experimental (`OPENCODE001` opt-in). See [media references](experimental.md#media-references). |
 
 Session creation selects its location from `SessionCreateRequest.Location`; leaving it unset uses
 the server's working directory. Session listing filters with `SessionListRequest.Directory` or
@@ -123,8 +124,9 @@ Console.WriteLine($"queued {prompt.Prompt.Id} in session {created.Session.Id}");
 ```
 
 `PromptAsync` **queues** the turn and returns the inbox entry it created — the assistant's
-answer arrives asynchronously, which is what [streaming](streaming.md) is for. If you just want
-text back from a model with no conversation state, use generate instead:
+answer arrives asynchronously, which is what [streaming](streaming.md) is for. `GenerateTextAsync`
+returns text from the existing session context without adding messages to its history; usage
+still updates the session totals:
 
 ```csharp
 var generated = await session.GenerateTextAsync(new SessionGenerateRequest { Prompt = "Name three C# testing libraries." });

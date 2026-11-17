@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-16
+Date: 2026-11-17
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -539,8 +539,8 @@ await foreach (var item in client.Experimental.ReadSessionLogAsync(
 ```
 
 The log is exactly *durable events plus one marker*, with unknown carriers for unreadable items. Every
-durable event — all 47 of them — implements `ISessionEventDurable`, which carries the members they
-all declare: `Id`, `Created`, `Metadata`, `Location`, and the `Durable` envelope with
+durable event implements `ISessionEventDurable`, which carries their common members:
+`Id`, `Created`, `Metadata`, `Location`, and the `Durable` envelope with
 `AggregateId`, `Seq`, and `Version`. The marker is not one of them: `log.synced` is a transition
 boundary rather than something committed against the aggregate, so it sits beside the durable union
 under `ISessionLogItem`. It normally arrives as `EventLogSynced`, with its watermark on `Seq`.
@@ -612,8 +612,10 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 >
 > When persistence *is* on, nothing expires or prunes the log and entries live until their session
 > is deleted. Sequences are not contiguous, so treat a gap as ordinary rather than as loss. Carry a
-> cursor only within one server's lifetime: a cursor past the log's tail is accepted rather than
-> refused and then suppresses live delivery until the log overtakes it. See the canonical
+> cursor only for the same aggregate and retained database; an embedded host with `events.persist`
+> enabled and a file-backed database can resume across restarts against that store. A cursor past
+> the log's tail is accepted rather than refused and suppresses live delivery until the log
+> overtakes it. See the canonical
 > [server-sent events rules](../architecture/client-runtime.md#server-sent-events).
 
 ## 🧩 Unknown events do not break your consumer

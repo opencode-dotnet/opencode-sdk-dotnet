@@ -296,10 +296,11 @@ resolves the message's network window from those carried traits.
   public enumeration. Canceling or disposing an enumerator ends only that consumer; another
   enumeration may continue on the same otherwise healthy connection. The queue retains only
   undelivered frames, and can grow when consumers are absent or slow. It is unbounded, as
-  upstream's live path is: an unbounded per-connection outbox, with only its 2 MiB replay ring
-  bounded. A queued frame of either family retains about 1 byte per byte of output: a `PtySession`
-  frame keeps the received UTF-8 and decodes `Text` on its first read. So an absent consumer of a
-  verbose build (about 250,000 mostly ASCII characters a second) grows by about 15 MB a minute.
+  upstream's live path is: an unbounded per-connection outbox. The normal PTY replay buffer is
+  bounded at 2,097,152 UTF-16 code units, not bytes. A queued frame of either family retains about
+  1 byte per byte of output: a `PtySession` frame keeps the received UTF-8 and decodes `Text` on its
+  first read. So an absent consumer of a verbose build (about 250,000 mostly ASCII characters a
+  second) grows by about 15 MB a minute.
   Connection termination delivers the valid queued prefix before normal completion or the recorded
   transport/protocol error. Later readers observe the same terminal outcome; consumer cancellation
   does not erase it.
@@ -352,8 +353,8 @@ resolves the message's network window from those carried traits.
   `/api/experimental/persistent-pty/{ptyID}/connect` and its query carries no location, because
   this family's terminals are keyed by id alone. The wire spells exactly two roles, `controller`
   and `observer`; any other value — a JSON null included — is one of those member-level frame
-  failures, never a default, because reporting an observer as a controller would have a caller
-  writing input the server accepts and drops.
+  failures, never a default: the attachment reports the negotiated role faithfully. Observer input
+  can take control, as described under Input below.
 - **Bytes, not text.** Output rides binary messages, so `PersistentPtyOutputFrame.Data` is
   `ReadOnlyMemory<byte>` and nothing is decoded: a frame is free to split a multi-byte character,
   and a caller feeding an emulator writes the bytes as they are. A screen checkpoint — the
@@ -724,8 +725,11 @@ resolves the message's network window from those carried traits.
   than a durable event, and under `follow` the events committed while that replay was in flight
   arrive after it. Sequences are not contiguous, so a gap is ordinary and no count is derived from
   two of them. A cursor past the aggregate's tail is accepted rather than refused and then
-  suppresses live delivery until the aggregate overtakes it, so a cursor travels only within one
-  server's lifetime.
+  suppresses live delivery until the aggregate overtakes it. A cursor belongs to the same aggregate
+  and retained database, not to one process lifetime: an embedded host with `events.persist`
+  enabled and a file-backed database can resume across restarts against that store. A persisted
+  sequence alone provides no replay or follow events; the distributed CLI's persistence limit below
+  still applies.
 - That log has no retention policy: nothing expires, prunes, or caps it, compaction and revert
   rewrite projections rather than the log, and rows are deleted only with their session.
   Persistence is itself a server option that is off unless the process starting the server turned it
@@ -1183,13 +1187,15 @@ instant. Launcher acceptance separately proves bounded descendant termination af
 start, before any test fallback cleanup.
 
 `CreateClient(Action<OpenCodeClientOptions>?)` pins the connection identity fail-closed: the
-delegate receives a fresh identity-unset options instance, and setting `Endpoint`, `Username`, or
-`Password` there is refused with `InvalidOperationException`. On success the door never mutates the
-delegate's instance: it builds a distinct, freshly constructed `OpenCodeClientOptions` carrying its
-own endpoint and credential (a started server's lease, a registration's password, or none),
-copying over only the behavior members (`Location`) the delegate set; the object the delegate
-received stays identity-unset for as long as the caller keeps a reference to it. Every call builds
-a new client over its own owned transport, which the caller disposes.
+delegate receives fresh options whose `Endpoint` and `Password` must remain null and whose
+`Username` must remain the default `opencode`; other values cause `InvalidOperationException`.
+On success the door leaves that instance unchanged and builds distinct options with its own
+endpoint and credential (a started server's lease, a registration's password, or none), copying
+the configured non-identity options, including headers and the handler. Every call builds a new
+client for the caller to dispose.
+
+Handler ownership follows
+[Construction and transport ownership](#construction-and-transport-ownership).
 
 The local lifecycle failures of every local-server door, standalone start, the background-service
 doors and the service configuration alike, use `OpenCodeServerException : OpenCodeException`;
@@ -1644,7 +1650,8 @@ reason (ADR-0031):
   registration with an unchecked `JSON.parse` (`packages/client/src/promise/service.ts:118` at the
   pin) and signals its pid (`:156`), and on POSIX a pid of 0 signals the caller's own process group
   and a pid of -1 every process the caller may signal. The SDK's reader refuses a pid that is not
-  a positive 32-bit integer (`src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceRegistrationReader.cs:42-44`). Upstream's Effect client, which the
+  a positive 32-bit integer (`src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceRegistrationReader.cs`,
+  `Read`'s `StrictJson.TryGetProcessId` and `processId <= 0` guards). Upstream's Effect client, which the
   CLI uses, already refuses a pid that is not a positive integer
   (`packages/client/src/effect/service.ts:146`).
 - **A refusal is no service even when the probe's bound expires with it.** Upstream reads every

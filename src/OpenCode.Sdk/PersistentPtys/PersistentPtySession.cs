@@ -78,8 +78,8 @@ public class PersistentPtySession : IAsyncDisposable
     /// carriage return (<c>\r</c>), so a caller submitting a command ends the line with it — or
     /// calls <see cref="SubmitAsync"/>, which adds that terminator. Sends are serialized: the
     /// socket allows one outstanding send, so concurrent callers queue rather than corrupt the
-    /// stream. Input from a connection the server attached as an observer is accepted here and
-    /// dropped there.
+    /// stream. Input from a connection the server attached as an observer is accepted and makes
+    /// that attachment the controller.
     /// </summary>
     /// <param name="input">The input bytes to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -101,7 +101,8 @@ public class PersistentPtySession : IAsyncDisposable
     /// the door for running a command; the line is otherwise sent exactly as given, with no
     /// trimming and no other transformation. An empty line is a bare Enter. Sends are serialized
     /// exactly as <see cref="WriteAsync"/>'s are, a submit after disposal throws just as a write
-    /// does, and a submit from an observer connection is accepted here and dropped by the server.
+    /// does, and a submit from an observer connection is accepted and makes that attachment
+    /// the controller.
     /// </summary>
     /// <param name="line">Exactly one line, carrying no carriage return and no line feed; never null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

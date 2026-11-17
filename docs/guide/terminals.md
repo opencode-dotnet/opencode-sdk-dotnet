@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-11-14
+Date: 2026-11-17
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -35,7 +35,7 @@ var pty = client.Ptys.GetPtyClient(created.Pty.Id);
 
 await using var ptySession = await pty.ConnectAsync();
 
-// SubmitAsync runs one command: it adds the carriage return a terminal's Enter key sends.
+// SubmitAsync submits one line: it adds the carriage return a terminal's Enter key sends.
 await ptySession.SubmitAsync("echo hello");
 
 long? cursor = null;
@@ -80,9 +80,12 @@ Three rules worth knowing before your first surprise:
    concurrently throws `InvalidOperationException`. Writes are serialized for you. Canceling a read
    does not end the connection — see
    [cancellation, deadlines, and disposal](#-cancellation-deadlines-and-disposal).
-3. **There is no end-of-command marker on this wire.** A terminal just goes quiet. If you need to
-   know a command finished, either wait for the stream to settle or ask `GetAsync` for the
-   PTY's status and exit code — the exit code is *not* on the socket.
+3. **There is no end-of-command marker on this wire.** Silence does not prove command completion.
+   `GetAsync` reports the PTY process's status and exit code, not an individual interactive-shell
+   command's result; the read ends when the PTY ends, not when `echo hello` finishes. For a reliable
+   command result, use `RunShellCommandAsync` (see
+   [how long a call may wait](requests.md#️-how-long-a-call-may-wait)) or implement
+   your own terminal completion protocol.
 
 **Without a `Command`, the server picks the shell:**
 
@@ -150,15 +153,17 @@ picks what you get on attach:
 |---|---|
 | omitted (`null`) | the whole retained buffer, replayed |
 | `-1` | live output only, no replay |
-| `0` or above | everything after that absolute output position |
+| `0` or above | retained output after that absolute output position |
 
 ```csharp
 await using var resumed = await pty.ConnectAsync(new PtyConnectOptions { Cursor = cursor });
 ```
 
-Feed it the `Cursor` from the previous connection's `PtyCursorFrame` and you get exactly what you
-missed — no gap, no duplicate. An out-of-range value is refused client-side rather than silently
-degrading into a full replay.
+The sample saves the single `PtyCursorFrame` marker at the replay boundary; it does not advance
+`cursor` as live output is consumed. Reconnecting with it can repeat that live output, and output
+older than the retained buffer is unavailable. It is not a no-gap, no-duplicate consumption cursor.
+See the canonical [PTY cursor and frame rules](../architecture/client-runtime.md#pty-websocket-session).
+An out-of-range value is refused client-side rather than silently degrading into a full replay.
 
 ## 🧷 Persistent PTYs
 
@@ -249,8 +254,8 @@ What is different here:
   the attachment id, the terminal as it stood, the replay bounds, the resize generation, and the
   **granted** role.
 - **The role you asked for is not necessarily the role you got.** Ask for `Controller`, read
-  `attached.Attachment.Role`, and believe the answer — input written from an observer connection is
-  accepted by the SDK and dropped by the server. Set `Takeover = true` to take control from the
+  `attached.Attachment.Role`, and treat it as the role at attach time: input written from an
+  observer connection is accepted and makes that attachment the controller. Set `Takeover = true` to take control from the
   current controller; without it a second controller is attached as an observer instead. Reusing a
   previous connection's `AttachmentId` is how a reconnect reclaims its own control.
 - **Input has the same two doors as a normal PTY.** `SubmitAsync` submits one line — the same

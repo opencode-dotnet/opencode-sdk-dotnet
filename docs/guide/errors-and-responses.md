@@ -63,8 +63,12 @@ OpenCodeException
 │   └── OpenCodeRpcException      a typed plugin RPC call's failure (adds ErrorType and the error's data)
 ├── OpenCodeTransportException    the call never produced a usable response
 │   └── OpenCodeStreamFailureException   a stream ended with a declared failure frame
+├── OpenCodeEventSubscriberOverflowException   a shared-feed subscription exceeded its queue bound
 └── OpenCodeServerException       a local-server door failed, or an explicit server the resolver could not reach, authenticate with, or read
 ```
+
+Subscriber overflow ends that subscription, unlike physical-attempt failures that the feed retries.
+See [subscriber-overflow recovery](streaming.md#-recovering-after-subscriber-overflow).
 
 ## 🤝 Ask for the failure as data instead
 

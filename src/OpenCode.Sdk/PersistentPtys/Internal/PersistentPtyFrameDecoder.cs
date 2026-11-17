@@ -132,9 +132,9 @@ internal sealed class PersistentPtyFrameDecoder : ITerminalFrameDecoder<Persiste
     /// <summary>
     /// Reads the granted role. The wire spells exactly two values, so anything else - a JSON
     /// null, a spelling this SDK does not know - is a member-level failure of a frame whose type
-    /// is already known, named the same way every other unreadable member is. Mapping an
-    /// unreadable role onto a default would report an observer as a controller, and a caller
-    /// acting on that would write input the server silently drops.
+    /// is already known, named the same way every other unreadable member is. The role reports
+    /// what the server granted at attach time, so an unreadable value must not become a default.
+    /// Observer input is accepted and makes that attachment the controller.
     /// </summary>
     private static PersistentPtyRole ReadRole(JsonElement root) =>
         root.GetProperty("role").GetString() switch
