@@ -32,7 +32,9 @@ public sealed class ClientTerminalWebSocketTests
         using var socket = new ClientTerminalWebSocket(raw, new AuthenticationHeaderValue("Basic", "root"), headers);
         var connect = socket.ConnectAsync(new UriBuilder(listener.Prefixes.Single()) { Scheme = "ws" }.Uri,
             "app", new ClientMcpUpgradeFailurePolicy(), CancellationToken.None);
-        var request = await listener.GetContextAsync();
+        var context = listener.GetContextAsync();
+        await Task.WhenAny(connect, context).Unwrap();
+        var request = await context;
         using var peer = (await request.AcceptWebSocketAsync(subProtocol: null)).WebSocket;
         await connect;
         await Assert.That(request.Request.Headers["Authorization"]).IsEqualTo(expected);

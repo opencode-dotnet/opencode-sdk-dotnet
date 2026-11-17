@@ -7,12 +7,12 @@ namespace OpenCode.Sdk.Tests.Experimental;
 
 public sealed class ClientMcpConnectorTests
 {
-#if NET
     [Test]
-    public async Task UpgradeAsync_Should_Use_The_Client_HttpHandler_For_A_Default_Socket()
+    public async Task UpgradeAsync_Should_Use_The_Client_HttpHandler_Only_On_Modern_Targets()
     {
         var result = await UpgradeThroughClientHandlerAsync(webSocketFactory: null);
 
+#if NET
         await Assert.That(result.Handled.Count).IsEqualTo(1);
         var upgrade = result.Handled.Single();
         await Assert.That(upgrade.Method).IsEqualTo(HttpMethod.Get);
@@ -20,6 +20,10 @@ public sealed class ClientMcpConnectorTests
         await Assert.That(upgrade.Headers["Upgrade"]).IsEqualTo("websocket");
         await Assert.That(result.Fallback).IsEmpty();
         await Assert.That(result.HandlerDisposed).IsFalse();
+#else
+        await Assert.That(result.Handled).IsEmpty();
+        await Assert.That(result.Fallback.Single().Headers["Upgrade"]).IsEqualTo("websocket");
+#endif
     }
 
     [Test]
@@ -46,7 +50,6 @@ public sealed class ClientMcpConnectorTests
         _ = await Assert.That(async () => _ = await connector.UpgradeAsync(socket, CancellationToken.None)).Throws<OpenCodeTransportException>();
         return ([.. handler.Requests], [.. fallback.Requests], handler.IsDisposed);
     }
-#endif
 
     [Test]
     public async Task Create_Should_Dispose_A_Returned_Socket_When_Setup_Fails()
@@ -81,7 +84,9 @@ public sealed class ClientMcpConnectorTests
         var upgrade = connector.UpgradeAsync(adapter, CancellationToken.None);
         try
         {
-            var request = await listener.GetContextAsync();
+            var context = listener.GetContextAsync();
+            await Task.WhenAny(upgrade, context).Unwrap();
+            var request = await context;
             using var peer = success ? (await request.AcceptWebSocketAsync(subProtocol: null)).WebSocket : null;
             if (!success)
             {

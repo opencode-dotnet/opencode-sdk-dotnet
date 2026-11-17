@@ -45,20 +45,25 @@ internal sealed class ClientMcpScenario(Func<int>? reservePort = null) : IDispos
                 var ports = new List<string>();
                 while (ports.Count < 5)
                 {
-                    _listener = new HttpListener();
+                    var listener = new HttpListener();
                     try
                     {
                         var port = (reservePort ?? LoopbackPortReservation.Reserve)().ToString(CultureInfo.InvariantCulture);
                         ports.Add(port);
-                        _listener.Prefixes.Add($"http://127.0.0.1:{port}/");
-                        _listener.Start();
+                        listener.Prefixes.Add($"http://127.0.0.1:{port}/");
+                        listener.Start();
+                        _listener = listener;
                         return _listener;
                     }
-                    // Measured with two registrations of one prefix on KAER: ERROR_ALREADY_EXISTS.
+                    // HTTP.sys reports prefix conflicts as 183 (ERROR_ALREADY_EXISTS), invisible to TCP port probes.
                     catch (HttpListenerException exception) when (OperatingSystem.IsWindows() && exception.ErrorCode == 183)
                     {
-                        _listener.Close();
-                        _listener = null;
+                        listener.Close();
+                    }
+                    catch
+                    {
+                        listener.Close();
+                        throw;
                     }
                 }
 

@@ -33,6 +33,8 @@ public sealed class ClientMcpScenarioTests
         using var scenario = new ClientMcpScenario(() => throw failure);
         var propagated = Assert.Throws<HttpListenerException>(() => _ = scenario.Listener);
         await Assert.That(propagated).IsSameReferenceAs(failure);
+        var repeated = Assert.Throws<HttpListenerException>(() => _ = scenario.Listener);
+        await Assert.That(repeated).IsSameReferenceAs(failure);
     }
 
     [Test]

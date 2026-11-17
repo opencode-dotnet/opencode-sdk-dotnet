@@ -11,7 +11,7 @@ public sealed class ClientMcpLiveTests(SimulatedDriveServerFixture server)
 {
     [Test]
     [Timeout(60_000)]
-    public async Task ConnectClientMcp_Should_Observe_Server_Attach_Failure_And_Reload(CancellationToken cancellationToken)
+    public async Task ClientMcpSocket_Should_Observe_Server_Attach_Failure_And_Reload(CancellationToken cancellationToken)
     {
         using var workspace = server.CreateWorkspace();
         var location = new LocationSelector { Directory = workspace.Path };

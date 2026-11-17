@@ -12,7 +12,7 @@ internal sealed class ClientMcpConnector(ConnectionSnapshot connection, ClientMc
         try
         {
             return options.WebSocketFactory is { } factory
-                ? new ClientTerminalWebSocket(factory(), connection.Authorization, options.Headers, disposed)
+                ? new ClientTerminalWebSocket(factory() ?? throw new InvalidOperationException("The client MCP WebSocket factory returned null."), connection.Authorization, options.Headers, disposed)
                 : new ClientTerminalWebSocket(connection.Authorization, options.Headers, disposed, connection.HttpHandler);
         }
         catch (PlatformNotSupportedException exception) when (options.WebSocketFactory is null)

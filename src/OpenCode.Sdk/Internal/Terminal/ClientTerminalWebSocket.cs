@@ -96,8 +96,9 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
         catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
         {
             // ClientWebSocket links the caller's token with its own; the caller's token names the cancellation.
+            var label = policy is ClientMcpUpgradeFailurePolicy ? "MCP" : "terminal";
             throw FailureClassification.CallerCancellation(
-                exception, "The opencode terminal WebSocket upgrade was canceled.", cancellationToken);
+                exception, $"The opencode {label} WebSocket upgrade was canceled.", cancellationToken);
         }
         catch (WebSocketException exception)
         {
