@@ -106,6 +106,18 @@ public sealed class ClientMcpResponderTests
     }
 
     [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    public async Task RespondAsync_Should_Return_Null_Handler_Values_As_Tool_Errors(int index)
+    {
+        ClientMcpToolResult?[] invalid = [null, new() { Content = null! }, new() { Content = [null!] }];
+        var responder = Responder([new ClientMcpTool { Name = "lookup", Handler = (_, _) => Task.FromResult(invalid[index]!) }]);
+        var entry = Cases("exception")[1]!;
+        await Assert.That(await ReplyAsync(entry, responder)).IsEqualTo(entry["response"]!.ToJsonString());
+    }
+
+    [Test]
     public async Task RespondAsync_Should_Use_The_Full_Upstream_Unknown_Tool_Error()
     {
         var invoked = 0;
@@ -144,6 +156,27 @@ public sealed class ClientMcpResponderTests
         await Assert.That(await ReplyAsync(entry, responder)).IsEqualTo(entry["response"]!.ToJsonString());
     }
 
+    [Test]
+    [Arguments(256, JsonValueKind.Object)]
+    [Arguments(257, JsonValueKind.Undefined)]
+    public async Task RespondAsync_Should_Bound_Recursive_Unknown_Tool_Names(int depth, JsonValueKind expected)
+    {
+        JsonNode? name = JsonValue.Create("missing");
+        for (var index = 2; index < depth; index++)
+        {
+            name = new JsonArray(name);
+        }
+        var entry = Cases("unknown-tool")[2]!;
+        entry["request"]!["params"]!["name"] = name;
+        var bytes = Encoding.UTF8.GetBytes(entry["request"]!.ToJsonString(new JsonSerializerOptions { MaxDepth = depth }));
+        var message = new ClientMcpFrameDecoder().Decode(System.Net.WebSockets.WebSocketMessageType.Text, bytes, bytes.Length);
+        await Assert.That(message.Root.ValueKind).IsEqualTo(expected);
+        if (expected is JsonValueKind.Object)
+        {
+            await Assert.That(Encoding.UTF8.GetString(await Responder().RespondAsync(message))).IsEqualTo(entry["response"]!.ToJsonString());
+        }
+    }
+
     private JsonArray Cases(string name) => JsonNode.Parse(_fixtures.LoadJson($"Experimental.mcp-{name}.json"))!.AsArray();
 
     private static ClientMcpToolResult Result(string text) => new() { Content = [ClientMcpContent.FromText(text)] };
@@ -153,7 +186,7 @@ public sealed class ClientMcpResponderTests
 
     private static async Task<string> ReplyAsync(JsonNode entry, ClientMcpResponder? responder = null)
     {
-        var bytes = Encoding.UTF8.GetBytes(entry["request"]!.ToJsonString());
+        var bytes = Encoding.UTF8.GetBytes(entry["raw"]?.GetValue<string>() ?? entry["request"]!.ToJsonString());
         var message = new ClientMcpFrameDecoder().Decode(System.Net.WebSockets.WebSocketMessageType.Text, bytes, bytes.Length);
         using var socket = new ScriptedTerminalWebSocket();
         await using var core = new TerminalSocketCore<ClientMcpMessage>(socket, new ClientMcpFrameDecoder(), PtyClosePolicy.Instance,

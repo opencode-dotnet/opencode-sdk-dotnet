@@ -51,6 +51,16 @@ public sealed class ClientMcpConnectionTests
         }
 
         await Assert.That(created).IsEmpty();
+        using var invalidSchema = JsonDocument.Parse(_wire["reset"]!.ToJsonString());
+        var badSchema = await Assert.That(async () =>
+        {
+            await using var admitted = client.Experimental.ConnectClientMcp(options with { Tools = [declared.Tools[0] with { InputSchema = invalidSchema.RootElement }] });
+        }).Throws<ArgumentException>();
+#if NET
+        await Assert.That(badSchema!.Message).IsEqualTo("Client MCP input schemas must be objects. (Parameter 'options')");
+#else
+        await Assert.That(badSchema!.Message).IsEqualTo("Client MCP input schemas must be objects.\r\nParameter name: options");
+#endif
         await using var connection = client.Experimental.ConnectClientMcp(options);
         await Assert.That(created.Count).IsEqualTo(1);
         var request = await listener.GetContextAsync();
@@ -159,6 +169,7 @@ public sealed class ClientMcpConnectionTests
 
         var dispatch = await scenario.OpenedAsync(connection);
         await dispatch.DispatchAsync(ClientMcpScenario.Message("initialize"));
+        await dispatch.ObserveResponsesAsync();
         await dispatch.DispatchAsync(ClientMcpScenario.Message("tools/list"));
         await dispatch.ObserveResponsesAsync();
         await Assert.That(third.SentText).IsEquivalentTo(_wire["reset"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
@@ -250,17 +261,20 @@ public sealed class ClientMcpConnectionTests
     {
         using var scenario = new ClientMcpScenario();
         TaskCompletionSource<ClientMcpToolResult>? held = null;
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var socket = scenario.Socket();
         await using var connection = scenario.Connect([socket], ClientMcpScenario.Options((_, _) =>
         {
             var work = new TaskCompletionSource<ClientMcpToolResult>();
             held = work;
+            _ = entered.TrySetResult(true);
             return work.Task;
         }));
         var dispatch = await scenario.OpenedAsync(connection);
         try
         {
             await dispatch.DispatchAsync(ClientMcpScenario.Message("tools/call"));
+            await entered.Task;
             await Assert.That(held).IsNotNull();
             var observed = dispatch.ObserveResponsesAsync();
             await Assert.That(observed.IsCompleted).IsFalse();
@@ -282,14 +296,20 @@ public sealed class ClientMcpConnectionTests
     {
         using var scenario = new ClientMcpScenario();
         var held = new TaskCompletionSource<ClientMcpToolResult>();
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var one = scenario.Socket().Pausing().Closing(WebSocketCloseStatus.NormalClosure);
         var two = scenario.Socket();
         var calls = 0;
-        await using var connection = scenario.Connect([one, two], ClientMcpScenario.Options((_, _) => ++calls is 1 ? held.Task : Task.FromResult(Result("new"))));
+        await using var connection = scenario.Connect([one, two], ClientMcpScenario.Options((_, _) =>
+        {
+            _ = entered.TrySetResult(true);
+            return ++calls is 1 ? held.Task : Task.FromResult(Result("new"));
+        }));
         var old = await scenario.OpenedAsync(connection);
         try
         {
             await old.DispatchAsync(ClientMcpScenario.Message("tools/call"));
+            await entered.Task;
             one.ReleaseReceives();
             await Assert.That(await scenario.RetryAsync(connection)).IsEqualTo(TimeSpan.FromMilliseconds(500));
             scenario.Clock.Advance(TimeSpan.FromMilliseconds(500));
@@ -317,15 +337,23 @@ public sealed class ClientMcpConnectionTests
         await using var connection = scenario.Connect([socket]);
         var dispatch = await scenario.OpenedAsync(connection);
         await dispatch.DispatchAsync(ClientMcpScenario.Message("ping"));
-        await Assert.That(socket.SentText).IsEquivalentTo([_wire["ping"]!.ToJsonString()], CollectionOrdering.Matching);
-        var deadlines = scenario.Clock.ArmedIn(TimeSpan.FromSeconds(30));
-        scenario.Clock.Advance(TimeSpan.FromSeconds(60));
-        var completed = dispatch.ObserveResponsesAsync().IsCompleted;
-        socket.ReleaseSends();
-        await dispatch.ObserveResponsesAsync();
-        await Assert.That(completed).IsFalse();
-        await Assert.That(deadlines).IsEqualTo(0);
-        await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
+        try
+        {
+            await socket.SendEntered;
+            await Assert.That(socket.SentText).IsEquivalentTo([_wire["ping"]!.ToJsonString()], CollectionOrdering.Matching);
+            var deadlines = scenario.Clock.ArmedIn(TimeSpan.FromSeconds(30));
+            scenario.Clock.Advance(TimeSpan.FromSeconds(60));
+            var completed = dispatch.ObserveResponsesAsync().IsCompleted;
+            socket.ReleaseSends();
+            await dispatch.ObserveResponsesAsync();
+            await Assert.That(completed).IsFalse();
+            await Assert.That(deadlines).IsEqualTo(0);
+            await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
+        }
+        finally
+        {
+            socket.ReleaseSends();
+        }
     }
 
     private static ClientMcpToolResult Result(string text) => new() { Content = [ClientMcpContent.FromText(text)] };

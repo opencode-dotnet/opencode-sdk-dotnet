@@ -41,6 +41,11 @@ public static class ExperimentalClientMcpExtensions
             throw new ArgumentException("Client MCP name, tools and handlers are required.", nameof(options));
         }
 
+        if (options.Tools.Any(static tool => tool.InputSchema is { ValueKind: not System.Text.Json.JsonValueKind.Object }))
+        {
+            throw new ArgumentException("Client MCP input schemas must be objects.", nameof(options));
+        }
+
         var pipeline = client.PipelineOrNull ?? throw MockSeam.CreateError(nameof(ExperimentalClient), nameof(ConnectClientMcp));
         var connector = new ClientMcpConnector(pipeline.Connection, options);
         return new ClientMcpConnection(options, pipeline.Connection.Time, connector.Create,

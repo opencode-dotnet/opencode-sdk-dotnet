@@ -80,6 +80,7 @@ namespace OpenCode.Sdk
         "erimental.md#opencode001")]
     public sealed class ClientMcpToolContext
     {
+        public ClientMcpToolContext(string? sessionId) { }
         public string? SessionId { get; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
