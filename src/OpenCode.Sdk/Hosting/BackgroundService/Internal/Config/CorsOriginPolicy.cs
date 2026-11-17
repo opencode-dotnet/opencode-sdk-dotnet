@@ -21,12 +21,41 @@ internal static class CorsOriginPolicy
     /// <returns>Whether the CLI accepts it unchanged as an origin.</returns>
     public static bool IsOrigin(string origin)
     {
-        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+        string? asciiHost = null;
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+        {
+            var schemeEnd = origin.IndexOf("://", StringComparison.Ordinal);
+            if (schemeEnd < 0)
+            {
+                return false;
+            }
+
+            var hostStart = schemeEnd + 3;
+            var portStart = origin.AsSpan(hostStart).IndexOf(':');
+            var hostEnd = portStart < 0 ? origin.Length : hostStart + portStart;
+
+            asciiHost = origin[hostStart..hostEnd];
+            if (asciiHost.Length == 0 || !asciiHost.All(static character =>
+                character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '.' or '-' or '_'
+                || "!$&'()*+;=~".Contains(character, StringComparison.Ordinal)))
+            {
+                return false;
+            }
+
+            // The BCL parses the scheme and port; the final exact comparison still decides every verdict.
+            var surrogate = origin[..hostStart] + "example.com" + origin[hostEnd..];
+            if (!Uri.TryCreate(surrogate, UriKind.Absolute, out uri))
+            {
+                return false;
+            }
+        }
+
+        if (uri.Scheme is not ("http" or "https"))
         {
             return false;
         }
 
-        var host = uri.IdnHost.ToLowerInvariant();
+        var host = asciiHost ?? uri.IdnHost.ToLowerInvariant();
         if (uri.HostNameType == UriHostNameType.IPv6)
         {
             if (host.Contains('%', StringComparison.Ordinal) || !IPAddress.TryParse(host, out var address))
@@ -48,11 +77,11 @@ internal static class CorsOriginPolicy
 
     private static bool IsDomain(string host)
     {
-        var labels = host.TrimEnd('.').Split('.');
-        var last = labels[^1];
+        var labels = host.Split('.');
+        var last = labels.Length > 1 && labels[^1].Length == 0 ? labels[^2] : labels[^1];
         // A numeric final label invokes WHATWG's IPv4 parser, not DNS, even when Uri accepts DNS.
-        if (last.All(static character => character is >= '0' and <= '9')
-            || (last.StartsWith("0x", StringComparison.Ordinal) && last.Skip(2).All(Uri.IsHexDigit)))
+        if (last.Length > 0 && (last.All(static character => character is >= '0' and <= '9')
+            || (last.StartsWith("0x", StringComparison.Ordinal) && last.Skip(2).All(Uri.IsHexDigit))))
         {
             return false;
         }
