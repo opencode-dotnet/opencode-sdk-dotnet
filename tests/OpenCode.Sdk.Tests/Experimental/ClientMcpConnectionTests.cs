@@ -301,12 +301,9 @@ public sealed class ClientMcpConnectionTests
         var calls = 0;
         await using var connection = scenario.Connect([one, two], ClientMcpScenario.Options((_, _) =>
         {
-            var call = Interlocked.Increment(ref calls);
-            if (call is 1)
-            {
-                _ = entered.TrySetResult(true);
-            }
-            return call is 1 ? held.Task : Task.FromResult(Result("new"));
+            var response = Interlocked.Increment(ref calls) is 1 ? held.Task : Task.FromResult(Result("new"));
+            _ = entered.TrySetResult(true);
+            return response;
         }));
         var old = await scenario.OpenedAsync(connection);
         try

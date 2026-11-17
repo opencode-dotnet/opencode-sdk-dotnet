@@ -35,13 +35,24 @@ public sealed class ClientMcpDispatchTests
         await using var core = Core(socket);
         var resets = 0;
         var dispatch = new ClientMcpDispatch(core, new ClientMcpResponder(new ClientMcpOptions { Name = "app", Tools = [] }), () => resets++);
-        foreach (var entry in fixture["messages"]!.AsArray())
+        IReadOnlyList<string> inlineResponses;
+#if NET
+        lock ((Lock)typeof(ClientMcpDispatch).GetField("_gate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dispatch)!)
+#else
+        // The downlevel Lock is an assembly-local polyfill over Monitor.
+        lock (typeof(ClientMcpDispatch).GetField("_gate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(dispatch)!)
+#endif
         {
-            await dispatch.DispatchAsync(Decode(entry!["raw"]?.GetValue<string>() ?? entry["value"]!.ToJsonString(),
-                entry["binary"]?.GetValue<bool>() is true ? WebSocketMessageType.Binary : WebSocketMessageType.Text));
+            foreach (var entry in fixture["messages"]!.AsArray())
+            {
+                _ = dispatch.DispatchAsync(Decode(entry!["raw"]?.GetValue<string>() ?? entry["value"]!.ToJsonString(),
+                    entry["binary"]?.GetValue<bool>() is true ? WebSocketMessageType.Binary : WebSocketMessageType.Text));
+            }
+            inlineResponses = socket.SentText;
         }
 
         await dispatch.ObserveResponsesAsync();
+        await Assert.That(inlineResponses).IsEquivalentTo(fixture["responses"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
         await Assert.That(socket.SentText).IsEquivalentTo(fixture["responses"]!.AsArray().Select(static node => node!.ToJsonString()), CollectionOrdering.Matching);
         await dispatch.DispatchAsync(Decode(fixture["initialized"]!.ToJsonString()));
         await dispatch.ObserveResponsesAsync();
