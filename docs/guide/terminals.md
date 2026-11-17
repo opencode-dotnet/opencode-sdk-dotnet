@@ -132,8 +132,8 @@ code, and the bus carries `PtyExited` with the PTY id and exit code. An abnormal
 `OpenCodeTransportException` naming the reason.
 When the PTY's location shuts down, for example on a reload, the server closes with 1012 and
 the reason "location shut down", which throws the same way.
-On .NET Framework, closes 1012–1014 abort either terminal family's socket and surface as a
-transport exception rather than a peer close; .NET 10+ receives the close normally. See the
+On .NET Framework, closes 1012–1014 abort the socket instead, so the exception carries the
+socket fault rather than the status and reason; .NET 10+ receives the close normally. See the
 [platform limit](../architecture/client-runtime.md#pty-websocket-session).
 
 Connecting again to an exited PTY still succeeds **while the server retains it** — the 25 most
