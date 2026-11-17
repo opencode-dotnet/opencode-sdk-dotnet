@@ -11,7 +11,7 @@ namespace OpenCode.Sdk.Tests.Experimental.Support;
 /// <summary>Owns deterministic loopback admission and scripted client-MCP observations.</summary>
 internal sealed class ClientMcpScenario(Func<int>? reservePort = null) : IDisposable
 {
-    private readonly ClientMcpListener _listener = new(reservePort);
+    private readonly LoopbackUpgradeListener _listener = new(reservePort);
     private readonly Channel<TimeSpan> _retry = Channel.CreateUnbounded<TimeSpan>();
     private readonly Channel<ClientMcpDispatch> _opened = Channel.CreateUnbounded<ClientMcpDispatch>();
     private readonly List<ScriptedTerminalWebSocket> _sockets = [];

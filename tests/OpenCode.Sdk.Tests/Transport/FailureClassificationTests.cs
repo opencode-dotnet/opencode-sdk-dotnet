@@ -45,6 +45,13 @@ public sealed class FailureClassificationTests
         }
     }
 
+    [Test]
+    public async Task ConnectionOutcome_Should_Name_Client_Mcp_In_Its_Send_Failure()
+    {
+        await Assert.That(new TerminalConnectionOutcome(null, "MCP").SendFailure.Message)
+            .IsEqualTo("The opencode MCP WebSocket connection has ended.");
+    }
+
     public static IEnumerable<Func<Exception>> SendFaults() =>
     [
         static () => new HttpRequestException("connection refused"),

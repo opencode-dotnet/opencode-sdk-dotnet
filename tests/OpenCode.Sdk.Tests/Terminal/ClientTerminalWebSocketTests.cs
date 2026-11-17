@@ -19,7 +19,7 @@ public sealed class ClientTerminalWebSocketTests
     [Arguments(true, "Bearer explicit")]
     public async Task ConnectAsync_Should_Apply_Root_And_Explicit_Handshake_Headers(bool overrideAuthorization, string expected)
     {
-        using var scenario = new ClientMcpListener();
+        using var scenario = new LoopbackUpgradeListener();
         var listener = scenario.Listener;
         using var raw = new ClientWebSocket();
         var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Extra"] = "extra" };

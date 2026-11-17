@@ -5,7 +5,7 @@ using OpenCode.Sdk.Tests.Harness;
 namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>Owns loopback admission for WebSocket upgrades across client families.</summary>
-internal sealed class ClientMcpListener(Func<int>? reservePort = null) : IDisposable
+internal sealed class LoopbackUpgradeListener(Func<int>? reservePort = null) : IDisposable
 {
     private HttpListener? _listener;
 
@@ -40,7 +40,7 @@ internal sealed class ClientMcpListener(Func<int>? reservePort = null) : IDispos
                     }
                 }
 
-                throw new InvalidOperationException($"No client MCP listener port could be registered: {string.Join(", ", ports)}.");
+                throw new InvalidOperationException($"No loopback listener port could be registered: {string.Join(", ", ports)}.");
             }
 
             return _listener;
