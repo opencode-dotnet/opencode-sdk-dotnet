@@ -55,7 +55,7 @@ internal sealed class SuppressionScenario
     {
         _baselineEntries.Add(
             $"{{ \"ruleId\": \"{rule}\", \"filePath\": \"{file}\", \"lineNumber\": 1, \"codeSnippet\": \"catch {{ }}\", \"hash\": \"{hash}\" }}");
-        return WithFile(SuppressionScan.SlopwatchBaselinePath, $"{{ \"version\": 1, \"entries\": [ {string.Join(", ", _baselineEntries)} ] }}");
+        return WithFile(SuppressionScan.SlopwatchBaselinePath, $"{{ \"version\": 2, \"entries\": [ {string.Join(", ", _baselineEntries)} ] }}");
     }
 
     public async Task<SuppressionInventory> ScanAsync()
