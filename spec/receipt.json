@@ -1102,6 +1102,26 @@
           "matched": true
         }
       ]
+    },
+    {
+      "path": "packages/client/src/promise/media.ts",
+      "sha256": "ebfde36489ae44cb51505cbeba7d854fa6cf0c5ab92c1ff8fc67b7a71b4b640d",
+      "anchors": [
+        {
+          "text": "headers.set(CAPABILITIES_HEADER, MEDIA_URI_CAPABILITY)",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/server/src/media-uri.ts",
+      "sha256": "23576ffef780988d13a458993ae65c7aa52eff570b8f790cf8301bff8df1d7be",
+      "anchors": [
+        {
+          "text": "(token) =\u003E token.trim().toLowerCase() === MEDIA_URI_CAPABILITY,",
+          "matched": true
+        }
+      ]
     }
   ]
 }

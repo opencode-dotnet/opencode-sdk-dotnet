@@ -7,11 +7,24 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeClientOptions
 {
+    /// <summary>Gets or sets whether message reads request experimental media references; defaults to false.</summary>
+    /// <remarks>
+    /// Sends X-OpenCode-Capabilities: experimental-media-uri on session.message.list (each cursor page
+    /// included), session.message.get and session.inbox.list. The session location's
+    /// experimental.media_blob setting decides whether stored media stays a ref.
+    /// Use client.Experimental.GetMediaAsync to read its bytes, or
+    /// <see cref="OpenCodeRequestOptions.InlineMedia"/> to omit the automatic header for one call.
+    /// </remarks>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
+    public bool MediaReferences { get; set; }
+
     /// <summary>
     /// Gets the case-insensitive headers copied and validated once at client construction.
     /// Later values replace earlier ones: SDK User-Agent, these headers, SDK authentication,
-    /// merged location and operation-declared headers, then <see cref="OpenCodeRequestOptions.Headers"/>.
-    /// Authorization with a non-null <see cref="Password"/>, or x-opencode-directory with a
+    /// merged location and operation-declared headers, then <see cref="OpenCodeRequestOptions.Headers"/>;
+    /// with <see cref="MediaReferences"/> on, the SDK's X-OpenCode-Capabilities then replaces either set's
+    /// value on session.message.list, session.message.get and session.inbox.list, unless the call sets
+    /// <see cref="OpenCodeRequestOptions.InlineMedia"/>. Authorization with a non-null <see cref="Password"/>, or x-opencode-directory with a
     /// non-null <see cref="Location"/>, is refused. Content headers replace the content's headers
     /// when content exists and are dropped otherwise. Headers reach HTTP operations, stream opens
     /// (each shared event feed attempt included) and cursor pages, not terminal upgrades or

@@ -3,11 +3,25 @@ namespace OpenCode.Sdk;
 /// <summary>Configures one opencode API call.</summary>
 public sealed class OpenCodeRequestOptions
 {
+    /// <summary>Gets whether to omit the automatic media capability header for this call; defaults to false.</summary>
+    /// <remarks>
+    /// Overrides <see cref="OpenCodeClientOptions.MediaReferences"/> on session.message.list (each
+    /// cursor page included), session.message.get and session.inbox.list. Stored media comes back
+    /// inline unless the caller sends the capability header itself. Otherwise the session location's
+    /// experimental.media_blob setting decides whether media stays a ref, whose bytes
+    /// client.Experimental.GetMediaAsync reads. Use this option for self-contained exports.
+    /// </remarks>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
+    public bool InlineMedia { get; init; }
+
     /// <summary>
     /// Gets the headers validated and copied when this call starts; each cursor page is a separate
     /// call. The event subscription refuses them. Later values replace
     /// earlier ones: SDK User-Agent, <see cref="OpenCodeClientOptions.Headers"/>, SDK authentication,
-    /// merged location and operation-declared headers, then these headers. Case-equivalent names
+    /// merged location and operation-declared headers, then these headers; with
+    /// <see cref="OpenCodeClientOptions.MediaReferences"/> on and <see cref="InlineMedia"/> off, the
+    /// SDK's X-OpenCode-Capabilities then replaces this set's value on session.message.list,
+    /// session.message.get and session.inbox.list. Case-equivalent names
     /// in this set join in insertion order with ", ". Client construction refuses Authorization
     /// with a non-null <see cref="OpenCodeClientOptions.Password"/>, or x-opencode-directory with a
     /// non-null <see cref="OpenCodeClientOptions.Location"/>; these per-call headers allow both names.

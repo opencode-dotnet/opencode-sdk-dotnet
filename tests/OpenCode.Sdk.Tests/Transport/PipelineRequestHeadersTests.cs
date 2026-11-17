@@ -7,9 +7,10 @@ using OpenCode.Sdk.Tests.Transport.Support;
 namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
-/// Caller request headers through the pipeline: the refusals at construction and call start, the
-/// per-call copy a stream call takes when it starts, and the terminal upgrades they never reach.
-/// The decoration order itself is the decoration policy's tests.
+/// Request headers through the pipeline: the experimental media capability on the three message and
+/// inbox reads, the caller headers' refusals at construction and call start, the per-call copy a
+/// stream call takes when it starts, and the terminal upgrades they never reach. The decoration
+/// order itself is the decoration policy's tests.
 /// </summary>
 public sealed class PipelineRequestHeadersTests
 {
@@ -29,8 +30,106 @@ public sealed class PipelineRequestHeadersTests
     private const string DeleteValue = "ok\u007fvalue";
     private const string ClientValue = "client";
     private const string BeforeValue = "before";
+    private const string CapabilitiesHeader = "X-OpenCode-Capabilities";
+    private const string MediaCapability = "experimental-media-uri";
 
     private static readonly Uri Endpoint = new("http://localhost:4096");
+
+    [Test]
+    [Arguments("session.message.list")]
+    [Arguments("session.message.get")]
+    [Arguments("session.inbox.list")]
+    public async Task MediaReferences_Should_Decorate_The_Three_Reads(string operationId)
+    {
+        var options = new OpenCodeClientOptions { Endpoint = Endpoint, MediaReferences = true };
+        var sent = await ReadMediaAsync(options, operationId);
+
+        await Assert.That(sent.Headers).ContainsKey(CapabilitiesHeader);
+        await Assert.That(sent.Headers[CapabilitiesHeader]).IsEqualTo(MediaCapability);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task MediaReferences_Should_Replace_Caller_Capabilities(bool perCall)
+    {
+        var options = new OpenCodeClientOptions { Endpoint = Endpoint, MediaReferences = true };
+        options.Headers.Add(CapabilitiesHeader, ClientValue);
+        var call = MediaCall(perCall, inline: false);
+        var sent = await ReadMediaAsync(options, "session.message.get", call);
+
+        await Assert.That(sent.Headers).ContainsKey(CapabilitiesHeader);
+        await Assert.That(sent.Headers[CapabilitiesHeader]).IsEqualTo(MediaCapability);
+    }
+
+    [Test]
+    [Arguments("server.info.get", true, false)]
+    [Arguments("session.message.get", false, false)]
+    [Arguments("session.message.get", true, true)]
+    public async Task MediaReferences_Should_Leave_Unselected_Reads_Undecorated(string operationId, bool enabled, bool inline)
+    {
+        var options = new OpenCodeClientOptions { Endpoint = Endpoint, MediaReferences = enabled };
+        var sent = await ReadMediaAsync(options, operationId,
+            new OpenCodeRequestOptions { ErrorBehavior = ErrorBehavior.NoThrow, InlineMedia = inline });
+
+        await Assert.That(sent.Headers).DoesNotContainKey(CapabilitiesHeader);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task InlineMedia_Should_Keep_The_Callers_Own_Capability(bool perCall)
+    {
+        var options = new OpenCodeClientOptions { Endpoint = Endpoint, MediaReferences = true };
+        options.Headers.Add(CapabilitiesHeader, ClientValue);
+        var call = MediaCall(perCall, inline: true);
+        var sent = await ReadMediaAsync(options, "session.message.get", call);
+
+        await Assert.That(sent.Headers).ContainsKey(CapabilitiesHeader);
+        await Assert.That(sent.Headers[CapabilitiesHeader]).IsEqualTo(perCall ? CallerValue : ClientValue);
+    }
+
+    [Test]
+    public async Task MediaReferences_Should_Be_Snapshotted_At_Construction()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var http = new HttpClient(handler);
+        var options = new OpenCodeClientOptions { Endpoint = Endpoint, MediaReferences = true };
+        using var pipeline = Pipeline.Create(http, options);
+        options.MediaReferences = false;
+
+        _ = await pipeline.ExecuteAsync("session.message.get", HttpMethod.Get, "/api/info",
+            new RecordingResponseAdapter(), options: null, CancellationToken.None);
+
+        await Assert.That(handler.Requests.Single().Headers).ContainsKey(CapabilitiesHeader);
+        await Assert.That(handler.Requests.Single().Headers[CapabilitiesHeader]).IsEqualTo(MediaCapability);
+    }
+
+    [Test]
+    public async Task MediaReferences_Should_Reach_Every_Cursor_Page()
+    {
+        var pages = new Queue<string>([WireBodyData.Page("", next: "continuation"), WireBodyData.Page("")]);
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(pages.Dequeue()),
+        });
+        using var http = new HttpClient(handler);
+        using var client = new OpenCodeClient(http, new OpenCodeClientOptions { Endpoint = Endpoint, MediaReferences = true });
+        var pageCount = 0;
+        await foreach (var _ in client.Sessions.GetSessionClient("ses_media").EnumerateMessagesAsync().Pages
+            .WithCancellation(CancellationToken.None))
+        {
+            pageCount++;
+        }
+
+        await Assert.That(pageCount).IsEqualTo(2);
+        await Assert.That(handler.Requests.Count).IsEqualTo(2);
+        foreach (var request in handler.Requests)
+        {
+            await Assert.That(request.Headers).ContainsKey(CapabilitiesHeader);
+            await Assert.That(request.Headers[CapabilitiesHeader]).IsEqualTo(MediaCapability);
+        }
+    }
 
     [Test]
     [Arguments(true, false)]
@@ -264,5 +363,34 @@ public sealed class PipelineRequestHeadersTests
         await Assert.That(sent.Headers["X-Client"]).IsEqualTo(ClientValue);
         await Assert.That(sent.Headers.TryGetValue("X-Probe", out var probe) ? probe : "absent")
             .IsEqualTo(initiallyEmpty ? "absent" : BeforeValue);
+    }
+
+    private static OpenCodeRequestOptions MediaCall(bool perCall, bool inline) => new()
+    {
+        InlineMedia = inline,
+        ErrorBehavior = ErrorBehavior.NoThrow,
+        Headers = perCall ? new Dictionary<string, string>(StringComparer.Ordinal) { ["x-opencode-capabilities"] = CallerValue } : null,
+    };
+
+    private static async Task<RecordedRequest> ReadMediaAsync(OpenCodeClientOptions options, string operationId,
+        OpenCodeRequestOptions? call = null)
+    {
+        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        {
+            Content = new StringContent(WireBodyData.UnauthorizedError),
+        });
+        using var http = new HttpClient(handler);
+        using var client = new OpenCodeClient(http, options);
+        var session = client.Sessions.GetSessionClient("ses_media");
+        call ??= OpenCodeRequestOptions.NoThrow;
+        _ = operationId switch
+        {
+            "session.message.list" => (OpenCodeResponse)await session.ListMessagesAsync(requestOptions: call),
+            "session.message.get" => await session.GetMessageAsync("msg_media", requestOptions: call),
+            "session.inbox.list" => await session.ListInboxAsync(requestOptions: call),
+            _ => await client.Server.GetInfoAsync(requestOptions: call),
+        };
+
+        return handler.Requests.Single();
     }
 }

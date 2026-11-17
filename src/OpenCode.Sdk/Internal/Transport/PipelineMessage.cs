@@ -41,6 +41,9 @@ internal sealed class PipelineMessage : IDisposable
     /// </summary>
     public bool BufferBody { get; init; } = true;
 
+    /// <summary>Gets whether this operation can return refs; decoration combines it with the client and call options.</summary>
+    public bool CarriesMediaCapability { get; init; }
+
     /// <summary>
     /// Gets the call's options snapshot, or <see langword="null"/> for none; the decoration
     /// policy applies its location and headers over the construction-time snapshot. Carrying

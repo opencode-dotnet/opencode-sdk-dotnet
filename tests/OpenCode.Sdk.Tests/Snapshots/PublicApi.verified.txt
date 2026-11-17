@@ -890,6 +890,14 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.McpResourceCatalogResponse> GetResourceCatalogAsync(OpenCode.Sdk.McpResourceCatalogRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.McpListResponse> ListMcpServersAsync(OpenCode.Sdk.McpListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public static class MediaReference
+    {
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static string? HashFromUri(string? uri) { }
+    }
     public sealed class ModelDefaultRequest : System.IEquatable<OpenCode.Sdk.ModelDefaultRequest>
     {
         public ModelDefaultRequest() { }
@@ -973,6 +981,9 @@ namespace OpenCode.Sdk
         public System.Collections.Generic.IDictionary<string, string> Headers { get; }
         public System.Net.Http.HttpMessageHandler? HttpHandler { get; set; }
         public OpenCode.Sdk.LocationSelector? Location { get; set; }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public bool MediaReferences { get; set; }
         public System.TimeSpan? NetworkTimeout { get; set; }
         public string? Password { get; set; }
         public string Username { get; set; }
@@ -995,6 +1006,9 @@ namespace OpenCode.Sdk
         public OpenCodeRequestOptions() { }
         public OpenCode.Sdk.ErrorBehavior ErrorBehavior { get; init; }
         public System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers { get; init; }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public bool InlineMedia { get; init; }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
         public System.TimeSpan? NetworkTimeout { get; init; }
         public static OpenCode.Sdk.OpenCodeRequestOptions NoThrow { get; }

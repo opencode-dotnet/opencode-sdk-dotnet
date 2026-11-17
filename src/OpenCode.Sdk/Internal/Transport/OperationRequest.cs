@@ -24,6 +24,7 @@ internal sealed record OperationRequest(string OperationId, OperationTraits Trai
             Location = options.Location,
             NetworkTimeout = options.NetworkTimeout,
             ErrorBehavior = options.ErrorBehavior,
+            InlineMedia = options.InlineMedia,
         };
     }
 
