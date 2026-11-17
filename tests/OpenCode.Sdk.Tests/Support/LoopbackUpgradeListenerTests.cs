@@ -1,11 +1,35 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using OpenCode.Sdk.Tests.Harness;
 
 namespace OpenCode.Sdk.Tests.Support;
 
 public sealed class LoopbackUpgradeListenerTests
 {
+    [Test]
+    public async Task Listener_Should_Skip_A_Port_A_Plain_Tcp_Socket_Holds_And_Start_On_The_Next_Port()
+    {
+        using var held = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        held.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        held.Listen(1);
+        var port = ((IPEndPoint)held.LocalEndPoint!).Port; // Bind supplies the local endpoint.
+        using var direct = new HttpListener();
+        direct.Prefixes.Add($"http://127.0.0.1:{port.ToString(CultureInfo.InvariantCulture)}/");
+        var conflict = Assert.Throws<HttpListenerException>(direct.Start);
+        // Managed Unix listeners report the socket bind error, not the HTTP.sys conflict handled here.
+        if (OperatingSystem.IsWindows())
+        {
+            await Assert.That(conflict.ErrorCode).IsEqualTo(32);
+            await AssertStartsOnTheNextPortAsync(port);
+        }
+        else
+        {
+            using var scenario = new LoopbackUpgradeListener(() => port);
+            await Assert.That(() => _ = scenario.Listener).ThrowsExactly<HttpListenerException>();
+        }
+    }
+
     [Test]
     public async Task Listener_Should_Skip_A_PreRegistered_Conflict_And_Start_On_The_Next_Port()
     {
@@ -15,14 +39,14 @@ public sealed class LoopbackUpgradeListenerTests
         duplicate.Prefixes.Add(prefix);
         var conflict = Assert.Throws<HttpListenerException>(duplicate.Start);
         await Assert.That(conflict.ErrorCode).IsEqualTo(OperatingSystem.IsWindows() ? 183 : 400);
-        var next = EnsureServiceContext.ReserveUnguardedPort(LoopbackPortReservation.Hold);
-        var ports = new Queue<int>([new Uri(prefix).Port, next]);
-        using var scenario = new LoopbackUpgradeListener(ports.Dequeue);
-        if (await IsWindowsListenerAsync(scenario))
+        if (OperatingSystem.IsWindows())
         {
-            await Assert.That(() => scenario.Listener).ThrowsNothing();
-            await Assert.That(new Uri(scenario.Listener.Prefixes.Single()).Port).IsEqualTo(next);
-            await Assert.That(scenario.Listener.IsListening).IsTrue();
+            await AssertStartsOnTheNextPortAsync(new Uri(prefix).Port);
+        }
+        else
+        {
+            using var scenario = new LoopbackUpgradeListener(() => new Uri(prefix).Port);
+            await IsWindowsListenerAsync(scenario);
         }
     }
 
@@ -52,6 +76,16 @@ public sealed class LoopbackUpgradeListenerTests
             await Assert.That(failure.Message).IsEqualTo(string.Format(CultureInfo.InvariantCulture,
                 "No loopback listener port could be registered: {0}, {1}, {0}, {1}, {0}.", a, b));
         }
+    }
+
+    private static async Task AssertStartsOnTheNextPortAsync(int blocked)
+    {
+        var next = EnsureServiceContext.ReserveUnguardedPort(LoopbackPortReservation.Hold);
+        var ports = new Queue<int>([blocked, next]);
+        using var scenario = new LoopbackUpgradeListener(ports.Dequeue);
+        await Assert.That(() => scenario.Listener).ThrowsNothing();
+        await Assert.That(new Uri(scenario.Listener.Prefixes.Single()).Port).IsEqualTo(next);
+        await Assert.That(scenario.Listener.IsListening).IsTrue();
     }
 
     private static async Task<bool> IsWindowsListenerAsync(LoopbackUpgradeListener scenario)
