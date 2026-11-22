@@ -85,7 +85,8 @@ internal static class OpenCodeErrorReader
 
             if (selected is { Length: > 0 })
             {
-                message = $"The opencode API returned status {statusText} ('{error.Tag}'): {selected}.";
+                var end = selected[^1] is '.' or '!' or '?' ? string.Empty : ".";
+                message = $"The opencode API returned status {statusText} ('{error.Tag}'): {selected}{end}";
             }
         }
 

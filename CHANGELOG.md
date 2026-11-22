@@ -9,6 +9,9 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🐛 Fixes
+- An `OpenCodeApiException` whose server message already ends in `.`, `!` or `?` no longer gets a second period, so the readable 500 opencode answers handler defects with reads "… Check server logs for details." instead of ending in "..".
+
 ## [2.0.1] - 2026-11-22
 
 **`2.0.1` pins opencode `2.3.2`.** It is a patch that moves the protocol pin, so generated types
