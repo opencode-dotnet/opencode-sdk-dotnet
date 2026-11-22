@@ -16,6 +16,13 @@ public sealed record ConfigInfoCompaction
     public bool? Auto { get; init; }
 
     /// <summary>
+    /// Gets the background value.
+    /// </summary>
+    [JsonPropertyName("background")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Background { get; init; }
+
+    /// <summary>
     /// Gets the keep value.
     /// </summary>
     [JsonPropertyName("keep")]

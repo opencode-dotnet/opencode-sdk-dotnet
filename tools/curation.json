@@ -1256,7 +1256,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/config/experimental.ts:41",
+          "location": "packages/schema/src/config/experimental.ts:49",
           "excerpt": "    description: \"Maximum subagent nesting depth. Defaults to 1.\","
         }
       ]
@@ -2287,85 +2287,6 @@
       ]
     },
     {
-      "type": "ScheduleEnds",
-      "summary": "Stops a repeating schedule at whichever limit comes first.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:54", "excerpt": "/** Stops a repeating schedule at whichever limit comes first. */" }
-      ]
-    },
-    {
-      "type": "ScheduleConditionShell",
-      "summary": "A shell check run in the session's directory before the schedule fires, with no model call; the schedule wakes the session only when it passes.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:73", "excerpt": " * Runs `run` in the Session's directory before firing, with no model call. With none of `is`, `matches` or `changes`" },
-        { "location": "packages/schema/src/schedule.ts:98", "excerpt": "/** Checked before firing; the schedule wakes the Session only when the condition passes. */" }
-      ]
-    },
-    {
-      "type": "ScheduleConditionShell",
-      "member": "Run",
-      "summary": "The shell command the condition runs in the session's directory.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:73", "excerpt": " * Runs `run` in the Session's directory before firing, with no model call. With none of `is`, `matches` or `changes`" }
-      ]
-    },
-    {
-      "type": "ScheduleWhenInput",
-      "summary": "When a schedule fires, as callers write it: exactly one of in, at, every or cron, with an optional time zone.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:165", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" }
-      ]
-    },
-    {
-      "type": "ScheduleWhenAt",
-      "summary": "An instant with an offset, or a wall-clock time in the trigger's time zone.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:37", "excerpt": "/** An instant with an offset, or a wall-clock time in `tz`, e.g. \"2026-10-27T09:00\". */" }
-      ]
-    },
-    {
-      "type": "ScheduleWhenInputAt",
-      "summary": "The at trigger as callers write it: an instant with an offset, or a wall-clock time in the trigger's time zone.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:165", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" },
-        { "location": "packages/schema/src/schedule.ts:168", "excerpt": "  Schema.Struct({ at: At.fields.at, in: absent, every: absent, cron: absent, ...zone })," },
-        { "location": "packages/schema/src/schedule.ts:37", "excerpt": "/** An instant with an offset, or a wall-clock time in `tz`, e.g. \"2026-10-27T09:00\". */" }
-      ]
-    },
-    {
-      "type": "ScheduleConditionInputRun",
-      "member": "Is",
-      "summary": "Wakes the session when the command exits 0 and its trimmed standard output equals this value.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:179", "excerpt": "    description: \"Wake when exit is 0 and trimmed stdout equals this value.\"," }
-      ]
-    },
-    {
-      "type": "ScheduleConditionInputRun",
-      "member": "Matches",
-      "summary": "Wakes the session when the command exits 0 and its standard output matches this regular expression.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:182", "excerpt": "    description: \"Wake when exit is 0 and stdout matches this regular expression.\"," }
-      ]
-    },
-    {
-      "type": "ScheduleConditionInputRun",
-      "member": "Changes",
-      "summary": "Wakes the session when the command exits 0 and its standard output differs from the previous check.",
-      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
-      "sources": [
-        { "location": "packages/schema/src/schedule.ts:185", "excerpt": "    description: \"Wake when exit is 0 and stdout differs from the previous check.\"," }
-      ]
-    },
-    {
       "type": "PromptMediaFileAttachment",
       "summary": "An attachment whose bytes stay on the server, sent to clients that opt in with the experimental experimental-media-uri capability.",
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
@@ -2937,19 +2858,29 @@
       "reason": "The group name is itself the verb: upstream generates or edits one or more images (its summary is Generate images), as GenerateTextAsync returns text."
     },
     {
-      "operationId": "experimental.schedule.delete",
-      "methodName": "DeleteScheduleAsync",
-      "reason": "Upstream deletes one schedule; the flat ExperimentalClient needs the object in the name, and delete is upstream's own word."
+      "operationId": "experimental.generate.video.create",
+      "methodName": "CreateVideoGenerationAsync",
+      "reason": "Upstream's summary is Create a video generation: the call submits a video job and returns its ID, not a video, so GenerateVideoAsync would promise a result it does not return."
     },
     {
-      "operationId": "experimental.schedule.pause",
-      "methodName": "PauseScheduleAsync",
-      "reason": "Upstream stops a schedule from firing until it is resumed; the flat ExperimentalClient needs the object in the name."
+      "operationId": "experimental.generate.video.get",
+      "methodName": "GetVideoGenerationAsync",
+      "reason": "Upstream's summary is Read a video generation: the call reads the job CreateVideoGenerationAsync started, and the name pairs with it."
     },
     {
-      "operationId": "experimental.schedule.resume",
-      "methodName": "ResumeScheduleAsync",
-      "reason": "Upstream resumes a paused schedule; the name pairs with PauseScheduleAsync."
+      "operationId": "experimental.automation.delete",
+      "methodName": "DeleteAutomationAsync",
+      "reason": "Upstream deletes one automation; the flat ExperimentalClient needs the object in the name, and delete is upstream's own word."
+    },
+    {
+      "operationId": "experimental.automation.pause",
+      "methodName": "PauseAutomationAsync",
+      "reason": "Upstream stops an automation from firing until it is resumed; the flat ExperimentalClient needs the object in the name."
+    },
+    {
+      "operationId": "experimental.automation.resume",
+      "methodName": "ResumeAutomationAsync",
+      "reason": "Upstream resumes a paused automation; the name pairs with PauseAutomationAsync."
     },
     {
       "operationId": "experimental.artifacts.list",
@@ -3248,9 +3179,14 @@
       "reason": "A revision the diff starts from; upstream's client takes a string."
     },
     {
-      "operationId": "experimental.schedule.list",
+      "operationId": "experimental.automation.list",
       "parameter": "sessionID",
       "reason": "An opaque session id; upstream's client takes a string."
+    },
+    {
+      "operationId": "experimental.automation.list",
+      "parameter": "directory",
+      "reason": "A directory whose owning project filters the list; upstream's client takes a string."
     },
     {
       "operationId": "plugin.gui",
@@ -3762,14 +3698,24 @@
       "reason": "Usage limits are the payload of experimental.usage.limits, which only the flat Experimental client carries."
     },
     {
-      "match": "Schedule",
+      "match": "Automation",
       "owner": "Experimental",
-      "reason": "Schedules, their triggers, conditions and outcomes belong to the experimental.schedule operations, which only the flat Experimental client carries."
+      "reason": "Automations, their triggers, actions, targets and outcomes belong to the experimental.automation operations, which only the flat Experimental client carries."
     },
     {
       "match": "UnsupportedModelError",
       "owner": "Experimental",
       "reason": "Only the experimental.generate operations answer with it, and only the flat Experimental client carries them."
+    },
+    {
+      "match": "Blob",
+      "owner": "Experimental",
+      "reason": "Blob records and their not-found error belong to experimental.blob.get, which only the flat Experimental client carries."
+    },
+    {
+      "match": "VideoNotFoundError",
+      "owner": "Experimental",
+      "reason": "Only experimental.generate.video.get answers with it, and only the flat Experimental client carries it."
     },
     {
       "match": "FileDiffInfo",

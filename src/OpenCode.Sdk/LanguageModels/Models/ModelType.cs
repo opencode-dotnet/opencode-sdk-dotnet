@@ -38,6 +38,10 @@ public readonly struct ModelType : IEquatable<ModelType>
         /// The &apos;image&apos; wire spelling.
         /// </summary>
         public const string Image = "image";
+        /// <summary>
+        /// The &apos;video&apos; wire spelling.
+        /// </summary>
+        public const string Video = "video";
     }
 
     /// <summary>
@@ -53,13 +57,17 @@ public readonly struct ModelType : IEquatable<ModelType>
     /// </summary>
     public static ModelType Image { get; } = new(Values.Image);
     /// <summary>
+    /// Gets the &apos;video&apos; wire value.
+    /// </summary>
+    public static ModelType Video { get; } = new(Values.Video);
+    /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
     public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.Chat or Values.Decision or Values.Image;
+    public bool IsKnown => _value is Values.Chat or Values.Decision or Values.Image or Values.Video;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

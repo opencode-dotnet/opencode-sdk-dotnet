@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-17
+Date: 2026-11-22
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -44,11 +44,12 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   change must pass before it is called done.
 - **Terminal lifetime** — consumer cancellation, send deadlines, local viewport ordering, and shared
   cleanup are implemented. `architecture/client-runtime.md` and ADR-0023 own the contract.
-- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.3.0`, with no
-  compatibility layer between them, and the CHANGELOG lists what each refresh changes. One restore
-  patch applies: the artifact `location` query style
-  ([anomalyco/opencode#60960](https://github.com/anomalyco/opencode/issues/60960)). Upstream's
-  `v2.3.0` document still links the SSE payloads, so their patch stays retired
+- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.3.2`, with no
+  compatibility layer between them, and the CHANGELOG lists what each refresh changes. Two restore
+  patches apply: the artifact `location` query style
+  ([anomalyco/opencode#60960](https://github.com/anomalyco/opencode/issues/60960)) and the user-file
+  media attachment ([anomalyco/opencode#64246](https://github.com/anomalyco/opencode/issues/64246)).
+  Upstream's `v2.3.2` document still links the SSE payloads, so their patch stays retired
   ([#56](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/56)). Each refresh's
   CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and `net11.0`, Linux and
   macOS on `net10.0` and `net11.0`, with regeneration and receipt verification passing.
