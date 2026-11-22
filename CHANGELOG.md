@@ -10,7 +10,10 @@ Nightly builds of `master` are on
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
 ### 🐛 Fixes
-- An `OpenCodeApiException` whose server message already ends in `.`, `!` or `?` no longer gets a second period, so the readable 500 opencode answers handler defects with reads "… Check server logs for details." instead of ending in "..".
+
+- An `OpenCodeApiException` whose server message already ends in `.`, `!` or `?` no longer gets a
+  second period, so the readable 500 opencode answers handler defects with reads
+  "… Check server logs for details." instead of ending in "..".
 
 ## [2.0.1] - 2026-11-22
 
