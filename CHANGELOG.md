@@ -9,6 +9,13 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [2.0.1] - 2026-11-22
+
+**`2.0.1` pins opencode `2.3.2`.** It is a patch that moves the protocol pin, so generated types
+change the way upstream changed them: schedules become automations, and two experimental config
+flags are removed. All three are listed as **breaking** under protocol changes, and existing
+schedules may not survive the server upgrade. Video generation and blob reads are added.
+
 ### 🔌 Protocol changes
 
 - The SDK pins opencode `2.3.2`, where it pinned `2.3.0`.
@@ -19,6 +26,11 @@ Nightly builds of `master` are on
 - `ExperimentalClient.GetBlobAsync` (`experimental.blob.get`) streams a stored blob, such as a generated video, and answers `BlobNotFoundError` for an unknown ID; opencode deletes blobs 7 days after writing them.
 - `JobKind.Codemode` and `JobCodeMode` list a Code Mode program as a background job, and `ExperimentalJobListRequest`'s kind filter accepts it.
 - `ConfigInfoExperimental.Automations`, `VideoGenerate` and `FullCodemode` expose the new feature flags; `FullCodemode` is off in every build unless set.
+
+### 📚 Documentation
+
+- `PersistentPtyRole`'s XML documentation says a controller attach without takeover fails while another attachment controls the terminal, and that input sent on an observer's connection makes that attachment the controller, where it said a connection that asked to control could be attached as an observer and an observer's input was ignored.
+- The getting-started guide says the calls that wait for plugins wait a bounded time, not for activation to finish, where it said the server exposes no activation barrier, which the next point contradicted.
 
 ## [2.0.0] - 2026-11-17
 
@@ -2264,6 +2276,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[2.0.1]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v2.0.1
 [2.0.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v2.0.0
 [1.1.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.1.0
 [1.0.1]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.0.1
