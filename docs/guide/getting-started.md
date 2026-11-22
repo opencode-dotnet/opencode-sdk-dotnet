@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-17
+Date: 2026-11-22
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -218,9 +218,9 @@ if (model is not null)
   `provider.free-limit` when a free tier's limit is reached. No HTTP route checks an account's
   usability ahead of a turn.
 - **Catalogs are observations during asynchronous plugin activation.** A successful status call
-  does not make them complete, and the server exposes no activation barrier: when your application
-  expects a particular provider or model, wait for that identity under a caller-owned cancellation
-  deadline (`GLOSSARY.md`, Plugin activation).
+  does not make them complete, and the calls that wait for plugins (next point) wait for a bounded
+  time, not for activation to finish: when your application expects a particular provider or model,
+  wait for that identity under a caller-owned cancellation deadline (`GLOSSARY.md`, Plugin activation).
 - **Some catalog and model calls wait for plugins; give activation a moment at startup.**
   Listing the location's models and providers; the default model; a web search query;
   and experimental generation and voice wait up to five seconds for plugins to load.
