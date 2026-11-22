@@ -291,6 +291,47 @@ public sealed class OpenCodeClientContractTests
     }
 
     [Test]
+    public async Task GetMessageAsync_Should_Read_The_Readable_500_On_An_Undeclared_Status()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.InternalServerError, WireBodyData.DefectResponse);
+
+        var exception = await ThrowsApiFailureAsync(async () => _ = await scenario.Client.Sessions.GetSessionClient("s").GetMessageAsync("m"));
+
+        await Assert.That(exception.Status).IsEqualTo(500);
+        await Assert.That(exception.Error).IsTypeOf<UnknownOpenCodeError>();
+        await Assert.That(((UnknownOpenCodeError)exception.Error!).Tag).IsEqualTo("UnknownError");
+        await Assert.That(exception.Message).IsEqualTo(
+            "The opencode API returned status 500 ('UnknownError'): " +
+            "Server failed to handle the request. Check server logs for details.");
+        await Assert.That(exception.RawBody).Contains("\"ref\":\"err_0a1b2c3d\"");
+    }
+
+    [Test]
+    public async Task GetMessageAsync_Should_Keep_The_Bare_Status_Sentence_For_An_Empty_500()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.InternalServerError, string.Empty);
+
+        var exception = await ThrowsApiFailureAsync(async () => _ = await scenario.Client.Sessions.GetSessionClient("s").GetMessageAsync("m"));
+
+        await Assert.That(exception.Message).IsEqualTo("The opencode API returned status 500.");
+        await Assert.That(exception.Error).IsNull();
+    }
+
+    [Test]
+    public async Task ListMessages_Should_Read_The_Readable_500_As_The_Declared_UnknownError()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.InternalServerError, WireBodyData.DefectResponse);
+
+        var exception = await ThrowsApiFailureAsync(async () => _ = await scenario.Client.Sessions.GetSessionClient("s").ListMessagesAsync());
+
+        await Assert.That(exception.Error).IsTypeOf<UnknownError>();
+        var error = (UnknownError)exception.Error!;
+        await Assert.That(error.Message).IsEqualTo("Server failed to handle the request. Check server logs for details.");
+        await Assert.That(error.Ref).IsEqualTo("err_0a1b2c3d");
+        await Assert.That(exception.Message).EndsWith("Server failed to handle the request. Check server logs for details.");
+    }
+
+    [Test]
     public async Task GetInfoAsync_Should_Preserve_The_Raw_Body_For_Malformed_Errors()
     {
         const string body = "<html>not json</html>";
