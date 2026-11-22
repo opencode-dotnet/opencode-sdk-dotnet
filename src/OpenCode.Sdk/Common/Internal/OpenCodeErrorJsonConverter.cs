@@ -12,6 +12,8 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
     {
         ["AgentNotFoundError"] = UnionArm<IOpenCodeError>.Of<AgentNotFoundError>(),
         ["ArtifactNotFoundError"] = UnionArm<IOpenCodeError>.Of<ArtifactNotFoundError>(),
+        ["AutomationNotFoundError"] = UnionArm<IOpenCodeError>.Of<AutomationNotFoundError>(),
+        ["BlobNotFoundError"] = UnionArm<IOpenCodeError>.Of<BlobNotFoundError>(),
         ["CommandExecutionError"] = UnionArm<IOpenCodeError>.Of<CommandExecutionError>(),
         ["CommandNotFoundError"] = UnionArm<IOpenCodeError>.Of<CommandNotFoundError>(),
         ["ConflictError"] = UnionArm<IOpenCodeError>.Of<ConflictError>(),
@@ -40,7 +42,6 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
         ["PtyNotFoundError"] = UnionArm<IOpenCodeError>.Of<PtyNotFoundError>(),
         ["RpcError"] = UnionArm<IOpenCodeError>.Of<RpcError>(),
         ["RpcInternalError"] = UnionArm<IOpenCodeError>.Of<RpcInternalError>(),
-        ["ScheduleNotFoundError"] = UnionArm<IOpenCodeError>.Of<ScheduleNotFoundError>(),
         ["ServiceUnavailableError"] = UnionArm<IOpenCodeError>.Of<ServiceUnavailableError>(),
         ["SessionBusyError"] = UnionArm<IOpenCodeError>.Of<SessionBusyError>(),
         ["SessionNotFoundError"] = UnionArm<IOpenCodeError>.Of<SessionNotFoundError>(),
@@ -50,6 +51,7 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
         ["UnknownError"] = UnionArm<IOpenCodeError>.Of<UnknownError>(),
         ["UnsupportedModelError"] = UnionArm<IOpenCodeError>.Of<UnsupportedModelError>(),
         ["VcsInitNotSupportedError"] = UnionArm<IOpenCodeError>.Of<VcsInitNotSupportedError>(),
+        ["VideoNotFoundError"] = UnionArm<IOpenCodeError>.Of<VideoNotFoundError>(),
         ["WorktreeError"] = UnionArm<IOpenCodeError>.Of<WorktreeError>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();

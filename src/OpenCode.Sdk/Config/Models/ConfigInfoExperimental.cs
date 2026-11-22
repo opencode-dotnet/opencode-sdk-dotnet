@@ -37,13 +37,6 @@ public sealed record ConfigInfoExperimental
     public bool? Todo { get; init; }
 
     /// <summary>
-    /// Gets the background compaction value.
-    /// </summary>
-    [JsonPropertyName("background_compaction")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? BackgroundCompaction { get; init; }
-
-    /// <summary>
     /// Gets the media blob value.
     /// </summary>
     [JsonPropertyName("media_blob")]
@@ -51,11 +44,11 @@ public sealed record ConfigInfoExperimental
     public bool? MediaBlob { get; init; }
 
     /// <summary>
-    /// Gets the schedules value.
+    /// Gets the automations value.
     /// </summary>
-    [JsonPropertyName("schedules")]
+    [JsonPropertyName("automations")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? Schedules { get; init; }
+    public bool? Automations { get; init; }
 
     /// <summary>
     /// Gets the artifacts value.
@@ -65,11 +58,11 @@ public sealed record ConfigInfoExperimental
     public bool? Artifacts { get; init; }
 
     /// <summary>
-    /// Gets the shell timeout background value.
+    /// Gets the video generate value.
     /// </summary>
-    [JsonPropertyName("shell_timeout_background")]
+    [JsonPropertyName("video_generate")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? ShellTimeoutBackground { get; init; }
+    public bool? VideoGenerate { get; init; }
 
     /// <summary>
     /// Gets the console watches value.
@@ -84,6 +77,20 @@ public sealed record ConfigInfoExperimental
     [JsonPropertyName("mcp_events")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? McpEvents { get; init; }
+
+    /// <summary>
+    /// Gets the full codemode value.
+    /// </summary>
+    [JsonPropertyName("full_codemode")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? FullCodemode { get; init; }
+
+    /// <summary>
+    /// Gets the schedules value.
+    /// </summary>
+    [JsonPropertyName("schedules")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Schedules { get; init; }
 
     /// <summary>
     /// Gets the part rows value.

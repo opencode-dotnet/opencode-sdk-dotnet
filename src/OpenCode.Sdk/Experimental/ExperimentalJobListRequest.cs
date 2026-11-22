@@ -14,7 +14,7 @@ public sealed record ExperimentalJobListRequest
     /// </summary>
     public string? SessionId { get; init; }
     /// <summary>
-    /// Filter by background job kind (shell, subagent, or image).
+    /// Filter by background job kind.
     /// </summary>
     public JobKind? Kind { get; init; }
     /// <summary>

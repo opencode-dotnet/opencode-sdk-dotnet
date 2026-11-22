@@ -583,6 +583,8 @@ public sealed class SpecBinderTests
     [
         "AgentNotFoundError",
         "ArtifactNotFoundError",
+        "AutomationNotFoundError",
+        "BlobNotFoundError",
         "CommandExecutionError",
         "CommandNotFoundError",
         "ConflictError",
@@ -611,7 +613,6 @@ public sealed class SpecBinderTests
         "PtyNotFoundError",
         "RpcError",
         "RpcInternalError",
-        "ScheduleNotFoundError",
         "ServiceUnavailableError",
         "SessionBusyError",
         "SessionNotFoundError",
@@ -621,6 +622,7 @@ public sealed class SpecBinderTests
         "UnknownError",
         "UnsupportedModelError",
         "VcsInitNotSupportedError",
+        "VideoNotFoundError",
         "WorktreeError",
     ];
 

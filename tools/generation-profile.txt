@@ -19,6 +19,13 @@ experimental.artifacts.list
 experimental.artifacts.providers
 experimental.artifacts.update
 experimental.artifacts.view
+experimental.automation.create
+experimental.automation.delete
+experimental.automation.get
+experimental.automation.list
+experimental.automation.pause
+experimental.automation.resume
+experimental.blob.get
 experimental.config.update
 experimental.fs.unwatch
 experimental.fs.watch
@@ -26,6 +33,8 @@ experimental.fs.write
 experimental.generate.decisions
 experimental.generate.image
 experimental.generate.text
+experimental.generate.video.create
+experimental.generate.video.get
 experimental.integration.wellknown.add
 experimental.job.list
 experimental.mcp.add
@@ -45,12 +54,6 @@ experimental.persistentPty.remove
 experimental.persistentPty.shutdown
 experimental.persistentPty.snapshot
 experimental.persistentPty.update
-experimental.schedule.create
-experimental.schedule.delete
-experimental.schedule.get
-experimental.schedule.list
-experimental.schedule.pause
-experimental.schedule.resume
 experimental.session.export
 experimental.session.import
 experimental.session.instructions.entry.list

@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-17
+Date: 2026-11-22
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -197,7 +197,7 @@ A session's turn ends with exactly one of three events: `SessionExecutionSucceed
 session goes from working to idle, however many prompts it worked through. The samples here stop
 on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`. That interrupt means
 the server is stopping, and the server resumes the turn after it restarts, with a new
-`SessionExecutionStarted`. One exception at opencode v2.3.0: a Reject without a `Message` also ends
+`SessionExecutionStarted`. One exception at opencode v2.3.2: a Reject without a `Message` also ends
 the turn with `Shutdown` while the server keeps running, and that turn resumes after a later
 restart (open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180)). The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
 server is back, so to follow the resumed turn keep reading under your own deadline.
@@ -255,7 +255,7 @@ A turn's end, and `client.Experimental.WaitForSessionAsync`, cover one session o
 background jobs its prompt started, such as a subagent's. `client.Experimental.ListJobsAsync`
 lists those, filtered by `SessionId` and, with `Descendants`, their children's too. A listed job
 is not necessarily still running: read its `Status`, and `Time.Completed` once it has ended. At
-opencode v2.3.0, a background subagent rejected without a `Message` stays listed as `cancelled`
+opencode v2.3.2, a background subagent rejected without a `Message` stays listed as `cancelled`
 until the server restarts, and its parent is never told
 (open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180); the
 subagent case was reported as [#64032](https://github.com/anomalyco/opencode/issues/64032)), so a wait for

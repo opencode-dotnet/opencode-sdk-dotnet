@@ -338,6 +338,69 @@ namespace OpenCode.Sdk
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalAutomationCreateResponse>
+    {
+        public ExperimentalAutomationCreateResponse() { }
+        public required OpenCode.Sdk.Models.AutomationInfo Automation { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationDeleteResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalAutomationDeleteResponse>
+    {
+        public ExperimentalAutomationDeleteResponse() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationListRequest : System.IEquatable<OpenCode.Sdk.ExperimentalAutomationListRequest>
+    {
+        public ExperimentalAutomationListRequest() { }
+        public string? Directory { get; init; }
+        public string? SessionId { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalAutomationListResponse>
+    {
+        public ExperimentalAutomationListResponse() { }
+        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.AutomationInfo> Automations { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationPauseResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalAutomationPauseResponse>
+    {
+        public ExperimentalAutomationPauseResponse() { }
+        public required OpenCode.Sdk.Models.AutomationInfo AutomationPause { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalAutomationResponse>
+    {
+        public ExperimentalAutomationResponse() { }
+        public required OpenCode.Sdk.Models.AutomationInfo Automation { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationResumeResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalAutomationResumeResponse>
+    {
+        public ExperimentalAutomationResumeResponse() { }
+        public required OpenCode.Sdk.Models.AutomationInfo AutomationResume { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalBlobResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalBlobResponse>
+    {
+        public ExperimentalBlobResponse() { }
+        public required System.ReadOnlyMemory<byte> Content { get; init; }
+        public string? ContentType { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public class ExperimentalClient
     {
         protected ExperimentalClient() { }
@@ -346,34 +409,37 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpAddResponse> AddMcpServerAsync(string server, OpenCode.Sdk.Models.ExperimentalMcpAddRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpConnectResponse> ConnectMcpServerAsync(string server, OpenCode.Sdk.ExperimentalMcpConnectRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsCreateResponse> CreateArtifactAsync(OpenCode.Sdk.Models.ExperimentalArtifactsCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalScheduleCreateResponse> CreateScheduleAsync(OpenCode.Sdk.Models.ExperimentalScheduleCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalAutomationCreateResponse> CreateAutomationAsync(OpenCode.Sdk.Models.ExperimentalAutomationCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalGenerateVideoCreateResponse> CreateVideoGenerationAsync(OpenCode.Sdk.Models.ExperimentalGenerateVideoCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalVoiceSessionResponse> CreateVoiceSessionAsync(OpenCode.Sdk.Models.ExperimentalVoiceSessionRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsDeleteResponse> DeleteArtifactAsync(string artifactId, OpenCode.Sdk.ExperimentalArtifactsDeleteRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalScheduleDeleteResponse> DeleteScheduleAsync(string scheduleId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalAutomationDeleteResponse> DeleteAutomationAsync(string automationId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpDisconnectResponse> DisconnectMcpServerAsync(string server, OpenCode.Sdk.ExperimentalMcpDisconnectRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalGenerateDecisionsResponse> GenerateDecisionsAsync(OpenCode.Sdk.Models.ExperimentalGenerateDecisionsRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalGenerateImageResponse> GenerateImagesAsync(OpenCode.Sdk.Models.ExperimentalGenerateImageRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalGenerateTextResponse> GenerateTextAsync(OpenCode.Sdk.Models.ExperimentalGenerateTextRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsResponse> GetArtifactAsync(string artifactId, OpenCode.Sdk.ExperimentalArtifactsRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsViewResponse> GetArtifactFileAsync(string artifactId, OpenCode.Sdk.ExperimentalArtifactsViewRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalAutomationResponse> GetAutomationAsync(string automationId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalBlobResponse> GetBlobAsync(string id, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMediaResponse> GetMediaAsync(string hash, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMigrationV1StatusResponse> GetMigrationV1StatusAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalScheduleResponse> GetScheduleAsync(string scheduleId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionExportResponse> GetSessionExportAsync(string sessionId, OpenCode.Sdk.ExperimentalSessionExportRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionStatsResponse> GetSessionStatsAsync(OpenCode.Sdk.ExperimentalSessionStatsRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalUsageLimitsResponse> GetUsageLimitsAsync(OpenCode.Sdk.ExperimentalUsageLimitsRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalGenerateVideoResponse> GetVideoGenerationAsync(string id, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionImportResponse> ImportSessionAsync(OpenCode.Sdk.Models.ExperimentalSessionImportRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsProvidersResponse> ListArtifactProvidersAsync(OpenCode.Sdk.ExperimentalArtifactsProvidersRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsListResponse> ListArtifactsAsync(OpenCode.Sdk.ExperimentalArtifactsListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalAutomationListResponse> ListAutomationsAsync(OpenCode.Sdk.ExperimentalAutomationListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalJobListResponse> ListJobsAsync(OpenCode.Sdk.ExperimentalJobListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalScheduleListResponse> ListSchedulesAsync(OpenCode.Sdk.ExperimentalScheduleListRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryListResponse> ListSessionInstructionsEntriesAsync(string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalVoiceModelsResponse> ListVoiceModelsAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSchedulePauseResponse> PauseScheduleAsync(string scheduleId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalAutomationPauseResponse> PauseAutomationAsync(string automationId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.ISessionLogItem> ReadSessionLogAsync(string sessionId, OpenCode.Sdk.ExperimentalSessionLogRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpRemoveResponse> RemoveMcpServerAsync(string server, OpenCode.Sdk.ExperimentalMcpRemoveRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryRemoveResponse> RemoveSessionInstructionsEntryAsync(string sessionId, string key, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalScheduleResumeResponse> ResumeScheduleAsync(string scheduleId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalAutomationResumeResponse> ResumeAutomationAsync(string automationId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryPutResponse> SetSessionInstructionsEntryAsync(string sessionId, string key, OpenCode.Sdk.Models.ExperimentalSessionInstructionsEntryPutRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalFsUnwatchResponse> UnwatchFileAsync(OpenCode.Sdk.Models.ExperimentalFsUnwatchRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalArtifactsUpdateResponse> UpdateArtifactAsync(string artifactId, OpenCode.Sdk.Models.ExperimentalArtifactsUpdateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -446,6 +512,22 @@ namespace OpenCode.Sdk
     {
         public ExperimentalGenerateTextResponse() { }
         public required OpenCode.Sdk.Models.ExperimentalGenerateTextData GenerateText { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalGenerateVideoCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalGenerateVideoCreateResponse>
+    {
+        public ExperimentalGenerateVideoCreateResponse() { }
+        public required OpenCode.Sdk.Models.GenerateVideoRunning GenerateVideo { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalGenerateVideoResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalGenerateVideoResponse>
+    {
+        public ExperimentalGenerateVideoResponse() { }
+        public required OpenCode.Sdk.Models.IGenerateVideoJob GenerateVideo { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
@@ -549,59 +631,6 @@ namespace OpenCode.Sdk
     {
         public ExperimentalMigrationV1StatusResponse() { }
         public required OpenCode.Sdk.Models.ExperimentalMigrationV1Status MigrationV1Status { get; init; }
-        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalScheduleCreateResponse>
-    {
-        public ExperimentalScheduleCreateResponse() { }
-        public required OpenCode.Sdk.Models.ScheduleInfo Schedule { get; init; }
-        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleDeleteResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalScheduleDeleteResponse>
-    {
-        public ExperimentalScheduleDeleteResponse() { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleListRequest : System.IEquatable<OpenCode.Sdk.ExperimentalScheduleListRequest>
-    {
-        public ExperimentalScheduleListRequest() { }
-        public required string SessionId { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalScheduleListResponse>
-    {
-        public ExperimentalScheduleListResponse() { }
-        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ScheduleInfo> Schedules { get; init; }
-        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalSchedulePauseResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSchedulePauseResponse>
-    {
-        public ExperimentalSchedulePauseResponse() { }
-        public required OpenCode.Sdk.Models.ScheduleInfo SchedulePause { get; init; }
-        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalScheduleResponse>
-    {
-        public ExperimentalScheduleResponse() { }
-        public required OpenCode.Sdk.Models.ScheduleInfo Schedule { get; init; }
-        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleResumeResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalScheduleResumeResponse>
-    {
-        public ExperimentalScheduleResumeResponse() { }
-        public required OpenCode.Sdk.Models.ScheduleInfo ScheduleResume { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
@@ -2632,6 +2661,306 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationActionCode : OpenCode.Sdk.Models.IAutomationAction, System.IEquatable<OpenCode.Sdk.Models.AutomationActionCode>
+    {
+        public AutomationActionCode() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("args")]
+        public System.Text.Json.JsonElement? Args { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        public required string Code { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationActionPrompt : OpenCode.Sdk.Models.IAutomationAction, System.IEquatable<OpenCode.Sdk.Models.AutomationActionPrompt>
+    {
+        public AutomationActionPrompt() { }
+        [System.Text.Json.Serialization.JsonPropertyName("prompt")]
+        public required string Prompt { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        public required OpenCode.Sdk.Models.AutomationTarget To { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationCodeActionInput : OpenCode.Sdk.Models.IAutomationActionInput, System.IEquatable<OpenCode.Sdk.Models.AutomationCodeActionInput>
+    {
+        public AutomationCodeActionInput() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("args")]
+        public System.Text.Json.JsonElement? Args { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("code")]
+        public required string Code { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationInfo : System.IEquatable<OpenCode.Sdk.Models.AutomationInfo>
+    {
+        public AutomationInfo() { }
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public required OpenCode.Sdk.Models.IAutomationAction Action { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("directory")]
+        public required string Directory { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("expires")]
+        public double? Expires { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lastOutcome")]
+        public OpenCode.Sdk.Models.AutomationOutcome? LastOutcome { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lastOutput")]
+        public string? LastOutput { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lastRunAt")]
+        public double? LastRunAt { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public required string Name { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("nextDueAt")]
+        public double? NextDueAt { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("projectID")]
+        public required string ProjectId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("runCount")]
+        public required long RunCount { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
+        public string? SessionId { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("state")]
+        public System.Text.Json.JsonElement? State { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public required OpenCode.Sdk.Models.AutomationStatus Status { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("time")]
+        public required OpenCode.Sdk.Models.AutomationInfoTime Time { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("trigger")]
+        public required OpenCode.Sdk.Models.IAutomationTrigger Trigger { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("tz")]
+        public required string Tz { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationInfoTime : System.IEquatable<OpenCode.Sdk.Models.AutomationInfoTime>
+    {
+        public AutomationInfoTime() { }
+        [System.Text.Json.Serialization.JsonPropertyName("created")]
+        public required double Created { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("updated")]
+        public required double Updated { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.AutomationNotFoundError>
+    {
+        public AutomationNotFoundError() { }
+        [System.Text.Json.Serialization.JsonPropertyName("automationID")]
+        public required string AutomationId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public required string Message { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
+        public string Tag { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AutomationOutcomeJsonConverter))]
+    public readonly struct AutomationOutcome : System.IEquatable<OpenCode.Sdk.Models.AutomationOutcome>
+    {
+        public AutomationOutcome(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.AutomationOutcome Disabled { get; }
+        public static OpenCode.Sdk.Models.AutomationOutcome Expired { get; }
+        public static OpenCode.Sdk.Models.AutomationOutcome Failed { get; }
+        public static OpenCode.Sdk.Models.AutomationOutcome Fired { get; }
+        public static OpenCode.Sdk.Models.AutomationOutcome Late { get; }
+        public static OpenCode.Sdk.Models.AutomationOutcome Skipped { get; }
+        public bool Equals(OpenCode.Sdk.Models.AutomationOutcome other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.AutomationOutcome FromString(string value) { }
+        public static OpenCode.Sdk.Models.AutomationOutcome op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.AutomationOutcome left, OpenCode.Sdk.Models.AutomationOutcome right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.AutomationOutcome left, OpenCode.Sdk.Models.AutomationOutcome right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Disabled = "disabled";
+            public const string Expired = "expired";
+            public const string Failed = "failed";
+            public const string Fired = "fired";
+            public const string Late = "late";
+            public const string Skipped = "skipped";
+        }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationPromptActionInput : OpenCode.Sdk.Models.IAutomationActionInput, System.IEquatable<OpenCode.Sdk.Models.AutomationPromptActionInput>
+    {
+        public AutomationPromptActionInput() { }
+        [System.Text.Json.Serialization.JsonPropertyName("prompt")]
+        public required string Prompt { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("to")]
+        public OpenCode.Sdk.Models.AutomationTarget? To { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AutomationStatusJsonConverter))]
+    public readonly struct AutomationStatus : System.IEquatable<OpenCode.Sdk.Models.AutomationStatus>
+    {
+        public AutomationStatus(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.AutomationStatus Active { get; }
+        public static OpenCode.Sdk.Models.AutomationStatus Done { get; }
+        public static OpenCode.Sdk.Models.AutomationStatus Paused { get; }
+        public bool Equals(OpenCode.Sdk.Models.AutomationStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.AutomationStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.AutomationStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.AutomationStatus left, OpenCode.Sdk.Models.AutomationStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.AutomationStatus left, OpenCode.Sdk.Models.AutomationStatus right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Active = "active";
+            public const string Done = "done";
+            public const string Paused = "paused";
+        }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AutomationTargetJsonConverter))]
+    public sealed class AutomationTarget : System.IEquatable<OpenCode.Sdk.Models.AutomationTarget>
+    {
+        public OpenCode.Sdk.Models.AutomationTargetSession AutomationTargetSession { get; }
+        public OpenCode.Sdk.Models.AutomationTargetSubagent AutomationTargetSubagent { get; }
+        public OpenCode.Sdk.Models.AutomationTargetKind Kind { get; }
+        public System.Text.Json.JsonElement Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.AutomationTarget FromAutomationTargetSession(OpenCode.Sdk.Models.AutomationTargetSession value) { }
+        public static OpenCode.Sdk.Models.AutomationTarget FromAutomationTargetSubagent(OpenCode.Sdk.Models.AutomationTargetSubagent value) { }
+        public static OpenCode.Sdk.Models.AutomationTarget FromUnknown(System.Text.Json.JsonElement value) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public enum AutomationTargetKind
+    {
+        AutomationTargetSession = 0,
+        AutomationTargetSubagent = 1,
+        Unknown = 2,
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationTargetSession : System.IEquatable<OpenCode.Sdk.Models.AutomationTargetSession>
+    {
+        public AutomationTargetSession() { }
+        [System.Text.Json.Serialization.JsonPropertyName("session")]
+        public required string Session { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationTargetSubagent : System.IEquatable<OpenCode.Sdk.Models.AutomationTargetSubagent>
+    {
+        public AutomationTargetSubagent() { }
+        [System.Text.Json.Serialization.JsonPropertyName("subagent")]
+        public required string Subagent { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationTriggerAt : OpenCode.Sdk.Models.IAutomationTrigger, System.IEquatable<OpenCode.Sdk.Models.AutomationTriggerAt>
+    {
+        public AutomationTriggerAt() { }
+        [System.Text.Json.Serialization.JsonPropertyName("at")]
+        public required string At { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tz")]
+        public string? Tz { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationTriggerCron : OpenCode.Sdk.Models.IAutomationTrigger, System.IEquatable<OpenCode.Sdk.Models.AutomationTriggerCron>
+    {
+        public AutomationTriggerCron() { }
+        [System.Text.Json.Serialization.JsonPropertyName("cron")]
+        public required string Cron { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tz")]
+        public string? Tz { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationTriggerEvent : OpenCode.Sdk.Models.IAutomationTrigger, System.IEquatable<OpenCode.Sdk.Models.AutomationTriggerEvent>
+    {
+        public AutomationTriggerEvent() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("args")]
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Args { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("event")]
+        public required string Event { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("server")]
+        public required string Server { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class AutomationTriggerEvery : OpenCode.Sdk.Models.IAutomationTrigger, System.IEquatable<OpenCode.Sdk.Models.AutomationTriggerEvery>
+    {
+        public AutomationTriggerEvery() { }
+        [System.Text.Json.Serialization.JsonPropertyName("every")]
+        public required string Every { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tz")]
+        public string? Tz { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class BlobInfo : System.IEquatable<OpenCode.Sdk.Models.BlobInfo>
+    {
+        public BlobInfo() { }
+        [System.Text.Json.Serialization.JsonPropertyName("bytes")]
+        public required double Bytes { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
+        public required double ExpiresAt { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("mime")]
+        public required string Mime { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class BlobNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.BlobNotFoundError>
+    {
+        public BlobNotFoundError() { }
+        [System.Text.Json.Serialization.JsonPropertyName("blobID")]
+        public required string BlobId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public required string Message { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
+        public string Tag { get; }
+    }
     public sealed class CommandExecutionError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.CommandExecutionError>
     {
         public CommandExecutionError() { }
@@ -2913,6 +3242,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("auto")]
         public bool? Auto { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("background")]
+        public bool? Background { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("buffer")]
         public OpenCode.Sdk.Models.ConfigInfoCompactionBuffer? Buffer { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -2961,14 +3293,17 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("artifacts")]
         public bool? Artifacts { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("background_compaction")]
-        public bool? BackgroundCompaction { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("automations")]
+        public bool? Automations { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("codemode_vm")]
         public bool? CodemodeVm { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("console_watches")]
         public bool? ConsoleWatches { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("full_codemode")]
+        public bool? FullCodemode { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("image_generate")]
         public OpenCode.Sdk.Models.ConfigInfoExperimentalImageGenerate? ImageGenerate { get; init; }
@@ -2994,14 +3329,14 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("schedules")]
         public bool? Schedules { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("shell_timeout_background")]
-        public bool? ShellTimeoutBackground { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("subagent_depth")]
         public long? SubagentDepth { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("todo")]
         public bool? Todo { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("video_generate")]
+        public bool? VideoGenerate { get; init; }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoExperimentalImageGenerateJsonConverter))]
     public sealed class ConfigInfoExperimentalImageGenerate : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoExperimentalImageGenerate>
@@ -4435,6 +4770,27 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public sealed class ExperimentalAutomationCreateRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalAutomationCreateRequest>
+    {
+        public ExperimentalAutomationCreateRequest() { }
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public required OpenCode.Sdk.Models.IAutomationActionInput Action { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("directory")]
+        public string? Directory { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("expires")]
+        public string? Expires { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public required string Name { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
+        public string? SessionId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("trigger")]
+        public required OpenCode.Sdk.Models.IAutomationTrigger Trigger { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalConfigUpdateRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalConfigUpdateRequest>
     {
         public ExperimentalConfigUpdateRequest() { }
@@ -4514,6 +4870,37 @@ namespace OpenCode.Sdk.Models
         public OpenCode.Sdk.Optional<OpenCode.Sdk.Models.ModelRef?> Model { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("prompt")]
         public required string Prompt { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalGenerateVideoCreateRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalGenerateVideoCreateRequest>
+    {
+        public ExperimentalGenerateVideoCreateRequest() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("aspect")]
+        public OpenCode.Sdk.Models.GenerateVideoAspect? Aspect { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("duration")]
+        public long? Duration { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        public OpenCode.Sdk.Models.GenerateImageFile? End { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        public required OpenCode.Sdk.Models.ModelRef Model { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("prompt")]
+        public required string Prompt { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("references")]
+        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.GenerateFile>? References { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("resolution")]
+        public OpenCode.Sdk.Models.GenerateVideoResolution? Resolution { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sound")]
+        public bool? Sound { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        public OpenCode.Sdk.Models.GenerateImageFile? Start { get; init; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -4666,31 +5053,6 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("numerator")]
         public long? Numerator { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalScheduleCreateRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalScheduleCreateRequest>
-    {
-        public ExperimentalScheduleCreateRequest() { }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("ends")]
-        public OpenCode.Sdk.Models.ScheduleEnds? Ends { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("if")]
-        public OpenCode.Sdk.Models.ScheduleConditionInput? If { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("name")]
-        public string? Name { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("prompt")]
-        public required string Prompt { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
-        public required string SessionId { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("until")]
-        public OpenCode.Sdk.Models.ScheduleConditionInput? Until { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("when")]
-        public OpenCode.Sdk.Models.ScheduleWhenInput? When { get; init; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -5584,6 +5946,19 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public sealed class GenerateImageFile : System.IEquatable<OpenCode.Sdk.Models.GenerateImageFile>
+    {
+        public GenerateImageFile() { }
+        [System.Text.Json.Serialization.JsonPropertyName("data")]
+        public required string Data { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("mime")]
+        public required string Mime { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class GenerateImageOutput : System.IEquatable<OpenCode.Sdk.Models.GenerateImageOutput>
     {
         public GenerateImageOutput() { }
@@ -5746,6 +6121,150 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("output")]
         public double? Output { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.GenerateVideoAspectJsonConverter))]
+    public readonly struct GenerateVideoAspect : System.IEquatable<OpenCode.Sdk.Models.GenerateVideoAspect>
+    {
+        public GenerateVideoAspect(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoAspect Auto { get; }
+        public bool Equals(OpenCode.Sdk.Models.GenerateVideoAspect other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.GenerateVideoAspect FromString(string value) { }
+        public static OpenCode.Sdk.Models.GenerateVideoAspect op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.GenerateVideoAspect left, OpenCode.Sdk.Models.GenerateVideoAspect right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.GenerateVideoAspect left, OpenCode.Sdk.Models.GenerateVideoAspect right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Auto = "auto";
+        }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class GenerateVideoCompleted : OpenCode.Sdk.Models.IGenerateVideoJob, System.IEquatable<OpenCode.Sdk.Models.GenerateVideoCompleted>
+    {
+        public GenerateVideoCompleted() { }
+        [System.Text.Json.Serialization.JsonPropertyName("blobs")]
+        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.BlobInfo> Blobs { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class GenerateVideoError : OpenCode.Sdk.Models.IGenerateVideoJob, System.IEquatable<OpenCode.Sdk.Models.GenerateVideoError>
+    {
+        public GenerateVideoError() { }
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public required string Error { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        public required OpenCode.Sdk.Models.GenerateVideoErrorReason Reason { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.GenerateVideoErrorReasonJsonConverter))]
+    public readonly struct GenerateVideoErrorReason : System.IEquatable<OpenCode.Sdk.Models.GenerateVideoErrorReason>
+    {
+        public GenerateVideoErrorReason(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoErrorReason Cancelled { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoErrorReason Expired { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoErrorReason Failed { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoErrorReason Unknown { get; }
+        public bool Equals(OpenCode.Sdk.Models.GenerateVideoErrorReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.GenerateVideoErrorReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.GenerateVideoErrorReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.GenerateVideoErrorReason left, OpenCode.Sdk.Models.GenerateVideoErrorReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.GenerateVideoErrorReason left, OpenCode.Sdk.Models.GenerateVideoErrorReason right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Cancelled = "cancelled";
+            public const string Expired = "expired";
+            public const string Failed = "failed";
+            public const string Unknown = "unknown";
+        }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.GenerateVideoResolutionJsonConverter))]
+    public readonly struct GenerateVideoResolution : System.IEquatable<OpenCode.Sdk.Models.GenerateVideoResolution>
+    {
+        public GenerateVideoResolution(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoResolution Value1080P { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoResolution Value480P { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoResolution Value4K { get; }
+        public static OpenCode.Sdk.Models.GenerateVideoResolution Value720P { get; }
+        public bool Equals(OpenCode.Sdk.Models.GenerateVideoResolution other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.GenerateVideoResolution FromString(string value) { }
+        public static OpenCode.Sdk.Models.GenerateVideoResolution op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.GenerateVideoResolution left, OpenCode.Sdk.Models.GenerateVideoResolution right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.GenerateVideoResolution left, OpenCode.Sdk.Models.GenerateVideoResolution right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Value1080P = "1080p";
+            public const string Value480P = "480p";
+            public const string Value4K = "4k";
+            public const string Value720P = "720p";
+        }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class GenerateVideoRunning : OpenCode.Sdk.Models.IGenerateVideoJob, System.IEquatable<OpenCode.Sdk.Models.GenerateVideoRunning>
+    {
+        public GenerateVideoRunning() { }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AutomationActionJsonConverter))]
+    public interface IAutomationAction
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AutomationActionInputJsonConverter))]
+    public interface IAutomationActionInput
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AutomationTriggerJsonConverter))]
+    public interface IAutomationTrigger
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        string Type { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigEntryJsonConverter))]
     public interface IConfigEntry
     {
@@ -5840,6 +6359,16 @@ namespace OpenCode.Sdk.Models
         string? Name { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.GenerateVideoJobJsonConverter))]
+    public interface IGenerateVideoJob
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        string? Id { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        string Status { get; }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.IntegrationAttemptStatusJsonConverter))]
     public interface IIntegrationAttemptStatus
@@ -5966,24 +6495,6 @@ namespace OpenCode.Sdk.Models
     {
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         string Type { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ScheduleConditionJsonConverter))]
-    public interface IScheduleCondition
-    {
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        string Type { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ScheduleWhenJsonConverter))]
-    public interface IScheduleWhen
-    {
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        string Type { get; }
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        string? Tz { get; }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionEventDurableJsonConverter?))]
     public interface ISessionEventDurable : OpenCode.Sdk.Models.ISessionLogItem
@@ -6639,6 +7150,25 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
+    public sealed class JobCodeMode : OpenCode.Sdk.Models.IJobInfo, System.IEquatable<OpenCode.Sdk.Models.JobCodeMode>
+    {
+        public JobCodeMode() { }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
+        public required string SessionId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public required OpenCode.Sdk.Models.JobStatus Status { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("time")]
+        public required OpenCode.Sdk.Models.JobTime Time { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        public string? Title { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class JobImage : OpenCode.Sdk.Models.IJobInfo, System.IEquatable<OpenCode.Sdk.Models.JobImage>
     {
         public JobImage() { }
@@ -6668,6 +7198,7 @@ namespace OpenCode.Sdk.Models
         public JobKind(string value) { }
         public bool IsKnown { get; }
         public string Value { get; }
+        public static OpenCode.Sdk.Models.JobKind Codemode { get; }
         public static OpenCode.Sdk.Models.JobKind Image { get; }
         public static OpenCode.Sdk.Models.JobKind Shell { get; }
         public static OpenCode.Sdk.Models.JobKind Subagent { get; }
@@ -6683,6 +7214,7 @@ namespace OpenCode.Sdk.Models
             "erimental.md#opencode001")]
         public static class Values
         {
+            public const string Codemode = "codemode";
             public const string Image = "image";
             public const string Shell = "shell";
             public const string Subagent = "subagent";
@@ -7467,6 +7999,7 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ModelType Chat { get; }
         public static OpenCode.Sdk.Models.ModelType Decision { get; }
         public static OpenCode.Sdk.Models.ModelType Image { get; }
+        public static OpenCode.Sdk.Models.ModelType Video { get; }
         public bool Equals(OpenCode.Sdk.Models.ModelType other) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
@@ -7480,6 +8013,7 @@ namespace OpenCode.Sdk.Models
             public const string Chat = "chat";
             public const string Decision = "decision";
             public const string Image = "image";
+            public const string Video = "video";
         }
     }
     public sealed class ModelUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.ModelUpdated>
@@ -9147,367 +9681,6 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("output")]
         public System.Text.Json.JsonElement? Output { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleActionPrompt : System.IEquatable<OpenCode.Sdk.Models.ScheduleActionPrompt>
-    {
-        public ScheduleActionPrompt() { }
-        [System.Text.Json.Serialization.JsonPropertyName("prompt")]
-        public required string Prompt { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public required string Type { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleConditionCode : OpenCode.Sdk.Models.IScheduleCondition, System.IEquatable<OpenCode.Sdk.Models.ScheduleConditionCode>
-    {
-        public ScheduleConditionCode() { }
-        [System.Text.Json.Serialization.JsonPropertyName("code")]
-        public required string Code { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ScheduleConditionInputJsonConverter))]
-    public sealed class ScheduleConditionInput : System.IEquatable<OpenCode.Sdk.Models.ScheduleConditionInput>
-    {
-        public OpenCode.Sdk.Models.ScheduleConditionInputKind Kind { get; }
-        public OpenCode.Sdk.Models.ScheduleConditionInputCode ScheduleConditionInputCode { get; }
-        public OpenCode.Sdk.Models.ScheduleConditionInputRun ScheduleConditionInputRun { get; }
-        public System.Text.Json.JsonElement Unknown { get; }
-        public override string ToString() { }
-        public static OpenCode.Sdk.Models.ScheduleConditionInput FromScheduleConditionInputCode(OpenCode.Sdk.Models.ScheduleConditionInputCode value) { }
-        public static OpenCode.Sdk.Models.ScheduleConditionInput FromScheduleConditionInputRun(OpenCode.Sdk.Models.ScheduleConditionInputRun value) { }
-        public static OpenCode.Sdk.Models.ScheduleConditionInput FromUnknown(System.Text.Json.JsonElement value) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleConditionInputCode : System.IEquatable<OpenCode.Sdk.Models.ScheduleConditionInputCode>
-    {
-        public ScheduleConditionInputCode() { }
-        [System.Text.Json.Serialization.JsonPropertyName("code")]
-        public required string Code { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public enum ScheduleConditionInputKind
-    {
-        ScheduleConditionInputRun = 0,
-        ScheduleConditionInputCode = 1,
-        Unknown = 2,
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleConditionInputRun : System.IEquatable<OpenCode.Sdk.Models.ScheduleConditionInputRun>
-    {
-        public ScheduleConditionInputRun() { }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("changes")]
-        public bool? Changes { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("is")]
-        public string? Is { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("matches")]
-        public string? Matches { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("run")]
-        public required string Run { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleConditionShell : OpenCode.Sdk.Models.IScheduleCondition, System.IEquatable<OpenCode.Sdk.Models.ScheduleConditionShell>
-    {
-        public ScheduleConditionShell() { }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("changes")]
-        public bool? Changes { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("is")]
-        public string? Is { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("matches")]
-        public string? Matches { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("run")]
-        public required string Run { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleEnds : System.IEquatable<OpenCode.Sdk.Models.ScheduleEnds>
-    {
-        public ScheduleEnds() { }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("after")]
-        public string? After { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("at")]
-        public string? At { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("times")]
-        public long? Times { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleInfo : System.IEquatable<OpenCode.Sdk.Models.ScheduleInfo>
-    {
-        public ScheduleInfo() { }
-        [System.Text.Json.Serialization.JsonPropertyName("action")]
-        public required OpenCode.Sdk.Models.ScheduleActionPrompt Action { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("endsAt")]
-        public double? EndsAt { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public required string Id { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("if")]
-        public OpenCode.Sdk.Models.IScheduleCondition? If { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("lastFiredAt")]
-        public double? LastFiredAt { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("lastOutcome")]
-        public OpenCode.Sdk.Models.ScheduleOutcome? LastOutcome { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("lastOutput")]
-        public string? LastOutput { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("name")]
-        public string? Name { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("nextDueAt")]
-        public double? NextDueAt { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("remainingRuns")]
-        public long? RemainingRuns { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("runCount")]
-        public required long RunCount { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
-        public string? SessionId { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("status")]
-        public required OpenCode.Sdk.Models.ScheduleStatus Status { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("time")]
-        public required OpenCode.Sdk.Models.ScheduleInfoTime Time { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public required string Tz { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("until")]
-        public OpenCode.Sdk.Models.IScheduleCondition? Until { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("when")]
-        public required OpenCode.Sdk.Models.IScheduleWhen When { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleInfoTime : System.IEquatable<OpenCode.Sdk.Models.ScheduleInfoTime>
-    {
-        public ScheduleInfoTime() { }
-        [System.Text.Json.Serialization.JsonPropertyName("created")]
-        public required double Created { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("updated")]
-        public required double Updated { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.ScheduleNotFoundError>
-    {
-        public ScheduleNotFoundError() { }
-        [System.Text.Json.Serialization.JsonPropertyName("message")]
-        public required string Message { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("scheduleID")]
-        public required string ScheduleId { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
-        public string Tag { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ScheduleOutcomeJsonConverter))]
-    public readonly struct ScheduleOutcome : System.IEquatable<OpenCode.Sdk.Models.ScheduleOutcome>
-    {
-        public ScheduleOutcome(string value) { }
-        public bool IsKnown { get; }
-        public string Value { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Checked { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Disabled { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Expired { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Failed { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Fired { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Late { get; }
-        public static OpenCode.Sdk.Models.ScheduleOutcome Skipped { get; }
-        public bool Equals(OpenCode.Sdk.Models.ScheduleOutcome other) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public override string ToString() { }
-        public static OpenCode.Sdk.Models.ScheduleOutcome FromString(string value) { }
-        public static OpenCode.Sdk.Models.ScheduleOutcome op_Implicit(string value) { }
-        public static bool operator !=(OpenCode.Sdk.Models.ScheduleOutcome left, OpenCode.Sdk.Models.ScheduleOutcome right) { }
-        public static bool operator ==(OpenCode.Sdk.Models.ScheduleOutcome left, OpenCode.Sdk.Models.ScheduleOutcome right) { }
-        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-            "erimental.md#opencode001")]
-        public static class Values
-        {
-            public const string Checked = "checked";
-            public const string Disabled = "disabled";
-            public const string Expired = "expired";
-            public const string Failed = "failed";
-            public const string Fired = "fired";
-            public const string Late = "late";
-            public const string Skipped = "skipped";
-        }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ScheduleStatusJsonConverter))]
-    public readonly struct ScheduleStatus : System.IEquatable<OpenCode.Sdk.Models.ScheduleStatus>
-    {
-        public ScheduleStatus(string value) { }
-        public bool IsKnown { get; }
-        public string Value { get; }
-        public static OpenCode.Sdk.Models.ScheduleStatus Active { get; }
-        public static OpenCode.Sdk.Models.ScheduleStatus Done { get; }
-        public static OpenCode.Sdk.Models.ScheduleStatus Paused { get; }
-        public bool Equals(OpenCode.Sdk.Models.ScheduleStatus other) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public override string ToString() { }
-        public static OpenCode.Sdk.Models.ScheduleStatus FromString(string value) { }
-        public static OpenCode.Sdk.Models.ScheduleStatus op_Implicit(string value) { }
-        public static bool operator !=(OpenCode.Sdk.Models.ScheduleStatus left, OpenCode.Sdk.Models.ScheduleStatus right) { }
-        public static bool operator ==(OpenCode.Sdk.Models.ScheduleStatus left, OpenCode.Sdk.Models.ScheduleStatus right) { }
-        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-            "erimental.md#opencode001")]
-        public static class Values
-        {
-            public const string Active = "active";
-            public const string Done = "done";
-            public const string Paused = "paused";
-        }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenAt : OpenCode.Sdk.Models.IScheduleWhen, System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenAt>
-    {
-        public ScheduleWhenAt() { }
-        [System.Text.Json.Serialization.JsonPropertyName("at")]
-        public required string At { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenCron : OpenCode.Sdk.Models.IScheduleWhen, System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenCron>
-    {
-        public ScheduleWhenCron() { }
-        [System.Text.Json.Serialization.JsonPropertyName("cron")]
-        public required string Cron { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenEvery : OpenCode.Sdk.Models.IScheduleWhen, System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenEvery>
-    {
-        public ScheduleWhenEvery() { }
-        [System.Text.Json.Serialization.JsonPropertyName("every")]
-        public required string Every { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenIn : OpenCode.Sdk.Models.IScheduleWhen, System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenIn>
-    {
-        public ScheduleWhenIn() { }
-        [System.Text.Json.Serialization.JsonPropertyName("in")]
-        public required string In { get; init; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ScheduleWhenInputJsonConverter))]
-    public sealed class ScheduleWhenInput : System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenInput>
-    {
-        public OpenCode.Sdk.Models.ScheduleWhenInputKind Kind { get; }
-        public OpenCode.Sdk.Models.ScheduleWhenInputAt ScheduleWhenInputAt { get; }
-        public OpenCode.Sdk.Models.ScheduleWhenInputCron ScheduleWhenInputCron { get; }
-        public OpenCode.Sdk.Models.ScheduleWhenInputEvery ScheduleWhenInputEvery { get; }
-        public OpenCode.Sdk.Models.ScheduleWhenInputIn ScheduleWhenInputIn { get; }
-        public System.Text.Json.JsonElement Unknown { get; }
-        public override string ToString() { }
-        public static OpenCode.Sdk.Models.ScheduleWhenInput FromScheduleWhenInputAt(OpenCode.Sdk.Models.ScheduleWhenInputAt value) { }
-        public static OpenCode.Sdk.Models.ScheduleWhenInput FromScheduleWhenInputCron(OpenCode.Sdk.Models.ScheduleWhenInputCron value) { }
-        public static OpenCode.Sdk.Models.ScheduleWhenInput FromScheduleWhenInputEvery(OpenCode.Sdk.Models.ScheduleWhenInputEvery value) { }
-        public static OpenCode.Sdk.Models.ScheduleWhenInput FromScheduleWhenInputIn(OpenCode.Sdk.Models.ScheduleWhenInputIn value) { }
-        public static OpenCode.Sdk.Models.ScheduleWhenInput FromUnknown(System.Text.Json.JsonElement value) { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenInputAt : System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenInputAt>
-    {
-        public ScheduleWhenInputAt() { }
-        [System.Text.Json.Serialization.JsonPropertyName("at")]
-        public required string At { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenInputCron : System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenInputCron>
-    {
-        public ScheduleWhenInputCron() { }
-        [System.Text.Json.Serialization.JsonPropertyName("cron")]
-        public required string Cron { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenInputEvery : System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenInputEvery>
-    {
-        public ScheduleWhenInputEvery() { }
-        [System.Text.Json.Serialization.JsonPropertyName("every")]
-        public required string Every { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ScheduleWhenInputIn : System.IEquatable<OpenCode.Sdk.Models.ScheduleWhenInputIn>
-    {
-        public ScheduleWhenInputIn() { }
-        [System.Text.Json.Serialization.JsonPropertyName("in")]
-        public required string In { get; init; }
-        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        [System.Text.Json.Serialization.JsonPropertyName("tz")]
-        public string? Tz { get; init; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public enum ScheduleWhenInputKind
-    {
-        ScheduleWhenInputIn = 0,
-        ScheduleWhenInputAt = 1,
-        ScheduleWhenInputEvery = 2,
-        ScheduleWhenInputCron = 3,
-        Unknown = 4,
     }
     public sealed class ServerInfo : System.IEquatable<OpenCode.Sdk.Models.ServerInfo>
     {
@@ -14121,6 +14294,39 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownAutomationActionJsonConverter))]
+    public sealed class UnknownAutomationAction : OpenCode.Sdk.Models.IAutomationAction, System.IEquatable<OpenCode.Sdk.Models.UnknownAutomationAction>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownAutomationAction(string type, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownAutomationActionInputJsonConverter))]
+    public sealed class UnknownAutomationActionInput : OpenCode.Sdk.Models.IAutomationActionInput, System.IEquatable<OpenCode.Sdk.Models.UnknownAutomationActionInput>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownAutomationActionInput(string type, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownAutomationTriggerJsonConverter))]
+    public sealed class UnknownAutomationTrigger : OpenCode.Sdk.Models.IAutomationTrigger, System.IEquatable<OpenCode.Sdk.Models.UnknownAutomationTrigger>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownAutomationTrigger(string type, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownConfigEntryJsonConverter))]
     public sealed class UnknownConfigEntry : OpenCode.Sdk.Models.IConfigEntry, System.IEquatable<OpenCode.Sdk.Models.UnknownConfigEntry>
     {
@@ -14230,6 +14436,17 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownGenerateVideoJobJsonConverter))]
+    public sealed class UnknownGenerateVideoJob : OpenCode.Sdk.Models.IGenerateVideoJob, System.IEquatable<OpenCode.Sdk.Models.UnknownGenerateVideoJob>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownGenerateVideoJob(string status, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public string Status { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownIntegrationAttemptStatusJsonConverter))]
     public sealed class UnknownIntegrationAttemptStatus : OpenCode.Sdk.Models.IIntegrationAttemptStatus, System.IEquatable<OpenCode.Sdk.Models.UnknownIntegrationAttemptStatus>
     {
@@ -14337,28 +14554,6 @@ namespace OpenCode.Sdk.Models
     {
         [System.Text.Json.Serialization.JsonConstructor]
         public UnknownReferenceSource(string type, System.Text.Json.JsonElement payload) { }
-        public System.Text.Json.JsonElement Payload { get; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownScheduleConditionJsonConverter))]
-    public sealed class UnknownScheduleCondition : OpenCode.Sdk.Models.IScheduleCondition, System.IEquatable<OpenCode.Sdk.Models.UnknownScheduleCondition>
-    {
-        [System.Text.Json.Serialization.JsonConstructor]
-        public UnknownScheduleCondition(string type, System.Text.Json.JsonElement payload) { }
-        public System.Text.Json.JsonElement Payload { get; }
-        [System.Text.Json.Serialization.JsonPropertyName("type")]
-        public string Type { get; }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownScheduleWhenJsonConverter))]
-    public sealed class UnknownScheduleWhen : OpenCode.Sdk.Models.IScheduleWhen, System.IEquatable<OpenCode.Sdk.Models.UnknownScheduleWhen>
-    {
-        [System.Text.Json.Serialization.JsonConstructor]
-        public UnknownScheduleWhen(string type, System.Text.Json.JsonElement payload) { }
         public System.Text.Json.JsonElement Payload { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
@@ -14864,6 +15059,18 @@ namespace OpenCode.Sdk.Models
             public const string Files = "files";
             public const string Folders = "folders";
         }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class VideoNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.VideoNotFoundError>
+    {
+        public VideoNotFoundError() { }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public required string Message { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
+        public string Tag { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("videoID")]
+        public required string VideoId { get; init; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]

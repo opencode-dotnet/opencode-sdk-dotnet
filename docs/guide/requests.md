@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-11-17
+Date: 2026-11-22
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -410,7 +410,7 @@ Data that does not match your type, or that your metadata reads as null, throws
 
 Most generated members say no more than "Gets the action value", because the pinned API document
 describes no more. Some members need more than their types to use correctly. Where a rule below
-comes from upstream's implementation at the pin (`v2.3.0`) rather than from the pinned contract,
+comes from upstream's implementation at the pin (`v2.3.2`) rather than from the pinned contract,
 it says so.
 
 ### Session permissions

@@ -35,12 +35,12 @@ public sealed class OpenCodeServerResolveLiveTests(PinnedOpenCodeServerFixture f
 
         await Assert.That(connection.Mode).IsEqualTo(OpenCodeServerConnectionMode.Explicit);
         await Assert.That(connection.ServerVersion).IsEqualTo(expected);
-        await Assert.That(contexts.Count).IsEqualTo(string.Equals(expected, "2.3.0", StringComparison.Ordinal) ? 0 : 1);
+        await Assert.That(contexts.Count).IsEqualTo(string.Equals(expected, "2.3.2", StringComparison.Ordinal) ? 0 : 1);
         if (contexts.Count != 0)
         {
             await Assert.That(contexts[0].Endpoint).IsEqualTo(fixture.Endpoint);
             await Assert.That(contexts[0].ServerVersion).IsEqualTo(expected);
-            await Assert.That(contexts[0].ClientVersion).IsEqualTo("2.3.0");
+            await Assert.That(contexts[0].ClientVersion).IsEqualTo("2.3.2");
         }
         using var client = connection.CreateClient();
         var reached = await client.Server.GetInfoAsync(cancellationToken: cancellationToken);

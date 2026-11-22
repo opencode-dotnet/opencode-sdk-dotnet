@@ -10,6 +10,7 @@ internal sealed class JobInfoJsonConverter : JsonConverter<IJobInfo>
 {
     private static readonly UnionTagTable<UnionArm<IJobInfo>> ArmsByTag = new Dictionary<string, UnionArm<IJobInfo>>(StringComparer.Ordinal)
     {
+        ["codemode"] = UnionArm<IJobInfo>.Of<JobCodeMode>(),
         ["image"] = UnionArm<IJobInfo>.Of<JobImage>(),
         ["shell"] = UnionArm<IJobInfo>.Of<JobShell>(),
         ["subagent"] = UnionArm<IJobInfo>.Of<JobSubagent>()
