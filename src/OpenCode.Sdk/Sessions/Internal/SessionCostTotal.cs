@@ -1,3 +1,5 @@
+using OpenCode.Sdk.Models;
+
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>Totals every descendant's cost for a root, or a child's own cost, matching packages/client/src/solid/data.ts:1582-1590.</summary>
@@ -20,13 +22,14 @@ internal sealed class SessionCostTotal(SessionsClient client)
             return info.Cost;
         }
 
-        var visited = new HashSet<string>(StringComparer.Ordinal) { info.Id };
+        var visited = new HashSet<string>(StringComparer.Ordinal) { sessionId, info.Id };
         return await ReadDescendantsAsync(sessionId, info.Cost, visited, requestOptions, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<double> ReadDescendantsAsync(string sessionId, double total, HashSet<string> visited,
         OpenCodeRequestOptions? requestOptions, CancellationToken cancellationToken)
     {
+        var children = new List<SessionInfo>();
         await foreach (var child in client.EnumerateSessionsAsync(new SessionListRequest
         {
             ParentId = SessionParentFilter.Of(sessionId),
@@ -34,11 +37,13 @@ internal sealed class SessionCostTotal(SessionsClient client)
             Limit = 200,
         }, requestOptions, cancellationToken).ConfigureAwait(false))
         {
-            if (visited.Add(child.Id))
-            {
-                total += child.Cost;
-                total = await ReadDescendantsAsync(child.Id, total, visited, requestOptions, cancellationToken).ConfigureAwait(false);
-            }
+            children.Add(child);
+        }
+
+        foreach (var child in children.Where(child => visited.Add(child.Id)))
+        {
+            total += child.Cost;
+            total = await ReadDescendantsAsync(child.Id, total, visited, requestOptions, cancellationToken).ConfigureAwait(false);
         }
 
         return total;

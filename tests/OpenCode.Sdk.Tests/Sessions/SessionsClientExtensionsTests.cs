@@ -11,9 +11,11 @@ public sealed class SessionsClientExtensionsTests
     private readonly SessionCostFixtures _fixtures = new();
 
     [Test]
-    public async Task GetTotalCostAsync_Should_Count_Each_Session_Once_In_A_Cycle()
+    [Arguments("ses_root")]
+    [Arguments("ses_returned")]
+    public async Task GetTotalCostAsync_Should_Count_Each_Session_Once_In_A_Cycle(string returnedId)
     {
-        var root = _fixtures.Session("ses_root", 1);
+        var root = _fixtures.Session(returnedId, 1);
         var child = _fixtures.Session("ses_child", 2, root.Id);
         var lists = 0;
         using var scenario = PipelineScenario.Responding(request =>
@@ -29,10 +31,10 @@ public sealed class SessionsClientExtensionsTests
             }
 
             return Answer(request.RequestUri.Query.Contains("parentID=ses_root", StringComparison.Ordinal)
-                ? SessionCostFixtures.Page([child]) : SessionCostFixtures.Page([root, child]));
+                ? SessionCostFixtures.Page([child]) : SessionCostFixtures.Page([root, _fixtures.Session("ses_root", 1), child]));
         });
 
-        var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync(root.Id);
+        var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
 
         await Assert.That(total).IsEqualTo(3);
         await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.PathAndQuery))
@@ -41,7 +43,7 @@ public sealed class SessionsClientExtensionsTests
     }
 
     [Test]
-    public async Task GetTotalCostAsync_Should_Sum_A_Grandchild_Depth_First()
+    public async Task GetTotalCostAsync_Should_Sum_A_Grandchild()
     {
         using var scenario = RootAndLists(1, listQuery => listQuery switch
         {
@@ -81,10 +83,13 @@ public sealed class SessionsClientExtensionsTests
         });
 
         var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
-        var expected = new List<string> { "GET /api/session/ses_root", "GET /api/session?limit=200&order=desc&parentID=ses_root" };
-        expected.AddRange(_fixtures.Children(0, 200).Select(static child => "GET /api/session?limit=200&order=desc&parentID=" + child.Id));
-        expected.Add("GET /api/session?limit=200&parentID=ses_root&cursor=page_2");
-        expected.AddRange(_fixtures.Children(200, 50).Select(static child => "GET /api/session?limit=200&order=desc&parentID=" + child.Id));
+        var expected = new List<string>
+        {
+            "GET /api/session/ses_root",
+            "GET /api/session?limit=200&order=desc&parentID=ses_root",
+            "GET /api/session?limit=200&parentID=ses_root&cursor=page_2",
+        };
+        expected.AddRange(_fixtures.Children(0, 250).Select(static child => "GET /api/session?limit=200&order=desc&parentID=" + child.Id));
 
         await Assert.That(total).IsEqualTo(250.5);
         await Assert.That(scenario.Requests.Select(static request => request.Method + " " + request.RequestUri!.PathAndQuery))
@@ -212,19 +217,26 @@ public sealed class SessionsClientExtensionsTests
         await Assert.That(client.Request!.ParentId).IsEqualTo(SessionParentFilter.Of("ses_root"));
         await Assert.That(client.Request.Order).IsEqualTo(ListOrder.Descending);
         await Assert.That(client.Request.Limit).IsEqualTo(200);
-        await Assert.That(client.Options).IsSameReferenceAs(options);
-        await Assert.That(client.Token).IsEqualTo(caller.Token);
+        SessionParentFilter?[] parents = [SessionParentFilter.Of("ses_root"), SessionParentFilter.Of("ses_child")];
+        await Assert.That(client.Calls.Select(static call => call.ParentId)).IsEquivalentTo(parents, CollectionOrdering.Matching);
+        foreach (var call in client.Calls)
+        {
+            await Assert.That(call.Options).IsSameReferenceAs(options);
+            await Assert.That(call.Token).IsEqualTo(caller.Token);
+        }
+
         await Assert.That(client.Read.Options).IsSameReferenceAs(options);
         await Assert.That(client.Read.Token).IsEqualTo(caller.Token);
     }
 
     [Test]
-    [Arguments(false)]
-    [Arguments(true)]
-    public async Task GetTotalCostAsync_Should_Propagate_The_Same_Failure(bool duringList)
+    [Arguments(null)]
+    [Arguments("ses_root")]
+    [Arguments("ses_child")]
+    public async Task GetTotalCostAsync_Should_Propagate_The_Same_Failure(string? listParentId)
     {
         var failure = new InvalidOperationException("Cost read failed.");
-        var client = MockClient(failure, duringList);
+        var client = MockClient(failure, listParentId);
 
         var thrown = await Assert.That(client.GetTotalCostAsync("ses_root")).Throws<InvalidOperationException>();
 
@@ -242,10 +254,10 @@ public sealed class SessionsClientExtensionsTests
             return Answer(page(request.RequestUri.Query));
         });
 
-    private CostSessionsClient MockClient(Exception? failure = null, bool duringList = false) =>
-        new(new CostSessionClient(_fixtures.Session("ses_root", 0.5), duringList ? null : failure),
+    private CostSessionsClient MockClient(Exception? failure = null, string? listParentId = null) =>
+        new(new CostSessionClient(_fixtures.Session("ses_root", 0.5), listParentId is null ? failure : null),
             new SessionListResponse { Status = 200, Sessions = [_fixtures.Session("ses_child", 2, "ses_root")], Cursor = new ListCursor() },
-            duringList ? failure : null);
+            listParentId is null ? null : failure, listParentId);
 
     private static HttpResponseMessage Answer(string body) => new(HttpStatusCode.OK) { Content = new StringContent(body) };
 
@@ -263,13 +275,12 @@ public sealed class SessionsClientExtensionsTests
         }
     }
 
-    private sealed class CostSessionsClient(CostSessionClient read, SessionListResponse page, Exception? failure) : SessionsClient
+    private sealed class CostSessionsClient(CostSessionClient read, SessionListResponse page, Exception? failure, string? listParentId) : SessionsClient
     {
         public CostSessionClient Read => read;
         public string? SessionId { get; private set; }
         public SessionListRequest? Request { get; private set; }
-        public OpenCodeRequestOptions? Options { get; private set; }
-        public CancellationToken Token { get; private set; }
+        public List<(SessionParentFilter? ParentId, OpenCodeRequestOptions? Options, CancellationToken Token)> Calls { get; } = [];
 
         public override SessionClient GetSessionClient(string sessionId)
         {
@@ -280,15 +291,19 @@ public sealed class SessionsClientExtensionsTests
         public override Task<SessionListResponse> ListSessionsAsync(SessionListRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
+            Calls.Add((request?.ParentId, requestOptions, cancellationToken));
+            if (failure is not null && listParentId is not null && request?.ParentId == SessionParentFilter.Of(listParentId))
+            {
+                return Task.FromException<SessionListResponse>(failure);
+            }
+
             if (request?.ParentId != SessionParentFilter.Of("ses_root"))
             {
                 return Task.FromResult(page with { Sessions = [] });
             }
 
             Request = request;
-            Options = requestOptions;
-            Token = cancellationToken;
-            return failure is null ? Task.FromResult(page) : Task.FromException<SessionListResponse>(failure);
+            return Task.FromResult(page);
         }
     }
 }

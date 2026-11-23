@@ -2,7 +2,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 
-/// <summary>Reads session costs including their direct subagent sessions.</summary>
+/// <summary>Reads session costs including every descendant subagent session.</summary>
 public static class SessionsClientExtensions
 {
     /// <summary>Returns a session's own cost plus the cost of every descendant session, or only its own cost for a child session.</summary>
