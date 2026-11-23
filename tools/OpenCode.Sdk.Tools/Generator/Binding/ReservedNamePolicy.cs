@@ -164,6 +164,7 @@ internal static class ReservedNamePolicy
             "RpcEventPayload",
             "RpcMethod",
             "SessionParentFilter",
+            "SessionsClientExtensions",
         ],
         StringComparer.Ordinal);
 

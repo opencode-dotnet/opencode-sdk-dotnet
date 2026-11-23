@@ -9,6 +9,12 @@ Nightly builds of `master` are on
 [GitHub Packages](docs/guide/getting-started.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### ✨ Added
+
+- `Sessions.GetTotalCostAsync` returns a session's total cost as opencode's own clients show it: a
+  session's cost plus its direct subagent sessions' cost, and a subagent session's own cost. An unknown
+  session fails with the server's not-found error, where opencode's client shows 0.
+
 ### 🐛 Fixes
 
 - An `OpenCodeApiException` whose server message already ends in `.`, `!` or `?` no longer gets a

@@ -112,6 +112,8 @@ internal static class GeneratedSourceCompiler
         ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/RpcClient.cs"),
         ("Rpc/RpcClientExtensions.cs", "Rpc/RpcClient.cs"),
         ("Rpc/RpcEventPayload.cs", "Events/Models/EventRpc.cs"),
+        ("Sessions/SessionsClientExtensions.cs", "Sessions/SessionsClient.cs"),
+        ("Sessions/SessionsClientExtensions.cs", "Sessions/SessionListRequest.cs"),
     ];
 
     /// <summary>
