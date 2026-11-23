@@ -142,6 +142,8 @@ Four runnable apps are in [`playground/`](https://github.com/opencode-dotnet/ope
 | [Worker](https://github.com/opencode-dotnet/opencode-sdk-dotnet/tree/master/playground/worker), a Generic Host console app | A hosted service that reads the live event stream, and exits with code 1 when its server ends so that a service manager restarts it. |
 | [AotCli](https://github.com/opencode-dotnet/opencode-sdk-dotnet/tree/master/playground/aotcli), a Native AOT console app | A native executable that inspects a repository. It needs no model. |
 
+![OpenCode HQ: the Needs you queue with a question form and a shell-command permission, beside the sessions list and their status](https://raw.githubusercontent.com/opencode-dotnet/opencode-sdk-dotnet/master/docs/assets/hq-board.png)
+
 QuickStart and Worker work in the folder you start them from. HQ works in the directory you pick
 for each session, and it shows the machine's existing opencode history. AotCli takes a path. The
 server loads that folder's configuration, and a session's prompts go to the model's provider.
