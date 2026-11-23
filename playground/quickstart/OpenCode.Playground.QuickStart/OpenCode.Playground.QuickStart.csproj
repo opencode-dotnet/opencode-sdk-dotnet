@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../src/OpenCode.Sdk/OpenCode.Sdk.csproj" />
+    <InternalsVisibleTo Include="OpenCode.Playground.Hq.Tests" />
   </ItemGroup>
 
 </Project>
