@@ -69,4 +69,5 @@ public sealed partial class SessionScreen : IDisposable
     }
 
     private Task StopAsync() => Conversation.StopAsync(_lifetime.Token);
+    private void OnDeleted() => Navigation.NavigateTo("/");
 }

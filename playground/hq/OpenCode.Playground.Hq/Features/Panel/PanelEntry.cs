@@ -14,6 +14,9 @@ public sealed record PanelEntry(string Title, string File, string Region)
         new("Answering a permission", "Features/Sessions/SessionBoard.cs", "reply"),
         new("Answering a question", "Features/Sessions/SessionBoard.cs", "form-reply"),
         new("Dismissing a question", "Features/Sessions/SessionBoard.cs", "form-dismiss"),
+        new("Renaming a session", "Features/Sessions/SessionBoard.cs", "rename"),
+        new("Archiving a session", "Features/Sessions/SessionBoard.cs", "archive"),
+        new("Deleting a session", "Features/Sessions/SessionBoard.cs", "delete"),
     ];
 
     /// <summary>Gets the session screen's panel.</summary>
@@ -22,6 +25,8 @@ public sealed record PanelEntry(string Title, string File, string Region)
         new("History, then the live answer", "Features/Conversation/SessionConversation.cs", "follow"),
         new("Sending a prompt", "Features/Conversation/SessionConversation.cs", "prompt"),
         new("Stopping a turn", "Features/Conversation/SessionConversation.cs", "stop"),
+        new("Renaming a session", "Features/Sessions/SessionBoard.cs", "rename"),
+        new("Deleting a session", "Features/Sessions/SessionBoard.cs", "delete"),
         new("Answering a permission", "Features/Sessions/SessionBoard.cs", "reply"),
         new("Answering a question", "Features/Sessions/SessionBoard.cs", "form-reply"),
         new("Dismissing a question", "Features/Sessions/SessionBoard.cs", "form-dismiss"),

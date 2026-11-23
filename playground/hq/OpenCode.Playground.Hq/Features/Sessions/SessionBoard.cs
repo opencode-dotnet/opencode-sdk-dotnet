@@ -10,6 +10,7 @@ namespace OpenCode.Playground.Hq.Features.Sessions;
 internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> logger) : BackgroundService
 {
     private const int SessionLimit = 500;
+    private const string RequestFailed = "Request failed";
     private readonly ConcurrentDictionary<string, SessionInfo> _sessions = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, byte> _running = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, NeedsYouItem> _needsYou = new(StringComparer.Ordinal);
@@ -36,6 +37,81 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
     public SessionInfo? Find(string sessionId) => _sessions.GetValueOrDefault(sessionId);
 
     public Task DismissFormAsync(FormInfo form, CancellationToken cancellationToken) => SettleFormAsync(form, null, cancellationToken);
+
+    public async Task ArchiveAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        LastError = null;
+        try
+        {
+            #region panel: archive
+            _ = await client.Sessions.GetSessionClient(sessionId).UpdateAsync(
+                new SessionUpdateRequest { Archived = true }, cancellationToken: cancellationToken);
+            #endregion
+            RemoveSession(sessionId);
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not archive session {SessionId}.", sessionId);
+            LastError = RequestFailed;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task<bool> DeleteAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        LastError = null;
+        var deleted = false;
+        try
+        {
+            #region panel: delete
+            _ = await client.Sessions.GetSessionClient(sessionId).RemoveAsync(cancellationToken: cancellationToken);
+            #endregion
+            RemoveSession(sessionId);
+            deleted = true;
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not delete session {SessionId}.", sessionId);
+            LastError = "Failed to delete session";
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+        return deleted;
+    }
+
+    private void RemoveSession(string sessionId)
+    {
+        _ = _sessions.TryRemove(sessionId, out _);
+        _ = _running.TryRemove(sessionId, out _);
+        foreach (var item in _needsYou.Values.Where(item => item.SessionId == sessionId))
+        {
+            _ = _needsYou.TryRemove(item.Id, out _);
+        }
+    }
+
+    public async Task RenameAsync(string sessionId, string title, CancellationToken cancellationToken)
+    {
+        LastError = null;
+        try
+        {
+            #region panel: rename
+            _ = await client.Sessions.GetSessionClient(sessionId).UpdateAsync(
+                new SessionUpdateRequest { Title = title }, cancellationToken: cancellationToken);
+            #endregion
+            if (_sessions.TryGetValue(sessionId, out var session))
+            {
+                _sessions[sessionId] = session with { Title = title };
+            }
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not rename session {SessionId}.", sessionId);
+            LastError = RequestFailed;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     /// <summary>Replaces one session's asks with the ones the server still lists as pending.</summary>
     /// <param name="sessionId">The session whose asks are listed.</param>
@@ -221,7 +297,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         _running.Clear();
         _needsYou.Clear();
         await foreach (var session in client.Sessions.EnumerateSessionsAsync(
-            new SessionListRequest { Order = ListOrder.Descending }, cancellationToken: cancellationToken))
+            new SessionListRequest { Order = ListOrder.Descending, Archived = false }, cancellationToken: cancellationToken))
         {
             _sessions[session.Id] = session;
             if (_sessions.Count == SessionLimit)
@@ -277,9 +353,13 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
 
         switch (item)
         {
-            case SessionCreated created:
-                var read = await client.Sessions.GetSessionClient(created.Data.SessionId).GetAsync(cancellationToken: cancellationToken);
+            case SessionCreated or SessionUnarchived:
+                var added = ((ISessionScopedEvent)item).SessionId;
+                var read = await client.Sessions.GetSessionClient(added).GetAsync(cancellationToken: cancellationToken);
                 _sessions[read.Session.Id] = read.Session;
+                break;
+            case SessionDeleted or SessionArchived:
+                RemoveSession(((ISessionScopedEvent)item).SessionId);
                 break;
             case SessionRenamed renamed when _sessions.TryGetValue(renamed.Data.SessionId, out var session):
                 _sessions[session.Id] = session with { Title = renamed.Data.Title };

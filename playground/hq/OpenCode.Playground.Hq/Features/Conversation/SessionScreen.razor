@@ -2,11 +2,19 @@
 @inject SessionConversation Conversation
 @inject SessionBoard Board
 @inject ILogger<SessionScreen> Logger
+@inject NavigationManager Navigation
 
 <PageTitle>@Title</PageTitle>
 <main class="session">
     <header class="session-head">
-        <h1>@Title</h1>
+        @if (Board.Find(SessionId) is { } session)
+        {
+            <SessionActions @key="session.Id" Session="session" Placement="header" Deleted="OnDeleted" />
+        }
+        else
+        {
+            <h1>@Title</h1>
+        }
         <p class="meta">
             @if (Board.Find(SessionId)?.Location.Directory is { } directory)
             {

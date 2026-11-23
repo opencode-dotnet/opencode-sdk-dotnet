@@ -43,25 +43,12 @@ else
         else
         {
             <table class="rows">
-                <thead><tr><th scope="col">Session</th><th scope="col">Folder</th><th scope="col">Status</th></tr></thead>
+                <thead><tr><th scope="col">Session</th><th scope="col">Folder</th><th scope="col">Status</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
                 <tbody>
-                @foreach (var row in Board.Sessions)
+                @foreach (var session in Board.Sessions.Select(row => row.Session))
                 {
-                    <tr>
-                        <td class="name"><a href="/sessions/@row.Session.Id">@(string.IsNullOrEmpty(row.Session.Title) ? "Untitled session" : row.Session.Title)</a></td>
-                        <td class="folder"><span title="@row.Session.Location.Directory">@FolderName(row.Session.Location.Directory)</span></td>
-                        <td>@switch (row.Status)
-                        {
-                            case "waiting for you":
-                                <span class="status waiting"><span class="mark decide"></span>Waiting for you</span>
-                                break;
-                            case "running":
-                                <span class="status running"><span class="mark running"></span>Running</span>
-                                break;
-                            default:
-                                <span class="status idle"><span class="mark idle"></span>Idle</span>
-                                break;
-                        }</td>
+                    <tr @key="session.Id">
+                        <SessionActions Session="session" Placement="row" />
                     </tr>
                 }
                 </tbody>

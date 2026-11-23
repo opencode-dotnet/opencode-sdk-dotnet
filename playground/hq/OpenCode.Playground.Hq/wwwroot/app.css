@@ -106,6 +106,16 @@ header.top { position: sticky; top: 0; z-index: 3; display: flex; align-items: c
 .rows .name a:hover { text-decoration-color: var(--text); }
 .rows .folder { color: var(--muted); }
 
+/* Session lifecycle controls */
+.session-controls button, .session-rename button { min-height: 32px; padding: 0 var(--s2); font-size: var(--t-small); }
+.session-rename { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.session-rename input { flex: 1; min-width: 10ch; }
+.session-confirm { position: fixed; inset: 0; margin: auto; width: min(32rem, calc(100vw - var(--s6))); padding: var(--s5); background: var(--surface); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-block); }
+.session-confirm:popover-open { display: grid; gap: var(--s4); }
+.session-confirm::backdrop { background: color-mix(in srgb, var(--ink) 75%, transparent); }
+.session-confirm p { overflow-wrap: anywhere; }
+.session-confirm .actions { justify-content: flex-end; }
+
 /* Session page: the conversation at 72ch, the rail beside it */
 .session { display: grid; grid-template-columns: minmax(0, 72ch) minmax(0, 1fr); grid-template-rows: auto 1fr; column-gap: var(--s7); min-height: calc(100dvh - var(--header-h) - var(--dock-h)); padding: var(--s5) var(--s6) 0; }
 .session-head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s4); padding-bottom: var(--s5); }
@@ -176,6 +186,11 @@ header.top { position: sticky; top: 0; z-index: 3; display: flex; align-items: c
 
 @media (prefers-reduced-motion: no-preference) {
   .mark.running { animation: turn 1s linear infinite; }
+}
+
+@media (max-width: 900px) {
+  .rows .session-actions { grid-column: 1 / -1; grid-row: 2; }
+  .session-controls button, .session-rename button { min-height: 44px; }
 }
 @keyframes turn { to { transform: rotate(360deg); } }
 
