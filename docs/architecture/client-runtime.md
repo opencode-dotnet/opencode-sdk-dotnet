@@ -880,15 +880,16 @@ resolves the message's network window from those carried traits.
   mechanically proven binding of its own (ADR-0013, ADR-0017).
 - `Sessions.GetTotalCostAsync` follows upstream's client data store
   (`packages/client/src/solid/data.ts:1582-1590` at the pin): a session with a parent returns its
-  own `Cost`; any other session returns its own `Cost` plus the `Cost` of each direct child session,
-  read through the children traversal with `ParentId`, descending order and pages of 200, as
-  upstream's family sync reads them. Grandchildren, which exist only when the server's
-  `experimental.subagent_depth` is above 1, are not counted, because upstream's family sync does not
-  load them. It refuses `NoThrow` at the call, and every failure propagates.
+  own `Cost`; any other session returns its own `Cost` plus the `Cost` of every descendant session,
+  the subtree upstream's store converges on as it loads them. It reads the descendants depth-first,
+  each level through the children traversal with `ParentId`, descending order and pages of 200, as
+  upstream's family sync reads a level, and counts each session once. It refuses `NoThrow` at the
+  call, and every failure propagates.
   - Recorded divergence: upstream's store returns 0 for a session it has not loaded, and the SDK
     fails with the server's not-found error for an unknown session. Upstream reads a local cache,
     where an absent session is one not loaded yet; the SDK asks the server, where an absent session
-    is a wrong identifier, and returning 0 would hide it.
+    is a wrong identifier, and returning 0 would hide it. If upstream's client starts treating an
+    unknown session as an error, this follows.
 
 ## Launcher
 

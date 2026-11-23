@@ -12,8 +12,8 @@ Nightly builds of `master` are on
 ### ✨ Added
 
 - `Sessions.GetTotalCostAsync` returns a session's total cost as opencode's own clients show it: a
-  session's cost plus its direct subagent sessions' cost, and a subagent session's own cost. An unknown
-  session fails with the server's not-found error, where opencode's client shows 0.
+  session's cost plus the cost of every descendant subagent session, and a subagent session's own cost.
+  An unknown session fails with the server's not-found error, where opencode's client shows 0.
 
 ### 🐛 Fixes
 

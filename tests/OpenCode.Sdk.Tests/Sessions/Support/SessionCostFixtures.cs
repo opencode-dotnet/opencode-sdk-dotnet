@@ -20,8 +20,11 @@ internal sealed class SessionCostFixtures
         new JsonObject { ["data"] = JsonSerializer.SerializeToNode(session, OpenCodeJsonContext.Default.SessionInfo) }.ToJsonString();
 
     internal string Page(int start, int count, string? next = null) =>
-        Page(Enumerable.Range(start, count).Select(index =>
-            Session("ses_child_" + index.ToString(CultureInfo.InvariantCulture), 1, "ses_root")), next);
+        Page(Children(start, count), next);
+
+    internal IEnumerable<SessionInfo> Children(int start, int count) =>
+        Enumerable.Range(start, count).Select(index =>
+            Session("ses_child_" + index.ToString(CultureInfo.InvariantCulture), 1, "ses_root"));
 
     internal static string Page(IEnumerable<SessionInfo> sessions, string? next = null)
     {

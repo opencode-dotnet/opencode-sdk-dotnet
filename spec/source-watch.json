@@ -1518,6 +1518,36 @@
       ]
     },
     {
+      "path": "packages/client/src/solid/data.ts",
+      "sha256": "6083ed87dd52b7000da6613158461986cda5ee5573ed841473f4303acaf1eda9",
+      "behaviors": [
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "cost(sessionID) returns 0 for a session the store has not loaded, a session's own cost when it has a parent, and otherwise the sum of cost over the family index of its root. Sessions.GetTotalCostAsync follows it, except that an unknown session fails.",
+          "anchor": {
+            "type": "contains",
+            "text": "if (session.parentID) return session.cost"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "listChildren reads a parent's direct children with session.list {parentID, order desc, limit 200}, following cursor.next while a page is full; sync with children fills the family index with them. Sessions.GetTotalCostAsync reads each level of descendants the same way.",
+          "anchor": {
+            "type": "contains",
+            "text": "const CHILD_PAGE = 200"
+          }
+        },
+        {
+          "owner": "opencode-sdk-dotnet",
+          "behavior": "registerSession files every loaded session, at any depth, under the family of its resolved root, so cost() converges on the whole loaded subtree. Sessions.GetTotalCostAsync walks the whole subtree for the same total.",
+          "anchor": {
+            "type": "contains",
+            "text": "const rootID = resolveRoot(sessionID)"
+          }
+        }
+      ]
+    },
+    {
       "path": "packages/client/src/promise/media.ts",
       "sha256": "ebfde36489ae44cb51505cbeba7d854fa6cf0c5ab92c1ff8fc67b7a71b4b640d",
       "behaviors": [

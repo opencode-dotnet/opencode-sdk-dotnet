@@ -34,25 +34,8 @@
   "normalizedDocumentPath": null,
   "operationSetDigest": "7cb3e37b2498257d72ed0d5e46fdb6ba6e8738cbe7070f3919fd685a3d00fa7f",
   "operationCount": 173,
-  "addedOperations": [
-    "experimental.automation.create",
-    "experimental.automation.delete",
-    "experimental.automation.get",
-    "experimental.automation.list",
-    "experimental.automation.pause",
-    "experimental.automation.resume",
-    "experimental.blob.get",
-    "experimental.generate.video.create",
-    "experimental.generate.video.get"
-  ],
-  "removedOperations": [
-    "experimental.schedule.create",
-    "experimental.schedule.delete",
-    "experimental.schedule.get",
-    "experimental.schedule.list",
-    "experimental.schedule.pause",
-    "experimental.schedule.resume"
-  ],
+  "addedOperations": [],
+  "removedOperations": [],
   "componentCount": 521,
   "contentSchemaCount": 2,
   "watchedSources": [
@@ -1116,6 +1099,24 @@
       "anchors": [
         {
           "text": "export const normalizedName = (tool: Pick\u003CTool.Info, \u0022name\u0022\u003E) =\u003E tool.name.replace(",
+          "matched": true
+        }
+      ]
+    },
+    {
+      "path": "packages/client/src/solid/data.ts",
+      "sha256": "6083ed87dd52b7000da6613158461986cda5ee5573ed841473f4303acaf1eda9",
+      "anchors": [
+        {
+          "text": "if (session.parentID) return session.cost",
+          "matched": true
+        },
+        {
+          "text": "const CHILD_PAGE = 200",
+          "matched": true
+        },
+        {
+          "text": "const rootID = resolveRoot(sessionID)",
           "matched": true
         }
       ]

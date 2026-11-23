@@ -11,6 +11,65 @@ public sealed class SessionsClientExtensionsTests
     private readonly SessionCostFixtures _fixtures = new();
 
     [Test]
+    public async Task GetTotalCostAsync_Should_Count_Each_Session_Once_In_A_Cycle()
+    {
+        var root = _fixtures.Session("ses_root", 1);
+        var child = _fixtures.Session("ses_child", 2, root.Id);
+        var lists = 0;
+        using var scenario = PipelineScenario.Responding(request =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/api/session")
+            {
+                return Answer(SessionCostFixtures.Get(root));
+            }
+
+            if (++lists > 20)
+            {
+                return Answer(SessionCostFixtures.Page([]));
+            }
+
+            return Answer(request.RequestUri.Query.Contains("parentID=ses_root", StringComparison.Ordinal)
+                ? SessionCostFixtures.Page([child]) : SessionCostFixtures.Page([root, child]));
+        });
+
+        var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync(root.Id);
+
+        await Assert.That(total).IsEqualTo(3);
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.PathAndQuery))
+            .IsEquivalentTo(["/api/session/ses_root", "/api/session?limit=200&order=desc&parentID=ses_root",
+                "/api/session?limit=200&order=desc&parentID=ses_child"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task GetTotalCostAsync_Should_Sum_A_Grandchild_Depth_First()
+    {
+        using var scenario = PipelineScenario.Responding(request =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/api/session")
+            {
+                return Answer(SessionCostFixtures.Get(_fixtures.Session("ses_root", 1)));
+            }
+
+            return Answer(request.RequestUri.Query switch
+            {
+                var query when query.Contains("parentID=ses_root", StringComparison.Ordinal) =>
+                    SessionCostFixtures.Page([_fixtures.Session("ses_child", 2, "ses_root")]),
+                var query when query.Contains("parentID=ses_child", StringComparison.Ordinal) =>
+                    SessionCostFixtures.Page([_fixtures.Session("ses_grandchild", 3, "ses_child")]),
+                _ => SessionCostFixtures.Page([]),
+            });
+        });
+
+        var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
+
+        await Assert.That(total).IsEqualTo(6);
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.PathAndQuery))
+            .IsEquivalentTo(["/api/session/ses_root", "/api/session?limit=200&order=desc&parentID=ses_root",
+                "/api/session?limit=200&order=desc&parentID=ses_child",
+                "/api/session?limit=200&order=desc&parentID=ses_grandchild"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task GetTotalCostAsync_Should_Sum_The_Root_And_Every_Child_Page()
     {
         using var scenario = PipelineScenario.Responding(request =>
@@ -20,16 +79,24 @@ public sealed class SessionsClientExtensionsTests
                 return Answer(SessionCostFixtures.Get(_fixtures.Session("ses_root", 0.5)));
             }
 
+            if (!request.RequestUri.Query.Contains("parentID=ses_root", StringComparison.Ordinal))
+            {
+                return Answer(SessionCostFixtures.Page([]));
+            }
+
             return Answer(request.RequestUri.Query.Contains("cursor=", StringComparison.Ordinal)
                 ? _fixtures.Page(200, 50) : _fixtures.Page(0, 200, "page_2"));
         });
 
         var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
+        var expected = new List<string> { "GET /api/session/ses_root", "GET /api/session?limit=200&order=desc&parentID=ses_root" };
+        expected.AddRange(_fixtures.Children(0, 200).Select(static child => "GET /api/session?limit=200&order=desc&parentID=" + child.Id));
+        expected.Add("GET /api/session?limit=200&parentID=ses_root&cursor=page_2");
+        expected.AddRange(_fixtures.Children(200, 50).Select(static child => "GET /api/session?limit=200&order=desc&parentID=" + child.Id));
 
         await Assert.That(total).IsEqualTo(250.5);
         await Assert.That(scenario.Requests.Select(static request => request.Method + " " + request.RequestUri!.PathAndQuery))
-            .IsEquivalentTo(["GET /api/session/ses_root", "GET /api/session?limit=200&order=desc&parentID=ses_root",
-                "GET /api/session?limit=200&parentID=ses_root&cursor=page_2"], CollectionOrdering.Matching);
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -129,10 +196,18 @@ public sealed class SessionsClientExtensionsTests
     [Test]
     public async Task GetTotalCostAsync_Should_Add_The_Root_Before_Children_In_Arrival_Order()
     {
-        using var scenario = PipelineScenario.Responding(request => Answer(request.RequestUri!.AbsolutePath == "/api/session"
-            ? SessionCostFixtures.Page([_fixtures.Session("ses_small", 1, "ses_root"),
-                _fixtures.Session("ses_large", 10_000_000_000_000_000d, "ses_root")])
-            : SessionCostFixtures.Get(_fixtures.Session("ses_root", 1))));
+        using var scenario = PipelineScenario.Responding(request =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/api/session")
+            {
+                return Answer(SessionCostFixtures.Get(_fixtures.Session("ses_root", 1)));
+            }
+
+            return Answer(request.RequestUri.Query.Contains("parentID=ses_root", StringComparison.Ordinal)
+                ? SessionCostFixtures.Page([_fixtures.Session("ses_small", 1, "ses_root"),
+                    _fixtures.Session("ses_large", 10_000_000_000_000_000d, "ses_root")])
+                : SessionCostFixtures.Page([]));
+        });
 
         var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
 
@@ -210,6 +285,11 @@ public sealed class SessionsClientExtensionsTests
         public override Task<SessionListResponse> ListSessionsAsync(SessionListRequest? request = null,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
+            if (request?.ParentId != SessionParentFilter.Of("ses_root"))
+            {
+                return Task.FromResult(page with { Sessions = [] });
+            }
+
             Request = request;
             Options = requestOptions;
             Token = cancellationToken;

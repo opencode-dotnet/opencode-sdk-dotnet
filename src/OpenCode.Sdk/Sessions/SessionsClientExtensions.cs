@@ -5,17 +5,16 @@ namespace OpenCode.Sdk;
 /// <summary>Reads session costs including their direct subagent sessions.</summary>
 public static class SessionsClientExtensions
 {
-    /// <summary>Returns a session's own cost plus its direct children's costs, or only its own cost for a child session.</summary>
+    /// <summary>Returns a session's own cost plus the cost of every descendant session, or only its own cost for a child session.</summary>
     /// <param name="client">The sessions family.</param>
     /// <param name="sessionId">The session identifier.</param>
     /// <param name="requestOptions">Options for each request.</param>
     /// <param name="cancellationToken">Cancels the session read or children traversal.</param>
     /// <returns>The session's cost total.</returns>
     /// <remarks>
-    /// Reads the session, then its direct children across every page for a root session.
-    /// Grandchildren, which exist only when the server's <c>experimental.subagent_depth</c> is above
-    /// 1, are not included. NoThrow is refused at the call. Every failure propagates, including the
-    /// server's not-found error for an unknown session.
+    /// Reads the session, then every descendant session depth-first, each level across every page,
+    /// and counts each session once. NoThrow is refused at the call. Every failure propagates,
+    /// including the server's not-found error for an unknown session.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
     /// <exception cref="ArgumentException">The session identifier is invalid, or <paramref name="requestOptions"/> selects NoThrow.</exception>
