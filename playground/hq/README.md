@@ -8,6 +8,8 @@ its conversation with rendered Markdown, streamed answer, prompt box, asks and c
 While a turn runs, Stop interrupts it with resumption enabled, as in upstream's app.
 There is no login, database or settings UI.
 
+The board can rename, archive and delete a session; the session page can rename and delete it.
+
 A session's page can open a **terminal** in the session's folder: one shell, its output as plain
 text, and one line at a time. It leaves out resizing, reattaching and resuming from a cursor; the
 SDK has all three ([Terminals](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/terminals.md)).
@@ -65,7 +67,8 @@ Aspire AppHost -> plain opencode serve (generated password, own port)
 The board opens the bus, awaits its first event, seeds the newest **500 sessions**, reads which are
 running, reads asks for those sessions' directories, then follows events. An unavailable directory
 is logged and skipped.
-A session's title follows rename events. A session deleted or archived elsewhere keeps its old row until the board reconnects or HQ restarts.
+A session's title follows rename events. Its row follows `SessionDeleted`, `SessionArchived` and
+`SessionUnarchived`: deletion or archiving removes the row and its asks; unarchiving reads it back.
 Opening a session page re-lists that session's pending permissions and forms from the server, as
 upstream's session page does. The board also re-lists a session's asks when one of its turns ends,
 except on a shutdown. This goes beyond upstream's app, and it has a reason: when a turn is interrupted,
@@ -82,6 +85,8 @@ A stopped server stays stopped until you press Start on its resource in the dash
 Each open session page holds its own subscription on the same root client's shared source,
 cancelled when the page closes.
 Pages don't prerender: a prerendered button shows before its handler is attached, so an early click is dropped (#775). The page appears once its connection is up.
+
+Upstream's app at v2.3.2 builds an Archive button but hides it (`SHOW_HOME_SESSION_ARCHIVE = false`, `packages/app/src/home/sessions/view.tsx:43`) until its own client gains a session archive API (`home/sessions/controller.tsx:557-559`). The SDK has that API, so HQ shows it; when upstream's app shows it again, this note goes.
 
 The dashboard shows HttpClient and ASP.NET Core traces and host logs, not SDK spans.
 The four OpenTelemetry packages export only when the AppHost supplies OTLP.

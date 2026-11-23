@@ -1,0 +1,70 @@
+@inject SessionBoard Board
+
+@if (Placement == "row")
+{
+    <td class="name">@NameContent</td>
+    <td class="folder"><span title="@Session.Location.Directory">@SessionsScreen.FolderName(Session.Location.Directory)</span></td>
+    <td>@switch (Board.StatusOf(Session.Id))
+    {
+        case "waiting for you":
+            <span class="status waiting"><span class="mark decide"></span>Waiting for you</span>
+            break;
+        case "running":
+            <span class="status running"><span class="mark running"></span>Running</span>
+            break;
+        default:
+            <span class="status idle"><span class="mark idle"></span>Idle</span>
+            break;
+    }</td>
+    <td class="session-actions">@Controls</td>
+}
+else
+{
+    @NameContent
+    @Controls
+}
+
+@code {
+    private RenderFragment NameContent => @<text>
+        @if (_renaming)
+        {
+            <form class="session-rename" @onsubmit="SaveAsync" @onsubmit:preventDefault>
+                <input type="text" aria-label="Rename" @ref="_input" @bind="_draftTitle" @bind:event="oninput" readonly="@_busy" @onkeydown="OnKeyDown" />
+                <button type="submit" disabled="@_busy">Save</button>
+                <button type="button" @onclick="CancelRename">Cancel</button>
+            </form>
+        }
+        else if (Placement == "row")
+        {
+            <a href="/sessions/@Session.Id">@Title</a>
+        }
+        else
+        {
+            <h1>@Title</h1>
+        }
+    </text>;
+
+    private RenderFragment Controls => @<text>
+        <div class="actions session-controls">
+            <button type="button" disabled="@_busy" @onclick="BeginRename">@(Placement == "row" ? "Rename" : "Rename session")</button>
+            @if (Placement == "row")
+            {
+                <button type="button" disabled="@_busy" @onclick="ArchiveAsync">Archive</button>
+            }
+            <button type="button" disabled="@_busy" popovertarget="@DialogId">@(Placement == "row" ? "Delete…" : "Delete session")</button>
+        </div>
+        <div class="session-confirm" id="@DialogId" popover="auto" role="alertdialog"
+             aria-labelledby="@(DialogId + "-title")" aria-describedby="@(DialogId + "-description")">
+            <h2 id="@(DialogId + "-title")">Delete session</h2>
+            <p id="@(DialogId + "-description")">Delete session "@Title"?</p>
+            @if (Board.LastError is { } error)
+            {
+                <p role="alert">@error</p>
+            }
+            <div class="actions">
+                <button type="button" autofocus disabled="@_busy" popovertarget="@DialogId" popovertargetaction="hide">Cancel</button>
+                <button type="button" class="danger" disabled="@_busy" @onclick="DeleteAsync">Delete session</button>
+            </div>
+        </div>
+    </text>;
+}
