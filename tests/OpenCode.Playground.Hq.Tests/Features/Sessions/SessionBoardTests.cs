@@ -12,6 +12,108 @@ namespace OpenCode.Playground.Hq.Tests.Features.Sessions;
 public sealed class SessionBoardTests
 {
     [Test]
+    public async Task AnswerAsync_Should_Send_Always_For_The_Request_And_Session()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        var item = scenario.Board.NeedsYou.Single(static ask => ask.Id == "ask_first");
+        await scenario.Board.AnswerAsync(item, PermissionReply.Always, CancellationToken.None);
+
+        await Assert.That(scenario.SessionCalls.PermissionSession).IsEqualTo("ses_0");
+        await Assert.That(scenario.SessionCalls.PermissionId).IsEqualTo("ask_first");
+        await Assert.That(scenario.SessionCalls.Decision?.ToString()).IsEqualTo("always");
+        await Assert.That(scenario.Board.NeedsYou.Select(static ask => ask.Id))
+            .IsEquivalentTo(["ask_gone", "ask_last", "form_first", "form_gone", "form_last"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task DismissFormAsync_Should_Cancel_The_Form_Or_Report_The_Refusal(bool refused)
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        scenario.SessionCalls.FormFailure = refused ? Unauthorized() : null;
+        await scenario.Board.DismissFormAsync(Form(), CancellationToken.None);
+
+        await Assert.That(scenario.SessionCalls.CancelSession).IsEqualTo("ses_0");
+        await Assert.That(scenario.SessionCalls.CancelId).IsEqualTo("form_first");
+        await Assert.That(scenario.Board.LastError).IsEqualTo(refused ? "Could not answer the question: unauthorized" : null);
+        var expected = refused ? new[] { "ask_first", "ask_gone", "ask_last", "form_first", "form_gone", "form_last" }
+            : ["ask_first", "ask_gone", "ask_last", "form_gone", "form_last"];
+        await Assert.That(scenario.Board.NeedsYou.Select(static ask => ask.Id)).IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task SessionBoard_Should_Relist_Asks_When_A_Turn_Ends_Except_On_Shutdown(bool shutdown)
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        scenario.SessionCalls.Pending = ["ask_last"];
+        await scenario.SendAsync(new SessionExecutionInterrupted
+        {
+            Id = "interrupted",
+            Created = 2,
+            Durable = new() { AggregateId = "ses_0", Seq = 2, Version = 1 },
+            Data = new()
+            {
+                SessionId = "ses_0",
+                Reason = shutdown ? SessionExecutionInterruptedDataReason.Shutdown : SessionExecutionInterruptedDataReason.User,
+            },
+        });
+
+        string[] expected = shutdown ? ["ask_first", "ask_gone", "ask_last", "form_first", "form_gone", "form_last"] : ["ask_last"];
+        string[] relisted = shutdown ? [] : ["ses_0"];
+        await Assert.That(scenario.Board.NeedsYou.Select(static ask => ask.Id)).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(scenario.SessionCalls.Relisted).IsEquivalentTo(relisted, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ResyncAsync_Should_Replace_Only_That_Sessions_Asks_With_The_Servers_List()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        await scenario.SendAsync(new PermissionAsked
+        {
+            Id = "asked",
+            Created = 2,
+            Data = new() { Id = "ask_other", SessionId = "ses_1", Action = "edit", Resources = ["other"] },
+        });
+        scenario.SessionCalls.Pending = ["ask_last"];
+        await scenario.Board.ResyncAsync("ses_0", CancellationToken.None);
+
+        await Assert.That(scenario.Board.NeedsYou.Select(static ask => ask.Id)).IsEquivalentTo(["ask_last", "ask_other"], CollectionOrdering.Matching);
+        await Assert.That(scenario.SessionCalls.Relisted).IsEquivalentTo(["ses_0"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task SessionBoard_Should_Apply_A_Title_After_An_Untitled_Session_Is_Created()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        scenario.SessionCalls.Items = [Session(9, "new") with { Title = null }];
+        await scenario.SendAsync(new SessionCreated
+        {
+            Id = "created",
+            Created = 1,
+            Durable = new() { AggregateId = "ses_9", Seq = 1, Version = 1 },
+            Data = new() { SessionId = "ses_9", ProjectId = "project", Location = new() { Directory = "new" }, Slug = "new", Version = "2.3.2" },
+        });
+        await Assert.That(scenario.Board.Sessions.Single(static row => row.Session.Id == "ses_9").Session.Title).IsNull();
+        await scenario.SendAsync(new SessionRenamed
+        {
+            Id = "renamed",
+            Created = 2,
+            Durable = new() { AggregateId = "ses_9", Seq = 2, Version = 1 },
+            Data = new() { SessionId = "ses_9", Title = "Later title" },
+        });
+
+        await Assert.That(scenario.Board.Sessions.Single(static row => row.Session.Id == "ses_9").Session.Title).IsEqualTo("Later title");
+    }
+
+    [Test]
     public async Task SessionBoard_Should_Report_A_Watch_Fault_Before_Shutdown()
     {
         await using var scenario = new BoardScenario();
@@ -432,9 +534,16 @@ public sealed class SessionBoardTests
         public IReadOnlySet<string> Active { get; set; } = new HashSet<string>(["ses_0", "ses_1", "ses_2"], StringComparer.Ordinal);
         public OpenCodeApiException? ReplyFailure { get; set; }
         public OpenCodeException? FormFailure { get; set; }
+        public string? CancelSession { get; set; }
+        public string? CancelId { get; set; }
+        public string? PermissionSession { get; set; }
+        public string? PermissionId { get; set; }
+        public PermissionReply? Decision { get; set; }
+        public IReadOnlyList<string> Pending { get; set; } = [];
+        public List<string> Relisted { get; } = [];
         public TaskCompletionSource ListingStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource? ListingRelease { get; set; }
-        public override SessionClient GetSessionClient(string sessionId) => new BoardSession(this);
+        public override SessionClient GetSessionClient(string sessionId) => new BoardSession(this, sessionId);
         public override Task<SessionActiveResponse> GetActiveAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
             Task.FromResult(new SessionActiveResponse { Status = 200, Active = Active.ToDictionary(static id => id, static _ => new SessionActive { Type = "running" }, StringComparer.Ordinal) });
         public override async Task<SessionListResponse> ListSessionsAsync(SessionListRequest? request = null,
@@ -468,8 +577,33 @@ public sealed class SessionBoardTests
         }
     }
 
-    private sealed class BoardSession(BoardSessions owner) : SessionClient
+    private sealed class BoardSession(BoardSessions owner, string sessionId) : SessionClient
     {
+        public override Task<SessionFormCancelResponse> CancelFormAsync(string formId, SessionFormCancelRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            owner.CancelSession = sessionId;
+            owner.CancelId = formId;
+            return owner.FormFailure is { } failure ? Task.FromException<SessionFormCancelResponse>(failure)
+                : Task.FromResult(new SessionFormCancelResponse { Status = 204 });
+        }
+
+        public override Task<SessionResponse> GetAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SessionResponse { Status = 200, Session = owner.Items.Single(item => item.Id == sessionId) });
+
+        public override Task<SessionPermissionListResponse> ListRequestsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            owner.Relisted.Add(sessionId);
+            return Task.FromResult(new SessionPermissionListResponse
+            {
+                Status = 200,
+                Requests = [.. owner.Pending.Select(id => new PermissionRequest { Id = id, SessionId = sessionId, Action = "edit", Resources = ["file"] })],
+            });
+        }
+
+        public override Task<SessionFormListResponse> ListFormsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SessionFormListResponse { Status = 200, Forms = [] });
+
         public override Task<SessionFormReplyResponse> ReplyToFormAsync(string formId, SessionFormReplyRequest request,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
@@ -479,8 +613,14 @@ public sealed class SessionBoardTests
         }
 
         public override Task<SessionPermissionReplyResponse> ReplyToPermissionAsync(string requestId, SessionPermissionReplyRequest request,
-            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
-            owner.ReplyFailure is { } failure ? Task.FromException<SessionPermissionReplyResponse>(failure) : Task.FromResult(new SessionPermissionReplyResponse { Status = 204 });
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            owner.PermissionSession = sessionId;
+            owner.PermissionId = requestId;
+            owner.Decision = request.Decision;
+            return owner.ReplyFailure is { } failure ? Task.FromException<SessionPermissionReplyResponse>(failure)
+                : Task.FromResult(new SessionPermissionReplyResponse { Status = 204 });
+        }
     }
 
     private sealed class BoardPermissions : PermissionsClient

@@ -1,18 +1,17 @@
-using OpenCode.Sdk.Models;
-
 namespace OpenCode.Playground.Hq.Features.Sessions;
 
 /// <summary>The first screen: what needs a person, then every session.</summary>
 public sealed partial class SessionsScreen : IDisposable
 {
-    private readonly CancellationTokenSource _lifetime = new();
-
+    internal static string FolderName(string directory)
+    {
+        var path = directory.TrimEnd('\\', '/');
+        return path[(Math.Max(path.LastIndexOf('\\', StringComparison.Ordinal), path.LastIndexOf('/', StringComparison.Ordinal)) + 1)..];
+    }
     /// <inheritdoc />
     public void Dispose()
     {
         Board.Changed -= OnChanged;
-        _lifetime.Cancel();
-        _lifetime.Dispose();
     }
 
     /// <inheritdoc />
@@ -24,5 +23,4 @@ public sealed partial class SessionsScreen : IDisposable
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private Task AnswerAsync(NeedsYouItem item, PermissionReply decision) => Board.AnswerAsync(item, decision, _lifetime.Token);
 }

@@ -1,15 +1,19 @@
+using Markdig;
 using Microsoft.AspNetCore.Components;
-using OpenCode.Playground.Hq.Features.Sessions;
-using OpenCode.Sdk.Models;
 
 namespace OpenCode.Playground.Hq.Features.Conversation;
 
 /// <summary>One session's conversation, asks, prompt box and changed files.</summary>
 public sealed partial class SessionScreen : IDisposable
 {
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().DisableHtml().Build();
+    internal static MarkupString Rendered(string text) => new(Markdown.ToHtml(text, Pipeline));
     private readonly CancellationTokenSource _lifetime = new();
     private string _prompt = "";
     private bool _followLost;
+    private bool _terminalTab;
+    private int _changeCount;
+    private string Title => Board.Find(SessionId)?.Title is { Length: > 0 } title ? title : "Untitled session";
 
     /// <summary>Gets or sets the session shown.</summary>
     [Parameter]
@@ -32,7 +36,13 @@ public sealed partial class SessionScreen : IDisposable
         // The screen owns this follow: it ends with _lifetime, and its faults reach FollowFaulted.
         _ = Conversation.FollowAsync(SessionId, _lifetime.Token).ContinueWith(
             FollowFaulted, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+        // As upstream's session page does when it opens, the asks shown are the ones the server still lists.
+        _ = Board.ResyncAsync(SessionId, _lifetime.Token).ContinueWith(
+            ResyncFaulted, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
     }
+
+    private void ResyncFaulted(Task resync) =>
+        Logger.LogWarning(resync.Exception, "Could not list the asks of session {SessionId}.", SessionId);
 
     private void OnChanged(object? sender, EventArgs args)
     {
@@ -58,5 +68,5 @@ public sealed partial class SessionScreen : IDisposable
         }
     }
 
-    private Task AnswerAsync(NeedsYouItem item, PermissionReply decision) => Board.AnswerAsync(item, decision, _lifetime.Token);
+    private Task StopAsync() => Conversation.StopAsync(_lifetime.Token);
 }

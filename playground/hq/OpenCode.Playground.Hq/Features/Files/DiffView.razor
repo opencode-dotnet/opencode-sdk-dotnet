@@ -1,0 +1,25 @@
+@{ var inHunk = false; }
+<div class="diff" tabindex="0" role="group" aria-label="@Label"><div class="lines">@foreach (var line in Patch.ReplaceLineEndings("\n").TrimEnd('\n').Split('\n'))
+    {
+        var hunk = line.StartsWith("@@", StringComparison.Ordinal);
+        inHunk |= hunk;
+        var kind = line switch
+        {
+            _ when hunk => "hunk",
+            _ when !inHunk => "meta",
+            _ when line.StartsWith('+') => "add",
+            _ when line.StartsWith('-') => "del",
+            _ => null,
+        };
+        <div class="dl @kind">@line</div>
+    }</div></div>
+
+@code {
+    /// <summary>Gets or sets the patch to display.</summary>
+    [Parameter]
+    public string Patch { get; set; } = "";
+
+    /// <summary>Gets or sets the accessible name of the patch.</summary>
+    [Parameter]
+    public string Label { get; set; } = "";
+}

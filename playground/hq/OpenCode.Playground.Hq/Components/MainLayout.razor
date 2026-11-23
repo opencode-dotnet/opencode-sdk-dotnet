@@ -1,9 +1,15 @@
 @inherits LayoutComponentBase
 @inject SessionBoard Board
+@inject PanelState Panel
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject ILogger<MainLayout> Logger
 
+<div class="shell @(Panel.Open ? "sdk-open" : null)">
 <header class="top">
-    <div class="title">OpenCode HQ</div>
-    <div class="status mono">@(Board.Connected ? "connected" : "not connected")</div>
-    <a class="button primary" href="/sessions/new">New session</a>
+    <a class="brand" href="/">OpenCode HQ</a>
+    <span class="conn" role="status"><span class="mark @(Board.Connected ? "connected" : "lost")"></span><span class="conn-text">@(Board.Connected ? "Connected" : "Not connected")</span></span>
+    <button type="button" aria-expanded="@(Panel.Open ? "true" : "false")" aria-controls="sdk-dock" @onclick="Panel.Toggle"><span><span class="wide">@(Panel.Open ? "Hide " : "Show ")</span>SDK calls</span></button>
+    <a class="button" href="/sessions/new">New session</a>
 </header>
 @Body
+</div>

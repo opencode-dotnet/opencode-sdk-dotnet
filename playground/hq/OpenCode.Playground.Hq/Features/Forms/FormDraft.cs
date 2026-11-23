@@ -12,7 +12,9 @@ internal sealed class FormDraft(FormInfo form)
     public bool Answerable => form.Fields.All(static item => item is FormStringField or FormMultiselectField);
     public static bool ShowsTextBox(FormStringField field) => field.Options is null or { Count: 0 } || field.Custom == true;
     public string TextOf(string key) => _texts.GetValueOrDefault(key, string.Empty);
-    public string TextClass(string key, string value) => TextOf(key) == value ? "chosen" : string.Empty;
+    public bool IsText(string key, string value) => TextOf(key) == value;
+    public string CustomTextOf(FormStringField field) =>
+        field.Options?.Any(option => IsText(field.Key, option.Value)) == true ? string.Empty : TextOf(field.Key);
     public bool IsChosen(string key, string value) => _choices.TryGetValue(key, out var chosen) && chosen.Contains(value);
     public void SetText(string key, string? text) => _texts[key] = text ?? string.Empty;
 

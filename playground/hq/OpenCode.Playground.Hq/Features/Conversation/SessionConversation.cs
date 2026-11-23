@@ -21,6 +21,21 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     public int EndedTurns { get; private set; }
     public string? LastError { get; private set; }
 
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        #region panel: stop
+        try
+        {
+            _ = await client.Sessions.GetSessionClient(SessionId).InterruptAsync(
+                new SessionInterruptRequest { Resume = true }, cancellationToken: cancellationToken);
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not stop session {SessionId}.", SessionId);
+        }
+        #endregion
+    }
+
     /// <summary>Subscribes before loading history, then follows the session until cancelled.</summary>
     public async Task FollowAsync(string sessionId, CancellationToken cancellationToken)
     {

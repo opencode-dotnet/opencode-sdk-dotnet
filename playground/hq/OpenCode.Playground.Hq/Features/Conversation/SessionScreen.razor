@@ -3,61 +3,103 @@
 @inject SessionBoard Board
 @inject ILogger<SessionScreen> Logger
 
-<PageTitle>Session</PageTitle>
-<div class="screen">
-<main>
-<p><a href="/">Back to HQ</a></p>
-
-@if (Conversation.LastError is { } error)
-{
-    <p role="alert">@error</p>
-}
-@if (Board.LastError is { } boardError)
-{
-    <p role="alert">@boardError</p>
-}
-@if (_followLost)
-{
-    <p role="alert">Lost the connection to HQ's server. Reload the page to follow this session again.</p>
-}
-
-    @foreach (var line in Conversation.Lines)
-    {
-        <div class="line @line.Author"><span class="who">@line.Author</span>@line.Text</div>
-    }
-    @if (Conversation.Running)
-    {
-        <p>Working...</p>
-    }
-
-    @foreach (var item in Board.NeedsYou.Where(item => item.SessionId == SessionId))
-    {
-        @if (item.Form is not null)
+<PageTitle>@Title</PageTitle>
+<main class="session">
+    <header class="session-head">
+        <h1>@Title</h1>
+        <p class="meta">
+            @if (Board.Find(SessionId)?.Location.Directory is { } directory)
+            {
+                <span title="@directory">@SessionsScreen.FolderName(directory)</span>
+            }
+            @switch (Board.StatusOf(SessionId))
+            {
+                case "waiting for you":
+                    <span class="status waiting"><span class="mark decide"></span>Waiting for you</span>
+                    break;
+                case "running":
+                    <span class="status running"><span class="mark running"></span>Running</span>
+                    break;
+                default:
+                    <span class="status idle"><span class="mark idle"></span>Idle</span>
+                    break;
+            }
+        </p>
+    </header>
+    <div class="talk">
+        @if (Conversation.LastError is { } error)
         {
-            <FormCard @key="item.Id" Form="item.Form" />
+            <p role="alert">@error</p>
         }
-        else
+        @if (Board.LastError is { } boardError)
         {
-            <div class="ask">
-                <div class="ask-text"><div class="ask-kind">Permission</div><div class="mono">@item.Title</div></div>
-                <button class="primary" @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
-                <button @onclick="() => AnswerAsync(item, PermissionReply.Reject)">Reject</button>
-            </div>
+            <p role="alert">@boardError</p>
         }
-    }
-
-<form class="prompt" @onsubmit="SendAsync" @onsubmit:preventDefault>
-    <textarea @bind="_prompt" @bind:event="oninput" disabled="@Conversation.Running"></textarea>
-    <button class="primary" type="submit" disabled="@(!Conversation.Ready || Conversation.Running || string.IsNullOrWhiteSpace(_prompt))">Send</button>
-</form>
-
+        @if (_followLost)
+        {
+            <p role="alert">Lost the connection to HQ's server. Reload the page to follow this session again.</p>
+        }
+        <div class="transcript">
+            @foreach (var line in Conversation.Lines)
+            {
+                @if (line.Author == "you")
+                {
+                    <div class="turn you @(line.Pending ? "pending" : null)"><span class="sr">You: </span>@line.Text</div>
+                }
+                else
+                {
+                    <div class="turn"><span class="sr">Agent: </span><div class="md">@Rendered(line.Text)</div></div>
+                }
+            }
+        </div>
+        @if (Conversation.Running)
+        {
+            <p class="status running"><span class="mark running"></span>Working</p>
+        }
+        @if (Board.NeedsYou.Any(item => item.SessionId == SessionId))
+        {
+            <section class="queue" aria-labelledby="needs-you-here">
+                <h2 class="signal" id="needs-you-here"><span class="mark decide"></span>Needs you</h2>
+                @foreach (var item in Board.NeedsYou.Where(item => item.SessionId == SessionId))
+                {
+                    @if (item.Form is not null)
+                    {
+                        <FormCard @key="item.Id" Form="item.Form" ShowSession="false" />
+                    }
+                    else
+                    {
+                        <PermissionAsk @key="item.Id" Item="item" ShowSession="false" />
+                    }
+                }
+            </section>
+        }
+        <form class="composer" @onsubmit="SendAsync" @onsubmit:preventDefault>
+            <label class="sr" for="prompt">Prompt</label>
+            <textarea id="prompt" rows="2" placeholder="Send a prompt to this session" @bind="_prompt" @bind:event="oninput" disabled="@Conversation.Running"></textarea>
+            @if (Conversation.Running)
+            {
+                <button type="button" @onclick="StopAsync">Stop</button>
+            }
+            else
+            {
+                <button type="submit" disabled="@(!Conversation.Ready || string.IsNullOrWhiteSpace(_prompt))">Send</button>
+            }
+        </form>
+    </div>
+    <aside class="rail" aria-label="Changed files and terminal">
+        <div class="tabs" role="tablist" aria-label="Session tools">
+            <button type="button" role="tab" id="tab-changes" aria-selected="@(_terminalTab ? "false" : "true")" aria-controls="panel-changes" @onclick="() => _terminalTab = false">Changes<span class="count">@_changeCount</span></button>
+            <button type="button" role="tab" id="tab-terminal" aria-selected="@(_terminalTab ? "true" : "false")" aria-controls="panel-terminal" @onclick="() => _terminalTab = true">Terminal</button>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="panel-changes" aria-labelledby="tab-changes" hidden="@_terminalTab">
+            @if (Conversation.Ready)
+            {
+                <ChangedFiles SessionId="@SessionId" Running="@Conversation.Running" Refresh="@Conversation.EndedTurns" CountChanged="count => _changeCount = count" />
+            }
+        </div>
+        <div class="tabpanel" role="tabpanel" id="panel-terminal" aria-labelledby="tab-terminal" hidden="@(!_terminalTab)">
+            <TerminalPanel SessionId="@SessionId" />
+        </div>
+    </aside>
 </main>
-<section class="side" aria-label="Changed files and terminal">
-@if (Conversation.Ready)
-{
-    <ChangedFiles SessionId="@SessionId" Running="@Conversation.Running" Refresh="@Conversation.EndedTurns" />
-}
-<TerminalPanel SessionId="@SessionId" />
-</section>
 <SdkPanel Entries="PanelEntry.SessionScreen" Guide="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md#-streaming-an-answer-as-it-arrives" />
-</div>

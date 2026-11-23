@@ -15,6 +15,15 @@ Nightly builds of `master` are on
   second period, so the readable 500 opencode answers handler defects with reads
   "… Check server logs for details." instead of ending in "..".
 
+### 📚 Documentation
+
+- HQ's redesigned board and session screens show named asks, edit previews, rendered Markdown and
+  coloured diffs, with Changes and Terminal tabs and an SDK calls dock remembered across reloads.
+  Permission asks offer Deny, Allow always and Allow once; questions can be submitted or dismissed,
+  and a running turn can be stopped. Session titles follow later renames, and untitled rows stay
+  clickable. A session's asks are listed again when its page opens and when one of its turns ends,
+  so an ask a stopped turn dropped no longer stays on the board.
+
 ## [2.0.1] - 2026-11-22
 
 **`2.0.1` pins opencode `2.3.2`.** It is a patch that moves the protocol pin, so generated types

@@ -1,27 +1,37 @@
 @inject SourceSnippets Source
+@inject PanelState Panel
+@implements IDisposable
 
-<aside class="panel" aria-label="How this screen uses the SDK">
-    <div class="panel-head">
-        <h2>How this screen works</h2>
-        <button @onclick="() => _hidden = !_hidden">@(_hidden ? "Show" : "Hide")</button>
-    </div>
-    @if (!_hidden)
-    {
-        @foreach (var (entry, snippet) in _items)
-        {
-            <div class="panel-item">
-                <h3>@entry.Title</h3>
-                <pre>@snippet</pre>
-                <a href="@SourceSnippets.Link(entry.File)">@entry.File</a>
-            </div>
-        }
-        <a href="@Guide">Read the guide</a>
-    }
-</aside>
+@if (Panel.Open)
+{
+    <aside class="dock" id="sdk-dock" aria-label="SDK calls behind this screen">
+        <div class="dock-head">
+            <h2>SDK calls behind this screen</h2>
+            <a href="@Guide">Read the streaming guide</a>
+            <button type="button" @onclick="Panel.Toggle">Hide</button>
+        </div>
+        <div class="dock-body">
+            @foreach (var (entry, snippet) in _items)
+            {
+                <section class="call">
+                    <div class="call-note">
+                        <h3>@entry.Title</h3>
+                        <p class="meta"><a href="@(SourceSnippets.Link(entry.File) + $"#L{snippet.FirstLine}")">@entry.File</a></p>
+                    </div>
+                    <div class="code" tabindex="0"><div class="lines">@{
+                        var lines = snippet.Code.Split('\n');
+                    }@for (var i = 0; i < lines.Length; i++)
+                        {
+                            <div class="cl @(lines[i].TrimStart().StartsWith("//", StringComparison.Ordinal) ? "note" : null)"><span class="ln">@(snippet.FirstLine + i)</span><span class="src">@lines[i]</span></div>
+                        }</div></div>
+                </section>
+            }
+        </div>
+    </aside>
+}
 
 @code {
-    private bool _hidden;
-    private readonly List<(PanelEntry Entry, string Code)> _items = [];
+    private readonly List<(PanelEntry Entry, SourceSnippets.Snippet Snippet)> _items = [];
 
     /// <summary>Gets or sets the code this screen shows.</summary>
     [Parameter]
@@ -34,9 +44,19 @@
     /// <inheritdoc />
     protected override async Task OnInitializedAsync()
     {
+        Panel.Changed += OnChanged;
         foreach (var entry in Entries)
         {
             _items.Add((entry, await Source.ReadAsync(entry.File, entry.Region)));
         }
+    }
+
+    /// <inheritdoc />
+    public void Dispose() => Panel.Changed -= OnChanged;
+
+    private void OnChanged(object? sender, EventArgs args)
+    {
+        // The renderer owns this work and reports render failures.
+        _ = InvokeAsync(StateHasChanged);
     }
 }
