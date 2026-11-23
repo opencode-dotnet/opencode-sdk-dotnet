@@ -43,21 +43,13 @@ public sealed class SessionsClientExtensionsTests
     [Test]
     public async Task GetTotalCostAsync_Should_Sum_A_Grandchild_Depth_First()
     {
-        using var scenario = PipelineScenario.Responding(request =>
+        using var scenario = RootAndLists(1, listQuery => listQuery switch
         {
-            if (request.RequestUri!.AbsolutePath != "/api/session")
-            {
-                return Answer(SessionCostFixtures.Get(_fixtures.Session("ses_root", 1)));
-            }
-
-            return Answer(request.RequestUri.Query switch
-            {
-                var query when query.Contains("parentID=ses_root", StringComparison.Ordinal) =>
-                    SessionCostFixtures.Page([_fixtures.Session("ses_child", 2, "ses_root")]),
-                var query when query.Contains("parentID=ses_child", StringComparison.Ordinal) =>
-                    SessionCostFixtures.Page([_fixtures.Session("ses_grandchild", 3, "ses_child")]),
-                _ => SessionCostFixtures.Page([]),
-            });
+            var query when query.Contains("parentID=ses_root", StringComparison.Ordinal) =>
+                SessionCostFixtures.Page([_fixtures.Session("ses_child", 2, "ses_root")]),
+            var query when query.Contains("parentID=ses_child", StringComparison.Ordinal) =>
+                SessionCostFixtures.Page([_fixtures.Session("ses_grandchild", 3, "ses_child")]),
+            _ => SessionCostFixtures.Page([]),
         });
 
         var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
@@ -196,18 +188,10 @@ public sealed class SessionsClientExtensionsTests
     [Test]
     public async Task GetTotalCostAsync_Should_Add_The_Root_Before_Children_In_Arrival_Order()
     {
-        using var scenario = PipelineScenario.Responding(request =>
-        {
-            if (request.RequestUri!.AbsolutePath != "/api/session")
-            {
-                return Answer(SessionCostFixtures.Get(_fixtures.Session("ses_root", 1)));
-            }
-
-            return Answer(request.RequestUri.Query.Contains("parentID=ses_root", StringComparison.Ordinal)
-                ? SessionCostFixtures.Page([_fixtures.Session("ses_small", 1, "ses_root"),
-                    _fixtures.Session("ses_large", 10_000_000_000_000_000d, "ses_root")])
-                : SessionCostFixtures.Page([]));
-        });
+        using var scenario = RootAndLists(1, query => query.Contains("parentID=ses_root", StringComparison.Ordinal)
+            ? SessionCostFixtures.Page([_fixtures.Session("ses_small", 1, "ses_root"),
+                _fixtures.Session("ses_large", 10_000_000_000_000_000d, "ses_root")])
+            : SessionCostFixtures.Page([]));
 
         var total = await new SessionsClient(scenario.Pipeline).GetTotalCostAsync("ses_root");
 
@@ -246,6 +230,17 @@ public sealed class SessionsClientExtensionsTests
 
         await Assert.That(thrown).IsSameReferenceAs(failure);
     }
+
+    private PipelineScenario RootAndLists(double rootCost, Func<string, string> page) =>
+        PipelineScenario.Responding(request =>
+        {
+            if (request.RequestUri!.AbsolutePath != "/api/session")
+            {
+                return Answer(SessionCostFixtures.Get(_fixtures.Session("ses_root", rootCost)));
+            }
+
+            return Answer(page(request.RequestUri.Query));
+        });
 
     private CostSessionsClient MockClient(Exception? failure = null, bool duringList = false) =>
         new(new CostSessionClient(_fixtures.Session("ses_root", 0.5), duringList ? null : failure),
