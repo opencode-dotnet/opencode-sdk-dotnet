@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../playground/hq/OpenCode.Playground.Hq/OpenCode.Playground.Hq.csproj" />
+    <!-- QuickStart has no test project of its own; its free-model filter is tested here. -->
+    <ProjectReference Include="../../playground/quickstart/OpenCode.Playground.QuickStart/OpenCode.Playground.QuickStart.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="TUnit" />

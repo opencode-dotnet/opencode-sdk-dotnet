@@ -34,13 +34,19 @@ internal sealed class FreeModel(OpenCodeClient client)
         }
     }
 
+    /// <summary>Gets whether a model is free: one of opencode's own, with a price list whose every tier charges nothing for input and output.</summary>
+    /// <param name="model">The model.</param>
+    /// <returns>True when the model is free.</returns>
+    internal static bool IsFree(ModelInfo model) =>
+        model.ProviderId == "opencode" && model.Cost.Count > 0 && model.Cost.All(static cost => cost.Input <= 0 && cost.Output <= 0);
+
     private async Task<ModelInfo?> ReadAsync(CancellationToken cancellationToken)
     {
         await client.LanguageModels.WaitForDefaultAsync(cancellationToken: cancellationToken);
         try
         {
             var catalog = await client.LanguageModels.ListModelsAsync(cancellationToken: cancellationToken);
-            return catalog.Models.FirstOrDefault(static model => model.ProviderId == "opencode" && model.Cost.All(static cost => cost.Input <= 0));
+            return catalog.Models.FirstOrDefault(IsFree);
         }
         catch (OpenCodeApiException failure) when (failure.Error is ServiceUnavailableError)
         {
