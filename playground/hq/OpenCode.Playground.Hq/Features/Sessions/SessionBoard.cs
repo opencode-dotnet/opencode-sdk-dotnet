@@ -230,6 +230,9 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
                 var read = await client.Sessions.GetSessionClient(created.Data.SessionId).GetAsync(cancellationToken: cancellationToken);
                 _sessions[read.Session.Id] = read.Session;
                 break;
+            case SessionRenamed renamed when _sessions.TryGetValue(renamed.Data.SessionId, out var session):
+                _sessions[session.Id] = session with { Title = renamed.Data.Title };
+                break;
             case SessionExecutionStarted started:
                 _running[started.Data.SessionId] = 0;
                 break;

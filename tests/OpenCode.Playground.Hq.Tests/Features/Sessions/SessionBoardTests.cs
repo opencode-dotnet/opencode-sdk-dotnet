@@ -12,6 +12,31 @@ namespace OpenCode.Playground.Hq.Tests.Features.Sessions;
 public sealed class SessionBoardTests
 {
     [Test]
+    public async Task SessionBoard_Should_Apply_A_Title_After_An_Untitled_Session_Is_Created()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        scenario.SessionCalls.Items = [Session(9, "new") with { Title = null }];
+        await scenario.SendAsync(new SessionCreated
+        {
+            Id = "created",
+            Created = 1,
+            Durable = new() { AggregateId = "ses_9", Seq = 1, Version = 1 },
+            Data = new() { SessionId = "ses_9", ProjectId = "project", Location = new() { Directory = "new" }, Slug = "new", Version = "2.3.2" },
+        });
+        await Assert.That(scenario.Board.Sessions.Single(static row => row.Session.Id == "ses_9").Session.Title).IsNull();
+        await scenario.SendAsync(new SessionRenamed
+        {
+            Id = "renamed",
+            Created = 2,
+            Durable = new() { AggregateId = "ses_9", Seq = 2, Version = 1 },
+            Data = new() { SessionId = "ses_9", Title = "Later title" },
+        });
+
+        await Assert.That(scenario.Board.Sessions.Single(static row => row.Session.Id == "ses_9").Session.Title).IsEqualTo("Later title");
+    }
+
+    [Test]
     public async Task SessionBoard_Should_Report_A_Watch_Fault_Before_Shutdown()
     {
         await using var scenario = new BoardScenario();
@@ -434,7 +459,7 @@ public sealed class SessionBoardTests
         public OpenCodeException? FormFailure { get; set; }
         public TaskCompletionSource ListingStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource? ListingRelease { get; set; }
-        public override SessionClient GetSessionClient(string sessionId) => new BoardSession(this);
+        public override SessionClient GetSessionClient(string sessionId) => new BoardSession(this, sessionId);
         public override Task<SessionActiveResponse> GetActiveAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
             Task.FromResult(new SessionActiveResponse { Status = 200, Active = Active.ToDictionary(static id => id, static _ => new SessionActive { Type = "running" }, StringComparer.Ordinal) });
         public override async Task<SessionListResponse> ListSessionsAsync(SessionListRequest? request = null,
@@ -468,8 +493,11 @@ public sealed class SessionBoardTests
         }
     }
 
-    private sealed class BoardSession(BoardSessions owner) : SessionClient
+    private sealed class BoardSession(BoardSessions owner, string sessionId) : SessionClient
     {
+        public override Task<SessionResponse> GetAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SessionResponse { Status = 200, Session = owner.Items.Single(item => item.Id == sessionId) });
+
         public override Task<SessionFormReplyResponse> ReplyToFormAsync(string formId, SessionFormReplyRequest request,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {

@@ -63,7 +63,7 @@ Aspire AppHost -> plain opencode serve (generated password, own port)
 The board opens the bus, awaits its first event, seeds the newest **500 sessions**, reads which are
 running, reads asks for those sessions' directories, then follows events. An unavailable directory
 is logged and skipped.
-A session renamed, deleted or archived elsewhere keeps its old row until the board reconnects or HQ restarts.
+A session's title follows rename events. A session deleted or archived elsewhere keeps its old row until the board reconnects or HQ restarts.
 A repeated `server.connected` refreshes the lists because disconnected events are lost. The SDK
 retries ordinary attempt failures forever and reports them through connection state; the board's
 owned state watch updates `Connected` and the connection error independently of event consumption.

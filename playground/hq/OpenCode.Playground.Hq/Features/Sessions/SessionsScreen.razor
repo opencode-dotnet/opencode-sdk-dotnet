@@ -42,7 +42,7 @@ else
         @foreach (var row in Board.Sessions)
         {
             <tr>
-                <td><a href="/sessions/@row.Session.Id">@row.Session.Title</a></td>
+                <td><a href="/sessions/@row.Session.Id">@(string.IsNullOrEmpty(row.Session.Title) ? "Untitled session" : row.Session.Title)</a></td>
                 <td class="mono">@row.Session.Location.Directory</td>
                 <td class="status-@row.Status.Split(' ')[0]">@row.Status</td>
             </tr>
