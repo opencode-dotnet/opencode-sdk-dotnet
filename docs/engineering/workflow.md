@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-11-15
+Date: 2026-11-23
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -38,10 +38,16 @@ complete diff; it is never hand-edited.
 
 ## Findings
 
-A finding that the change at hand does not fix gets a record before the work moves on. A product,
-test, or documentation finding becomes an issue on the project board, in a milestone or, for the
-backlog, in none; a finding about process alone is recorded in the private companion repository. A
-declined finding is recorded too, with its reason, in its issue or as an issue closed as not
+A finding that the change at hand does not fix gets a record before the work moves on. Where the
+record lives depends on who uses it:
+
+- Work an outside person can act on or follow, and work scheduled for a release, is a public issue
+  on the project board `ROADMAP.md` links; scheduled work sits in its release's milestone.
+- Other backlog is a draft item on that same board.
+- A finding about process alone, and process records such as plans, handoffs and ledgers, live in
+  the private companion repository.
+
+A declined finding is recorded too, with its reason, in its issue or as an issue closed as not
 planned. Scratch notes, session messages, and review reports are evidence, not records.
 
 ## Dependency refresh
