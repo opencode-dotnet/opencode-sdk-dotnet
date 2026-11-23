@@ -13,7 +13,8 @@ namespace OpenCode.Sdk.Tools.Tests.Packaging;
 /// <summary>
 /// The README a package carries links the repository at the commit the package was built from,
 /// the commit its own nuspec records, so the files it points to match the package. The
-/// repository's README links master; only the packed copy is rewritten. CI status badges keep
+/// repository's README links master; only the packed copy is rewritten, its raw.githubusercontent.com
+/// images included. CI status badges keep
 /// pointing at master, because they report master's state rather than link a file.
 /// </summary>
 [Category(TestCategories.Packaging)]
@@ -28,15 +29,21 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
     public async Task The_Packed_Readme_Should_Link_The_Repository_At_The_Packed_Commit(string packageId)
     {
         var package = await ReadPackageAsync(packageId);
+        var raw = RawUrl(package.RepositoryUrl);
         var link = new Regex(Regex.Escape(package.RepositoryUrl) + @"/(?:blob|tree)/(?<ref>[^/)\s]+)/", RegexOptions.None, Regex.InfiniteMatchTimeout);
+        var image = new Regex(Regex.Escape(raw) + @"/(?<ref>[^/)\s]+)/", RegexOptions.None, Regex.InfiniteMatchTimeout);
         var references = link.Matches(package.Readme).Select(static match => match.Groups["ref"].Value).ToArray();
+        var imageReferences = image.Matches(package.Readme).Select(static match => match.Groups["ref"].Value).ToArray();
 
         await Assert.That(package.Commit).Matches(CommitPattern());
         await Assert.That(package.Readme).DoesNotContain(package.RepositoryUrl + "/blob/master/");
         await Assert.That(package.Readme).DoesNotContain(package.RepositoryUrl + "/tree/master/");
+        await Assert.That(package.Readme).DoesNotContain(raw + "/master/");
         await Assert.That(references).IsNotEmpty();
-        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(imageReferences).IsNotEmpty();
+        // Only membership and cardinality matter; each expected collection has one item.
         await Assert.That(references.Distinct(StringComparer.Ordinal)).IsEquivalentTo([package.Commit], CollectionOrdering.Any);
+        await Assert.That(imageReferences.Distinct(StringComparer.Ordinal)).IsEquivalentTo([package.Commit], CollectionOrdering.Any);
     }
 
     /// <summary>
@@ -56,7 +63,8 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
         var source = await FileSystem.File.ReadAllTextAsync(FileSystem.Path.Combine(repository, "README.md"));
         var expected = source
             .Replace(package.RepositoryUrl + "/blob/master/", package.RepositoryUrl + "/blob/" + package.Commit + "/", StringComparison.Ordinal)
-            .Replace(package.RepositoryUrl + "/tree/master/", package.RepositoryUrl + "/tree/" + package.Commit + "/", StringComparison.Ordinal);
+            .Replace(package.RepositoryUrl + "/tree/master/", package.RepositoryUrl + "/tree/" + package.Commit + "/", StringComparison.Ordinal)
+            .Replace(RawUrl(package.RepositoryUrl) + "/master/", RawUrl(package.RepositoryUrl) + "/" + package.Commit + "/", StringComparison.Ordinal);
 
         await Assert.That(source).Contains(';').Because("the comparison must cover a semicolon");
         await Assert.That(PercentSequence().IsMatch(source)).IsTrue().Because("the comparison must cover a percent sequence");
@@ -133,6 +141,13 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
             return await reader.ReadToEndAsync().ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// An image's GitHub address is <c>raw.githubusercontent.com/&lt;owner&gt;/&lt;repo&gt;/&lt;ref&gt;/&lt;path&gt;</c>,
+    /// the form NuGet.org renders.
+    /// </summary>
+    private static string RawUrl(string repositoryUrl) =>
+        repositoryUrl.Replace("https://github.com/", "https://raw.githubusercontent.com/", StringComparison.Ordinal);
 
     [GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex CommitPattern();

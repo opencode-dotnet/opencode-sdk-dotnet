@@ -49,9 +49,11 @@
     A package's README links the repository at the commit the package was built from, not at
     master, so the files it points to match the package for as long as the package exists. The
     release tag is created on that same commit after the publish, so a commit link and a tag link
-    show the same content, and a nightly package, which gets no tag, links correctly too. The
-    repository's own README keeps its master links; only the packed copy is rewritten. A pack with
-    no known commit refuses rather than shipping master links. The copy is written by a small task
+    show the same content, and a nightly package, which gets no tag, links correctly too. Images
+    use the raw.githubusercontent.com form, the GitHub host NuGet.org renders images from, and are
+    pinned to the commit the same way. The repository's own README keeps its master links; only
+    the packed copy is rewritten. A pack with no known commit refuses rather than shipping master
+    links. The copy is written by a small task
     of its own, byte for byte apart from the links: WriteLinesToFile would pass the text through an
     item list, and on Linux and macOS MSBuild turns every backslash in an item into a slash, which
     would break the shell examples' line continuations (PackedReadmeTests compares the copy byte
@@ -68,9 +70,11 @@
     </ParameterGroup>
     <Task>
       <Code Type="Fragment" Language="cs"><![CDATA[
+        var raw = RepositoryUrl.Replace("github.com/", "raw.githubusercontent.com/");
         var text = System.IO.File.ReadAllText(Source)
             .Replace(RepositoryUrl + "/blob/master/", RepositoryUrl + "/blob/" + Commit + "/")
-            .Replace(RepositoryUrl + "/tree/master/", RepositoryUrl + "/tree/" + Commit + "/");
+            .Replace(RepositoryUrl + "/tree/master/", RepositoryUrl + "/tree/" + Commit + "/")
+            .Replace(raw + "/master/", raw + "/" + Commit + "/");
         System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Destination));
         System.IO.File.WriteAllText(Destination, text, new System.Text.UTF8Encoding(false));
       ]]></Code>
