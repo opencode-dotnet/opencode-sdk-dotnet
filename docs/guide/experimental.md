@@ -1,6 +1,6 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-22
+Date: 2026-11-23
 
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes it and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
@@ -8,6 +8,13 @@ before you depend on it.
 
 Upstream may change or remove an experimental family in any release, and the SDK follows it: from
 `1.0.0`, an experimental family may change in any release that moves the protocol pin.
+
+**What "experimental" means here.** The marker says that the shape of an API can change, because
+upstream serves it under `/api/experimental/` and may change or remove it in any release. It is
+not a statement about quality. An API stops being experimental when upstream moves its route out of
+`/api/experimental/`. The SDK release that moves the pin to that upstream release then drops the
+`OPENCODE001` or `OPENCODE002` marker from the members that call it, and from the types that only
+experimental operations reached.
 
 ## Opting in
 

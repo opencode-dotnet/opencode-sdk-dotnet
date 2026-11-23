@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-22
+Date: 2026-11-23
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -26,13 +26,54 @@ The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`, so any
 those works — a .NET Framework project after one language setting, below. A project on an older
 .NET, such as `net8.0` or `net9.0`, still installs the `netstandard2.0` asset but gets a build
 warning: that runtime is not one the packages are tested on. Nightly builds
-of `master` live on a GitHub Packages feed; the source command and its `read:packages` token
-requirement live in one place so they never drift:
-[**Installation** in the root README](../../README.md#-installation).
+of `master` live on a GitHub Packages feed: see
+[Nightly builds](#nightly-builds-github-packages) below.
 
 You also need an `opencode` server. Either install the CLI and run one yourself, or let the SDK
 start a private one for you — [connection modes](connection-modes.md) covers both, and
 [**Installation** in the root README](../../README.md#-installation) has the CLI install line.
+
+### Nightly builds (GitHub Packages)
+
+Every code push to `master` publishes a nightly of the next version, `{version}-nightly.{yyyyMMdd}.g{shortSha}`, to GitHub Packages:
+
+```bash
+# Add the GitHub Packages source (PAT: classic token with the read:packages scope)
+dotnet nuget add source https://nuget.pkg.github.com/opencode-dotnet/index.json \
+  --name github-opencode-sdk \
+  --username YOUR_GITHUB_USERNAME \
+  --password YOUR_GITHUB_PAT \
+  --store-password-in-clear-text
+
+# Install the nightly packages
+dotnet add package OpenCodeDotNet.Sdk --prerelease --source github-opencode-sdk
+dotnet add package OpenCodeDotNet.Sdk.Extensions --prerelease --source github-opencode-sdk
+```
+
+To keep the token out of shell history, put the source and its credentials in a `nuget.config` instead:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+    <add key="github-opencode-sdk" value="https://nuget.pkg.github.com/opencode-dotnet/index.json" />
+  </packageSources>
+  <packageSourceCredentials>
+    <github-opencode-sdk>
+      <add key="Username" value="%GITHUB_USERNAME%" />
+      <add key="ClearTextPassword" value="%GITHUB_PAT%" />
+    </github-opencode-sdk>
+  </packageSourceCredentials>
+</configuration>
+```
+
+> **🔑 GitHub Packages authentication**: GitHub Packages requires a
+> [classic Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
+> with the `read:packages` scope, even for public packages. The NuGet registry does not accept
+> fine-grained tokens. Linux and macOS need `--store-password-in-clear-text`, because NuGet cannot
+> encrypt stored credentials there. Never commit a real token. Inside GitHub Actions you need no
+> PAT: the workflow's own `GITHUB_TOKEN` works as the password.
 
 ### .NET Framework projects
 
@@ -315,6 +356,34 @@ var agents = await client.Agents.ListAgentsAsync();
 
 Console.WriteLine($"{providers.Providers.Count} providers, {agents.Agents.Count} agents");
 ```
+
+Each area of the API, with its entry point and the guide that covers it:
+
+| Area | Entry point | Guide |
+|---|---|---|
+| Sessions, messages, prompts | `client.Sessions` | [Requests](requests.md), [Pagination](pagination.md) |
+| Durable session event streams | `client.Experimental.ReadSessionLogAsync` | [Streaming](streaming.md) |
+| The live event stream | `client.Events` | [Streaming](streaming.md) |
+| Terminals and persistent terminals | `client.Ptys`, `client.PersistentPtys` | [Terminals](terminals.md) |
+| Shell commands | `client.Shells` | [Requests](requests.md) |
+| Files and version control | `client.FileSystem`, `client.Vcs`, `client.Worktrees` | [Requests](requests.md) |
+| Permissions and forms | `client.Permissions`, `client.Forms` | [Requests](requests.md) |
+| Models and providers | `client.Providers`, `client.LanguageModels`, `client.Credentials` | — |
+| Agents, commands, skills, plugins | `client.Agents`, `client.Commands`, `client.Skills`, `client.Plugins` | — |
+| MCP servers and integrations | `client.McpServers`, `client.Integrations` | — |
+| Application-hosted MCP tools | `client.Experimental.ConnectClientMcp` | [Client-hosted MCP](experimental.md#client-hosted-mcp) |
+| Configuration, projects, references | `client.Config`, `client.Projects`, `client.References` | — |
+| Server info and pairing | `client.Server` | [Connection modes](connection-modes.md) |
+| Locations | `client.GetLocationAsync`, `client.ReloadLocationsAsync`, `client.Debug` | [Requests](requests.md) |
+| Web search | `client.Websearch` | — |
+| Plugin RPC, raw or through a typed definition | `client.Rpc` | [Requests](requests.md) |
+| Operations upstream marks experimental | `client.Experimental` | [Experimental APIs](experimental.md) |
+
+The terminal connections (`pty.connect`, `experimental.persistentPty.connect`) and client-hosted MCP
+attachment are WebSocket upgrades outside the HTTP pipeline. The hand-written `PtySession`,
+`PersistentPtySession` and `ClientMcpConnection` types expose these three connections.
+[Client-hosted MCP](experimental.md#client-hosted-mcp)
+also provides `CreateClientMcpConnectTokenAsync` for browser tickets through the HTTP pipeline.
 
 Two shapes repeat everywhere, and once you have seen them the rest of the surface reads itself:
 

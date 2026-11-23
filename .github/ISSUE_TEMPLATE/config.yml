@@ -9,3 +9,6 @@ contact_links:
   - name: How do I use this?
     url: https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/README.md
     about: The guide covers installing, connecting, streaming, terminals, errors, and pagination.
+  - name: Ask a question
+    url: https://github.com/opencode-dotnet/opencode-sdk-dotnet/discussions/categories/q-a
+    about: Usage questions are answered in the Q&A category of Discussions.
