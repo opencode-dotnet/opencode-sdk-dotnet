@@ -9,6 +9,9 @@ While a turn runs, Stop interrupts it with resumption enabled, as in upstream's 
 There is no login, database or settings UI.
 
 The board can rename, archive and delete a session; the session page can rename and delete it.
+Fork from here opens a new session with that sent user message in its prompt box.
+Compact session summarizes the conversation using the composer's chosen model.
+Choose agent and Choose model switch the session's selection when you send a prompt.
 
 A session's page can open a **terminal** in the session's folder: one shell, its output as plain
 text, and one line at a time. It leaves out resizing, reattaching and resuming from a cursor; the

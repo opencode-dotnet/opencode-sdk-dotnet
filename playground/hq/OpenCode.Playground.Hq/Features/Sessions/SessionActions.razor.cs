@@ -29,6 +29,27 @@ public sealed partial class SessionActions : IDisposable
     [Parameter]
     public EventCallback Deleted { get; set; }
 
+    /// <summary>Gets or sets whether the session has a user turn to compact.</summary>
+    [Parameter]
+    public bool CanCompact { get; set; }
+
+    /// <summary>Gets or sets the header's compaction using the composer's model.</summary>
+    [Parameter]
+    public EventCallback Compact { get; set; }
+
+    private async Task CompactAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Compact.InvokeAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

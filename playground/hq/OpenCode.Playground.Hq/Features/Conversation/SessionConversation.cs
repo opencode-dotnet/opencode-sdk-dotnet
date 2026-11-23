@@ -11,6 +11,8 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     private readonly HashSet<string> _outbox = [with(StringComparer.Ordinal)];
     private bool _executing;
     private int _sending;
+    private string? _choicesFolder;
+    private int _choicesLoad;
 
     public event EventHandler? Changed;
     public string SessionId { get; private set; } = "";
@@ -20,6 +22,114 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     public bool Ready { get; private set; }
     public int EndedTurns { get; private set; }
     public string? LastError { get; private set; }
+    public IReadOnlyList<AgentInfo> Agents { get; private set; } = [];
+    public IReadOnlyDictionary<ModelRef, string> Models { get; private set; } = new Dictionary<ModelRef, string>();
+    public string? Agent { get; private set; }
+    public ModelRef? Model { get; private set; }
+
+    public async Task LoadChoicesAsync(CancellationToken cancellationToken)
+    {
+        var load = ++_choicesLoad;
+        LastError = null;
+        try
+        {
+            #region panel: choices
+            var current = await client.Sessions.GetSessionClient(SessionId).GetAsync(cancellationToken: cancellationToken);
+            _choicesFolder = current.Session.Location.Directory;
+            var location = new LocationSelector { Directory = current.Session.Location.Directory };
+            var agents = await client.Agents.ListAgentsAsync(new AgentListRequest { Location = location }, cancellationToken: cancellationToken);
+            var providers = await client.Providers.ListProvidersAsync(new ProviderListRequest { Location = location }, cancellationToken: cancellationToken);
+            var models = await client.LanguageModels.ListModelsAsync(new ModelListRequest { Location = location }, cancellationToken: cancellationToken);
+            var names = providers.Providers.ToDictionary(static provider => provider.Id, static provider => provider.Name, StringComparer.Ordinal);
+            var model = current.Session.Model;
+            if (model is null)
+            {
+                var chosen = await client.LanguageModels.GetDefaultAsync(new ModelDefaultRequest { Location = location }, cancellationToken: cancellationToken);
+                model = chosen.Default is { } found ? new ModelRef { Id = found.Id, ProviderId = found.ProviderId } : null;
+            }
+            #endregion
+            if (load != _choicesLoad)
+            {
+                // As in upstream's client, a read that a newer one replaced does not commit.
+                return;
+            }
+
+            Agents = [.. agents.Agents.Where(static agent => agent.Mode != AgentInfoMode.Subagent && !agent.Hidden)];
+            Models = models.Models.Where(listed => listed.Status != ModelInfoStatus.Deprecated && names.ContainsKey(listed.ProviderId))
+                .ToDictionary(static listed => new ModelRef { Id = listed.Id, ProviderId = listed.ProviderId }, listed => $"{listed.Name} ({names[listed.ProviderId]})");
+            Agent = current.Session.Agent ?? (Agents.Count > 0 ? Agents[0].Id : null);
+            Model = model;
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not load choices for session {SessionId}.", SessionId);
+            if (load != _choicesLoad)
+            {
+                return;
+            }
+
+            LastError = "Request failed";
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task CompactAsync(ModelRef? model, CancellationToken cancellationToken)
+    {
+        LastError = null;
+        try
+        {
+            await SwitchAsync(null, model, cancellationToken);
+            #region panel: compact
+            _ = await client.Sessions.GetSessionClient(SessionId).CompactAsync(
+                new SessionCompactRequest { Id = $"msg_{Guid.NewGuid():N}" }, cancellationToken: cancellationToken);
+            #endregion
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not compact session {SessionId}.", SessionId);
+            LastError = "Request failed";
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task SwitchAsync(string? agent, ModelRef? model, CancellationToken cancellationToken)
+    {
+        #region panel: switch
+        var session = client.Sessions.GetSessionClient(SessionId);
+        var current = await session.GetAsync(cancellationToken: cancellationToken);
+        if (agent is not null && agent != current.Session.Agent)
+        {
+            _ = await session.SwitchAgentAsync(new SessionSwitchAgentRequest { Agent = agent }, cancellationToken: cancellationToken);
+        }
+
+        if (model is not null && model != current.Session.Model)
+        {
+            _ = await session.SwitchModelAsync(new SessionSwitchModelRequest { Model = model }, cancellationToken: cancellationToken);
+        }
+        #endregion
+    }
+
+    public async Task<SessionInfo?> ForkAsync(string messageId, CancellationToken cancellationToken)
+    {
+        LastError = null;
+        try
+        {
+            #region panel: fork
+            var response = await client.Sessions.GetSessionClient(SessionId).ForkAsync(
+                new SessionForkRequest { Before = messageId }, cancellationToken: cancellationToken);
+            #endregion
+            return response.Fork;
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not fork session {SessionId}.", SessionId);
+            LastError = "Request failed";
+            Changed?.Invoke(this, EventArgs.Empty);
+            return null;
+        }
+    }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
@@ -39,6 +149,17 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     /// <summary>Subscribes before loading history, then follows the session until cancelled.</summary>
     public async Task FollowAsync(string sessionId, CancellationToken cancellationToken)
     {
+        if (SessionId != sessionId)
+        {
+            _lines.Clear();
+            _live.Clear();
+            _outbox.Clear();
+            _executing = false;
+            EndedTurns = 0;
+            LastError = null;
+            Ready = false;
+            _choicesFolder = null;
+        }
         SessionId = sessionId;
         while (true)
         {
@@ -51,6 +172,17 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
                     {
                         // The snapshot carries no delta cursor. A buffered delta can repeat text after refresh until the part's end replaces it.
                         await LoadAsync(cancellationToken);
+                    }
+                    else if (CatalogFolder(item) is { } folder)
+                    {
+                        // As upstream's app does, the choices are read again when the server announces its catalog: it
+                        // lists a folder's agents empty until it has loaded that folder, then sends these events.
+                        if (string.Equals(folder, _choicesFolder, StringComparison.Ordinal))
+                        {
+                            await LoadChoicesAsync(cancellationToken);
+                        }
+
+                        continue;
                     }
                     else if (item is not ISessionScopedEvent scoped || scoped.SessionId != sessionId || !Apply(item))
                     {
@@ -72,7 +204,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     }
 
     /// <summary>Shows the prompt at once, then sends it with an id of HQ's own; false when the prompt was not sent.</summary>
-    public async Task<bool> SendAsync(string text, CancellationToken cancellationToken)
+    public async Task<bool> SendAsync(string text, CancellationToken cancellationToken, string? agent = null, ModelRef? model = null)
     {
         LastError = null;
         #region panel: prompt
@@ -91,6 +223,11 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
         Changed?.Invoke(this, EventArgs.Empty);
         try
         {
+            if (agent is not null || model is not null)
+            {
+                await SwitchAsync(agent, model, cancellationToken);
+            }
+
             _ = await client.Sessions.GetSessionClient(SessionId).PromptAsync(
                 new SessionPromptRequest { Id = promptId, Text = text }, cancellationToken: cancellationToken);
         }
@@ -131,6 +268,14 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
         Changed?.Invoke(this, EventArgs.Empty);
         return true;
     }
+
+    private static string? CatalogFolder(IEvent item) => item switch
+    {
+        AgentUpdated agent => agent.Location?.Directory,
+        ModelUpdated model => model.Location?.Directory,
+        ProviderUpdated provider => provider.Location?.Directory,
+        _ => null,
+    };
 
     private bool Apply(IEvent item)
     {
@@ -249,6 +394,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
         }
 
         var active = await client.Sessions.GetActiveAsync(cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         // Merged only after every await, because a send can finish meanwhile: a prompt HQ sent keeps its line, in its
         // current state, until the stored history holds it.
         var sent = _lines.FindAll(line => line.PromptId is { } id && _outbox.Contains(id));

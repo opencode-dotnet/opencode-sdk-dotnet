@@ -3,13 +3,15 @@
 @inject SessionBoard Board
 @inject ILogger<SessionScreen> Logger
 @inject NavigationManager Navigation
+@inject PromptDraft Draft
 
 <PageTitle>@Title</PageTitle>
 <main class="session">
     <header class="session-head">
         @if (Board.Find(SessionId) is { } session)
         {
-            <SessionActions @key="session.Id" Session="session" Placement="header" Deleted="OnDeleted" />
+            <SessionActions @key="session.Id" Session="session" Placement="header" Deleted="OnDeleted"
+                            CanCompact="@Conversation.Lines.Any(static line => line.Author == "you" && !line.Pending)" Compact="CompactAsync" />
         }
         else
         {
@@ -52,7 +54,13 @@
             {
                 @if (line.Author == "you")
                 {
-                    <div class="turn you @(line.Pending ? "pending" : null)"><span class="sr">You: </span>@line.Text</div>
+                    <div class="turn you @(line.Pending ? "pending" : null)">
+                        <span class="sr">You: </span>@line.Text
+                        @if (!line.Pending && line.PromptId is not null)
+                        {
+                            <div class="turn-actions"><button type="button" disabled="@_forking" @onclick="() => ForkAsync(line)">Fork from here</button></div>
+                        }
+                    </div>
                 }
                 else
                 {
@@ -82,6 +90,21 @@
             </section>
         }
         <form class="composer" @onsubmit="SendAsync" @onsubmit:preventDefault>
+            <div class="composer-choices">
+                <select aria-label="Choose agent" @bind="_agent">
+                    @foreach (var agent in Conversation.Agents)
+                    {
+                        @* The server addresses an agent by its id, as upstream's app does; the name is its label. *@
+                        <option value="@agent.Id">@agent.Name</option>
+                    }
+                </select>
+                <select aria-label="Choose model" @bind="ModelChoice">
+                    @foreach (var (model, name) in Conversation.Models)
+                    {
+                        <option value="@($"{model.ProviderId}/{model.Id}")">@name</option>
+                    }
+                </select>
+            </div>
             <label class="sr" for="prompt">Prompt</label>
             <textarea id="prompt" rows="2" placeholder="Send a prompt to this session" @bind="_prompt" @bind:event="oninput" disabled="@Conversation.Running"></textarea>
             @if (Conversation.Running)

@@ -1,5 +1,6 @@
 using Markdig;
 using Microsoft.AspNetCore.Components;
+using OpenCode.Sdk.Models;
 
 namespace OpenCode.Playground.Hq.Features.Conversation;
 
@@ -8,8 +9,16 @@ public sealed partial class SessionScreen : IDisposable
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().DisableHtml().Build();
     internal static MarkupString Rendered(string text) => new(Markdown.ToHtml(text, Pipeline));
-    private readonly CancellationTokenSource _lifetime = new();
+    private CancellationTokenSource _lifetime = new();
     private string _prompt = "";
+    private string? _agent;
+    private ModelRef? _model;
+    private bool _forking;
+    private string ModelChoice
+    {
+        get => _model is { } model ? $"{model.ProviderId}/{model.Id}" : "";
+        set => _model = Conversation.Models.Keys.FirstOrDefault(model => $"{model.ProviderId}/{model.Id}" == value);
+    }
     private bool _followLost;
     private bool _terminalTab;
     private int _changeCount;
@@ -33,12 +42,31 @@ public sealed partial class SessionScreen : IDisposable
     {
         Conversation.Changed += OnChanged;
         Board.Changed += OnChanged;
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Conversation.SessionId == SessionId)
+        {
+            return;
+        }
+
+        await _lifetime.CancelAsync();
+        _lifetime.Dispose();
+        _lifetime = new();
+        _prompt = Draft.Take(SessionId) ?? "";
+        _followLost = false;
+        _changeCount = 0;
         // The screen owns this follow: it ends with _lifetime, and its faults reach FollowFaulted.
         _ = Conversation.FollowAsync(SessionId, _lifetime.Token).ContinueWith(
             FollowFaulted, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         // As upstream's session page does when it opens, the asks shown are the ones the server still lists.
         _ = Board.ResyncAsync(SessionId, _lifetime.Token).ContinueWith(
             ResyncFaulted, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+        await Conversation.LoadChoicesAsync(_lifetime.Token);
+        _agent = Conversation.Agent;
+        _model = Conversation.Model;
     }
 
     private void ResyncFaulted(Task resync) =>
@@ -47,7 +75,13 @@ public sealed partial class SessionScreen : IDisposable
     private void OnChanged(object? sender, EventArgs args)
     {
         // The renderer owns this work: a render failure reaches its own error handling, which logs it.
-        _ = InvokeAsync(StateHasChanged);
+        _ = InvokeAsync(() =>
+        {
+            // Choices the server lists late fill a picker that has no choice yet.
+            _agent ??= Conversation.Agent;
+            _model ??= Conversation.Model;
+            StateHasChanged();
+        });
     }
 
     private void FollowFaulted(Task follow)
@@ -61,13 +95,32 @@ public sealed partial class SessionScreen : IDisposable
     {
         var text = _prompt;
         _prompt = "";
-        if (!await Conversation.SendAsync(text, _lifetime.Token) && _prompt.Length == 0)
+        if (!await Conversation.SendAsync(text, _lifetime.Token, _agent, _model) && _prompt.Length == 0)
         {
             // As in upstream's app, a refused prompt goes back into the box, unless something else was typed there.
             _prompt = text;
         }
     }
 
+    private async Task ForkAsync(ConversationLine line)
+    {
+        _forking = true;
+        try
+        {
+            if (line.PromptId is { } messageId && await Conversation.ForkAsync(messageId, _lifetime.Token) is { } fork)
+            {
+                Board.Remember(fork);
+                Draft.Set(fork.Id, line.Text);
+                Navigation.NavigateTo($"/sessions/{fork.Id}");
+            }
+        }
+        finally
+        {
+            _forking = false;
+        }
+    }
+
+    private Task CompactAsync() => Conversation.CompactAsync(_model, _lifetime.Token);
     private Task StopAsync() => Conversation.StopAsync(_lifetime.Token);
     private void OnDeleted() => Navigation.NavigateTo("/");
 }

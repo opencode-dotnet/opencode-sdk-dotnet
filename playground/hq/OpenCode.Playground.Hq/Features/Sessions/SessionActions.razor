@@ -47,6 +47,10 @@ else
     private RenderFragment Controls => @<text>
         <div class="actions session-controls">
             <button type="button" disabled="@_busy" @onclick="BeginRename">@(Placement == "row" ? "Rename" : "Rename session")</button>
+            @if (Placement == "header")
+            {
+                <button type="button" disabled="@(_busy || !CanCompact)" title="Summarize the session to reduce context size" @onclick="CompactAsync">Compact session</button>
+            }
             @if (Placement == "row")
             {
                 <button type="button" disabled="@_busy" @onclick="ArchiveAsync">Archive</button>

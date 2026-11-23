@@ -21,6 +21,12 @@ internal sealed class ConversationScenario : OpenCodeClient
     public ConversationSessions SessionCalls { get; }
     public ConversationSession MessageCalls { get; } = new();
     public ConversationEvents EventCalls { get; } = new();
+    public ConversationAgents AgentCalls { get; } = new();
+    public ConversationModels ModelCalls { get; } = new();
+    public ConversationProviders ProviderCalls { get; } = new();
+    public override AgentsClient Agents => AgentCalls;
+    public override LanguageModelsClient LanguageModels => ModelCalls;
+    public override ProvidersClient Providers => ProviderCalls;
     public override SessionsClient Sessions => SessionCalls;
     public override EventsClient Events => EventCalls;
 
@@ -34,6 +40,19 @@ internal sealed class ConversationScenario : OpenCodeClient
     {
         EventCalls.Items = [Connected, .. events.Select(item => (Func<IEvent>)(() => item))];
         return Conversation.FollowAsync(SessionId, CancellationToken.None);
+    }
+
+    /// <summary>The server's announcement that a folder's agents, models or providers can be listed again.</summary>
+    public static IEvent Catalog(string type, string directory)
+    {
+        var location = new LocationRef { Directory = directory };
+        var data = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        return type switch
+        {
+            "agent.updated" => new AgentUpdated { Id = "evt_agent", Created = 1, Location = location, Data = data },
+            "model.updated" => new ModelUpdated { Id = "evt_model", Created = 1, Location = location, Data = data },
+            _ => new ProviderUpdated { Id = "evt_provider", Created = 1, Location = location, Data = data },
+        };
     }
 
     public static EventServerConnected Connected() => new() { Id = "connected", Data = new Dictionary<string, JsonElement>(StringComparer.Ordinal) };
@@ -117,6 +136,85 @@ internal sealed class ConversationScenario : OpenCodeClient
         Data = new() { SessionId = SessionId, Error = new() { Type = "provider.free-limit", Message = ErrorMessage } },
     };
 
+    public static AgentInfo Agent(string id, AgentInfoMode mode, bool hidden = false) => new()
+    {
+        // As the server sends them: an id the session addresses, and a display name that differs from it.
+        Id = id,
+        Name = string.Concat(id[..1].ToUpperInvariant(), id[1..]),
+        Mode = mode,
+        Hidden = hidden,
+        Request = new() { Settings = new(), Headers = new Dictionary<string, string>(StringComparer.Ordinal), Body = new Dictionary<string, JsonElement>(StringComparer.Ordinal) },
+        Permissions = [],
+    };
+    public static ModelInfo Model(string id, string provider = "provider") => new()
+    {
+        Id = id,
+        ModelId = id,
+        ProviderId = provider,
+        Name = id,
+        Capabilities = new() { Tools = false, Input = ["text", "image"], Output = ["text"] },
+        Variants = [],
+        Time = new() { Released = 1 },
+        Cost = [],
+        Status = ModelInfoStatus.Active,
+        Enabled = true,
+        Limit = new() { Context = 1000, Output = 100 },
+    };
+
+    internal sealed class ConversationAgents : AgentsClient
+    {
+        public AgentListRequest? Request { get; private set; }
+        public IReadOnlyList<AgentInfo> Items { get; set; } = [];
+        /// <summary>Holds the next listing until released; it answers with the list this held, not the current one.</summary>
+        public TaskCompletionSource? Hold { get; set; }
+        public override async Task<AgentListResponse> ListAgentsAsync(AgentListRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            Request = request;
+            var agents = Items;
+            if (Hold is { } hold)
+            {
+                Hold = null;
+                await hold.Task.WaitAsync(cancellationToken);
+            }
+
+            return new AgentListResponse { Status = 200, Agents = agents, Location = new() { Directory = "workspace" } };
+        }
+    }
+    internal sealed class ConversationModels : LanguageModelsClient
+    {
+        public ModelListRequest? Request { get; private set; }
+        public ModelDefaultRequest? DefaultRequest { get; private set; }
+        public IReadOnlyList<ModelInfo> Items { get; set; } = [];
+        public override Task<ModelDefaultResponse> GetDefaultAsync(ModelDefaultRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            DefaultRequest = request;
+            return Task.FromResult(new ModelDefaultResponse { Status = 200, Default = Items.Count > 0 ? Items[^1] : null, Location = new() { Directory = "workspace" } });
+        }
+        public override Task<ModelListResponse> ListModelsAsync(ModelListRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            Request = request;
+            return Task.FromResult(new ModelListResponse { Status = 200, Models = Items, Location = new() { Directory = "workspace" } });
+        }
+    }
+    internal sealed class ConversationProviders : ProvidersClient
+    {
+        public ProviderListRequest? Request { get; private set; }
+        public override Task<ProviderListResponse> ListProvidersAsync(ProviderListRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            Request = request;
+            return Task.FromResult(new ProviderListResponse
+            {
+                Status = 200,
+                Location = new() { Directory = "workspace" },
+                Providers = [new() { Id = "provider", Name = "Provider name", Package = "package", Activation = ProviderInfoActivation.Enabled }],
+            });
+        }
+    }
+
     internal sealed class ConversationEvents : EventsClient
     {
         public Queue<IReadOnlyList<Func<IEvent>>> Subscriptions { get; } = new();
@@ -161,6 +259,61 @@ internal sealed class ConversationScenario : OpenCodeClient
     internal sealed class ConversationSession : SessionClient
     {
         private bool _ascending;
+        public OpenCodeException? ToolFailure { get; set; }
+        public SessionForkRequest? Fork { get; private set; }
+        public SessionCompactRequest? Compact { get; private set; }
+        public SessionSwitchModelRequest? SwitchModel { get; private set; }
+        public SessionSwitchAgentRequest? SwitchAgent { get; private set; }
+        public bool FailSwitch { get; set; }
+        public SessionInfo Info { get; set; } = new()
+        {
+            Id = SessionId,
+            ProjectId = "project",
+            Cost = 0,
+            Tokens = new() { Input = 0, Output = 0, Reasoning = 0, Cache = new() { Read = 0, Write = 0 } },
+            Time = new() { Created = 1, Updated = 1 },
+            Location = new() { Directory = "workspace" },
+        };
+        public override Task<SessionForkResponse> ForkAsync(SessionForkRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            Fork = request;
+            Trace.Add("fork");
+            return ToolFailure is { } failure ? Task.FromException<SessionForkResponse>(failure)
+                : Task.FromResult(new SessionForkResponse { Status = 200, Fork = Info with { Id = "ses_fork" } });
+        }
+
+        public override Task<SessionResponse> GetAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SessionResponse { Status = 200, Session = Info });
+        public override Task<SessionSwitchModelResponse> SwitchModelAsync(SessionSwitchModelRequest request,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            SwitchModel = request;
+            Trace.Add("switchModel");
+            return FailSwitch ? Task.FromException<SessionSwitchModelResponse>(new OpenCodeTransportException("offline"))
+                : Task.FromResult(new SessionSwitchModelResponse { Status = 204 });
+        }
+        public override Task<SessionSwitchAgentResponse> SwitchAgentAsync(SessionSwitchAgentRequest request,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            SwitchAgent = request;
+            Trace.Add("switchAgent");
+            return FailSwitch ? Task.FromException<SessionSwitchAgentResponse>(new OpenCodeTransportException("offline"))
+                : Task.FromResult(new SessionSwitchAgentResponse { Status = 204 });
+        }
+        public override Task<SessionCompactResponse> CompactAsync(SessionCompactRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            Compact = request;
+            Trace.Add("compact");
+            return ToolFailure is { } failure ? Task.FromException<SessionCompactResponse>(failure)
+                : Task.FromResult(new SessionCompactResponse
+                {
+                    Status = 200,
+                    Compact = new() { Id = request?.Id.Value ?? "msg_compact", SessionId = SessionId, Time = new() { Created = 1 }, Payload = new Dictionary<string, JsonElement>(StringComparer.Ordinal), Delivery = SessionInboxDelivery.Steer },
+                });
+        }
+
         public ICollection<string> Trace { get; set; } = [];
         public IReadOnlyList<ISessionMessageInfo> Messages { get; set; } = [];
         public bool FailPrompt { get; set; }
@@ -201,6 +354,7 @@ internal sealed class ConversationScenario : OpenCodeClient
         public override async Task<SessionPromptResponse> PromptAsync(SessionPromptRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
             Prompt = request;
+            Trace.Add("prompt");
             if (PromptRelease is { } release)
             {
                 await release.Task.WaitAsync(cancellationToken);

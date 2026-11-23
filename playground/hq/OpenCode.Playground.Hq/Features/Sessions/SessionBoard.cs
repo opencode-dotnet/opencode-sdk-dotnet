@@ -90,6 +90,15 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         }
     }
 
+    /// <summary>Adds a session this app made, as upstream's app does with a fork it opens.</summary>
+    /// <remarks>The server announces a fork with <c>session.forked</c>, not <c>session.created</c>, so no event adds it.</remarks>
+    /// <param name="session">The session the server returned.</param>
+    public void Remember(SessionInfo session)
+    {
+        _sessions[session.Id] = session;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     public async Task RenameAsync(string sessionId, string title, CancellationToken cancellationToken)
     {
         LastError = null;
@@ -363,6 +372,12 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
                 break;
             case SessionRenamed renamed when _sessions.TryGetValue(renamed.Data.SessionId, out var session):
                 _sessions[session.Id] = session with { Title = renamed.Data.Title };
+                break;
+            case SessionAgentSelected selected when _sessions.TryGetValue(selected.Data.SessionId, out var session):
+                _sessions[session.Id] = session with { Agent = selected.Data.Agent };
+                break;
+            case SessionModelSelected selected when _sessions.TryGetValue(selected.Data.SessionId, out var session):
+                _sessions[session.Id] = session with { Model = selected.Data.Model };
                 break;
             case SessionExecutionStarted started:
                 _running[started.Data.SessionId] = 0;
