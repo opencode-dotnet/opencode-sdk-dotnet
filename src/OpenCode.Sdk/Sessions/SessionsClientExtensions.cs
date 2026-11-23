@@ -27,30 +27,7 @@ public static class SessionsClientExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Session cost totals");
-        return ReadTotalCostAsync(client, sessionId, requestOptions, cancellationToken);
-    }
-
-    private static async Task<double> ReadTotalCostAsync(SessionsClient client, string sessionId,
-        OpenCodeRequestOptions? requestOptions, CancellationToken cancellationToken)
-    {
-        var response = await client.GetSessionClient(sessionId).GetAsync(requestOptions, cancellationToken).ConfigureAwait(false);
-        var session = response.Session;
-        if (session.ParentId is not null)
-        {
-            return session.Cost;
-        }
-
-        var total = session.Cost;
-        await foreach (var child in client.EnumerateSessionsAsync(new SessionListRequest
-        {
-            ParentId = SessionParentFilter.Of(sessionId),
-            Order = ListOrder.Descending,
-            Limit = 200,
-        }, requestOptions, cancellationToken).ConfigureAwait(false))
-        {
-            total += child.Cost;
-        }
-
-        return total;
+        var session = client.GetSessionClient(sessionId);
+        return new SessionCostTotal(client).ReadAsync(session, sessionId, requestOptions, cancellationToken);
     }
 }

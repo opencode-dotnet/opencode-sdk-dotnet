@@ -84,6 +84,27 @@ public sealed class SessionsClientExtensionsTests
     }
 
     [Test]
+    [Arguments(" ", "The value cannot be an empty string or composed entirely of whitespace.")]
+    [Arguments("..", "Route values must not be dot segments.")]
+    public async Task GetTotalCostAsync_Should_Reject_An_Invalid_Id_At_The_Call(string sessionId, string message)
+    {
+        using var scenario = PipelineScenario.Responding();
+
+        var failure = Assert.Throws<ArgumentException>(() =>
+            _ = new SessionsClient(scenario.Pipeline).GetTotalCostAsync(sessionId));
+
+        await Assert.That(failure.ParamName).IsEqualTo("sessionId");
+        // ArgumentException renders its parameter suffix differently on .NET Framework.
+#if NETFRAMEWORK
+        const string suffix = "\r\nParameter name: sessionId";
+#else
+        const string suffix = " (Parameter 'sessionId')";
+#endif
+        await Assert.That(failure.Message).IsEqualTo(message + suffix);
+        await Assert.That(scenario.Requests).IsEmpty();
+    }
+
+    [Test]
     public async Task GetTotalCostAsync_Should_Reject_A_Null_Client()
     {
         var failure = Assert.Throws<ArgumentNullException>(() =>

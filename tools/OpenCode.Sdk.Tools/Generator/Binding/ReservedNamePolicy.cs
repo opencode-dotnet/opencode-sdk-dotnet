@@ -406,6 +406,7 @@ internal static class ReservedNamePolicy
             "ServiceTerminator",
             "ServiceTiming",
             "ServiceVersionPolicy",
+            "SessionCostTotal",
             "SignalDelivery",
             "SharedEventFeed",
             "SlopwatchSuppressAttribute",

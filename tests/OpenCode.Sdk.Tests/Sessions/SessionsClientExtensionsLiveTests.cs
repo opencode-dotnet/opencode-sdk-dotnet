@@ -63,6 +63,8 @@ public sealed class SessionsClientExtensionsLiveTests(SimulatedDriveServerFixtur
             await foreach (var session in client.Sessions.EnumerateSessionsAsync(new SessionListRequest
             {
                 ParentId = SessionParentFilter.Of(scenario.SessionId),
+                Order = ListOrder.Descending,
+                Limit = 200,
             }, cancellationToken: cancellationToken))
             {
                 children.Add(session);
@@ -71,12 +73,12 @@ public sealed class SessionsClientExtensionsLiveTests(SimulatedDriveServerFixtur
             await Assert.That(children.Select(static session => session.Id)).IsEquivalentTo([childId!], CollectionOrdering.Matching);
             await Assert.That(children.Single().ParentId).IsEqualTo(scenario.SessionId);
             var rootRead = await scenario.Session.GetAsync(cancellationToken: cancellationToken);
+            await Assert.That(rootRead.Session.ParentId).IsNull();
             var childRead = await client.Sessions.GetSessionClient(childId!).GetAsync(cancellationToken: cancellationToken);
             await Assert.That(await client.Sessions.GetTotalCostAsync(scenario.SessionId, cancellationToken: cancellationToken))
                 .IsEqualTo(rootRead.Session.Cost + childRead.Session.Cost);
             await Assert.That(await client.Sessions.GetTotalCostAsync(childId!, cancellationToken: cancellationToken))
                 .IsEqualTo(childRead.Session.Cost);
-            Console.WriteLine("session-cost-live: requests=child-finished,root-notice-finished");
         });
     }
 
