@@ -23,6 +23,8 @@ Nightly builds of `master` are on
   and a running turn can be stopped. Session titles follow later renames, and untitled rows stay
   clickable. A session's asks are listed again when its page opens and when one of its turns ends,
   so an ask a stopped turn dropped no longer stays on the board.
+- The README shows HQ's board. On NuGet.org the image comes from the commit the package was built
+  from, like the README's links.
 
 ## [2.0.1] - 2026-11-22
 
