@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-17
+Date: 2026-11-23
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -1015,9 +1015,37 @@ internal sealed class EventLogger(EventsClient events, ILogger<EventLogger> logg
 > your code; the annotation is doing its job. Switch to the configure-action overload there, which
 > needs no reflection at all. Both packages declare `IsAotCompatible` on every modern target.
 
-The configure-action overload, with a `SessionsClient` worker doing a paged read, is the worked
-example in the root README's [dependency-injection quickstart](../../README.md#dependency-injection)
-— worth reading side by side with the binding above.
+The configure-action overload, with a `SessionsClient` worker that does a paged read, is the
+counterpart of the binding above.
+
+For a non-web host, `Host` and `BackgroundService` come from the `Microsoft.Extensions.Hosting` package:
+
+```bash
+dotnet add package Microsoft.Extensions.Hosting
+```
+
+```csharp
+var builder = Host.CreateApplicationBuilder(args);
+builder.Services.AddOpenCode(options =>
+{
+    options.Endpoint = new Uri("http://127.0.0.1:4096");
+    options.Password = Environment.GetEnvironmentVariable("OPENCODE_PASSWORD");
+});
+```
+
+```csharp
+internal sealed class SessionWorker(SessionsClient sessions) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        var page = await sessions.ListSessionsAsync(
+            new SessionListRequest { Limit = 10, Order = ListOrder.Descending },
+            cancellationToken: stoppingToken);
+
+        Console.WriteLine($"{page.Sessions.Count} sessions, next cursor {page.Cursor.Next ?? "<none>"}");
+    }
+}
+```
 
 Nothing about DI changes which door you came in through: an `AddOpenCode` registration is the
 explicit-endpoint door. A launcher-started or a discovered server joins a container through the

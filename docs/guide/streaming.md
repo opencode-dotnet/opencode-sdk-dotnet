@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-22
+Date: 2026-11-23
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -594,7 +594,7 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 >
 > **The distributed `opencode` CLI starts its server without event persistence and exposes no switch
 > for it** — no serve flag, no environment variable, no configuration key. Observed on
-> `@opencode/cli@2.0.15`. So `ReadSessionLogAsync` against a CLI-started server is not an error and
+> `@opencode/cli@2.0.15`, and confirmed at the pin (`v2.3.2`). So `ReadSessionLogAsync` against a CLI-started server is not an error and
 > not empty: with `Follow` unset or `False` it is one `log.synced` frame and the end of the stream,
 > and with `Follow = True` it is the same single marker and then nothing, however many durable
 > changes the session goes through while you listen. The marker's wire `seq` (normally
@@ -682,6 +682,33 @@ before. See the
   durable session event stream, a per-call `NetworkTimeout` overrides the client value only while opening:
   once open, a silent log stays open until you cancel,
   the server ends it, or it fails.
+
+A deadline on the whole subscription, with a filter that tells your own deadline from any other
+cancellation:
+
+```csharp
+using OpenCode.Sdk;
+using OpenCode.Sdk.Models;
+
+await using var server = await OpenCodeServer.StartAsync();
+using var client = server.CreateClient();
+
+var info = await client.Server.GetInfoAsync();
+Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid})");
+
+using var window = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+try
+{
+    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
+    {
+        Console.WriteLine($"{@event.GetType().Name} ({@event.Type})");
+    }
+}
+catch (OperationCanceledException failure) when (failure.CancellationToken == window.Token)
+{
+    Console.WriteLine("the 30-second window ended");
+}
+```
 
 ## 💥 Stream error channels
 

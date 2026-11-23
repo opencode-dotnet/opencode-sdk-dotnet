@@ -1,19 +1,19 @@
 # 📚 The opencode SDK guide
 
-Date: 2026-11-16
+Date: 2026-11-23
 
-Eight pages for people **calling** the SDK. Read them in order the first time: install the package
+Nine pages for people **calling** the SDK. Read them in order the first time: install the package
 and make a call, decide how you reach a server, then how you shape what you send, then the three
 subsystems that behave differently from ordinary request/response calls — event streams, terminals,
 and cursor lists — plus the error model that runs underneath all of them, and the experimental APIs
-you opt into.
+you opt into, plus supported .NET versions, versioning, and support.
 
 Every C# snippet on these pages compiles in CI against the SDK, except the few marked as fragments in
 the page source, so a member a snippet uses exists.
 
 | Page | What it covers |
 |---|---|
-| [Getting started](getting-started.md) | Installing the package, constructing a client, your first status check, session, and prompt |
+| [Getting started](getting-started.md) | Installing the package, nightly builds, constructing a client, your first status check, session, and prompt, and each area of the API |
 | [Connection modes](connection-modes.md) | The standalone launcher, a server you already run, background-service discovery, ensure and stop, pairing, and dependency injection |
 | [Requests](requests.md) | Request records and object initializers, the absent/null/set members, query members, per-call location, the permission, worktree, and shell-timeout members the schema does not explain, and typed plugin RPC calls and events |
 | [Streaming](streaming.md) | The live event stream, durable session event streams, cancellation, and what a stream does when it fails |
@@ -21,10 +21,10 @@ the page source, so a member a snippet uses exists.
 | [Errors and responses](errors-and-responses.md) | The response spine, throwing versus `NoThrow`, the typed error family, and transport failures |
 | [Pagination](pagination.md) | The two cursor-carrying list envelopes, manual paging, and the `EnumerateMessagesAsync` companion |
 | [Experimental APIs](experimental.md) | The `OPENCODE001` and `OPENCODE002` diagnostics, how to opt in, and the [client-hosted MCP and browser handoff recipe](experimental.md#client-hosted-mcp) |
+| [Versioning and support](versioning-and-support.md) | Supported .NET versions, costs on the older assets, what a version number promises, and which release is supported |
 
 New here? [Getting started](getting-started.md) is the shortest path to a working call, and the
-root [README](../../README.md) carries the badges, the compatibility matrix, the API-coverage
-numbers, and the known issues.
+root [README](../../README.md) carries the status badges and the list of known issues.
 
 ## 🔧 Looking for the internals?
 
