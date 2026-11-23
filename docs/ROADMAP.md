@@ -1,14 +1,14 @@
 # Roadmap
 
-Date: 2026-11-22
+Date: 2026-11-23
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
 current architecture and engineering canon; decision records live in `adr/`. The live operational
-queue is the [project board](https://github.com/orgs/opencode-dotnet/projects/1); its to-dos link
-to issues in [the milestones](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestones): one
-per release, and [`1.x`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2) for the
-work deferred from `1.0.0`.
+queue is the [project board](https://github.com/orgs/opencode-dotnet/projects/1). Its items are
+issues in [the milestones](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestones), one
+per release and [`1.x`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2) for
+deferred work, and draft items for the internal backlog (`engineering/workflow.md`, Findings).
 
 The latest SDK release is **2.0.1**, which pins opencode **2.3.2**; its generated breaks follow
 that pin ([2.0.1 protocol changes](../CHANGELOG.md#-protocol-changes)). In **2.0.0**, the shared
@@ -36,7 +36,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   experimental client-hosted MCP connection. Two live proofs of the client-hosted MCP door wait for
   an upstream attach-registration signal: the model path with stacked connections, and the automatic
   reattach after a location reload
-  ([#942](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/942)). One-shot calls,
+  (a draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)). One-shot calls,
   server-sent event streams (the global bus and the per-session log), PTY and persistent-PTY
   WebSocket sessions, cursor pagination, typed errors with `NoThrow`, and the standalone launcher
   (`OpenCodeServer.StartAsync`) are landed.
@@ -72,11 +72,9 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 ## Road to 1.0
 
 `1.0.0`, `1.0.1`, `1.1.0`, `2.0.0`, and `2.0.1` are released; milestones `1.0` and `1.0.1` are closed. The workstreams
-below record the road to 1.0; step 6's release rehearsal is the release check, and
-[#796](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/796), the `1.0.0` benchmark
-record, is still open in milestone `1.x`.
-Milestone `1.x` holds deferred additive and internal work. The current release and parity/fix queue
-are identified above.
+below record the road to 1.0; step 6's release rehearsal is the release check.
+Milestone `1.x` holds deferred additive work; deferred internal work is the board's internal
+backlog. The current release and parity/fix queue are identified above.
 
 1. **Support policy.** The MCP server's repository (ADR-0030), the target-framework policy
    (ADR-0002), and the end of the .NET 5–7 promise
@@ -104,7 +102,7 @@ are identified above.
    ([#184](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/184)), and the canon's
    consistency, with the ADR trim
    ([#182](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/182)). The other review
-   areas follow `1.0.0` ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201)).
+   areas follow `1.0.0` (a draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)).
    Exit: one triaged finding list. **Complete.**
 4. **API review.** The public namespaces stay `OpenCode.Sdk` and `OpenCode.Sdk.Models`, internal
    types live in `OpenCode.Sdk.Internal`, and the folders are vertical slices. The package,
@@ -162,22 +160,17 @@ These are parallel workstreams alongside the current release and deferred-work q
 
 - **MCP server** in its own repository (ADR-0030), a thin adapter over the published SDK. The
   namespace decision keeps the public namespaces, so code against the SDK can start.
-- **Milestone `1.x`** holds the work deferred from `1.0.0`, one issue each, and a lane takes an
-  item early when it is idle and the item conflicts with nothing:
-  - the maintainability areas the 1.0 review leaves, test categorization among them
-    ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201));
+- **The internal backlog** holds the work deferred from `1.0.0` as draft items on the
+  [project board](https://github.com/orgs/opencode-dotnet/projects/1), and a lane takes an item
+  early when it is idle and the item conflicts with nothing:
+  - the maintainability areas the 1.0 review leaves, test categorization among them;
   - references that point one way: a few hundred lines in source, tools, tests, and workflows still
-    cite documentation, against `engineering/documentation.md`
-    ([#202](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/202));
-  - operations: automation for the upstream observation lanes and the nightly source-run canary
-    ([#205](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/205)), the remaining
-    Restore-patch retirement, the
-    operation inventory and assurance ledger, a contract test for every status arm the pinned
-    document declares (ADR-0022,
-    [#206](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/206)), larger CI runners
-    ([#207](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/207)), and a publish-lane
-    diet ([#208](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/208)). A quarantine
-    lane is not planned: a flaky test is fixed at its root cause
+    cite documentation, against `engineering/documentation.md`;
+  - operations: automation for the upstream observation lanes and the nightly source-run canary,
+    the remaining Restore-patch retirement, the operation inventory and assurance ledger, a
+    contract test for every status arm the pinned document declares (ADR-0022), larger CI runners,
+    and a publish-lane diet. A quarantine lane is not planned: a flaky test is fixed at its root
+    cause
     ([#217](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/217)).
 
 ## After 1.0
@@ -211,7 +204,7 @@ These are parallel workstreams alongside the current release and deferred-work q
   ([anomalyco/opencode#44911](https://github.com/anomalyco/opencode/issues/44911); the restoring
   [PR #45182](https://github.com/anomalyco/opencode/pull/45182) closed unmerged on 2026-09-26);
   further candidates are parked for filing at the maintainer's choosing
-  ([#212](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/212)) — a missing security-scheme declaration, 25 lost `Config.Info` descriptions, an undeclared header
+  (a draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)) — a missing security-scheme declaration, 25 lost `Config.Info` descriptions, an undeclared header
   value, a numeric range and a file path both invisible behind bare strings, a WebSocket close code
   overloaded across two causes, and two declared arms the handler cannot produce. Findings stay
   diagnostic and never feed generation or curation (ADR-0013).
@@ -282,7 +275,7 @@ These are parallel workstreams alongside the current release and deferred-work q
   on interfaces whose members are mostly nullable — a PublicApiGenerator artifact of the
   compiler's nullable-context compression, harmless and stable, to be normalized in the baseline
   test and reported upstream
-  ([#203](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/203)).
+  (a draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)).
 - **Three one-off test failures were seen once each and never reproduced.** No runner named a test
   and re-runs of the same binaries were green, so this is a measurement gap rather than a known
   defect: run the gates with `--report-trx --report-trx-filename <unique>` so a recurrence names it.
@@ -294,7 +287,7 @@ These are parallel workstreams alongside the current release and deferred-work q
   negatives rather than a known defect. Closing it means retiring default setup for an advanced
   `codeql.yml` that builds: full type resolution, bought with a workflow whose failure would stop
   scanning silently rather than loudly
-  ([#209](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/209)).
+  (a draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)).
 - **`BuildOs`/`BuildArch` in `Directory.Build.props`** need their values adapted to opencode's
   release-asset naming when the binary-download need lands. `BuildOs == 'windows'` already adds the
   net472 test targets, and opencode's assets use the same `windows` name.

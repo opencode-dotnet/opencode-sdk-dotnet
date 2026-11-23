@@ -42,7 +42,7 @@ will live in a sibling repository of the `opencode-dotnet` organization (ADR-003
   harness default says (`docs/engineering/workflow.md`).
 
 Full collaboration, scratchpad, findings, commit, and CI agreements live in
-`docs/engineering/workflow.md`; a finding the change at hand does not fix gets a record there
+`docs/engineering/workflow.md`; a finding the change at hand does not fix gets a record (Findings)
 before the work moves on. Documentation ownership and lifecycle rules live in
 `docs/engineering/documentation.md`.
 
