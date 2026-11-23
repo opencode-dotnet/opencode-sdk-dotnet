@@ -24,6 +24,7 @@ Nightly builds of `master` are on
   clickable. A session's asks are listed again when its page opens and when one of its turns ends,
   so an ask a stopped turn dropped no longer stays on the board.
 - HQ can rename, archive and delete a session.
+- HQ can fork a session from a message, compact it, and switch its agent and model.
 - The README shows HQ's board. On NuGet.org the image comes from the commit the package was built
   from, like the README's links.
 

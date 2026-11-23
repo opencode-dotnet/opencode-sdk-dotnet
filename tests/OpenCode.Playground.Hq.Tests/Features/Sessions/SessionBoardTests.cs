@@ -10,6 +10,31 @@ namespace OpenCode.Playground.Hq.Tests.Features.Sessions;
 public sealed class SessionBoardTests
 {
     [Test]
+    public async Task SessionBoard_Should_Apply_Agent_And_Model_Selections_To_The_Known_Session()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        await scenario.SendAsync(new SessionAgentSelected
+        {
+            Id = "agent",
+            Created = 2,
+            Durable = new() { AggregateId = "ses_0", Seq = 2, Version = 1 },
+            Data = new() { SessionId = "ses_0", Agent = "plan" },
+        });
+        await scenario.SendAsync(new SessionModelSelected
+        {
+            Id = "model",
+            Created = 3,
+            Durable = new() { AggregateId = "ses_0", Seq = 3, Version = 1 },
+            Data = new() { SessionId = "ses_0", Model = new() { Id = "chosen", ProviderId = "provider" } },
+        });
+
+        await Assert.That(scenario.Board.Find("ses_0")?.Agent).IsEqualTo("plan");
+        await Assert.That(scenario.Board.Find("ses_0")?.Model).IsEqualTo(new ModelRef { Id = "chosen", ProviderId = "provider" });
+        await Assert.That(scenario.Board.Find("ses_1")?.Agent).IsNull();
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task SessionBoard_Should_Remove_The_Row_And_Its_Asks_On_Deleted_Or_Archived(bool archived)
@@ -100,6 +125,21 @@ public sealed class SessionBoardTests
         var error = archive ? "Request failed" : "Failed to delete session";
         await Assert.That(scenario.Board.LastError).IsEqualTo(refused ? error : null);
         await Assert.That(scenario.Logger.LastFailure).IsSameReferenceAs(failure);
+        await Assert.That(changed).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Remember_Should_Add_The_Session_The_Board_Has_No_Event_For()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        var changed = 0;
+        scenario.Board.Changed += (_, _) => changed++;
+        var fork = Session(9, "workspace") with { Id = "ses_fork", Title = "first (fork #1)" };
+
+        scenario.Board.Remember(fork);
+
+        await Assert.That(scenario.Board.Find("ses_fork")).IsSameReferenceAs(fork);
         await Assert.That(changed).IsEqualTo(1);
     }
 
