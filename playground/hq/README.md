@@ -1,10 +1,11 @@
 # OpenCode HQ
 
 HQ's first screen lists sessions with live status and a **Needs you** list. Permission asks have
-Allow once and Reject buttons; question forms can be answered in place on both screens. HQ answers
-text questions (option buttons and custom text) and multiselect questions (checkboxes); other field
+an upstream-style Deny, Allow always and Allow once choice; question forms can be submitted or dismissed in place on both screens. HQ answers
+text questions (radio options and custom text) and multiselect questions (checkboxes); other field
 kinds direct you to opencode. A session's page shows
-its conversation, streamed answer, prompt box, asks and changed files; New session picks a directory.
+its conversation with rendered Markdown, streamed answer, prompt box, asks and changed files; New session picks a directory.
+While a turn runs, Stop interrupts it with resumption enabled, as in upstream's app.
 There is no login, database or settings UI.
 
 A session's page can open a **terminal** in the session's folder: one shell, its output as plain
@@ -16,8 +17,9 @@ connection times out. A terminal left by HQ being killed outright lives until th
 > **The terminal is a shell on the machine running opencode, for anyone who can open HQ's page.** HQ
 > has no login and listens only on `127.0.0.1`, so keep it that way: run it on your own machine only.
 
-Each screen has a hideable **How this screen works** panel: SDK calls for that screen, links to
-their source files and a guide. It reads HQ's own source at run time, embedded at build time, so
+Open **SDK calls** from the header to see the screen's calls in a bottom dock, with numbered source
+lines, links to their source files and a guide. The open state is remembered across pages and reloads
+when browser storage is available. It reads HQ's own source at run time, embedded at build time, so
 snippets cannot drift from the code running. To add an entry, mark the code with a
 `#region panel: name` block and its `#endregion`, then add a `PanelEntry` with that file and region
 to the screen's list in `Features/Panel/PanelEntry.cs`.
@@ -64,6 +66,12 @@ The board opens the bus, awaits its first event, seeds the newest **500 sessions
 running, reads asks for those sessions' directories, then follows events. An unavailable directory
 is logged and skipped.
 A session's title follows rename events. A session deleted or archived elsewhere keeps its old row until the board reconnects or HQ restarts.
+Opening a session page re-lists that session's pending permissions and forms from the server, as
+upstream's session page does. The board also re-lists a session's asks when one of its turns ends,
+except on a shutdown. This goes beyond upstream's app, and it has a reason: when a turn is interrupted,
+upstream's server drops a pending ask without publishing an event
+([anomalyco/opencode#55678](https://github.com/anomalyco/opencode/issues/55678)), so an
+event-driven list alone would keep a card that can no longer be answered.
 A repeated `server.connected` refreshes the lists because disconnected events are lost. The SDK
 retries ordinary attempt failures forever and reports them through connection state; the board's
 owned state watch updates `Connected` and the connection error independently of event consumption.

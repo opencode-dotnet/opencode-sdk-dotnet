@@ -1,10 +1,20 @@
 @inject SessionBoard Board
 
-<div class="ask">
-    <div class="ask-text">
-        <div class="ask-kind">Question</div>
-        <div>@_draft.Form.Title</div>
-    </div>
+<article class="ask">
+    <header>
+        @if (ShowSession)
+        {
+            <h2><a href="/sessions/@Form.SessionId">@(Board.Find(Form.SessionId)?.Title is { Length: > 0 } title ? title : "Untitled session")</a></h2>
+        }
+        else
+        {
+            <h3>@Form.Title</h3>
+        }
+        <p class="meta">@Form.Title@if (Board.Find(Form.SessionId)?.Location.Directory is { } directory)
+            {
+                <span> in <span title="@directory">@SessionsScreen.FolderName(directory)</span></span>
+            }</p>
+    </header>
     @if (!_draft.Answerable)
     {
         <p>Answer this form in opencode: HQ answers text and choice questions only.</p>
@@ -16,29 +26,64 @@
             @switch (field)
             {
                 case FormStringField text:
-                    <div class="field">
-                        <span>@(text.Title ?? text.Key)</span>
-                        @foreach (var option in text.Options ?? [])
+                    <fieldset class="field">
+                        @if (text.Options is { Count: > 0 })
                         {
-                            <button class="@_draft.TextClass(text.Key, option.Value)" @onclick="() => _draft.SetText(text.Key, option.Value)">@option.Label</button>
+                            <legend>@(text.Title ?? text.Key)</legend>
                         }
+                        @if (text.Description is { } description)
+                        {
+                            <p>@description</p>
+                        }
+                        <div class="choices">
+                            @foreach (var option in text.Options ?? [])
+                            {
+                                <label class="choice">
+                                    <input type="radio" name="@($"{Form.Id}-{text.Key}")" checked="@_draft.IsText(text.Key, option.Value)" @onchange="() => _draft.SetText(text.Key, option.Value)" />
+                                    <span>@option.Label</span>
+                                    @if (option.Description is { } note)
+                                    {
+                                        <span class="choice-note">@note</span>
+                                    }
+                                </label>
+                            }
+                        </div>
                         @if (FormDraft.ShowsTextBox(text))
                         {
-                            <input value="@_draft.TextOf(text.Key)" @oninput="args => _draft.SetText(text.Key, args.Value?.ToString())" />
+                            <label class="own">@(text.Options is { Count: > 0 } ? "Or type your own answer" : text.Title ?? text.Key)<input type="text" placeholder="@text.Placeholder" value="@_draft.CustomTextOf(text)" @oninput="args => _draft.SetText(text.Key, args.Value?.ToString())" /></label>
                         }
-                    </div>
+                    </fieldset>
                     break;
                 case FormMultiselectField multi:
-                    <div class="field">
-                        <span>@(multi.Title ?? multi.Key)</span>
-                        @foreach (var option in multi.Options)
+                    <fieldset class="field">
+                        <legend>@(multi.Title ?? multi.Key)</legend>
+                        @if (multi.Description is { } multiDescription)
                         {
-                            <label><input type="checkbox" checked="@_draft.IsChosen(multi.Key, option.Value)" @onchange="() => _draft.Toggle(multi.Key, option.Value)" /> @option.Label</label>
+                            <p>@multiDescription</p>
                         }
-                    </div>
+                        <div class="choices">
+                            @foreach (var option in multi.Options)
+                            {
+                                <label class="choice">
+                                    <input type="checkbox" checked="@_draft.IsChosen(multi.Key, option.Value)" @onchange="() => _draft.Toggle(multi.Key, option.Value)" />
+                                    <span>@option.Label</span>
+                                    @if (option.Description is { } note)
+                                    {
+                                        <span class="choice-note">@note</span>
+                                    }
+                                </label>
+                            }
+                        </div>
+                    </fieldset>
                     break;
             }
         }
-        <button class="primary" @onclick="AnswerAsync">Answer</button>
     }
-</div>
+    <div class="actions">
+        @if (_draft.Answerable)
+        {
+            <button type="button" class="decide" @onclick="AnswerAsync">Submit</button>
+        }
+        <button type="button" @onclick="DismissAsync">Dismiss</button>
+    </div>
+</article>

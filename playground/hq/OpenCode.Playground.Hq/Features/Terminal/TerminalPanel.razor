@@ -1,20 +1,22 @@
 @inject SessionTerminal Terminal
+@inject SessionBoard Board
 
 <section class="terminal" aria-label="Terminal">
-    <h3>Terminal</h3>
+    <p class="meta">A shell in @SessionsScreen.FolderName(Board.Find(SessionId)?.Location.Directory ?? ""), on the machine that runs opencode. Leaving this page closes it.</p>
     @if (Terminal.LastError is { } error)
     {
         <p role="alert">@error</p>
     }
     @if (!Terminal.IsOpen)
     {
-        <button @onclick="OpenAsync" disabled="@Terminal.IsOpening">Open a terminal in this session's folder</button>
+        <div><button type="button" @onclick="OpenAsync" disabled="@Terminal.IsOpening">Open a terminal</button></div>
     }
     else
     {
-        <pre class="output">@Terminal.Output</pre>
-        <form class="prompt" @onsubmit="SendAsync" @onsubmit:preventDefault>
-            <input @bind="_line" @bind:event="oninput" aria-label="Command" />
+        <pre class="output" tabindex="0" role="log" aria-label="Terminal output">@Terminal.Output</pre>
+        <form @onsubmit="SendAsync" @onsubmit:preventDefault>
+            <label class="sr" for="command">Command</label>
+            <input type="text" id="command" placeholder="Command" @bind="_line" @bind:event="oninput" />
             <button type="submit">Run</button>
         </form>
     }

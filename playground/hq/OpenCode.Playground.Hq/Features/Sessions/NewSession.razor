@@ -3,7 +3,8 @@
 @inject NavigationManager Navigation
 
 <PageTitle>New session</PageTitle>
-<p><a href="/">All sessions</a></p>
+<main class="page">
+<h1>New session</h1>
 
 <p>
     The session runs in the directory you choose: the agent loads that folder's instructions and
@@ -16,10 +17,13 @@
     <p role="alert">@error</p>
 }
 
-<form @onsubmit="CreateAsync" @onsubmit:preventDefault>
-    <input @bind="_directory" @bind:event="oninput" placeholder="Full path of a project directory" />
-    <button type="submit" disabled="@string.IsNullOrWhiteSpace(_directory)">Create</button>
+<form class="field" @onsubmit="CreateAsync" @onsubmit:preventDefault>
+    <label for="directory"><strong>Project folder</strong></label>
+    <input type="text" id="directory" aria-describedby="directory-hint" @bind="_directory" @bind:event="oninput" />
+    <p class="meta" id="directory-hint">The full path of a folder on the machine that runs HQ.</p>
+    <div class="actions"><button type="submit" disabled="@string.IsNullOrWhiteSpace(_directory)">Create session</button></div>
 </form>
+</main>
 
 @code {
     private string _directory = "";

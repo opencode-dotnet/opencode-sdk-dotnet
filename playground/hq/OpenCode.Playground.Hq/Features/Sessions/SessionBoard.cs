@@ -33,6 +33,44 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
             .Select(session => new SessionRow(session, StatusOf(session.Id))),
     ];
     public IReadOnlyList<NeedsYouItem> NeedsYou => [.. _needsYou.Values.OrderBy(static item => item.Id, StringComparer.Ordinal)];
+    public SessionInfo? Find(string sessionId) => _sessions.GetValueOrDefault(sessionId);
+
+    public Task DismissFormAsync(FormInfo form, CancellationToken cancellationToken) => SettleFormAsync(form, null, cancellationToken);
+
+    /// <summary>Replaces one session's asks with the ones the server still lists as pending.</summary>
+    /// <param name="sessionId">The session whose asks are listed.</param>
+    /// <param name="cancellationToken">Ends the listing.</param>
+    /// <returns>A task that completes once the board holds the server's list.</returns>
+    public async Task ResyncAsync(string sessionId, CancellationToken cancellationToken)
+    {
+        // Asks that arrive by event while the lists are read are not in the snapshot, so they stay.
+        var known = _needsYou.Values.Where(item => item.SessionId == sessionId).Select(static item => item.Id).ToArray();
+        NeedsYouItem[] pending;
+        try
+        {
+            var session = client.Sessions.GetSessionClient(sessionId);
+            var asks = await session.ListRequestsAsync(cancellationToken: cancellationToken);
+            var forms = await session.ListFormsAsync(cancellationToken: cancellationToken);
+            pending = [.. asks.Requests.Select(NeedsYouItem.FromPermission), .. forms.Forms.Select(NeedsYouItem.FromForm)];
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not list the asks of session {SessionId}.", sessionId);
+            return;
+        }
+
+        foreach (var id in known.Except(pending.Select(static item => item.Id), StringComparer.Ordinal))
+        {
+            _ = _needsYou.TryRemove(id, out _);
+        }
+
+        foreach (var item in pending)
+        {
+            _needsYou[item.Id] = item;
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     public async Task AnswerAsync(NeedsYouItem item, PermissionReply decision, CancellationToken cancellationToken)
     {
@@ -40,6 +78,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         try
         {
             #region panel: reply
+            // The card supplies PermissionReply.Reject, PermissionReply.Always, or PermissionReply.Once.
             _ = await client.Sessions.GetSessionClient(item.SessionId).ReplyToPermissionAsync(
                 item.Id, new SessionPermissionReplyRequest { Decision = decision }, cancellationToken: cancellationToken);
             #endregion
@@ -58,14 +97,26 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    public async Task AnswerFormAsync(FormInfo form, SessionFormReplyRequest reply, CancellationToken cancellationToken)
+    public Task AnswerFormAsync(FormInfo form, SessionFormReplyRequest reply, CancellationToken cancellationToken) =>
+        SettleFormAsync(form, reply, cancellationToken);
+
+    private async Task SettleFormAsync(FormInfo form, SessionFormReplyRequest? reply, CancellationToken cancellationToken)
     {
         LastError = null;
         try
         {
-            #region panel: form-reply
-            _ = await client.Sessions.GetSessionClient(form.SessionId).ReplyToFormAsync(form.Id, reply, cancellationToken: cancellationToken);
-            #endregion
+            if (reply is null)
+            {
+                #region panel: form-dismiss
+                _ = await client.Sessions.GetSessionClient(form.SessionId).CancelFormAsync(form.Id, cancellationToken: cancellationToken);
+                #endregion
+            }
+            else
+            {
+                #region panel: form-reply
+                _ = await client.Sessions.GetSessionClient(form.SessionId).ReplyToFormAsync(form.Id, reply, cancellationToken: cancellationToken);
+                #endregion
+            }
             _ = _needsYou.TryRemove(form.Id, out _);
         }
         catch (OpenCodeApiException exception) when (exception.Error is FormNotFoundError or FormAlreadySettledError)
@@ -154,7 +205,7 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         }
     }
 
-    private string StatusOf(string sessionId)
+    public string StatusOf(string sessionId)
     {
         if (_needsYou.Values.Any(item => item.SessionId == sessionId))
         {
@@ -237,7 +288,15 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
                 _running[started.Data.SessionId] = 0;
                 break;
             case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
-                _ = _running.TryRemove(((ISessionScopedEvent)item).SessionId, out _);
+                var ended = ((ISessionScopedEvent)item).SessionId;
+                _ = _running.TryRemove(ended, out _);
+                // A turn that ends drops its pending asks without an event, so the board re-lists them (README, Architecture).
+                // A shutdown interruption is skipped, as upstream's client skips it.
+                if (item is not SessionExecutionInterrupted interrupted || interrupted.Data.Reason != SessionExecutionInterruptedDataReason.Shutdown)
+                {
+                    await ResyncAsync(ended, cancellationToken);
+                }
+
                 break;
             #region panel: asks
             case PermissionAsked asked:

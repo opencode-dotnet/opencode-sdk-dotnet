@@ -5,15 +5,19 @@
 {
     <p role="alert">Changed files are unavailable: @error</p>
 }
-else if (_loaded)
+else if (_diffs.Count == 0)
+{
+    <p class="meta">Nothing changed in the last turn.</p>
+}
+else
 {
     <section>
-        <h3>Changed in the last turn (@_diffs.Count)</h3>
+        <p class="meta">Changed in the last turn</p>
         @foreach (var diff in _diffs)
         {
-            <details>
-                <summary>@diff.File +@diff.Additions -@diff.Deletions</summary>
-                <pre>@diff.Patch</pre>
+            <details class="file">
+                <summary>@diff.File<span class="plus">+@diff.Additions</span><span class="minus">&minus;@diff.Deletions</span></summary>
+                <DiffView Patch="@diff.Patch" Label="@($"Patch for {diff.File}")" />
             </details>
         }
     </section>
@@ -38,6 +42,10 @@ else if (_loaded)
     [Parameter]
     public bool Running { get; set; }
 
+    /// <summary>Gets or sets the callback for the Changes tab's count.</summary>
+    [Parameter]
+    public EventCallback<int> CountChanged { get; set; }
+
     /// <inheritdoc />
     protected override async Task OnParametersSetAsync()
     {
@@ -55,6 +63,7 @@ else if (_loaded)
             _diffs = (await Client.Sessions.GetSessionClient(SessionId).GetDiffAsync()).Diffs;
             #endregion
             _error = null;
+            await CountChanged.InvokeAsync(_diffs.Count);
         }
         catch (OpenCodeException exception)
         {

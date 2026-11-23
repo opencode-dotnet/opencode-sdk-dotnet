@@ -74,13 +74,27 @@ public sealed class FormDraftTests
     }
 
     [Test]
-    public async Task TextClass_Should_Mark_Only_The_Selected_Option()
+    public async Task IsText_Should_Mark_Only_The_Selected_Option()
     {
         var draft = new FormDraft(Form(new FormStringField { Key = "name", Options = [Option("preset")] }));
         draft.SetText("name", "preset");
 
-        await Assert.That(draft.TextClass("name", "preset")).IsEqualTo("chosen");
-        await Assert.That(draft.TextClass("name", "other")).IsEmpty();
+        await Assert.That(draft.IsText("name", "preset")).IsTrue();
+        await Assert.That(draft.IsText("name", "other")).IsFalse();
+        draft.SetText("name", "other");
+        await Assert.That(draft.IsText("name", "preset")).IsFalse();
+        await Assert.That(draft.IsText("name", "other")).IsTrue();
+    }
+
+    [Test]
+    public async Task CustomTextOf_Should_Clear_The_Text_Box_When_An_Option_Is_Chosen()
+    {
+        var field = new FormStringField { Key = "name", Options = [Option("preset")], Custom = true };
+        var draft = new FormDraft(Form(field));
+        draft.SetText("name", "my name");
+        await Assert.That(draft.CustomTextOf(field)).IsEqualTo("my name");
+        draft.SetText("name", "preset");
+        await Assert.That(draft.CustomTextOf(field)).IsEmpty();
     }
 
     private static FormOption Option(string value) => new() { Label = value, Value = value };

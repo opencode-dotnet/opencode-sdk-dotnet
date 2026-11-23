@@ -13,6 +13,7 @@ builder.Services.AddHealthChecks().AddCheck<OpenCodeHealthCheck>("opencode");
 builder.Services.AddSingleton(static services => OpenCodeConnection.Connect(services.GetRequiredService<IConfiguration>()));
 builder.Services.AddSingleton<SessionBoard>();
 builder.Services.AddSingleton<SourceSnippets>();
+builder.Services.AddScoped<PanelState>();
 builder.Services.AddTransient<SessionConversation>();
 builder.Services.AddTransient<SessionTerminal>();
 builder.Services.AddHostedService(static services => services.GetRequiredService<SessionBoard>());

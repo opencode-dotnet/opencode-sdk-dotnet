@@ -9,6 +9,22 @@ namespace OpenCode.Playground.Hq.Tests.Features.Conversation;
 public sealed class SessionConversationTests
 {
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task StopAsync_Should_Interrupt_With_Resume_And_Ignore_A_Refusal(bool refused)
+    {
+        using var scenario = new ConversationScenario();
+        await scenario.FollowAsync(Started());
+        scenario.MessageCalls.FailInterrupt = refused;
+        scenario.SessionCalls.RequestedSession = null;
+        await Assert.That(() => scenario.Conversation.StopAsync(CancellationToken.None)).ThrowsNothing();
+
+        await Assert.That(scenario.SessionCalls.RequestedSession).IsEqualTo(SessionId);
+        await Assert.That(scenario.MessageCalls.Interrupt?.Resume).IsTrue();
+        await Assert.That(scenario.Conversation.LastError).IsNull();
+    }
+
+    [Test]
     public async Task FollowAsync_Should_Replace_Refreshed_Text_With_The_Parts_Authoritative_End()
     {
         using var scenario = new ConversationScenario().WithHistory(Assistant(Text("snapshot text")));

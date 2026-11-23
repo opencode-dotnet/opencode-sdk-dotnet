@@ -15,6 +15,10 @@ public sealed partial class FormCard : IDisposable
     [Parameter]
     public FormInfo Form { get; set; } = null!;
 
+    /// <summary>Gets or sets whether the heading links to the session.</summary>
+    [Parameter]
+    public bool ShowSession { get; set; }
+
     /// <inheritdoc />
     public void Dispose()
     {
@@ -26,4 +30,5 @@ public sealed partial class FormCard : IDisposable
     protected override void OnParametersSet() => _draft ??= new FormDraft(Form);
 
     private Task AnswerAsync() => Board.AnswerFormAsync(Form, _draft.ToReply(), _lifetime.Token);
+    private Task DismissAsync() => Board.DismissFormAsync(Form, _lifetime.Token);
 }

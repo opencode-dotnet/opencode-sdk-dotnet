@@ -9,7 +9,7 @@ internal sealed class SourceSnippets
     public static Uri Link(string file) => new(RepositoryFolder + file);
 
     /// <summary>Reads one region without its markers or common indentation.</summary>
-    public async Task<string> ReadAsync(string file, string region)
+    public async Task<Snippet> ReadAsync(string file, string region)
     {
         var name = _assembly.GetManifestResourceNames().SingleOrDefault(name => name.Replace('\\', '/') == "hq/" + file)
             ?? throw new InvalidOperationException($"{file} is not embedded.");
@@ -26,6 +26,8 @@ internal sealed class SourceSnippets
 
         var body = lines[(start + 1)..end];
         var indent = body.Where(static line => line.Trim().Length > 0).Min(static line => line.Length - line.TrimStart().Length);
-        return string.Join('\n', body.Select(line => line.Length >= indent ? line[indent..] : line.TrimStart()));
+        return new Snippet(string.Join('\n', body.Select(line => line.Length >= indent ? line[indent..] : line.TrimStart())), start + 2);
     }
+
+    internal sealed record Snippet(string Code, int FirstLine);
 }

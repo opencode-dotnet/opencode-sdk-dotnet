@@ -137,10 +137,15 @@ internal sealed class ConversationScenario : OpenCodeClient
 
     internal sealed class ConversationSessions(SessionClient session) : SessionsClient
     {
+        public string? RequestedSession { get; set; }
         public bool Running { get; set; }
         public TaskCompletionSource ActiveStarted { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource? ActiveRelease { get; set; }
-        public override SessionClient GetSessionClient(string sessionId) => session;
+        public override SessionClient GetSessionClient(string sessionId)
+        {
+            RequestedSession = sessionId;
+            return session;
+        }
         public override async Task<SessionActiveResponse> GetActiveAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
             ActiveStarted.TrySetResult();
@@ -159,6 +164,16 @@ internal sealed class ConversationScenario : OpenCodeClient
         public ICollection<string> Trace { get; set; } = [];
         public IReadOnlyList<ISessionMessageInfo> Messages { get; set; } = [];
         public bool FailPrompt { get; set; }
+        public bool FailInterrupt { get; set; }
+        public SessionInterruptRequest? Interrupt { get; private set; }
+        public override Task<SessionInterruptResponse> InterruptAsync(SessionInterruptRequest? request = null,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            Interrupt = request;
+            return FailInterrupt
+                ? Task.FromException<SessionInterruptResponse>(new OpenCodeApiException("unauthorized", 401, new UnauthorizedError { Message = "unauthorized" }, null))
+                : Task.FromResult(new SessionInterruptResponse { Status = 200, Interrupt = new() { Interrupted = true } });
+        }
         public SessionPromptRequest? Prompt { get; private set; }
         public TaskCompletionSource MessagesStarted { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource? MessagesRelease { get; set; }

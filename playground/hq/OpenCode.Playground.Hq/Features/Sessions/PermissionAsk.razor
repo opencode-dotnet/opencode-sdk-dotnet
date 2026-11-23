@@ -1,0 +1,75 @@
+@implements IDisposable
+@inject SessionBoard Board
+
+<article class="ask">
+    <header>
+        @if (ShowSession)
+        {
+            <h2><a href="/sessions/@Item.SessionId">@(Board.Find(Item.SessionId)?.Title is { Length: > 0 } title ? title : "Untitled session")</a></h2>
+        }
+        else
+        {
+            <h3>Permission required</h3>
+        }
+        <p class="meta">
+            @if (NeedsYouItem.KindFor(Item.Action ?? "") is { } kind)
+            {
+                @kind
+            }
+            else
+            {
+                <code>@Item.Action</code>
+            }
+            @if (Board.Find(Item.SessionId)?.Location.Directory is { } directory)
+            {
+                <span> in <span title="@directory">@SessionsScreen.FolderName(directory)</span></span>
+            }
+        </p>
+    </header>
+    @if (Item.Message is { Length: > 0 } message)
+    {
+        <p>@message</p>
+    }
+    @if (Item.Metadata?.TryGetValue("input", out var input) == true && input.ValueKind == System.Text.Json.JsonValueKind.Object)
+    {
+        @foreach (var property in input.EnumerateObject())
+        {
+            <pre class="command" tabindex="0"><code>@property.Name: @(property.Value.ValueKind == System.Text.Json.JsonValueKind.String ? property.Value.GetString() : property.Value.GetRawText())</code></pre>
+        }
+    }
+    @foreach (var resource in Item.Resources)
+    {
+        <pre class="command" tabindex="0"><code>@resource</code></pre>
+    }
+    @foreach (var file in Item.PreviewFiles)
+    {
+        <DiffView Patch="@file.Value" Label="@($"Proposed edit to {file.Key}")" />
+    }
+    <div class="actions">
+        <button type="button" class="danger" @onclick="() => AnswerAsync(PermissionReply.Reject)">Deny</button>
+        <button type="button" @onclick="() => AnswerAsync(PermissionReply.Always)">Allow always</button>
+        <button type="button" class="decide" @onclick="() => AnswerAsync(PermissionReply.Once)">Allow once</button>
+    </div>
+</article>
+
+@code {
+    private readonly CancellationTokenSource _lifetime = new();
+
+    /// <summary>Gets or sets the permission awaiting a decision.</summary>
+    /// <remarks>The parent supplies Item before rendering.</remarks>
+    [Parameter, EditorRequired]
+    public NeedsYouItem Item { get; set; } = null!;
+
+    /// <summary>Gets or sets whether the heading links to the session.</summary>
+    [Parameter]
+    public bool ShowSession { get; set; }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _lifetime.Cancel();
+        _lifetime.Dispose();
+    }
+
+    private Task AnswerAsync(PermissionReply decision) => Board.AnswerAsync(Item, decision, _lifetime.Token);
+}
