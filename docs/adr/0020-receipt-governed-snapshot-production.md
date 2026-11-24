@@ -6,10 +6,13 @@ The accepted snapshot is one reviewed protocol identity: an exact upstream commi
 `spec/openapi.json` digest, an ordered production recipe whose patch list is normally empty, a
 sorted operation-set digest, and the matching upstream submodule gitlink. Production always runs
 the exact pinned upstream generator over the pinned source; upstream's committed artifact is read
-only to record whether it matches that generator, because upstream's CI never regenerates it and it
-has lagged its source: at `v2.0.22` it lacked four operations the generator emits and listed a
-query parameter under the wrong operation, and at `v2.0.18` it lacked two (reported as
-[anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)). When upstream's
+only to record whether it matches that generator, because it has lagged its source: at `v2.0.22`
+it lacked four operations the generator emits and listed a query parameter under the wrong
+operation, and at `v2.0.18` it lacked two (reported as
+[anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)). Upstream's CI has
+checked it against that generator since `v2.1.4`
+([anomalyco/opencode#58262](https://github.com/anomalyco/opencode/pull/58262)); the receipt records
+its hash beside the generator's, so a mismatch stays visible at every refresh. When upstream's
 OpenAPI projection loses content its machine-readable contract still carries — the effect beta.107 regen deleted both SSE
 payload trees (reported as
 [anomalyco/opencode#44911](https://github.com/anomalyco/opencode/issues/44911), restore offered as
