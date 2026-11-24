@@ -164,6 +164,7 @@ internal static class ReservedNamePolicy
             "RpcEventPayload",
             "RpcMethod",
             "SessionParentFilter",
+            "SessionsClientExtensions",
         ],
         StringComparer.Ordinal);
 
@@ -405,6 +406,7 @@ internal static class ReservedNamePolicy
             "ServiceTerminator",
             "ServiceTiming",
             "ServiceVersionPolicy",
+            "SessionCostTotal",
             "SignalDelivery",
             "SharedEventFeed",
             "SlopwatchSuppressAttribute",

@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-22
+Date: 2026-11-23
 
 Every one-shot call of a client family answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -94,7 +94,7 @@ instance, and `new OpenCodeRequestOptions { ErrorBehavior = ErrorBehavior.NoThro
 thing spelled out. There is deliberately no client-level switch: whether a failure is exceptional
 depends on the call, not on the client.
 
-Four limits worth internalising:
+Five limits worth internalising:
 
 - **`NoThrow` covers declared API errors only.** It never suppresses a transport failure.
 - **Streams and automatic cursor traversals refuse `NoThrow` at the call, before enumeration.**
@@ -103,6 +103,7 @@ Four limits worth internalising:
   on connection state while retrying. See [streaming](streaming.md#-stream-error-channels) and [pagination](pagination.md).
 - **`Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync` refuse `NoThrow` at the call,**
   because they decide on each plugin-list answer whether to keep waiting.
+- **`Sessions.GetTotalCostAsync` refuses `NoThrow` at the call,** because it returns a number, not an envelope.
 - **The typed plugin RPC call refuses `NoThrow` at the call,** because it returns the output,
   not an envelope. See [Calling a plugin's RPC](requests.md#-calling-a-plugins-rpc).
 

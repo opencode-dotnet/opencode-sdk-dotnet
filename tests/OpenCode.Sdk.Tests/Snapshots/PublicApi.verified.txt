@@ -2231,6 +2231,10 @@ namespace OpenCode.Sdk
         public virtual OpenCode.Sdk.SessionClient GetSessionClient(string sessionId) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionListResponse> ListSessionsAsync(OpenCode.Sdk.SessionListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    public static class SessionsClientExtensions
+    {
+        public static System.Threading.Tasks.Task<double> GetTotalCostAsync(this OpenCode.Sdk.SessionsClient client, string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
     public class ShellClient
     {
         protected ShellClient() { }

@@ -35,6 +35,8 @@ public sealed class CancellationIdentityTests
         yield return new("http", "raw-upload", caller => AtBodyAsync(upload: true, caller));
         yield return new("default-wait", "headers", caller => AtHeadersAsync(
             static (client, token) => client.LanguageModels.WaitForDefaultAsync(cancellationToken: token), caller));
+        yield return new("session-cost-total", "headers", caller => AtHeadersAsync(
+            static (client, token) => client.Sessions.GetTotalCostAsync(SessionId, cancellationToken: token), caller));
         yield return new("plugin-wait", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Plugins.WaitForPluginsAsync(cancellationToken: token), caller));
         yield return new("client-mcp-token", "headers", caller => AtHeadersAsync(
@@ -590,6 +592,7 @@ public sealed class CancellationIdentityTests
             DeclaringType == owner && Name == name && ReturnType == result &&
             IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(OpenCodeServiceConfiguration) ||
                 owner == typeof(LanguageModelsClientExtensions) || owner == typeof(PluginsClientExtensions) ||
+                owner == typeof(SessionsClientExtensions) ||
                 owner == typeof(ExperimentalClientMcpExtensions)) &&
             Parameters.SequenceEqual(parameters);
 
@@ -684,6 +687,8 @@ public sealed class CancellationIdentityTests
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>)) => "other-sse",
             _ when member.Is(typeof(LanguageModelsClientExtensions), nameof(LanguageModelsClientExtensions.WaitForDefaultAsync), typeof(Task<ModelDefaultResponse>),
                 typeof(LanguageModelsClient), typeof(ModelDefaultRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "default-wait",
+            _ when member.Is(typeof(SessionsClientExtensions), nameof(SessionsClientExtensions.GetTotalCostAsync), typeof(Task<double>),
+                typeof(SessionsClient), typeof(string), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "session-cost-total",
             _ when member.Is(typeof(PluginsClientExtensions), nameof(PluginsClientExtensions.WaitForPluginsAsync), typeof(Task),
                 typeof(PluginsClient), typeof(PluginListRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "plugin-wait",
             _ when member.IsStatic && member.DeclaringType == typeof(RpcClientExtensions) && member.Name == nameof(RpcClientExtensions.CallAsync)

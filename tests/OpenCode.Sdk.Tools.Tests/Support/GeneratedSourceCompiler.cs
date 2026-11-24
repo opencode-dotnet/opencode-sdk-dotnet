@@ -52,6 +52,7 @@ internal static class GeneratedSourceCompiler
     /// The typed RPC call sits above the generated <c>RpcClient</c> and reads its two RPC error models, so it rides their emissions.
     /// The typed RPC subscription sits above the Events door and the generated <c>EventRpc</c>, so it rides both.
     /// Connection resolution adds an explicit probe over the generated server client and unauthorized error.
+    /// The session cost total sits above the generated SessionsClient, SessionClient and SessionListRequest, so it rides their emissions.
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
@@ -112,6 +113,11 @@ internal static class GeneratedSourceCompiler
         ("Rpc/Internal/RpcMethodCaller.cs", "Rpc/RpcClient.cs"),
         ("Rpc/RpcClientExtensions.cs", "Rpc/RpcClient.cs"),
         ("Rpc/RpcEventPayload.cs", "Events/Models/EventRpc.cs"),
+        ("Sessions/Internal/SessionCostTotal.cs", "Sessions/SessionsClient.cs"),
+        ("Sessions/Internal/SessionCostTotal.cs", "Sessions/SessionClient.cs"),
+        ("Sessions/Internal/SessionCostTotal.cs", "Sessions/SessionListRequest.cs"),
+        ("Sessions/SessionsClientExtensions.cs", "Sessions/SessionsClient.cs"),
+        ("Sessions/SessionsClientExtensions.cs", "Sessions/SessionClient.cs"),
     ];
 
     /// <summary>
