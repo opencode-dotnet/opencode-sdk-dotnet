@@ -10,8 +10,8 @@ issues in [the milestones](https://github.com/opencode-dotnet/opencode-sdk-dotne
 per release and [`1.x`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2) for
 deferred work, and draft items for the internal backlog (`engineering/workflow.md`, Findings).
 
-The latest SDK release is **2.0.1**, which pins opencode **2.3.2**; its generated breaks follow
-that pin ([2.0.1 protocol changes](../CHANGELOG.md#-protocol-changes)). In **2.0.0**, the shared
+The latest SDK release is **2.1.0**, which pins opencode **2.4.1**; its generated breaks follow
+that pin ([2.1.0 protocol changes](../CHANGELOG.md#-protocol-changes)). In **2.0.0**, the shared
 event connection ([#902](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pull/902),
 [ADR-0041](adr/0041-one-shared-event-feed-per-client.md)) replaces per-enumeration connections with one
 background source per root client. Ordinary attempt failures retry indefinitely
@@ -66,14 +66,14 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   ([package boundary](architecture/platform-and-packaging.md#packages)). They pack at the next version
   declared by `../Directory.Build.props`. Nightly publication follows the
   [publication policy](architecture/platform-and-packaging.md#repository-and-versioning), and
-  `2.0.1`, the latest release, is on NuGet.org, owned by
+  `2.1.0`, the latest release, is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.
 
 ## Road to 1.0
 
-`1.0.0`, `1.0.1`, `1.1.0`, `2.0.0`, and `2.0.1` are released; milestones `1.0` and `1.0.1` are closed. The workstreams
+`1.0.0`, `1.0.1`, `1.1.0`, `2.0.0`, `2.0.1`, and `2.1.0` are released; milestones `1.0` and `1.0.1` are closed. The workstreams
 below record the road to 1.0; step 6's release rehearsal is the release check.
 Milestone `1.x` holds deferred additive work; deferred internal work is the board's internal
 backlog. The current release and parity/fix queue are identified above.
