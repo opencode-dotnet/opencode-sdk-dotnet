@@ -173,13 +173,16 @@ public sealed class ServicePtyHandoffTests
                 return NoContent();
             }
 
-            if (!arrived.Task.IsCompleted)
+            // Arrival is marked before the release closes this request: net472 does not retry, so PrepareAsync can return at once.
+            var first = !arrived.Task.IsCompleted;
+            var response = Pending(arrived);
+            if (first)
             {
                 Seed(_scenario.SidecarPath(), Sidecar(registration!, Ticket, NowMilliseconds + 60_000).ToUtf8Json());
                 respondingServer!.ReleaseResponses();
             }
 
-            return Pending(arrived);
+            return response;
         });
         respondingServer = server;
         registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
