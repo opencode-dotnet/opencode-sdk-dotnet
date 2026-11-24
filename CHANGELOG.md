@@ -55,6 +55,12 @@ totals a session's cost with its subagent sessions, and HQ is redesigned.
   so an ask a stopped turn dropped no longer stays on the board.
 - HQ can rename, archive and delete a session.
 - HQ can fork a session from a message, compact it, and switch its agent and model.
+- QuickStart picks a free model only when every price tier lists zero input and output rates, as the
+  README example does.
+- The README is reorganized around a quick start and the runnable apps. A new versioning-and-support
+  guide holds the target-framework rule, the version policy and the support policy. The contributing
+  guide moves to the repository root, a support page is added, and usage questions go to the Q&A
+  category of GitHub Discussions.
 - The README shows HQ's board. On NuGet.org the image comes from the commit the package was built
   from, like the README's links.
 - The getting-started guide says the server no longer waits for plugins and that a catalog can be
