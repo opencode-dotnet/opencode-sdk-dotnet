@@ -9,6 +9,16 @@ Nightly builds of `master` are on
 [GitHub Packages](docs/guide/getting-started.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [2.1.0] - 2026-11-24
+
+**`2.1.0` pins opencode `2.4.1`.** It is a minor release that moves the protocol pin, so generated
+types change the way upstream changed them: a blob no longer reports its expiry, three experimental
+config flags are removed because automations and MCP events ship without one, `video_generate` also
+takes an options object, and a voice model requires an engine and a name. All four are listed as
+**breaking** under protocol changes. Background jobs can be cancelled, machines can be listed, added
+and removed, and the server no longer waits for plugins at startup. `Sessions.GetTotalCostAsync`
+totals a session's cost with its subagent sessions, and HQ is redesigned.
+
 ### 🔌 Protocol changes
 
 - The SDK pins opencode `2.4.1`, where it pinned `2.3.2`.
@@ -45,6 +55,12 @@ Nightly builds of `master` are on
   so an ask a stopped turn dropped no longer stays on the board.
 - HQ can rename, archive and delete a session.
 - HQ can fork a session from a message, compact it, and switch its agent and model.
+- QuickStart picks a free model only when every price tier lists zero input and output rates, as the
+  README example does.
+- The README is reorganized around a quick start and the runnable apps. A new versioning-and-support
+  guide holds the target-framework rule, the version policy and the support policy. The contributing
+  guide moves to the repository root, a support page is added, and usage questions go to the Q&A
+  category of GitHub Discussions.
 - The README shows HQ's board. On NuGet.org the image comes from the commit the package was built
   from, like the README's links.
 - The getting-started guide says the server no longer waits for plugins and that a catalog can be
@@ -2319,6 +2335,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[2.1.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v2.1.0
 [2.0.1]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v2.0.1
 [2.0.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v2.0.0
 [1.1.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.1.0
