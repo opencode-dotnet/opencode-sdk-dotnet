@@ -89,7 +89,7 @@ Each open session page holds its own subscription on the same root client's shar
 cancelled when the page closes.
 Pages don't prerender: a prerendered button shows before its handler is attached, so an early click is dropped (#775). The page appears once its connection is up.
 
-Upstream's app at v2.3.2 builds an Archive button but hides it (`SHOW_HOME_SESSION_ARCHIVE = false`, `packages/app/src/home/sessions/view.tsx:43`) until its own client gains a session archive API (`home/sessions/controller.tsx:557-559`). The SDK has that API, so HQ shows it; when upstream's app shows it again, this note goes.
+Upstream's app at v2.4.1 builds an Archive button but hides it (`SHOW_HOME_SESSION_ARCHIVE = false`, `packages/app/src/home/sessions/view.tsx:56`) until its own client gains a session archive API (`home/sessions/controller.tsx:557-559`). The SDK has that API, so HQ shows it; when upstream's app shows it again, this note goes.
 
 The dashboard shows HttpClient and ASP.NET Core traces and host logs, not SDK spans.
 The four OpenTelemetry packages export only when the AppHost supplies OTLP.

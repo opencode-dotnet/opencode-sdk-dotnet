@@ -14,7 +14,7 @@ agent's permission requests, and see what a turn changed. The SDK speaks the Ope
 ```bash
 dotnet add package OpenCodeDotNet.Sdk
 dotnet add package OpenCodeDotNet.Sdk.Extensions   # dependency injection, optional
-npm install -g @opencode/cli@2.3.2                 # the opencode CLI, for the quick start
+npm install -g @opencode/cli@2.4.1                 # the opencode CLI, for the quick start
 ```
 
 - **The package id is not the namespace.** You install `OpenCodeDotNet.Sdk` and you write
@@ -58,22 +58,13 @@ await using var server = await OpenCodeServer.StartAsync(cancellationToken: toke
 using var client = server.CreateClient();
 
 // To use your own provider, replace this block with: var model = new ModelRef { Id = "...", ProviderId = "..." };
-ModelInfo? model;
-try
-{
-    await client.LanguageModels.WaitForDefaultAsync(cancellationToken: token);
-    var catalog = await client.LanguageModels.ListModelsAsync(cancellationToken: token);
-    model = catalog.Models.FirstOrDefault(static m =>
-        m.ProviderId == "opencode" && m.Cost.Count > 0 && m.Cost.All(static c => c.Input <= 0 && c.Output <= 0));
-}
-catch (OpenCodeApiException failure) when (failure.Error is ServiceUnavailableError)
-{
-    await Console.Error.WriteLineAsync("The server is still starting. Run the program again.");
-    return;
-}
+await client.LanguageModels.WaitForDefaultAsync(cancellationToken: token);
+var catalog = await client.LanguageModels.ListModelsAsync(cancellationToken: token);
+var model = catalog.Models.FirstOrDefault(static m =>
+    m.ProviderId == "opencode" && m.Cost.Count > 0 && m.Cost.All(static c => c.Input <= 0 && c.Output <= 0));
 if (model is null)
 {
-    await Console.Error.WriteLineAsync("No opencode model lists zero input and output rates right now.");
+    await Console.Error.WriteLineAsync("No opencode model lists zero input and output rates yet. The server may still be loading plugins: run the program again.");
     return;
 }
 
@@ -150,8 +141,9 @@ server loads that folder's configuration, and a session's prompts go to the mode
 
 ## 🧭 API Coverage
 
-The SDK covers the whole opencode API at the pinned version, including the three WebSocket
-connections: terminals, persistent terminals and client-hosted MCP. `OpenCodeClient` exposes one
+The SDK covers the whole opencode HTTP API at the pinned version, and three of its WebSocket
+connections: terminals, persistent terminals and client-hosted MCP. A door for the fourth, the
+experimental machine link, is planned. `OpenCodeClient` exposes one
 sub-client per area of the API, and each sub-client is also injectable on its own.
 [How the client is organised](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/getting-started.md#-how-the-client-is-organised) lists each area
 with its entry point and guide.

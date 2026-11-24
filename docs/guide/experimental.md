@@ -1,6 +1,6 @@
 # 🧪 Experimental APIs
 
-Date: 2026-11-23
+Date: 2026-11-24
 
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes it and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
@@ -48,7 +48,7 @@ later. Older compilers ignore the attribute.
 
 The `ExperimentalClient` (`client.Experimental`) and the types only it uses: session stats, import
 and export, skills, the session wait, the durable session event stream, instruction entries, text, image,
-video and decision generation, automations, background jobs, usage limits, media and media references, blobs, artifacts, well-known integrations, adding,
+video and decision generation, automations, background jobs, machines, usage limits, media and media references, blobs, artifacts, well-known integrations, adding,
 removing, connecting and disconnecting MCP servers, client-hosted MCP connections and connect tokens,
 voice models and sessions, file write and file watching, the v1 migration status, and the config update.
 The client-hosted MCP types, extension methods and schema helper carry the same id. The

@@ -13,7 +13,8 @@ internal sealed class JobInfoJsonConverter : JsonConverter<IJobInfo>
         ["codemode"] = UnionArm<IJobInfo>.Of<JobCodeMode>(),
         ["image"] = UnionArm<IJobInfo>.Of<JobImage>(),
         ["shell"] = UnionArm<IJobInfo>.Of<JobShell>(),
-        ["subagent"] = UnionArm<IJobInfo>.Of<JobSubagent>()
+        ["subagent"] = UnionArm<IJobInfo>.Of<JobSubagent>(),
+        ["video"] = UnionArm<IJobInfo>.Of<JobVideo>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IJobInfo Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -921,7 +921,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:244",
+          "location": "packages/schema/src/session-message.ts:250",
           "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -1256,7 +1256,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/config/experimental.ts:49",
+          "location": "packages/schema/src/config/experimental.ts:61",
           "excerpt": "    description: \"Maximum subagent nesting depth. Defaults to 1.\","
         }
       ]
@@ -2638,6 +2638,16 @@
       "reason": "The operation's own verb is add; the upstream domain calls these entries MCP servers, exactly like mcp.list."
     },
     {
+      "operationId": "experimental.machine.add",
+      "methodName": "AddMachineAsync",
+      "reason": "Upstream adds a machine and answers with its invite; the flat ExperimentalClient needs the object in the name, and add is upstream's own word."
+    },
+    {
+      "operationId": "experimental.job.cancel",
+      "methodName": "CancelJobAsync",
+      "reason": "Upstream cancels one background job; the flat ExperimentalClient needs the object in the name, and cancel is upstream's own word."
+    },
+    {
       "operationId": "experimental.mcp.connect",
       "methodName": "ConnectMcpServerAsync",
       "reason": "The operation's own verb is connect; the upstream domain calls these entries MCP servers, exactly like mcp.list."
@@ -3341,6 +3351,11 @@
       "reason": "The object form of the experimental image_generate setting, which names the tool's default model; the anyOf ordinal is a schema pointer detail."
     },
     {
+      "schema": "Config.InfoEncoded#/properties/experimental/properties/video_generate/anyOf/1",
+      "dotnetName": "ConfigVideoGenerateOptions",
+      "reason": "The object form of the experimental video_generate setting, which names the tool's default model; the anyOf ordinal is a schema pointer detail."
+    },
+    {
       "schema": "op:event.subscribe#/parameters/0/schema/anyOf/0",
       "dotnetName": "EventType",
       "reason": "Each value is the name of an event type a consumer filters a subscription on; the mechanical plural name reads as a collection and names a request detail."
@@ -3390,6 +3405,11 @@
   ],
   "transportOwned": [
     {
+      "operationId": "experimental.machine.link",
+      "subtreeSha256": "b8eb61b330eb7e94a47fb1046babe155a06dc29fd5d8887243df4ddb647eb036",
+      "reason": "The machine link is a WebSocket upgrade, not an HTTP call: its document response is a placeholder, and its binary stream belongs to a hand-written door outside the HTTP pipeline, which this SDK does not offer yet. Fingerprinting its method, path, parameters, x-websocket marker and declared responses makes protocol drift fail generation for explicit review."
+    },
+    {
       "operationId": "experimental.mcp.client",
       "subtreeSha256": "4a3e911341d39b1ce67d313d05ce87eb862f7f9bda4dc2a9b7d8e794fe2e86d6",
       "reason": "The client-hosted MCP door owns the WebSocket upgrade and JSON-RPC responder outside the HTTP pipeline; fingerprinting its method, path, parameters, x-websocket marker and declared responses makes protocol drift fail generation for explicit review."
@@ -3406,6 +3426,12 @@
     }
   ],
   "redactedMembers": [
+    {
+      "model": "MachineInvite",
+      "property": "join",
+      "redact": true,
+      "reason": "experimental.machine.add creates a single-use join string carrying the given reach addresses, and the string base64url-encodes the join secret a new machine presents to pair with the home (packages/core/src/machine/join.ts:22,30,39); until it is used the string is itself a credential."
+    },
     {
       "model": "PairingCode",
       "property": "code",
@@ -3579,6 +3605,14 @@
   ],
   "secretLookingNames": [
     {
+      "property": "opencode_api",
+      "reason": "A boolean experimental feature flag (packages/schema/src/config/flag.ts:25-26), never a credential."
+    },
+    {
+      "property": "recommended_api",
+      "reason": "A boolean experimental feature flag (packages/schema/src/config/flag.ts:16), never a credential."
+    },
+    {
       "property": "auth_server_metadata_url",
       "reason": "The OAuth authorization server's metadata URL, a public discovery document address."
     },
@@ -3711,6 +3745,11 @@
       "match": "Blob",
       "owner": "Experimental",
       "reason": "Blob records and their not-found error belong to experimental.blob.get, which only the flat Experimental client carries."
+    },
+    {
+      "match": "Machine",
+      "owner": "Experimental",
+      "reason": "Machines, their invites, reaches, connections and not-found error belong to the experimental.machine operations, which only the flat Experimental client carries."
     },
     {
       "match": "VideoNotFoundError",
@@ -3894,6 +3933,11 @@
     },
     {
       "schema": "Config.InfoEncoded#/properties/experimental/properties/image_generate/anyOf/1/properties/model",
+      "aliasOf": "Config.AgentEncoded#/properties/model",
+      "reason": "Both are upstream's Config.ModelSelection, which the document inlines on every configuration that selects a model."
+    },
+    {
+      "schema": "Config.InfoEncoded#/properties/experimental/properties/video_generate/anyOf/1/properties/model",
       "aliasOf": "Config.AgentEncoded#/properties/model",
       "reason": "Both are upstream's Config.ModelSelection, which the document inlines on every configuration that selects a model."
     },

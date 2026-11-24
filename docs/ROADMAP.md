@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-23
+Date: 2026-11-24
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -31,12 +31,14 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — complete: 166 generated operations across 27 client families, plus the three
-  WebSocket connections that hand-written doors cover: the PTY and persistent-PTY sessions and the
-  experimental client-hosted MCP connection. Two live proofs of the client-hosted MCP door wait for
-  an upstream attach-registration signal: the model path with stacked connections, and the automatic
-  reattach after a location reload
-  (a draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)). One-shot calls,
+- **Coverage** — 173 generated operations across 27 client families, plus three of the four
+  WebSocket connections, which hand-written doors cover: the PTY and persistent-PTY sessions and the
+  experimental client-hosted MCP connection. The fourth, the experimental machine link
+  (`experimental.machine.link`, new at opencode 2.4.0), is transport-owned and its door is queued (a
+  draft item on the [project board](https://github.com/orgs/opencode-dotnet/projects/1)). Two live
+  proofs of the client-hosted MCP door wait for an upstream attach-registration signal: the model
+  path with stacked connections, and the automatic reattach after a location reload (a draft item on
+  the [project board](https://github.com/orgs/opencode-dotnet/projects/1)). One-shot calls,
   server-sent event streams (the global bus and the per-session log), PTY and persistent-PTY
   WebSocket sessions, cursor pagination, typed errors with `NoThrow`, and the standalone launcher
   (`OpenCodeServer.StartAsync`) are landed.
@@ -45,12 +47,12 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   change must pass before it is called done.
 - **Terminal lifetime** — consumer cancellation, send deadlines, local viewport ordering, and shared
   cleanup are implemented. `architecture/client-runtime.md` and ADR-0023 own the contract.
-- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.3.2`, with no
+- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.4.1`, with no
   compatibility layer between them, and the CHANGELOG lists what each refresh changes. Two restore
   patches apply: the artifact `location` query style
   ([anomalyco/opencode#60960](https://github.com/anomalyco/opencode/issues/60960)) and the user-file
   media attachment ([anomalyco/opencode#64246](https://github.com/anomalyco/opencode/issues/64246)).
-  Upstream's `v2.3.2` document still links the SSE payloads, so their patch stays retired
+  Upstream's `v2.4.1` document still links the SSE payloads, so their patch stays retired
   ([#56](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/56)). Each refresh's
   CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and `net11.0`, Linux and
   macOS on `net10.0` and `net11.0`, with regeneration and receipt verification passing.

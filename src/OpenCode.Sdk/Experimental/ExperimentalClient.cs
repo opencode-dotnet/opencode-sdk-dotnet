@@ -69,6 +69,24 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// Add or invite a machine. Add a machine by name if it does not exist, then create a single-use join string carrying the given reach addresses. Behind the machines flag. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalMachineAddResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 409) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.machine.add</c>: <c>POST /api/experimental/machine</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalMachineAddResponse> AddMachineAsync(ExperimentalMachineAddRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.machine.add", HttpMethod.Post, OpenCodeRoutes.Experimental.AddMachine, request, OpenCodeJsonContext.Default.ExperimentalMachineAddRequest, ExperimentalMachineAddResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Add MCP server. Add an MCP server at runtime or replace an existing one, connecting it immediately.
     /// </summary>
     /// <param name = "server">The &apos;server&apos; route value.</param>
@@ -86,6 +104,24 @@ public class ExperimentalClient
         ArgumentException.ThrowIfNullOrEmpty(server);
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.mcp.add", HttpMethod.Put, OpenCodeRoutes.Experimental.AddMcpServer(server, request), request, OpenCodeJsonContext.Default.ExperimentalMcpAddRequest, ExperimentalMcpAddResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Cancel background job. Cancel a running background job, interrupting the work it started. Cancelling a job that already finished does nothing. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "id">The &apos;id&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalJobCancelResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.job.cancel</c>: <c>POST /api/experimental/job/{id}/cancel</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalJobCancelResponse> CancelJobAsync(string id, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        return Pipeline.ExecuteAsync("experimental.job.cancel", HttpMethod.Post, OpenCodeRoutes.Experimental.CancelJob(id), ExperimentalJobCancelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -126,7 +162,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Create automation. Create an automation that sends a prompt or runs a Code Mode program at a time, every interval, or on a cron. Creating an MCP event watch requires the automation_create tool in a local session; a session ID over HTTP is not a watch authorization. Experimental: needs experimental.automations in the config of the automation&apos;s directory and may change without compatibility guarantees.
+    /// Create automation. Create an automation that sends a prompt, runs a Code Mode program, or runs a shell command at a time, every interval, or on a cron. Creating an MCP event watch requires the automation_create tool in a local session; a session ID over HTTP is not a watch authorization. Experimental: may change without compatibility guarantees. Set automations to false in the directory&apos;s config to disable access.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -144,13 +180,13 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Create a video generation. Submit a video job to a video model using the server&apos;s base configuration and return its ID once the provider accepted it. The server polls the job and stores the finished video as a blob for 7 days; read the job with GET /api/experimental/generate/video/:id and the video with GET /api/experimental/blob/:id. Behind the video_generate flag. Experimental: may change without compatibility guarantees.
+    /// Create a video generation. Submit a video job to a video model using the server&apos;s base configuration and return its ID once the provider accepted it. The server polls the job and stores the finished videos as blobs; read the job with GET /api/experimental/generate/video/:id and the video with GET /api/experimental/blob/:id. Experimental: may change without compatibility guarantees.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;ExperimentalGenerateVideoCreateResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 422, 502, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 422, 502, 503) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>experimental.generate.video.create</c>: <c>POST /api/experimental/generate/video</c>.
@@ -199,7 +235,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Delete automation. Delete an automation. Experimental: needs experimental.automations in the config of the automation&apos;s directory and may change without compatibility guarantees.
+    /// Delete automation. Delete an automation. Experimental: may change without compatibility guarantees. Set automations to false in the directory&apos;s config to disable access.
     /// </summary>
     /// <param name = "automationId">The &apos;automationID&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -329,7 +365,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Get automation. Read one automation. Experimental: needs experimental.automations in the config of the automation&apos;s directory and may change without compatibility guarantees.
+    /// Get automation. Read one automation. Experimental: may change without compatibility guarantees. Set automations to false in the directory&apos;s config to disable access.
     /// </summary>
     /// <param name = "automationId">The &apos;automationID&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -347,7 +383,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Read a blob. Stream a stored blob&apos;s bytes, such as a generated video, with single byte Range, ETag and 304 Not Modified support. Blobs are deleted 7 days after they&apos;re written. Experimental: may change without compatibility guarantees.
+    /// Read a blob. Stream a stored blob&apos;s bytes, such as a generated video, with single byte Range, ETag and 304 Not Modified support. A blob is deleted a week after it was stored. Experimental: may change without compatibility guarantees.
     /// </summary>
     /// <param name = "id">The &apos;id&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -452,13 +488,13 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Read a video generation. Read a video job: running, completed with the video&apos;s blob, or error with a reason. Jobs are kept in memory, so a server restart forgets them; a finished video&apos;s blob stays readable. Behind the video_generate flag. Experimental: may change without compatibility guarantees.
+    /// Read a video generation. Read a video job: running, completed with its videos&apos; blobs, or error with a reason. Jobs survive a server restart, which resumes polling running ones. A job is not found 24 hours after it finished, or once none of its blobs remain. Experimental: may change without compatibility guarantees.
     /// </summary>
     /// <param name = "id">The &apos;id&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;ExperimentalGenerateVideoResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>experimental.generate.video.get</c>: <c>GET /api/experimental/generate/video/{id}</c>.
@@ -522,7 +558,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// List automations. List automations, oldest first. Experimental: needs experimental.automations in the config of the automation&apos;s directory and may change without compatibility guarantees.
+    /// List automations. List automations, oldest first. Experimental: may change without compatibility guarantees. Set automations to false in the directory&apos;s config to disable access.
     /// </summary>
     /// <param name = "request">The request shaping the query.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -553,6 +589,22 @@ public class ExperimentalClient
     public virtual Task<ExperimentalJobListResponse> ListJobsAsync(ExperimentalJobListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         return Pipeline.ExecuteAsync("experimental.job.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListJobs(request), ExperimentalJobListResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// List machines. List known machines and whether each is paired and online. Behind the machines flag. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalMachineListResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.machine.list</c>: <c>GET /api/experimental/machine</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalMachineListResponse> ListMachinesAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("experimental.machine.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListMachines, ExperimentalMachineListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -590,7 +642,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Pause automation. Stop an automation from running until it is resumed. Experimental: needs experimental.automations in the config of the automation&apos;s directory and may change without compatibility guarantees.
+    /// Pause automation. Stop an automation from running until it is resumed. Experimental: may change without compatibility guarantees. Set automations to false in the directory&apos;s config to disable access.
     /// </summary>
     /// <param name = "automationId">The &apos;automationID&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -625,6 +677,24 @@ public class ExperimentalClient
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         return Pipeline.ExecuteStreamAsync("experimental.session.log", HttpMethod.Get, OpenCodeRoutes.Experimental.ReadSessionLog(sessionId, request), ExperimentalSessionLogResponseStreamAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Remove a machine. Forget a machine by name, closing any live link and revoking its key. Behind the machines flag. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "name">The &apos;name&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalMachineRemoveResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.machine.remove</c>: <c>DELETE /api/experimental/machine/{name}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalMachineRemoveResponse> RemoveMachineAsync(string name, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        return Pipeline.ExecuteAsync("experimental.machine.remove", HttpMethod.Delete, OpenCodeRoutes.Experimental.RemoveMachine(name), ExperimentalMachineRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -667,7 +737,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Resume automation. Resume a paused automation. A missed `at` runs once; repeating timers resume at their next slot. Event watches request replay from their saved cursor. Experimental: needs experimental.automations in the config of the automation&apos;s directory and may change without compatibility guarantees.
+    /// Resume automation. Resume a paused automation. A missed `at` runs once; repeating timers resume at their next slot. Event watches request replay from their saved cursor. Experimental: may change without compatibility guarantees. Set automations to false in the directory&apos;s config to disable access.
     /// </summary>
     /// <param name = "automationId">The &apos;automationID&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>

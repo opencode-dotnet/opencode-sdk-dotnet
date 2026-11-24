@@ -16,6 +16,18 @@ public sealed record VoiceModel
     public required string Model { get; init; }
 
     /// <summary>
+    /// Gets the name value.
+    /// </summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the engine value.
+    /// </summary>
+    [JsonPropertyName("engine")]
+    public required string Engine { get; init; }
+
+    /// <summary>
     /// Gets the provider value.
     /// </summary>
     [JsonPropertyName("provider")]

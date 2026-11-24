@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-11-23
+Date: 2026-11-24
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -355,7 +355,7 @@ true; the fixture hands the boundary to the child process it starts.
   `OPENCODE_SDK_TESTS_SERVER_COMMAND`, so the distributed-build lane exercises these operations.
   Plugin listing asserts on both branches: an owned server carries its builtins plus the seeded RPC
   plugin, and an external endpoint cannot carry that plugin. RPC tests prove `rpc.unavailable`
-  through a one-shot external-mode call (no activation barrier at v2.3.2; owned calls first wait for
+  through a one-shot external-mode call (no activation barrier at v2.4.1; owned calls first wait for
   the seeded plugin with `LiveReadiness.PluginAsync`) before checking absence from
   inventory. Owned event and inventory tests wait for the exact seeded RPC plugin and assert its
   local path and active state.

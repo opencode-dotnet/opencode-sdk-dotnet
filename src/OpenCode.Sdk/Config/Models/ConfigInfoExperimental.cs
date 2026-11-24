@@ -44,25 +44,11 @@ public sealed record ConfigInfoExperimental
     public bool? MediaBlob { get; init; }
 
     /// <summary>
-    /// Gets the automations value.
-    /// </summary>
-    [JsonPropertyName("automations")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? Automations { get; init; }
-
-    /// <summary>
     /// Gets the artifacts value.
     /// </summary>
     [JsonPropertyName("artifacts")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Artifacts { get; init; }
-
-    /// <summary>
-    /// Gets the video generate value.
-    /// </summary>
-    [JsonPropertyName("video_generate")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? VideoGenerate { get; init; }
 
     /// <summary>
     /// Gets the console watches value.
@@ -72,11 +58,18 @@ public sealed record ConfigInfoExperimental
     public bool? ConsoleWatches { get; init; }
 
     /// <summary>
-    /// Gets the MCP events value.
+    /// Gets the recommended api value.
     /// </summary>
-    [JsonPropertyName("mcp_events")]
+    [JsonPropertyName("recommended_api")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? McpEvents { get; init; }
+    public bool? RecommendedApi { get; init; }
+
+    /// <summary>
+    /// Gets the model speeds value.
+    /// </summary>
+    [JsonPropertyName("model_speeds")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ModelSpeeds { get; init; }
 
     /// <summary>
     /// Gets the full codemode value.
@@ -86,11 +79,46 @@ public sealed record ConfigInfoExperimental
     public bool? FullCodemode { get; init; }
 
     /// <summary>
-    /// Gets the schedules value.
+    /// Gets the machines value.
     /// </summary>
-    [JsonPropertyName("schedules")]
+    [JsonPropertyName("machines")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public bool? Schedules { get; init; }
+    public bool? Machines { get; init; }
+
+    /// <summary>
+    /// Gets the home memory value.
+    /// </summary>
+    [JsonPropertyName("home_memory")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? HomeMemory { get; init; }
+
+    /// <summary>
+    /// Gets the project overlay value.
+    /// </summary>
+    [JsonPropertyName("project_overlay")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? ProjectOverlay { get; init; }
+
+    /// <summary>
+    /// Gets the OpenCode api value.
+    /// </summary>
+    [JsonPropertyName("opencode_api")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? OpencodeApi { get; init; }
+
+    /// <summary>
+    /// Gets the sqlite fts value.
+    /// </summary>
+    [JsonPropertyName("sqlite_fts")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SqliteFts { get; init; }
+
+    /// <summary>
+    /// Gets the video generate value.
+    /// </summary>
+    [JsonPropertyName("video_generate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ConfigInfoExperimentalVideoGenerate? VideoGenerate { get; init; }
 
     /// <summary>
     /// Gets the part rows value.

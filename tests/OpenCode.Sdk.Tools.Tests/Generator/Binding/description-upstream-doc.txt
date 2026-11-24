@@ -1,6 +1,4 @@
 ISessionInboxInfoTime.Created
-SessionMessageAssistant
-SessionMessageAssistant.Content
 SessionTextDeltaData.Delta
 SessionTextEndedData.Text
 SessionPromptRequest.Skills

@@ -7,7 +7,6 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// The job status. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(JobStatusJsonConverter))]
 public readonly struct JobStatus : IEquatable<JobStatus>
 {
@@ -25,7 +24,6 @@ public readonly struct JobStatus : IEquatable<JobStatus>
     /// <summary>
     /// The pinned wire spellings, for a case label or a property pattern on Value.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
     public static class Values
     {
         /// <summary>

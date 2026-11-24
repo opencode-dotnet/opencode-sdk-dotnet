@@ -16,6 +16,7 @@ internal sealed class EventJsonConverter : JsonConverter<IEvent>
         ["config.updated"] = UnionArm<IEvent>.Of<ConfigUpdated>(),
         ["credential.switched"] = UnionArm<IEvent>.Of<CredentialSwitched>(),
         ["credential.updated"] = UnionArm<IEvent>.Of<CredentialUpdated>(),
+        ["experimental.job.updated"] = UnionArm<IEvent>.Of<ExperimentalJobUpdated>(),
         ["experimental.mcp.event"] = UnionArm<IEvent>.Of<ExperimentalMcpEvent>(),
         ["filesystem.changed"] = UnionArm<IEvent>.Of<FilesystemChanged>(),
         ["form.cancelled"] = UnionArm<IEvent>.Of<FormCancelled>(),

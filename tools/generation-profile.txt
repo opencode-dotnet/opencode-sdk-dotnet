@@ -36,7 +36,11 @@ experimental.generate.text
 experimental.generate.video.create
 experimental.generate.video.get
 experimental.integration.wellknown.add
+experimental.job.cancel
 experimental.job.list
+experimental.machine.add
+experimental.machine.list
+experimental.machine.remove
 experimental.mcp.add
 experimental.mcp.client.token
 experimental.mcp.connect

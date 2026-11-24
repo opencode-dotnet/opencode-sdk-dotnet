@@ -13,7 +13,7 @@ internal sealed class FreeModel(OpenCodeClient client)
     public async Task<ModelInfo?> FindAsync(CancellationToken cancellationToken)
     {
         using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        // This budget can end the default-model wait before its attempts run out, ending the search with no model.
+        // This budget can end the default-model wait before its plugin poll ends, ending the search with no model.
         startup.CancelAfter(TimeSpan.FromSeconds(30));
         try
         {
@@ -43,15 +43,9 @@ internal sealed class FreeModel(OpenCodeClient client)
     private async Task<ModelInfo?> ReadAsync(CancellationToken cancellationToken)
     {
         await client.LanguageModels.WaitForDefaultAsync(cancellationToken: cancellationToken);
-        try
-        {
-            var catalog = await client.LanguageModels.ListModelsAsync(cancellationToken: cancellationToken);
-            return catalog.Models.FirstOrDefault(IsFree);
-        }
-        catch (OpenCodeApiException failure) when (failure.Error is ServiceUnavailableError)
-        {
-            // A plugin refresh came between the two calls: the next round waits again.
-            return null;
-        }
+
+        // Plugins load in the background, so the catalog can still be partial: the next round reads it again.
+        var catalog = await client.LanguageModels.ListModelsAsync(cancellationToken: cancellationToken);
+        return catalog.Models.FirstOrDefault(IsFree);
     }
 }

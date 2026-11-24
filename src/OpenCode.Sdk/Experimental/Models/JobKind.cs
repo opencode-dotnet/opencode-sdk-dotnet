@@ -41,6 +41,10 @@ public readonly struct JobKind : IEquatable<JobKind>
         /// </summary>
         public const string Image = "image";
         /// <summary>
+        /// The &apos;video&apos; wire spelling.
+        /// </summary>
+        public const string Video = "video";
+        /// <summary>
         /// The &apos;codemode&apos; wire spelling.
         /// </summary>
         public const string Codemode = "codemode";
@@ -59,6 +63,10 @@ public readonly struct JobKind : IEquatable<JobKind>
     /// </summary>
     public static JobKind Image { get; } = new(Values.Image);
     /// <summary>
+    /// Gets the &apos;video&apos; wire value.
+    /// </summary>
+    public static JobKind Video { get; } = new(Values.Video);
+    /// <summary>
     /// Gets the &apos;codemode&apos; wire value.
     /// </summary>
     public static JobKind Codemode { get; } = new(Values.Codemode);
@@ -69,7 +77,7 @@ public readonly struct JobKind : IEquatable<JobKind>
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.Shell or Values.Subagent or Values.Image or Values.Codemode;
+    public bool IsKnown => _value is Values.Shell or Values.Subagent or Values.Image or Values.Video or Values.Codemode;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

@@ -41,7 +41,7 @@ public sealed class ConnectionResolverTests : IDisposable
             .Returns((OpenCodeServer?)null);
         _doors.EnsureLocatedAsync(Arg.Any<EnsureRequest>(), Arg.Any<ServicePaths>(), Arg.Any<ServiceConfigEnvironment>(), Arg.Any<CancellationToken>())
             .Returns(_ => Shared("2.2.7"));
-        _handler = new RecordingHttpHandler(_ => InfoReply("2.3.2"));
+        _handler = new RecordingHttpHandler(_ => InfoReply("2.4.1"));
         _transport = new HttpClient(_handler, disposeHandler: false);
         _seams = new ConnectionSeams(_doors, _environment, _files, _transport, new ManualTimeProvider());
         _environment.ClearReceivedCalls();
@@ -63,7 +63,7 @@ public sealed class ConnectionResolverTests : IDisposable
         await Assert.That(connection.Endpoint).IsEqualTo(Endpoint);
         await Assert.That(connection.Username).IsEqualTo("opencode");
         await Assert.That(connection.Password).IsEqualTo("pw");
-        await Assert.That(connection.ServerVersion).IsEqualTo("2.3.2");
+        await Assert.That(connection.ServerVersion).IsEqualTo("2.4.1");
         await Assert.That(connection.Server).IsNull();
         await Assert.That(connection.ServiceOperations).IsNull();
         await Assert.That(contexts).IsEmpty();
@@ -74,9 +74,9 @@ public sealed class ConnectionResolverTests : IDisposable
 
     [Test]
     [Arguments("2.2.9")]
-    [Arguments("v2.3.2")]
-    [Arguments("2.3.2 ")]
-    [Arguments("2.3.20")]
+    [Arguments("v2.4.1")]
+    [Arguments("2.4.1 ")]
+    [Arguments("2.4.10")]
     public async Task ResolveAsync_Should_Report_A_Differing_Version_Once_And_Continue(string version)
     {
         using var handler = new RecordingHttpHandler(_ => InfoReply(version));
@@ -91,7 +91,7 @@ public sealed class ConnectionResolverTests : IDisposable
         await Assert.That(contexts.Count).IsEqualTo(1);
         await Assert.That(contexts[0].Endpoint).IsEqualTo(Endpoint);
         await Assert.That(contexts[0].ServerVersion).IsEqualTo(version);
-        await Assert.That(contexts[0].ClientVersion).IsEqualTo("2.3.2");
+        await Assert.That(contexts[0].ClientVersion).IsEqualTo("2.4.1");
         await Assert.That(connection.ServerVersion).IsEqualTo(version);
         await using var silent = await OpenCodeServer.ResolveWithSeamsAsync(new() { Endpoint = Endpoint }, seams, CancellationToken.None);
         await Assert.That(silent.ServerVersion).IsEqualTo(version);

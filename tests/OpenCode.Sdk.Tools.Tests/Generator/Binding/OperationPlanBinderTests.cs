@@ -925,17 +925,17 @@ public sealed class OperationPlanBinderTests
     }
 
     /// <summary>
-    /// All three WebSocket operations (the hand-written session doors) are pinned by
-    /// fingerprint rather than selected, ordinal-sorted; a spec refresh or a curation edit that
+    /// All four WebSocket operations (the three hand-written session doors, and the machine link,
+    /// which has no door yet) are pinned by fingerprint rather than selected, ordinal-sorted; a spec refresh or a curation edit that
     /// drops a row, or reorders them, must fail this test rather than drift silently.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Report_The_Three_WebSocket_Operations_As_Transport_Owned()
+    public async Task Bind_Should_Report_The_Four_WebSocket_Operations_As_Transport_Owned()
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         await Assert.That(plan.TransportOwnedOperationIds)
-            .IsEquivalentTo(["experimental.mcp.client", "experimental.persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["experimental.machine.link", "experimental.mcp.client", "experimental.persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     /// <summary>

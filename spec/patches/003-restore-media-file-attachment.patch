@@ -12,12 +12,12 @@ index 16e9001..673d492 100644
  }).annotate({ identifier: "Session.Inbox.UserPayload" })
  
 diff --git a/packages/schema/src/session-message.ts b/packages/schema/src/session-message.ts
-index 5c1755c..e87ed94 100644
+index ce19d11..0015128 100644
 --- a/packages/schema/src/session-message.ts
 +++ b/packages/schema/src/session-message.ts
-@@ -77,7 +77,8 @@ export interface User extends Schema.Schema.Type<typeof User> {}
- export const User = Schema.Struct({
+@@ -78,7 +78,8 @@ export const User = Schema.Struct({
    ...Base,
+   /** Read by the session search index's SQL (`packages/core/src/session/search-index.ts`); a rename needs its `Version` bumped. */
    text: Prompt.fields.text,
 -  files: Prompt.fields.files,
 +  // Opted-in reads return stored files as media refs, so the document describes both shapes.

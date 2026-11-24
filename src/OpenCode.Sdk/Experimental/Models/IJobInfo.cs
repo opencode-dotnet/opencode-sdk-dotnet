@@ -10,7 +10,6 @@ namespace OpenCode.Sdk.Models;
 /// <remarks>
 /// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.
 /// </remarks>
-[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(JobInfoJsonConverter))]
 public interface IJobInfo
 {

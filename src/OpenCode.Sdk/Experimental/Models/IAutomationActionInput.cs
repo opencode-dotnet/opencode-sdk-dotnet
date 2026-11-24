@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// What it does: { type: &quot;prompt&quot;, prompt, to? } sends a prompt; { type: &quot;code&quot;, code, args? } runs Code Mode with no model.
+/// What it does: { type: &quot;prompt&quot;, prompt, to? } sends a prompt; { type: &quot;code&quot;, code, args? } runs Code Mode; { type: &quot;shell&quot;, command } runs a fixed shell command.
 /// </summary>
 /// <remarks>
 /// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.

@@ -8,7 +8,6 @@ internal sealed class ExperimentalGenerateVideoResponseAdapter : ResponseAdapter
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status403Tags = ["ForbiddenError"];
     private static readonly string[] Status404Tags = ["LocationNotFoundError", "VideoNotFoundError"];
     private ExperimentalGenerateVideoResponseAdapter()
     {
@@ -28,7 +27,6 @@ internal sealed class ExperimentalGenerateVideoResponseAdapter : ResponseAdapter
         >= 200 and < 300 => StatusVerdict.UndeclaredSuccess,
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
-        403 => StatusVerdict.DeclaredError,
         404 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
@@ -56,7 +54,6 @@ internal sealed class ExperimentalGenerateVideoResponseAdapter : ResponseAdapter
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new ExperimentalGenerateVideoResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new ExperimentalGenerateVideoResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            403 => new ExperimentalGenerateVideoResponse(status, ReadTolerantError(rawBody, Status403Tags), rawBody),
             404 => new ExperimentalGenerateVideoResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
             _ => new ExperimentalGenerateVideoResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };

@@ -60,6 +60,7 @@
 /Config/Internal/ConfigInfoExperimentalLocationIdleTimeoutJsonConverter.cs linguist-generated
 /Config/Internal/ConfigInfoExperimentalPoliciesActionJsonConverter.cs linguist-generated
 /Config/Internal/ConfigInfoExperimentalPoliciesEffectJsonConverter.cs linguist-generated
+/Config/Internal/ConfigInfoExperimentalVideoGenerateJsonConverter.cs linguist-generated
 /Config/Internal/ConfigInfoFormatterJsonConverter.cs linguist-generated
 /Config/Internal/ConfigInfoLspJsonConverter.cs linguist-generated
 /Config/Internal/ConfigInfoPluginsJsonConverter.cs linguist-generated
@@ -105,6 +106,8 @@
 /Config/Models/ConfigInfoExperimentalPolicies.cs linguist-generated
 /Config/Models/ConfigInfoExperimentalPoliciesAction.cs linguist-generated
 /Config/Models/ConfigInfoExperimentalPoliciesEffect.cs linguist-generated
+/Config/Models/ConfigInfoExperimentalVideoGenerate.cs linguist-generated
+/Config/Models/ConfigInfoExperimentalVideoGenerateKind.cs linguist-generated
 /Config/Models/ConfigInfoFormatter.cs linguist-generated
 /Config/Models/ConfigInfoFormatterKind.cs linguist-generated
 /Config/Models/ConfigInfoLsp.cs linguist-generated
@@ -162,6 +165,7 @@
 /Config/Models/ConfigReferenceLocal.cs linguist-generated
 /Config/Models/ConfigShellOption.cs linguist-generated
 /Config/Models/ConfigUpdated.cs linguist-generated
+/Config/Models/ConfigVideoGenerateOptions.cs linguist-generated
 /Config/Models/ConfigWarming.cs linguist-generated
 /Config/Models/ConfigWarmingInterval.cs linguist-generated
 /Config/Models/ConfigWebSearchInfo.cs linguist-generated
@@ -283,8 +287,13 @@
 /Experimental/ExperimentalGenerateVideoResponse.cs linguist-generated
 /Experimental/ExperimentalIntegrationWellknownAddRequest.cs linguist-generated
 /Experimental/ExperimentalIntegrationWellknownAddResponse.cs linguist-generated
+/Experimental/ExperimentalJobCancelResponse.cs linguist-generated
 /Experimental/ExperimentalJobListRequest.cs linguist-generated
 /Experimental/ExperimentalJobListResponse.cs linguist-generated
+/Experimental/ExperimentalMachineAddRequest.cs linguist-generated
+/Experimental/ExperimentalMachineAddResponse.cs linguist-generated
+/Experimental/ExperimentalMachineListResponse.cs linguist-generated
+/Experimental/ExperimentalMachineRemoveResponse.cs linguist-generated
 /Experimental/ExperimentalMcpAddRequest.cs linguist-generated
 /Experimental/ExperimentalMcpAddResponse.cs linguist-generated
 /Experimental/ExperimentalMcpConnectRequest.cs linguist-generated
@@ -361,8 +370,14 @@
 /Experimental/Internal/ExperimentalGenerateVideoResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalGenerateVideoResponseEnvelope.cs linguist-generated
 /Experimental/Internal/ExperimentalIntegrationWellknownAddResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalJobCancelResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalJobListResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalJobListResponseEnvelope.cs linguist-generated
+/Experimental/Internal/ExperimentalMachineAddResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalMachineAddResponseEnvelope.cs linguist-generated
+/Experimental/Internal/ExperimentalMachineListResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalMachineListResponseEnvelope.cs linguist-generated
+/Experimental/Internal/ExperimentalMachineRemoveResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalMcpAddResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalMcpConnectResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalMcpDisconnectResponseAdapter.cs linguist-generated
@@ -403,6 +418,9 @@
 /Experimental/Internal/JobInfoJsonConverter.cs linguist-generated
 /Experimental/Internal/JobKindJsonConverter.cs linguist-generated
 /Experimental/Internal/JobStatusJsonConverter.cs linguist-generated
+/Experimental/Internal/MachineInfoConnectionKindJsonConverter.cs linguist-generated
+/Experimental/Internal/MachineInfoConnectionPathJsonConverter.cs linguist-generated
+/Experimental/Internal/MachineInviteReachJsonConverter.cs linguist-generated
 /Experimental/Internal/OpenCodeRoutes.Experimental.cs linguist-generated
 /Experimental/Internal/UnknownAutomationActionInputJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownAutomationActionJsonConverter.cs linguist-generated
@@ -412,6 +430,7 @@
 /Experimental/Internal/UnknownGenerateDecisionQuestionJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownGenerateVideoJobJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownJobInfoJsonConverter.cs linguist-generated
+/Experimental/Internal/UnknownMachineInviteReachJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownVoiceTransportInputJsonConverter.cs linguist-generated
 /Experimental/Internal/UnknownVoiceTransportJsonConverter.cs linguist-generated
 /Experimental/Internal/UsageLimitsBudgetCoverageJsonConverter.cs linguist-generated
@@ -429,12 +448,14 @@
 /Experimental/Models/ArtifactUpdated.cs linguist-generated
 /Experimental/Models/AutomationActionCode.cs linguist-generated
 /Experimental/Models/AutomationActionPrompt.cs linguist-generated
+/Experimental/Models/AutomationActionShell.cs linguist-generated
 /Experimental/Models/AutomationCodeActionInput.cs linguist-generated
 /Experimental/Models/AutomationInfo.cs linguist-generated
 /Experimental/Models/AutomationInfoTime.cs linguist-generated
 /Experimental/Models/AutomationNotFoundError.cs linguist-generated
 /Experimental/Models/AutomationOutcome.cs linguist-generated
 /Experimental/Models/AutomationPromptActionInput.cs linguist-generated
+/Experimental/Models/AutomationShellActionInput.cs linguist-generated
 /Experimental/Models/AutomationStatus.cs linguist-generated
 /Experimental/Models/AutomationTarget.cs linguist-generated
 /Experimental/Models/AutomationTargetKind.cs linguist-generated
@@ -447,6 +468,8 @@
 /Experimental/Models/BlobInfo.cs linguist-generated
 /Experimental/Models/BlobNotFoundError.cs linguist-generated
 /Experimental/Models/ExperimentalGenerateTextData.cs linguist-generated
+/Experimental/Models/ExperimentalJobUpdated.cs linguist-generated
+/Experimental/Models/ExperimentalJobUpdatedData.cs linguist-generated
 /Experimental/Models/ExperimentalMcpEvent.cs linguist-generated
 /Experimental/Models/ExperimentalMcpEventData.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1Status.cs linguist-generated
@@ -497,6 +520,7 @@
 /Experimental/Models/IGenerateDecisionQuestion.cs linguist-generated
 /Experimental/Models/IGenerateVideoJob.cs linguist-generated
 /Experimental/Models/IJobInfo.cs linguist-generated
+/Experimental/Models/IMachineInviteReach.cs linguist-generated
 /Experimental/Models/IVoiceTransport.cs linguist-generated
 /Experimental/Models/IVoiceTransportInput.cs linguist-generated
 /Experimental/Models/InstructionEntryInfo.cs linguist-generated
@@ -509,6 +533,15 @@
 /Experimental/Models/JobStatus.cs linguist-generated
 /Experimental/Models/JobSubagent.cs linguist-generated
 /Experimental/Models/JobTime.cs linguist-generated
+/Experimental/Models/JobVideo.cs linguist-generated
+/Experimental/Models/MachineInfo.cs linguist-generated
+/Experimental/Models/MachineInfoConnection.cs linguist-generated
+/Experimental/Models/MachineInfoConnectionKind.cs linguist-generated
+/Experimental/Models/MachineInfoConnectionPath.cs linguist-generated
+/Experimental/Models/MachineInvite.cs linguist-generated
+/Experimental/Models/MachineInviteReachIroh.cs linguist-generated
+/Experimental/Models/MachineNotFoundError.cs linguist-generated
+/Experimental/Models/MachineReach.cs linguist-generated
 /Experimental/Models/UnknownAutomationAction.cs linguist-generated
 /Experimental/Models/UnknownAutomationActionInput.cs linguist-generated
 /Experimental/Models/UnknownAutomationTrigger.cs linguist-generated
@@ -517,6 +550,7 @@
 /Experimental/Models/UnknownGenerateDecisionQuestion.cs linguist-generated
 /Experimental/Models/UnknownGenerateVideoJob.cs linguist-generated
 /Experimental/Models/UnknownJobInfo.cs linguist-generated
+/Experimental/Models/UnknownMachineInviteReach.cs linguist-generated
 /Experimental/Models/UnknownVoiceTransport.cs linguist-generated
 /Experimental/Models/UnknownVoiceTransportInput.cs linguist-generated
 /Experimental/Models/UnsupportedModelError.cs linguist-generated
@@ -740,6 +774,7 @@
 /LanguageModels/Models/ModelCostCache.cs linguist-generated
 /LanguageModels/Models/ModelCostTier.cs linguist-generated
 /LanguageModels/Models/ModelInfo.cs linguist-generated
+/LanguageModels/Models/ModelInfoExperimental.cs linguist-generated
 /LanguageModels/Models/ModelInfoLimit.cs linguist-generated
 /LanguageModels/Models/ModelInfoStatus.cs linguist-generated
 /LanguageModels/Models/ModelInfoTime.cs linguist-generated
@@ -749,6 +784,7 @@
 /LanguageModels/Models/ModelReasoningField.cs linguist-generated
 /LanguageModels/Models/ModelRef.cs linguist-generated
 /LanguageModels/Models/ModelSettings.cs linguist-generated
+/LanguageModels/Models/ModelSpeed.cs linguist-generated
 /LanguageModels/Models/ModelType.cs linguist-generated
 /LanguageModels/Models/ModelUpdated.cs linguist-generated
 /LanguageModels/Models/ModelVariant.cs linguist-generated
