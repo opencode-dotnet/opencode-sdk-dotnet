@@ -16,7 +16,7 @@ public sealed class VersionMismatchNotifierTests
         await Assert.That(contexts.Count).IsEqualTo(1);
         await Assert.That(contexts[0].Endpoint).IsEqualTo(Endpoint);
         await Assert.That(contexts[0].ServerVersion).IsEqualTo("2.2.9");
-        await Assert.That(contexts[0].ClientVersion).IsEqualTo("2.3.2");
+        await Assert.That(contexts[0].ClientVersion).IsEqualTo("2.4.1");
     }
 
     [Test]
@@ -25,7 +25,7 @@ public sealed class VersionMismatchNotifierTests
         var contexts = new List<OpenCodeServerVersionMismatchContext>();
 
         VersionMismatchNotifier.Notify(Endpoint, "2.2.9", callback: null);
-        VersionMismatchNotifier.Notify(Endpoint, "2.3.2", contexts.Add);
+        VersionMismatchNotifier.Notify(Endpoint, "2.4.1", contexts.Add);
 
         await Assert.That(contexts).IsEmpty();
     }

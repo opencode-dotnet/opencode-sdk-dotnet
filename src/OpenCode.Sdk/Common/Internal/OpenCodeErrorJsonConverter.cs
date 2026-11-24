@@ -29,6 +29,7 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
         ["InvalidCursorError"] = UnionArm<IOpenCodeError>.Of<InvalidCursorError>(),
         ["InvalidRequestError"] = UnionArm<IOpenCodeError>.Of<InvalidRequestError>(),
         ["LocationNotFoundError"] = UnionArm<IOpenCodeError>.Of<LocationNotFoundError>(),
+        ["MachineNotFoundError"] = UnionArm<IOpenCodeError>.Of<MachineNotFoundError>(),
         ["McpServerNotFoundError"] = UnionArm<IOpenCodeError>.Of<McpServerNotFoundError>(),
         ["MessageNotFoundError"] = UnionArm<IOpenCodeError>.Of<MessageNotFoundError>(),
         ["ModelNotFoundError"] = UnionArm<IOpenCodeError>.Of<ModelNotFoundError>(),

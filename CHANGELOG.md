@@ -9,6 +9,20 @@ Nightly builds of `master` are on
 [GitHub Packages](docs/guide/getting-started.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔌 Protocol changes
+
+- The SDK pins opencode `2.4.1`, where it pinned `2.3.2`.
+- **Breaking:** `BlobInfo.ExpiresAt` is removed, because opencode 2.4.0 no longer reports a blob's expiry. opencode still deletes a blob seven days after writing it. Before: `double expires = blob.ExpiresAt;`. After: remove the read.
+- **Breaking:** `ConfigInfoExperimental.Automations`, `McpEvents` and `Schedules` are removed, because opencode 2.4.0 ships automations and MCP events without a feature flag. Automations are on by default and switch off with the new `ConfigInfo.Automations`. Before: `new ConfigInfoExperimental { Automations = true }`. After: nothing to set; to turn automations off, `new ConfigInfo { Automations = false }`.
+- **Breaking:** `ConfigInfoExperimental.VideoGenerate` changes from `bool?` to `ConfigInfoExperimentalVideoGenerate?`, which holds either a `Boolean` or a `ConfigVideoGenerateOptions` naming the video tool's default `Model`. Before: `new ConfigInfoExperimental { VideoGenerate = true }`. After: `new ConfigInfoExperimental { VideoGenerate = ConfigInfoExperimentalVideoGenerate.FromBoolean(true) }`.
+- **Breaking:** `VoiceModel` gains required `Engine` and `Name`, so code that constructs the record sets both.
+- `ExperimentalClient.CreateVideoGenerationAsync` and `GetVideoGenerationAsync` no longer answer `403` `ForbiddenError`: opencode 2.4.0 no longer checks a flag before generating video. A video generation is listed as a background job, `JobVideo`, with `JobKind.Video`.
+- `ExperimentalClient.CancelJobAsync` (`experimental.job.cancel`) cancels a background job, and `ExperimentalJobUpdated`, with `ExperimentalJobUpdatedData`, joins `IEvent`; `EventType.ExperimentalJobUpdated` filters the event subscription to `experimental.job.updated`.
+- `ExperimentalClient.ListMachinesAsync`, `AddMachineAsync` and `RemoveMachineAsync` (`experimental.machine.list`, `.add`, `.remove`) manage machines. `AddMachineAsync` returns a `MachineInvite` whose `Join` is a single-use join string carrying the join secret; the record's printed form masks it. `ConfigInfoExperimental.Machines` exposes the machines flag. The machine link, the WebSocket a machine connects through (`experimental.machine.link`), has no door yet; one is planned.
+- An automation can run a fixed shell command: `AutomationShellActionInput` creates one, and `AutomationActionShell` reads it back.
+- `ModelInfo.Experimental.Speed` (`ModelSpeed`) names a model's service tier, and `ConfigInfoExperimental.ModelSpeeds` exposes its flag. `ConfigInfoExperimental.HomeMemory`, `OpencodeApi`, `ProjectOverlay`, `RecommendedApi` and `SqliteFts` expose the other new feature flags.
+- Since opencode 2.4.0 the server no longer waits for plugins: listing models and providers, the default model, web search, and experimental generation and voice answer right after startup with what has loaded, so a list can be empty or partial, and they no longer answer `503` `ServiceUnavailableError` while plugins load. `Plugins.WaitForPluginsAsync` and `LanguageModels.WaitForDefaultAsync` are unchanged and still poll the plugin list as opencode's CLI does.
+
 ### ✨ Added
 
 - `Sessions.GetTotalCostAsync` returns a session's total cost as opencode's own clients show it: a
@@ -33,6 +47,10 @@ Nightly builds of `master` are on
 - HQ can fork a session from a message, compact it, and switch its agent and model.
 - The README shows HQ's board. On NuGet.org the image comes from the commit the package was built
   from, like the README's links.
+- The getting-started guide says the server no longer waits for plugins and that a catalog can be
+  empty or partial right after startup, and names the `*.updated` events a long-lived application
+  can refresh on. The README's streaming example and QuickStart no longer treat a `503` as "the
+  server is still starting".
 
 ## [2.0.1] - 2026-11-22
 

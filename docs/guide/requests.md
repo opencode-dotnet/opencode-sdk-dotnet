@@ -410,7 +410,7 @@ Data that does not match your type, or that your metadata reads as null, throws
 
 Most generated members say no more than "Gets the action value", because the pinned API document
 describes no more. Some members need more than their types to use correctly. Where a rule below
-comes from upstream's implementation at the pin (`v2.3.2`) rather than from the pinned contract,
+comes from upstream's implementation at the pin (`v2.4.1`) rather than from the pinned contract,
 it says so.
 
 ### Session permissions

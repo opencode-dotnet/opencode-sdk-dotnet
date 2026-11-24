@@ -46,6 +46,10 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;POST /api/experimental/machine&apos; route.
+        /// </summary>
+        public const string AddMachine = "/api/experimental/machine";
+        /// <summary>
         /// Builds the &apos;/api/experimental/mcp/{server}&apos; route.
         /// </summary>
         /// <param name = "server">The &apos;server&apos; route value.</param>
@@ -68,6 +72,22 @@ internal static partial class OpenCodeRoutes
             var query = new QueryStringBuilder();
             query.AddLocation("location", request.Location);
             return path + query.Value;
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/job/{id}/cancel&apos; route.
+        /// </summary>
+        /// <param name = "id">The &apos;id&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string CancelJob(string id)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            if (id is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+            }
+
+            return "/api/experimental/job/" + RouteValuePolicy.Escape(id, nameof(id)) + "/cancel";
         }
 
         /// <summary>
@@ -465,6 +485,10 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;GET /api/experimental/machine&apos; route.
+        /// </summary>
+        public const string ListMachines = "/api/experimental/machine";
+        /// <summary>
         /// Builds the &apos;/api/experimental/session/{sessionID}/instructions/entries&apos; route.
         /// </summary>
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
@@ -524,6 +548,22 @@ internal static partial class OpenCodeRoutes
             query.AddInteger("after", request.After);
             query.AddBoolean("follow", request.Follow);
             return path + query.Value;
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/machine/{name}&apos; route.
+        /// </summary>
+        /// <param name = "name">The &apos;name&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string RemoveMachine(string name)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+            if (name is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(name));
+            }
+
+            return "/api/experimental/machine/" + RouteValuePolicy.Escape(name, nameof(name));
         }
 
         /// <summary>

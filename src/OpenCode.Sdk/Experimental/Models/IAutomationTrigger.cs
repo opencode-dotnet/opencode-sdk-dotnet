@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// When it runs: { type: &quot;at&quot;, at: &quot;in 20 minutes&quot; | &quot;2026-10-27T09:00&quot; }, { type: &quot;every&quot;, every: &quot;1 hour&quot; } or { type: &quot;cron&quot;, cron: &quot;0 9 * * 1-5&quot; }, each with an optional tz. Or { type: &quot;event&quot;, server, event, args? } for a connected MCP server advertising push delivery (requires mcp_events).
+/// When it runs: { type: &quot;at&quot;, at: &quot;in 20 minutes&quot; | &quot;2026-10-27T09:00&quot; }, { type: &quot;every&quot;, every: &quot;1 hour&quot; } or { type: &quot;cron&quot;, cron: &quot;0 9 * * 1-5&quot; }, each with an optional tz. Or { type: &quot;event&quot;, server, event, args? } for a connected MCP server advertising push delivery.
 /// </summary>
 /// <remarks>
 /// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin.

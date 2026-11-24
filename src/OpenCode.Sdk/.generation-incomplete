@@ -1,8 +1,8 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 169
+Selected operations: 173
 Pending operations: 0
 Declined operations: 1
-Transport-owned operations: 3
+Transport-owned operations: 4
 Selected:
 - agent.get
 - agent.list
@@ -42,7 +42,11 @@ Selected:
 - experimental.generate.video.create
 - experimental.generate.video.get
 - experimental.integration.wellknown.add
+- experimental.job.cancel
 - experimental.job.list
+- experimental.machine.add
+- experimental.machine.list
+- experimental.machine.remove
 - experimental.mcp.add
 - experimental.mcp.client.token
 - experimental.mcp.connect
@@ -177,6 +181,7 @@ Pending:
 Declined:
 - experimental.generate.textLegacy [declined: Both of upstream's first-party clients omit the legacy text generation endpoint; the SDK follows them.] [omitted upstream as generate.textLegacy] [bindable]
 Transport-owned:
+- experimental.machine.link [fingerprint-pinned]
 - experimental.mcp.client [fingerprint-pinned]
 - experimental.persistentPty.connect [fingerprint-pinned]
 - pty.connect [fingerprint-pinned]

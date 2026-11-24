@@ -11,7 +11,8 @@ internal sealed class AutomationActionInputJsonConverter : JsonConverter<IAutoma
     private static readonly UnionTagTable<UnionArm<IAutomationActionInput>> ArmsByTag = new Dictionary<string, UnionArm<IAutomationActionInput>>(StringComparer.Ordinal)
     {
         ["code"] = UnionArm<IAutomationActionInput>.Of<AutomationCodeActionInput>(),
-        ["prompt"] = UnionArm<IAutomationActionInput>.Of<AutomationPromptActionInput>()
+        ["prompt"] = UnionArm<IAutomationActionInput>.Of<AutomationPromptActionInput>(),
+        ["shell"] = UnionArm<IAutomationActionInput>.Of<AutomationShellActionInput>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IAutomationActionInput Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

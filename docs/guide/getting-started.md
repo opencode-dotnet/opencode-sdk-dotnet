@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-23
+Date: 2026-11-24
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -259,17 +259,18 @@ if (model is not null)
   `provider.free-limit` when a free tier's limit is reached. No HTTP route checks an account's
   usability ahead of a turn.
 - **Catalogs are observations during asynchronous plugin activation.** A successful status call
-  does not make them complete, and the calls that wait for plugins (next point) wait for a bounded
-  time, not for activation to finish: when your application expects a particular provider or model,
+  does not make them complete, and the SDK's plugin wait (next point) is bounded, not a wait for
+  activation to finish: when your application expects a particular provider or model,
   wait for that identity under a caller-owned cancellation deadline (`GLOSSARY.md`, Plugin activation).
-- **Some catalog and model calls wait for plugins; give activation a moment at startup.**
-  Listing the location's models and providers; the default model; a web search query;
-  and experimental generation and voice wait up to five seconds for plugins to load.
-  The agent list, usage limits and artifacts do not wait for plugin activation, so the agent list
-  can be incomplete while plugins load. Artifact routes take their session's or artifact's location
-  when the request names none.
+- **No call waits for plugins on the server; give activation a moment at startup.**
+  Since opencode 2.4.0 the server never waits for plugin activation: right after startup, or after
+  a config or plugin change, listing models, providers, agents or integrations answers with what
+  has loaded so far, so a list can be empty or partial. Artifact routes take their session's or
+  artifact's location when the request names none.
   Call `client.Plugins.WaitForPluginsAsync()` before listing agents or integrations to give plugins
-  a moment to load.
+  a moment to load. A long-lived application can instead refresh a catalog on its matching event,
+  such as `EventType.ModelUpdated`, `EventType.ProviderUpdated` or `EventType.PluginUpdated`, as
+  opencode's own clients do.
 
   ```csharp
   await client.Plugins.WaitForPluginsAsync();
@@ -277,10 +278,8 @@ if (model is not null)
 
   Experimental generation and voice use the global config's location, not the request's;
   a default-model wait on one location does not establish their activation.
-  On the first request to a location, after a config or plugin change, or on the
-  server's periodic plugin refresh, they can answer `503` with a `ServiceUnavailableError` whose
-  `Service` is `plugin`, meaning "plugins still loading"; usage limits and web search queries also
-  return `ServiceUnavailableError` for upstream failures. Before anything model-related, call
+  Usage limits, web search queries and voice still return `ServiceUnavailableError` for upstream
+  failures. Before anything model-related, call
   `WaitForDefaultAsync`: it first runs the same wait as `WaitForPluginsAsync`, like opencode's CLI
   one-shot commands, listing the location's plugins until non-empty, waiting 25 ms after each empty
   answer for about five seconds, then reads the default model once. A failed plugin list is ignored
@@ -288,10 +287,9 @@ if (model is not null)
   `ServiceUnavailableError`, with no further attempt. A non-empty plugin
   list is not a completion barrier: a catalog can still grow after the method returns. On a mocking
   instance built through the protected constructor, it skips the poll and reads once. The bound is
-  at most about five seconds of polling plus one read, which the server can hold up to five seconds,
-  plus request time: the polling schedule limit is checked after answers, not a deadline that
-  interrupts requests. If a later config or plugin change starts activation again, call it before
-  the next model call.
+  at most about five seconds of polling plus one read, plus request time: the polling schedule
+  limit is checked after answers, not a deadline that interrupts requests. If a later config or
+  plugin change starts activation again, call it before the next model call.
 
   ```csharp
   await client.LanguageModels.WaitForDefaultAsync();

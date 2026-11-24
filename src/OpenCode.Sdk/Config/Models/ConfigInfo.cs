@@ -72,6 +72,13 @@ public sealed record ConfigInfo
     public string? Timezone { get; init; }
 
     /// <summary>
+    /// Gets the automations value.
+    /// </summary>
+    [JsonPropertyName("automations")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Automations { get; init; }
+
+    /// <summary>
     /// Gets the permissions value.
     /// </summary>
     [JsonPropertyName("permissions")]

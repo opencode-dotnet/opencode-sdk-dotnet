@@ -8,7 +8,6 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Preserves an unknown job info payload.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(UnknownJobInfoJsonConverter))]
 public sealed record UnknownJobInfo : IJobInfo
 {

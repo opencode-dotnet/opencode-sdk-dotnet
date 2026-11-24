@@ -600,6 +600,7 @@ public sealed class SpecBinderTests
         "InvalidCursorError",
         "InvalidRequestError",
         "LocationNotFoundError",
+        "MachineNotFoundError",
         "McpServerNotFoundError",
         "MessageNotFoundError",
         "ModelNotFoundError",

@@ -20,8 +20,9 @@ internal static class LiveReadiness
     /// The readiness poll, naming what it last observed when it gives up: a timeout that only says
     /// "not ready" cannot tell a slow server from a wrong answer. A declared
     /// <see cref="ServiceUnavailableError"/> is the server saying "not available yet" (the model and
-    /// provider routes declare it while their catalog warms up), so it reads as not ready and the
-    /// poll goes on; every other error ends the wait at once.
+    /// provider routes still declare it, though since opencode 2.4.0 they no longer answer it while
+    /// plugins activate), so it reads as not ready and the poll goes on; every other error ends the
+    /// wait at once.
     /// </summary>
     public static Task<T> WaitAsync<T>(
         Func<CancellationToken, Task<T>> observe,
@@ -34,7 +35,7 @@ internal static class LiveReadiness
     /// <summary>The readiness poll with its budget named, so a test can prove what the end of the budget reports.</summary>
     [SlopwatchSuppress(
         "SW004",
-        "Readiness poll of another process: plugin activation and VCS provider detection settle on the server's own schedule after the request that triggers them has answered, no wire signal is awaited for either (the event bus has no replay, so a subscription opened after the trigger can miss it), the model routes' declared 503 while a location's plugins activate is waited through the same way, and the poll is bounded by a thirty-second deadline that also cancels with the caller.")]
+        "Readiness poll of another process: plugin activation and VCS provider detection settle on the server's own schedule after the request that triggers them has answered, no wire signal is awaited for either (the event bus has no replay, so a subscription opened after the trigger can miss it), a declared 503 from the model routes is waited through the same way, and the poll is bounded by a thirty-second deadline that also cancels with the caller.")]
     internal static async Task<T> WaitAsync<T>(
         Func<CancellationToken, Task<T>> observe,
         Func<T, bool> ready,

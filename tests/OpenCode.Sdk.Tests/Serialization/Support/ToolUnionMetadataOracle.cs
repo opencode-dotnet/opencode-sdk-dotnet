@@ -101,6 +101,7 @@ internal sealed class ToolUnionMetadataOracle<TUnion> : MetadataUnionJsonConvert
         ["config.updated"] = typeof(ConfigUpdated),
         ["credential.switched"] = typeof(CredentialSwitched),
         ["credential.updated"] = typeof(CredentialUpdated),
+        ["experimental.job.updated"] = typeof(ExperimentalJobUpdated),
         ["experimental.mcp.event"] = typeof(ExperimentalMcpEvent),
         ["filesystem.changed"] = typeof(FilesystemChanged),
         ["form.cancelled"] = typeof(FormCancelled),

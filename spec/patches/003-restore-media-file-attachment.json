@@ -1,6 +1,6 @@
 {
   "patch": "003-restore-media-file-attachment.patch",
-  "sha256": "d09949d585c4b4fe8888dc434563a9cf12c066f4454ca716ff6f6ed78d01531b",
+  "sha256": "91fe57f1ce88a58c65645604d60667d33f3a395873bf31613551d80fda973e64",
   "upstreamReport": "https://github.com/anomalyco/opencode/issues/64246",
   "order": 3,
   "touches": [

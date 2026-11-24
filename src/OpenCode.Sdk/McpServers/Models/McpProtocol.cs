@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// MCP protocol negotiation. &quot;legacy&quot; (default) opens with the initialize handshake and speaks protocol revisions up to 2025-11-25. &quot;auto&quot; probes for the 2026-07-28 revision and falls back to legacy when the server does not support it. &quot;2026-07-28&quot; requires that revision and fails otherwise. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
+/// MCP protocol negotiation. &quot;auto&quot; (default) probes for the 2026-07-28 revision and falls back to legacy when the server does not support it. &quot;legacy&quot; opens with the initialize handshake and speaks protocol revisions up to 2025-11-25. &quot;2026-07-28&quot; requires that revision and fails otherwise. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
 [JsonConverter(typeof(McpProtocolJsonConverter))]
 public readonly struct McpProtocol : IEquatable<McpProtocol>

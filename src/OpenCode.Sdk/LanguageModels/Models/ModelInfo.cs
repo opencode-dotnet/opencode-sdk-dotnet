@@ -103,6 +103,13 @@ public sealed record ModelInfo
     public required IReadOnlyList<ModelVariant> Variants { get; init; }
 
     /// <summary>
+    /// Gets the experimental value.
+    /// </summary>
+    [JsonPropertyName("experimental")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelInfoExperimental? Experimental { get; init; }
+
+    /// <summary>
     /// Gets the time value.
     /// </summary>
     [JsonPropertyName("time")]
@@ -135,5 +142,5 @@ public sealed record ModelInfo
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ModelInfo), ("Id", Id), ("ModelId", ModelId), ("ProviderId", ProviderId), ("Canonical", Canonical), ("Type", Type), ("Family", Family), ("Name", Name), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Time", Time), ("Cost", Cost), ("Status", Status), ("Enabled", Enabled), ("Limit", Limit));
+    public override string ToString() => RecordPrinter.Format(nameof(ModelInfo), ("Id", Id), ("ModelId", ModelId), ("ProviderId", ProviderId), ("Canonical", Canonical), ("Type", Type), ("Family", Family), ("Name", Name), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Experimental", Experimental), ("Time", Time), ("Cost", Cost), ("Status", Status), ("Enabled", Enabled), ("Limit", Limit));
 }

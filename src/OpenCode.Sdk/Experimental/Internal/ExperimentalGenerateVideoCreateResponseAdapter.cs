@@ -8,7 +8,6 @@ internal sealed class ExperimentalGenerateVideoCreateResponseAdapter : ResponseA
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status403Tags = ["ForbiddenError"];
     private static readonly string[] Status404Tags = ["LocationNotFoundError", "ModelNotFoundError", "ProviderNotFoundError"];
     private static readonly string[] Status422Tags = ["UnsupportedModelError"];
     private static readonly string[] Status502Tags = ["ProviderRequestError"];
@@ -31,7 +30,6 @@ internal sealed class ExperimentalGenerateVideoCreateResponseAdapter : ResponseA
         >= 200 and < 300 => StatusVerdict.UndeclaredSuccess,
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
-        403 => StatusVerdict.DeclaredError,
         404 => StatusVerdict.DeclaredError,
         422 => StatusVerdict.DeclaredError,
         502 => StatusVerdict.DeclaredError,
@@ -62,7 +60,6 @@ internal sealed class ExperimentalGenerateVideoCreateResponseAdapter : ResponseA
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new ExperimentalGenerateVideoCreateResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new ExperimentalGenerateVideoCreateResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            403 => new ExperimentalGenerateVideoCreateResponse(status, ReadTolerantError(rawBody, Status403Tags), rawBody),
             404 => new ExperimentalGenerateVideoCreateResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
             422 => new ExperimentalGenerateVideoCreateResponse(status, ReadTolerantError(rawBody, Status422Tags), rawBody),
             502 => new ExperimentalGenerateVideoCreateResponse(status, ReadTolerantError(rawBody, Status502Tags), rawBody),

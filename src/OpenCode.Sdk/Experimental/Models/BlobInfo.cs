@@ -10,7 +10,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record BlobInfo
 {
     /// <summary>
-    /// Gets the id value.
+    /// A stored blob, such as a generated video, which outlives the job that made it
     /// </summary>
     [JsonPropertyName("id")]
     public required string Id { get; init; }
@@ -26,10 +26,4 @@ public sealed record BlobInfo
     /// </summary>
     [JsonPropertyName("bytes")]
     public required double Bytes { get; init; }
-
-    /// <summary>
-    /// Epoch milliseconds after which the blob may be deleted. Read it with GET /api/experimental/blob/:id
-    /// </summary>
-    [JsonPropertyName("expiresAt")]
-    public required double ExpiresAt { get; init; }
 }

@@ -197,7 +197,7 @@ A session's turn ends with exactly one of three events: `SessionExecutionSucceed
 session goes from working to idle, however many prompts it worked through. The samples here stop
 on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`. That interrupt means
 the server is stopping, and the server resumes the turn after it restarts, with a new
-`SessionExecutionStarted`. One exception at opencode v2.3.2: a Reject without a `Message` also ends
+`SessionExecutionStarted`. One exception at opencode v2.4.1: a Reject without a `Message` also ends
 the turn with `Shutdown` while the server keeps running, and that turn resumes after a later
 restart (open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180)). The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
 server is back, so to follow the resumed turn keep reading under your own deadline.
@@ -255,7 +255,7 @@ A turn's end, and `client.Experimental.WaitForSessionAsync`, cover one session o
 background jobs its prompt started, such as a subagent's. `client.Experimental.ListJobsAsync`
 lists those, filtered by `SessionId` and, with `Descendants`, their children's too. A listed job
 is not necessarily still running: read its `Status`, and `Time.Completed` once it has ended. At
-opencode v2.3.2, a background subagent rejected without a `Message` stays listed as `cancelled`
+opencode v2.4.1, a background subagent rejected without a `Message` stays listed as `cancelled`
 until the server restarts, and its parent is never told
 (open upstream as [anomalyco/opencode#54180](https://github.com/anomalyco/opencode/issues/54180); the
 subagent case was reported as [#64032](https://github.com/anomalyco/opencode/issues/64032)), so a wait for
@@ -594,7 +594,7 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 >
 > **The distributed `opencode` CLI starts its server without event persistence and exposes no switch
 > for it** — no serve flag, no environment variable, no configuration key. Observed on
-> `@opencode/cli@2.0.15`, and confirmed at the pin (`v2.3.2`). So `ReadSessionLogAsync` against a CLI-started server is not an error and
+> `@opencode/cli@2.0.15`, and confirmed at the pin (`v2.4.1`). So `ReadSessionLogAsync` against a CLI-started server is not an error and
 > not empty: with `Follow` unset or `False` it is one `log.synced` frame and the end of the stream,
 > and with `Follow = True` it is the same single marker and then nothing, however many durable
 > changes the session goes through while you listen. The marker's wire `seq` (normally
